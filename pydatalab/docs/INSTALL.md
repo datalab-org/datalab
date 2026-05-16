@@ -75,7 +75,7 @@ You could also use the standard library `venv` module, but this will not allow y
 
 ##### Installing with plugins
 
-If you would like to install *datalab* together with one or more plugins (e.g., custom data blocks from a third-party repository or a local checkout), create a `plugins.toml` file at the root of `pydatalab/` declaring the plugin packages and their sources, then run:
+If you would like to install *datalab* together with one or more plugins (e.g., custom data blocks from a third-party repository or a local checkout), create a `plugins.toml` file at the root of the repository (alongside `pydatalab/` and `webapp/`) declaring the plugin packages and their sources, then run:
 
 ```shell
 cd pydatalab

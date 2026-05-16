@@ -6,10 +6,10 @@ The most mature plugin type are custom application data blocks, a template repos
 
 ## Installing plugins
 
-Plugins are declared in a `plugins.toml` file at the root of `pydatalab/`. The format mirrors the relevant fragments of `pyproject.toml`:
+Plugins are declared in a `plugins.toml` file at the root of the repository (alongside `pydatalab/` and `webapp/`). The format mirrors the relevant fragments of `pyproject.toml`, and a generated JSON Schema describing the expected structure is checked in at `pydatalab/schemas/plugin_config.json`:
 
 ```toml
-# pydatalab/plugins.toml
+# plugins.toml (at the repository root)
 dependencies = [
     "datalab-app-plugin-insitu",
     "my-local-plugin",
@@ -18,8 +18,8 @@ dependencies = [
 [tool.uv.sources]
 # Pin to a specific git ref:
 datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git", rev = "v0.4.1" }
-# Or point at a local checkout (paths are resolved relative to pydatalab/):
-my-local-plugin = { path = "../../my-local-plugin", editable = true }
+# Or point at a local checkout (paths are resolved relative to plugins.toml itself):
+my-local-plugin = { path = "../my-local-plugin", editable = true }
 ```
 
 To install *datalab* together with the declared plugins:
@@ -45,4 +45,4 @@ To revert to the locked core dependencies without any plugins, run:
 uv sync --all-extras --dev
 ```
 
-The same `invoke dev.install` task is used by the production Docker image (`.docker/server/Dockerfile`): a `plugins.toml` at `pydatalab/plugins.toml` is picked up automatically at build time, so plugins can be baked into a custom image without modifying the Dockerfile itself. It can also be invoked from the [*datalab* Ansible role](https://github.com/datalab-org/datalab-ansible-terraform) to provision plugins on a deployed server — drop a `plugins.toml` next to the checked-out `pydatalab/` directory and run the install task as part of the deployment playbook.
+The same `invoke dev.install` task is used by the production Docker image (`.docker/server/Dockerfile`): a `plugins.toml` at the repository root is picked up automatically at build time, so plugins can be baked into a custom image without modifying the Dockerfile itself. It can also be invoked from the [*datalab* Ansible role](https://github.com/datalab-org/datalab-ansible-terraform) to provision plugins on a deployed server — drop a `plugins.toml` next to the checked-out `pydatalab/` directory and run the install task as part of the deployment playbook.

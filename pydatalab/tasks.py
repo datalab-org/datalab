@@ -19,6 +19,80 @@ admin = Collection("admin")
 migration = Collection("migration")
 
 
+# Path to the canonical plugins.toml location, at the root of the repository
+# (one level above pydatalab/). Resolving via __file__ lets the task be invoked
+# from any working directory.
+PLUGINS_TOML_PATH = pathlib.Path(__file__).resolve().parent.parent / "plugins.toml"
+
+
+def load_plugin_schema():
+    """Return the top-level pydantic model describing the plugins.toml schema.
+
+    The model classes are defined inside this helper to keep the top level of
+    `tasks.py` uncluttered: only `dev.install` and `dev.generate-schemas`
+    need them. A JSON Schema generated from the returned model is emitted to
+    `pydatalab/schemas/plugin_config.json` by `invoke dev.generate-schemas`.
+    """
+    from pydantic import BaseModel, root_validator
+
+    class UvSource(BaseModel):
+        """A single entry under `[tool.uv.sources]` in plugins.toml."""
+
+        git: str | None = None
+        rev: str | None = None
+        branch: str | None = None
+        tag: str | None = None
+        path: str | None = None
+        editable: bool | None = None
+
+        class Config:
+            extra = "forbid"
+
+        @root_validator
+        def _exactly_one_source(cls, values):
+            has_git = values.get("git") is not None
+            has_path = values.get("path") is not None
+            if has_git and has_path:
+                raise ValueError("a uv source must specify either `git` or `path`, not both")
+            if not has_git and not has_path:
+                raise ValueError("a uv source must specify one of `git` or `path`")
+            return values
+
+    class UvSection(BaseModel):
+        sources: dict[str, UvSource] = {}
+
+        class Config:
+            extra = "forbid"
+
+    class ToolSection(BaseModel):
+        uv: UvSection = UvSection()
+
+        class Config:
+            extra = "forbid"
+
+    class PluginConfigModel(BaseModel):
+        """The schema for the top-level plugins.toml file."""
+
+        dependencies: list[str] = []
+        tool: ToolSection = ToolSection()
+
+        class Config:
+            extra = "forbid"
+
+        @root_validator
+        def _sources_must_match_dependencies(cls, values):
+            deps = {d.split("[")[0].strip() for d in values.get("dependencies", [])}
+            sources = values.get("tool", ToolSection()).uv.sources
+            orphans = sorted(set(sources) - deps)
+            if orphans:
+                raise ValueError(
+                    f"[tool.uv.sources] entries have no matching dependency: {orphans}"
+                )
+            return values
+
+    return PluginConfigModel
+
+
 def update_file(filename: str, sub_line: tuple[str, str], strip: str | None = None):
     """Utility function for tasks to read, update, and write files.
 
@@ -36,8 +110,6 @@ def update_file(filename: str, sub_line: tuple[str, str], strip: str | None = No
 @task
 def generate_schemas(_):
     """This task generates JSONSchemas for all item models used in the project."""
-    from pydantic import BaseModel
-
     from pydatalab.models import ITEM_MODELS
 
     schemas_path = pathlib.Path(__file__).parent / "schemas"
@@ -47,13 +119,8 @@ def generate_schemas(_):
         with open(schemas_path / f"{model.__name__.lower()}.json", "w") as f:
             json.dump(schema, f, indent=2)
 
-    # plugin config schema
-    class PluginConfigModel(BaseModel):
-        dependencies: list[str] = []
-        tool: dict[str, dict[str, str]] = {}
-
     with open(schemas_path / "plugin_config.json", "w") as f:
-        json.dump(PluginConfigModel.schema(), f, indent=2)
+        json.dump(load_plugin_schema().schema(), f, indent=2)
 
 
 dev.add_task(generate_schemas)
@@ -67,32 +134,36 @@ def install(_, dev=True):
 
     """
 
-    # look for a custom plugins.toml file in the pydatalab root dir
-    plugin_cfg = pathlib.Path(__file__).parent / "plugins.toml"
+    plugin_cfg = PLUGINS_TOML_PATH
 
     deps: list[str] = []
     sources: dict[str, dict[str, str]] = {}
 
     if not plugin_cfg.is_file():
-        print("No plugins.toml found; installing with base pyproject.toml")
+        print(f"No plugins.toml found at {plugin_cfg}; installing with base pyproject.toml")
 
     else:
         with open(plugin_cfg) as f:
-            plugin_data = tomlkit.load(f)
+            raw_plugin_data = tomlkit.load(f)
 
-        # search through plugin.toml for depedencies and sources blocks
-        # and interleave them with the usual pyproject.toml
-        deps = plugin_data.get("dependencies", [])
-        sources = plugin_data.get("tool", {}).get("uv", {}).get("sources", {})
+        try:
+            plugin_data = load_plugin_schema().parse_obj(raw_plugin_data.unwrap())
+        except Exception as exc:
+            raise SystemExit(f"Invalid plugins.toml at {plugin_cfg}:\n{exc}") from None
+
+        deps = list(plugin_data.dependencies)
+        sources = {
+            name: source.dict(exclude_none=True)
+            for name, source in plugin_data.tool.uv.sources.items()
+        }
 
         print(f"Found plugins: {deps}")
 
+        # Resolve any relative paths in [tool.uv.sources] relative to the
+        # location of plugins.toml itself (i.e. the repo root).
         for name, source in sources.items():
-            # Set absolute paths for any local sources, assuming they are relative to the pydatalab root directory
             if source.get("path") is not None:
-                sources[name]["path"] = str(
-                    (pathlib.Path(__file__).parent / source["path"]).resolve()
-                )
+                sources[name]["path"] = str((plugin_cfg.parent / source["path"]).resolve())
 
     with open(pathlib.Path(__file__).parent / "pyproject.toml") as f:
         pyproject_data = dict(tomlkit.load(f))

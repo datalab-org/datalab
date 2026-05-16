@@ -44,8 +44,12 @@ COPY ./pydatalab/pyproject.toml .
 COPY ./pydatalab/uv.lock .
 
 
-COPY ./pydatalab/plugins.tom[l] .
-COPY ./pydatalab/plugins/ ./plugins
+# plugins.toml lives at the repo root; copy it one level above WORKDIR so that
+# `invoke dev.install` finds it via `<tasks.py>/../plugins.toml` (i.e. /plugins.toml),
+# and copy plugin source trees to /pydatalab/plugins/ so that relative paths in
+# plugins.toml (resolved relative to plugins.toml itself) point at real files.
+COPY ./plugins.tom[l] /plugins.toml
+COPY ./pydatalab/plugins/ /pydatalab/plugins/
 
 # Install the base datalab venv with dev dependencies (to include invoke)
 # then run the datalab custom install script to pick up any plugins and install
