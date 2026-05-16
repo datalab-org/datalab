@@ -1,5 +1,6 @@
 {
   "title": "PluginConfigModel",
+  "description": "The schema for the top-level plugins.toml file.",
   "type": "object",
   "properties": {
     "dependencies": {
@@ -12,14 +13,84 @@
     },
     "tool": {
       "title": "Tool",
-      "default": {},
-      "type": "object",
-      "additionalProperties": {
-        "type": "object",
-        "additionalProperties": {
-          "type": "string"
+      "default": {
+        "uv": {
+          "sources": {}
         }
-      }
+      },
+      "allOf": [
+        {
+          "$ref": "#/definitions/ToolSection"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "UvSource": {
+      "title": "UvSource",
+      "description": "A single entry under `[tool.uv.sources]` in plugins.toml.",
+      "type": "object",
+      "properties": {
+        "git": {
+          "title": "Git",
+          "type": "string"
+        },
+        "rev": {
+          "title": "Rev",
+          "type": "string"
+        },
+        "branch": {
+          "title": "Branch",
+          "type": "string"
+        },
+        "tag": {
+          "title": "Tag",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "editable": {
+          "title": "Editable",
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "UvSection": {
+      "title": "UvSection",
+      "type": "object",
+      "properties": {
+        "sources": {
+          "title": "Sources",
+          "default": {},
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/UvSource"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "ToolSection": {
+      "title": "ToolSection",
+      "type": "object",
+      "properties": {
+        "uv": {
+          "title": "Uv",
+          "default": {
+            "sources": {}
+          },
+          "allOf": [
+            {
+              "$ref": "#/definitions/UvSection"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
     }
   }
 }
