@@ -144,9 +144,10 @@ jobs:
           working-directory: "./pydatalab"
 
       - name: Clone and mount template plugin to test local plugin installation
-        working-directory: ./pydatalab
         run: |
-          mkdir -p plugins
+          mkdir -p pydatalab/plugins
+
+          cp plugins.toml.template plugins.toml
 
           # Initialise copier with default/dummy options
           uvx copier@9.8.0 copy -l \
@@ -155,10 +156,8 @@ jobs:
             -d project_name=datalab-app-plugin-template \
             -d repository_namespace=datalab-org \
             "https://github.com/datalab-org/datalab-app-plugin-template" \
-            plugins/datalab-app-plugin-template
+            pydatalab/plugins/datalab-app-plugin-template
 
-          # Temporarily add plugin as an extra dev dep to the pyproject.toml
-          cp plugins.toml.template plugins.toml
 
       - name: Set some environment variables for CI containers pre-build
         run: |
