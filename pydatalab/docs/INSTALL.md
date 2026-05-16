@@ -73,6 +73,19 @@ You could also use the standard library `venv` module, but this will not allow y
     pip install -e '.[all]'
     ```
 
+##### Installing with plugins
+
+If you would like to install *datalab* together with one or more plugins (e.g., custom data blocks from a third-party repository or a local checkout), create a `plugins.toml` file at the root of the repository (alongside `pydatalab/` and `webapp/`) declaring the plugin packages and their sources, then run:
+
+```shell
+cd pydatalab
+uv run invoke dev.install
+```
+
+This merges `plugins.toml` into a working copy of `pyproject.toml` under `./build/`, re-locks dependencies, and installs everything into the currently active *datalab* virtual environment. The same task is used by the production Docker build and can be wired into the Ansible deployment role, so the `plugins.toml` you write locally is the same artifact used in production.
+
+See the [plugins documentation](plugins.md) for the `plugins.toml` format and a full description of the install procedure.
+
 #### Running the development server
 
 1. Run the server from the `pydatalab` folder with either:

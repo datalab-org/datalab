@@ -2,17 +2,95 @@ import json
 import os
 import pathlib
 import re
+import shutil
+import subprocess
 import time
+import typing
 
+import tomlkit
 from invoke import Collection, task
 
-from pydatalab.logger import setup_log
-from pydatalab.models.utils import UserRole
+if typing.TYPE_CHECKING:
+    from pydatalab.models.utils import UserRole
 
 ns = Collection()
 dev = Collection("dev")
 admin = Collection("admin")
 migration = Collection("migration")
+
+
+# Path to the canonical plugins.toml location, at the root of the repository
+# (one level above pydatalab/). Resolving via __file__ lets the task be invoked
+# from any working directory.
+PLUGINS_TOML_PATH = pathlib.Path(__file__).resolve().parent.parent / "plugins.toml"
+
+
+def load_plugin_schema():
+    """Return the top-level pydantic model describing the plugins.toml schema.
+
+    The model classes are defined inside this helper to keep the top level of
+    `tasks.py` uncluttered: only `dev.install` and `dev.generate-schemas`
+    need them. A JSON Schema generated from the returned model is emitted to
+    `pydatalab/schemas/plugin_config.json` by `invoke dev.generate-schemas`.
+    """
+    from pydantic import BaseModel, root_validator
+
+    class UvSource(BaseModel):
+        """A single entry under `[tool.uv.sources]` in plugins.toml."""
+
+        git: str | None = None
+        rev: str | None = None
+        branch: str | None = None
+        tag: str | None = None
+        path: str | None = None
+        editable: bool | None = None
+
+        class Config:
+            extra = "forbid"
+
+        @root_validator
+        def _exactly_one_source(cls, values):
+            has_git = values.get("git") is not None
+            has_path = values.get("path") is not None
+            if has_git and has_path:
+                raise ValueError("a uv source must specify either `git` or `path`, not both")
+            if not has_git and not has_path:
+                raise ValueError("a uv source must specify one of `git` or `path`")
+            return values
+
+    class UvSection(BaseModel):
+        sources: dict[str, UvSource] = {}
+
+        class Config:
+            extra = "forbid"
+
+    class ToolSection(BaseModel):
+        uv: UvSection = UvSection()
+
+        class Config:
+            extra = "forbid"
+
+    class PluginConfigModel(BaseModel):
+        """The schema for the top-level plugins.toml file."""
+
+        dependencies: list[str] = []
+        tool: ToolSection = ToolSection()
+
+        class Config:
+            extra = "forbid"
+
+        @root_validator
+        def _sources_must_match_dependencies(cls, values):
+            deps = {d.split("[")[0].strip() for d in values.get("dependencies", [])}
+            sources = values.get("tool", ToolSection()).uv.sources
+            orphans = sorted(set(sources) - deps)
+            if orphans:
+                raise ValueError(
+                    f"[tool.uv.sources] entries have no matching dependency: {orphans}"
+                )
+            return values
+
+    return PluginConfigModel
 
 
 def update_file(filename: str, sub_line: tuple[str, str], strip: str | None = None):
@@ -41,8 +119,109 @@ def generate_schemas(_):
         with open(schemas_path / f"{model.__name__.lower()}.json", "w") as f:
             json.dump(schema, f, indent=2)
 
+    with open(schemas_path / "plugin_config.json", "w") as f:
+        json.dump(load_plugin_schema().schema(), f, indent=2)
+
 
 dev.add_task(generate_schemas)
+
+
+@task
+def install(_, dev=True):
+    """This task looks for a plugins.toml and attempts to
+    do an isolated build in `./build` with its own lock
+    and pyproject.toml.
+
+    """
+
+    plugin_cfg = PLUGINS_TOML_PATH
+
+    deps: list[str] = []
+    sources: dict[str, dict[str, str]] = {}
+
+    if not plugin_cfg.is_file():
+        print(f"No plugins.toml found at {plugin_cfg}; installing with base pyproject.toml")
+
+    else:
+        with open(plugin_cfg) as f:
+            raw_plugin_data = tomlkit.load(f)
+
+        try:
+            plugin_data = load_plugin_schema().parse_obj(raw_plugin_data.unwrap())
+        except Exception as exc:
+            raise SystemExit(f"Invalid plugins.toml at {plugin_cfg}:\n{exc}") from None
+
+        deps = list(plugin_data.dependencies)
+        sources = {
+            name: source.dict(exclude_none=True)
+            for name, source in plugin_data.tool.uv.sources.items()
+        }
+
+        print(f"Found plugins: {deps}")
+
+        # Resolve any relative paths in [tool.uv.sources] relative to the
+        # location of plugins.toml itself (i.e. the repo root).
+        for name, source in sources.items():
+            if source.get("path") is not None:
+                sources[name]["path"] = str((plugin_cfg.parent / source["path"]).resolve())
+
+    with open(pathlib.Path(__file__).parent / "pyproject.toml") as f:
+        pyproject_data = dict(tomlkit.load(f))
+
+    pyproject_data["tool"]["setuptools_scm"]["root"] = "../.."
+
+    if deps:
+        pyproject_data["project"] = pyproject_data.get("project", {})
+        pyproject_data["project"]["optional-dependencies"] = pyproject_data["project"].get(
+            "optional-dependencies", {}
+        )
+
+        if "plugins" in pyproject_data["project"]["optional-dependencies"]:
+            raise SystemExit(
+                "The pyproject.toml already has a plugins optional-dependencies block, cannot continue."
+            )
+
+        pyproject_data["project"]["optional-dependencies"]["plugins"] = deps
+
+        original_sources = pyproject_data.get("tool", {}).get("uv", {}).get("sources", {})
+        original_sources.update(sources)
+
+    build_dir = pathlib.Path(__file__).parent / "build"
+    build_dir.mkdir(exist_ok=True)
+
+    print(f"Installing datalab into {build_dir} with custom pyproject.toml and uv.lock...")
+
+    new_pyproject_path = build_dir / "pyproject.toml"
+    if new_pyproject_path.is_file():
+        new_pyproject_path.unlink()
+
+    # dump to ./build/pyproject.toml
+    with open(new_pyproject_path, "w") as f:
+        tomlkit.dump(pyproject_data, f)
+
+    # copy existing lock then rerun uv lock to create ./build/uv.lock
+    shutil.copy(pathlib.Path(__file__).parent / "uv.lock", build_dir / "uv.lock")
+    subprocess.run(["uv", "lock"], cwd=build_dir, check=True)  # noqa: S607
+
+    print(
+        "Combining environment with plugins and installing into base datalab virtual environment `./.venv"
+    )
+
+    sync_cmd = ["uv", "sync", "--locked", "--all-extras", "--active", "--project", "./build"]
+    if not dev:
+        sync_cmd.append("--no-dev")
+
+    subprocess.run(sync_cmd, check=True)  # noqa: S607, S603
+
+    # Finally, install datalab-server in editable mode so that it can be run from the source directory, in the same way
+    # we do in the Docker build
+    install_cmd = ["uv", "pip", "install", "-e", "."]
+    subprocess.run(install_cmd, check=True)  # noqa: S607, S603
+
+    print("Done! To revert to locked core dependencies, run `uv sync --all-extras --dev`.")
+
+
+dev.add_task(install)
 
 
 @task
@@ -57,10 +236,11 @@ admin.add_task(create_mongo_indices)
 
 
 @task
-def change_user_role(_, display_name: str, role: UserRole):
+def change_user_role(_, display_name: str, role: "UserRole"):
     """This task takes a user's name and gives them the desired role."""
     from bson import ObjectId
 
+    from pydatalab.models.utils import UserRole
     from pydatalab.mongo import _get_active_mongo_client
 
     try:
@@ -197,6 +377,8 @@ migration.add_task(add_missing_refcodes)
 
 
 def _check_id(id=None, base_url=None, api_key=None):
+    from pydatalab.logger import setup_log
+
     """Checks the given item ID served at the base URL and logs the result."""
     import requests
 
@@ -227,6 +409,8 @@ def check_item_validity(_, base_url: str | None = None, starting_materials: bool
     import os
 
     import requests
+
+    from pydatalab.logger import setup_log
 
     api_key = os.environ.get("DATALAB_API_KEY")
     if not api_key:
@@ -286,6 +470,8 @@ def check_remotes(_, base_url: str | None = None, invalidate_cache: bool = False
     import os
 
     import requests
+
+    from pydatalab.logger import setup_log
 
     api_key = os.environ.get("DATALAB_API_KEY")
     if not api_key:

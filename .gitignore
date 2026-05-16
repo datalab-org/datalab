@@ -5,6 +5,8 @@ ssh_config
 logs/
 site/
 docker-compose.override.yml
+plugins.toml
+plugins/
 
 # App testing files
 webapp/cypress/screenshots

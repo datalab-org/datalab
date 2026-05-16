@@ -1,0 +1,4 @@
+dependencies = ["datalab-app-plugin-template"]
+
+[tool.uv.sources]
+datalab-app-plugin-template = { path = "pydatalab/plugins/datalab-app-plugin-template" }

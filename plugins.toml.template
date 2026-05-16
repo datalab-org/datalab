@@ -1,0 +1,24 @@
+# Template plugins.toml file demonstrating the supported source styles.
+#
+# To use this template, copy it to plugins.toml at the root of this repository
+# (alongside pydatalab/ and webapp/) and update the plugin names and sources
+# as needed. Relative paths are resolved relative to this file's location.
+#
+# The file is consumed by the `invoke dev.install` task (run from pydatalab/),
+# and the same task is used by the production Docker build and the datalab
+# Ansible role.
+#
+# See pydatalab/docs/plugins.md (https://docs.datalab-org.io/en/latest/plugins/)
+# for a full description of the plugin system,
+# and pydatalab/schemas/plugin_config.json for the JSON Schema describing the
+# expected structure of this file.
+
+dependencies = [
+    "local-plugin",          # resolved via a [tool.uv.sources] path entry below
+    "git-plugin",            # resolved via a [tool.uv.sources] git entry below
+    "pip-plugin >=1.0,<2.0", # PyPI dependency with a version constraint
+]
+
+[tool.uv.sources]
+local-plugin = { path = "pydatalab/plugins/local-plugin" }
+git-plugin   = { git = "https://github.com/example-org/git-plugin.git", rev = "v0.1.0" }
