@@ -24,6 +24,8 @@ To run *datalab*, you will need to install the environments for each component.
 Firstly, from the desired folder, clone this repository from GitHub to your local machine with `git clone https://github.com/datalab-org/datalab`.
 If you are not familiar with `git` or GitHub, you can do worse than reading through the [GitHub getting started documentation](https://docs.github.com/en/get-started/start-your-journey/about-github-and-git).
 
+Your local development *datalab* can be configured with all the options as a real *datalab*; these are expected in the same places as described in [Server configuration](https://docs.datalab-org.io/en/latest/config/), and can be set with environment variables or a config file, with additional config and secrets provided in `.env` files in the `pydatalab/`  and `webapp/` directories for development purposes.
+
 ### `pydatalab` server installation
 
 The instructions in this section will leave you with a running *datalab* server on your host machine, as implemented in the `pydatalab` Python package.
