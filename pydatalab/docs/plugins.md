@@ -1,10 +1,11 @@
 # Plugins
 
-*datalab*'s plugin system is under active development, as is this documentation
-page.
-The most mature plugin type are custom application data blocks, a template repository for which can be found at [datalab-org/datalab-app-plugin-template](https://github.com/datalab-org/datalab-app-plugin-template).
+*datalab*'s plugin system is under active development, as is this documentation page.
+The most mature plugin type are custom application data blocks, a template repository for which can be found at [datalab-org/datalab-app-plugin-template](https://github.com/datalab-org/datalab-app-plugin-template) (see more below).
 
-*datalab* supports plugins that extend the server with new functionality. Plugins that self-declare can be discovered via the [`datalab-plugin` topic on GitHub](https://github.com/topics/datalab-plugin), which is one place to look for what is currently available.
+*datalab* supports plugins that extend the server with new functionality.
+Some self-declared plugins can be found via the [`datalab-plugin` topic on GitHub](https://github.com/topics/datalab-plugin), in lieu of a formal registry at this time.
+Plugins can also be kept private and installed from e.g., a private git repository, or a local path on the host, using the same installation described below.
 
 !!! warning "Only install plugins you trust"
     Plugins are installed into the same Python environment as the *datalab* server and run with full server privileges. Only install plugins from sources you trust.
@@ -15,15 +16,18 @@ At present, a *datalab* plugin is a Python package that registers one or more [d
 Data blocks ingest a file (or set of files) attached to an item and render an interactive view of the parsed data, e.g. an NMR spectrum, an electrochemistry cycler trace, or an XRD pattern.
 *datalab* discovers them at server startup by enumerating the relevant entry point group, with no changes required to the core code.
 
-Additional plugin types: custom item types, ingestion hooks, and webapp components are planned in the future (see [roadmap.md]) -- please reach out if you have a specific use case.
+Additional plugin types: custom item types, ingestion hooks, and webapp components are planned in the future (see [roadmap.md]); please reach out if you have a specific use case.
 
 ## Writing a plugin
 
-The recommended starting point is the template repository at [datalab-org/datalab-app-plugin-template](https://github.com/datalab-org/datalab-app-plugin-template), which contains a minimal data block plugin together with the packaging boilerplate (entry point declaration, test scaffolding, and a working `pyproject.toml`). Fork or copy it, replace the example block with your own, and publish to PyPI or distribute as a git repository.
+The recommended starting point is the [Copier](https://copier.readthedocs.io/) template at [datalab-org/datalab-app-plugin-template](https://github.com/datalab-org/datalab-app-plugin-template), which scaffolds a minimal data block plugin together with the packaging boilerplate (entry point declaration, test scaffolding, and a working `pyproject.toml`).
+Rather than forking the repository, you should use it directly with Copier to
+generate a new plugin repository; see the README in the [datalab-org/datalab-app-plugin-template](https://github.com/datalab-org/datalab-app-plugin-template) repository for full instructions.
 
 ## Installing plugins
 
-Plugins are declared in a `plugins.toml` file at the root of the repository (alongside `pydatalab/` and `webapp/`). The format mirrors the relevant fragments of `pyproject.toml`, and a generated JSON Schema describing the expected structure is checked in at `pydatalab/schemas/plugin_config.json`:
+Plugins are declared in a `plugins.toml` file at the root of the repository (alongside `pydatalab/` and `webapp/`).
+The format mirrors the relevant fragments of `pyproject.toml`, and a generated JSON Schema describing the expected structure is checked in at `pydatalab/schemas/plugin_config.json`:
 
 ```toml
 # plugins.toml (at the repository root)
@@ -62,4 +66,5 @@ To revert to the locked core dependencies without any plugins, run:
 uv sync --all-extras --dev
 ```
 
-The same `invoke dev.install` task is used by the production Docker image (`.docker/server/Dockerfile`): a `plugins.toml` at the repository root is picked up automatically at build time, so plugins can be baked into a custom image without modifying the Dockerfile itself. It can also be invoked from the [*datalab* Ansible role](https://github.com/datalab-org/datalab-ansible-terraform) to provision plugins on a deployed server — drop a `plugins.toml` next to the checked-out `pydatalab/` directory and run the install task as part of the deployment playbook.
+The same `invoke dev.install` task is used by the production Docker image (`.docker/server/Dockerfile`): a `plugins.toml` at the repository root is picked up automatically at build time, so plugins can be baked into a custom image without modifying the Dockerfile itself.
+It will also be invoked from the [*datalab* Ansible role](https://github.com/datalab-org/datalab-ansible-terraform) to provision plugins on a deployed server when a `plugins.toml` is provided; see the role documentation for details.
