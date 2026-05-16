@@ -4,6 +4,23 @@
 page.
 The most mature plugin type are custom application data blocks, a template repository for which can be found at [datalab-org/datalab-app-plugin-template](https://github.com/datalab-org/datalab-app-plugin-template).
 
+*datalab* supports plugins that extend the server with new functionality. Plugins that self-declare can be discovered via the [`datalab-plugin` topic on GitHub](https://github.com/topics/datalab-plugin), which is one place to look for what is currently available.
+
+!!! warning "Only install plugins you trust"
+    Plugins are installed into the same Python environment as the *datalab* server and run with full server privileges. Only install plugins from sources you trust.
+
+## What a plugin is
+
+At present, a *datalab* plugin is a Python package that registers one or more [data block](blocks/index.md) classes via a Python entry point.
+Data blocks ingest a file (or set of files) attached to an item and render an interactive view of the parsed data, e.g. an NMR spectrum, an electrochemistry cycler trace, or an XRD pattern.
+*datalab* discovers them at server startup by enumerating the relevant entry point group, with no changes required to the core code.
+
+Additional plugin types: custom item types, ingestion hooks, and webapp components are planned in the future (see [roadmap.md]) -- please reach out if you have a specific use case.
+
+## Writing a plugin
+
+The recommended starting point is the template repository at [datalab-org/datalab-app-plugin-template](https://github.com/datalab-org/datalab-app-plugin-template), which contains a minimal data block plugin together with the packaging boilerplate (entry point declaration, test scaffolding, and a working `pyproject.toml`). Fork or copy it, replace the example block with your own, and publish to PyPI or distribute as a git repository.
+
 ## Installing plugins
 
 Plugins are declared in a `plugins.toml` file at the root of the repository (alongside `pydatalab/` and `webapp/`). The format mirrors the relevant fragments of `pyproject.toml`, and a generated JSON Schema describing the expected structure is checked in at `pydatalab/schemas/plugin_config.json`:
