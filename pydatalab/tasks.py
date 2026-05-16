@@ -89,12 +89,6 @@ def install(_, dev=True):
 
         for name, source in sources.items():
             # Set absolute paths for any local sources, assuming they are relative to the pydatalab root directory
-            if name not in deps:
-                print(
-                    "Warning: Found source configuration for {name!r} in plugins.toml but no corresponding dependency; skipping."
-                )
-                continue
-
             if source.get("path") is not None:
                 sources[name]["path"] = str(
                     (pathlib.Path(__file__).parent / source["path"]).resolve()
@@ -147,6 +141,11 @@ def install(_, dev=True):
         sync_cmd.append("--no-dev")
 
     subprocess.run(sync_cmd, check=True)  # noqa: S607, S603
+
+    # Finally, install datalab-server in editable mode so that it can be run from the source directory, in the same way
+    # we do in the Docker build
+    install_cmd = ["uv", "pip", "install", "-e", "."]
+    subprocess.run(install_cmd, check=True)  # noqa: S607, S603
 
     print("Done! To revert to locked core dependencies, run `uv sync --all-extras --dev`.")
 
