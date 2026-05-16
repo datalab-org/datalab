@@ -147,7 +147,7 @@ jobs:
         run: |
           mkdir -p pydatalab/plugins
 
-          cp plugins.toml.template plugins.toml
+          cp .github/workflows/plugins.ci-template.toml plugins.toml
 
           # Initialise copier with default/dummy options
           uvx copier@9.8.0 copy -l \
