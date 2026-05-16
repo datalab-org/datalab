@@ -36,6 +36,8 @@ def update_file(filename: str, sub_line: tuple[str, str], strip: str | None = No
 @task
 def generate_schemas(_):
     """This task generates JSONSchemas for all item models used in the project."""
+    from pydantic import BaseModel
+
     from pydatalab.models import ITEM_MODELS
 
     schemas_path = pathlib.Path(__file__).parent / "schemas"
@@ -44,6 +46,14 @@ def generate_schemas(_):
         schema = model.schema(by_alias=False)
         with open(schemas_path / f"{model.__name__.lower()}.json", "w") as f:
             json.dump(schema, f, indent=2)
+
+    # plugin config schema
+    class PluginConfigModel(BaseModel):
+        dependencies: list[str] = []
+        tool: dict[str, dict[str, str]] = {}
+
+    with open(schemas_path / "plugin_config.json", "w") as f:
+        json.dump(PluginConfigModel.schema(), f, indent=2)
 
 
 dev.add_task(generate_schemas)

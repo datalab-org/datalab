@@ -1,0 +1,25 @@
+{
+  "title": "PluginConfigModel",
+  "type": "object",
+  "properties": {
+    "dependencies": {
+      "title": "Dependencies",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tool": {
+      "title": "Tool",
+      "default": {},
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
