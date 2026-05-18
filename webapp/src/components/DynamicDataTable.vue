@@ -606,7 +606,6 @@ import TokenCreatedByCell from "@/components/TokenCreatedByCell.vue";
 import GroupIdCell from "@/components/GroupIdCell.vue";
 import GroupMembersCell from "@/components/GroupMembersCell.vue";
 import GroupActionsCell from "@/components/GroupActionsCell.vue";
-import FormulaWithSubstanceCell from "@/components/FormulaWithSubstanceCell.vue";
 
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
@@ -657,7 +656,6 @@ export default {
     GroupIdCell,
     GroupMembersCell,
     GroupActionsCell,
-    FormulaWithSubstanceCell,
   },
   props: {
     columns: {
@@ -1349,13 +1347,11 @@ export default {
         },
         ChemicalFormula: {
           formula: "chemform",
-        },
-        FormulaWithSubstanceCell: {
-          chemform: "chemform",
           smiles: "smiles",
           inchiKey: "inchi_key",
           ghsCodes: "GHS_codes",
           molarMass: "molar_mass",
+          cas: "CAS",
         },
         CollectionList: {
           collections: "collections",

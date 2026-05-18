@@ -71,13 +71,6 @@
         </div>
         <div class="form-row">
           <div class="form-group col-lg-3 col-sm-3 col-6">
-            <label for="startmat-cas">CAS</label>
-            <a v-if="CAS" :href="'https://commonchemistry.cas.org/detail?cas_rn=' + CAS"
-              ><font-awesome-icon icon="search" class="fixed-width ml-2"
-            /></a>
-            <StyledInput id="startmat-cas" v-model="CAS" :readonly="!isEditable" />
-          </div>
-          <div class="form-group col-lg-3 col-sm-3 col-6">
             <label for="startmat-date-opened">Date opened</label>
             <StyledInput
               id="startmat-date-opened"
@@ -95,7 +88,7 @@
 
     <div class="row">
       <div class="col">
-        <SubstanceInformation class="mt-3" :item_id="item_id" />
+        <SubstanceInformation class="mt-3" :item_id="item_id" :is-editable="isEditable" />
       </div>
     </div>
 
@@ -164,7 +157,6 @@ export default {
     },
     ItemID: createComputedSetterForItemField("item_id"),
     Name: createComputedSetterForItemField("name"),
-    CAS: createComputedSetterForItemField("CAS"),
     DateAcquired: createComputedSetterForItemField("date"),
     DateOpened: createComputedSetterForItemField("date_opened"),
     Supplier: createComputedSetterForItemField("supplier"),
