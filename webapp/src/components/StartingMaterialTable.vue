@@ -44,7 +44,7 @@ export default {
         {
           field: "chemform",
           header: "Formula",
-          body: "FormulaWithSubstanceCell",
+          body: "ChemicalFormula",
           label: "Formula",
         },
         { field: "date", header: "Date", label: "Date" },

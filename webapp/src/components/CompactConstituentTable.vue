@@ -33,6 +33,11 @@
             :item-type="constituent.item.type"
             :name="constituent.item.name"
             :chemform="constituent.item.chemform || ''"
+            :smiles="constituent.item.smiles"
+            :inchi-key="constituent.item.inchi_key"
+            :ghs-codes="constituent.item.GHS_codes"
+            :molar-mass="constituent.item.molar_mass"
+            :cas="constituent.item.CAS"
             :max-length="25"
             enable-click
             enable-modified-click

@@ -1,16 +1,56 @@
 <template>
-  <span v-html="chemFormulaFormat"></span>
+  <span class="chemical-formula">
+    <span
+      v-if="hover && hasSubstanceData"
+      ref="trigger"
+      class="substance-icon"
+      @mouseenter="$refs.popover.show($event, $refs.trigger)"
+      @mouseleave="$refs.popover.hide()"
+    >
+      <font-awesome-icon icon="vial" class="substance-indicator" />
+      <Popover ref="popover" :dismissable="false">
+        <SubstanceInfoSmall
+          :chemform="formula"
+          :smiles="smiles"
+          :inchi-key="inchiKey"
+          :ghs-codes="ghsCodes"
+          :molar-mass="molarMass"
+          :cas="cas"
+        />
+      </Popover>
+    </span>
+    <span v-html="chemFormulaFormat"></span>
+  </span>
 </template>
 
 <script>
+import { defineAsyncComponent } from "vue";
+import Popover from "primevue/popover";
+
 export default {
+  components: {
+    Popover,
+    SubstanceInfoSmall: defineAsyncComponent(() => import("@/components/SubstanceInfoSmall.vue")),
+  },
   props: {
     formula: {
       type: String,
       default: null,
     },
+    hover: {
+      type: Boolean,
+      default: true,
+    },
+    smiles: { type: String, default: null },
+    inchiKey: { type: String, default: null },
+    ghsCodes: { type: String, default: null },
+    molarMass: { type: [Number, String], default: null },
+    cas: { type: String, default: null },
   },
   computed: {
+    hasSubstanceData() {
+      return !!(this.smiles || this.inchiKey || this.ghsCodes || this.molarMass || this.cas);
+    },
     chemFormulaFormat() {
       // Need to capture several groups, if the overall format doesn't apply, then
       // there should be no additional formatting whatsoever
@@ -107,3 +147,26 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.chemical-formula {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.substance-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+.substance-indicator {
+  color: var(--color-text-muted, #94a3b8);
+  cursor: default;
+  transition: color 0.15s ease;
+}
+
+.substance-indicator:hover {
+  color: var(--color-accent, #6366f1);
+}
+</style>

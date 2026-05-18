@@ -12,7 +12,18 @@
       {{ item_id }}
     </span>
     {{ shortenedName }}
-    <span v-if="chemform && chemform != ''"> [ <ChemicalFormula :formula="chemform" /> ] </span>
+    <span v-if="chemform && chemform != ''">
+      [
+      <ChemicalFormula
+        :formula="chemform"
+        :smiles="smiles"
+        :inchi-key="inchiKey"
+        :ghs-codes="ghsCodes"
+        :molar-mass="molarMass"
+        :cas="cas"
+      />
+      ]
+    </span>
     <span v-if="location && location != ''"> ({{ location }}) </span>
   </span>
   <span v-else>
@@ -44,6 +55,11 @@ export default {
       type: String,
       default: "",
     },
+    smiles: { type: String, default: null },
+    inchiKey: { type: String, default: null },
+    ghsCodes: { type: String, default: null },
+    molarMass: { type: [Number, String], default: null },
+    cas: { type: String, default: null },
     location: {
       type: String,
       default: "",
