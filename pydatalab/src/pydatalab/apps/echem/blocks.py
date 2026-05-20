@@ -157,23 +157,19 @@ class CycleBlock(DataBlock):
         Returns the CSV path if written, or None otherwise.
         """
         try:
-            bdf_df = export_to_bdf(raw_df)
-            if csv_path is not None:
-                bdf_df.to_csv(csv_path, index=False)
+            export_to_bdf(raw_df, filepath=parquet_path, save_parquet=True)
         except Exception as exc:
-            LOGGER.warning("Failed to export BDF file: %s", exc)
+            LOGGER.warning("Failed to export parquet cache: %s", exc)
+            LOGGER.debug("Exception details for failed parquet export", exc_info=True)
+
+        try:
+            if csv_path is not None:
+                export_to_bdf(raw_df, filepath=csv_path, save_csv=True)
+        except Exception as exc:
+            LOGGER.warning("Failed to export BDF csv file: %s", exc)
             LOGGER.debug("Exception details for failed BDF export", exc_info=True)
             return None
-        try:
-            # Parquet requires homogeneous column types; cast mixed-type object and category
-            # columns to str. The navani `state` column is category dtype with mixed int/str
-            # values (0, 1, 'R') which pyarrow cannot serialise directly.
-            for col in bdf_df.select_dtypes(include=["object", "category"]).columns:
-                bdf_df[col] = bdf_df[col].astype(str)
-            bdf_df.to_parquet(parquet_path, index=False)
-        except Exception as exc:
-            LOGGER.warning("Failed to export BDF parquet file: %s", exc)
-            LOGGER.debug("Exception details for failed BDF parquet export", exc_info=True)
+
         return csv_path
 
     def _load_and_cache_echem(
