@@ -1,5 +1,8 @@
 # Changelog
 
+Note: release candidates are not included in this changelog; there may be more
+recent changes described in the [release notes on GitHub](https://github.com/datalab-org/datalab/releases).
+
 ## v0.6.7 (December 2025)
 
 Another patch release with several UI usability improvements, with highlights including:
