@@ -213,6 +213,11 @@ class CycleBlock(DataBlock):
                     bdf_df = pd.read_parquet(parquet_path)
                     save_bdf(bdf_df, csv_path=csv_path)
                 except Exception as exc:
+                    LOGGER.debug(
+                        "CSV regeneration from parquet cache failed for %s",
+                        parquet_path,
+                        exc_info=True,
+                    )
                     LOGGER.warning("Failed to regenerate CSV from parquet cache: %s", exc)
                     csv_path = None
             return raw_df, csv_path
