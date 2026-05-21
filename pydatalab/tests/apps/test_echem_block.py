@@ -177,8 +177,8 @@ def test_load_and_cache_multi_file_stitch(tmp_path):
     assert not cache_location.with_suffix(".RAW_PARSED.pkl").exists()
 
 
-def test_save_bdf_exception_logs_warning_and_returns_none(tmp_path, caplog):
-    """Test that _save_bdf catches export exceptions, logs a warning, and returns None."""
+def test_save_bdf_build_failure_logs_warning_and_returns_none(tmp_path, caplog):
+    """Test that _save_bdf returns None and logs a warning when build_bdf_df fails."""
     import logging
     from unittest.mock import patch
 
@@ -196,8 +196,8 @@ def test_save_bdf_exception_logs_warning_and_returns_none(tmp_path, caplog):
         with (
             caplog.at_level(logging.WARNING, logger="pydatalab"),
             patch(
-                "pydatalab.apps.echem.blocks.export_to_bdf",
-                side_effect=Exception("export failed"),
+                "pydatalab.apps.echem.blocks.build_bdf_df",
+                side_effect=Exception("build failed"),
             ),
         ):
             result = block._save_bdf(dummy_df, parquet_path, csv_path)
@@ -207,7 +207,100 @@ def test_save_bdf_exception_logs_warning_and_returns_none(tmp_path, caplog):
     assert result is None
     assert not parquet_path.exists()
     assert not csv_path.exists()
-    assert "Failed to export BDF csv file" in caplog.text
+    assert "Failed to build BDF DataFrame" in caplog.text
+
+
+def test_save_bdf_parquet_failure_still_writes_csv(tmp_path, caplog):
+    """Test that a parquet save failure is logged but CSV is still written."""
+    import logging
+    from unittest.mock import patch
+
+    import pandas as pd
+
+    from pydatalab.logger import LOGGER
+
+    block = CycleBlock(item_id="test")
+    parquet_path = tmp_path / "dummy.bdf.parquet"
+    csv_path = tmp_path / "dummy.bdf.csv"
+    dummy_df = pd.DataFrame(
+        {
+            "Time": [0, 1],
+            "Voltage": [3.0, 3.5],
+            "Current": [1.0, 1.0],
+            "full cycle": [1, 1],
+            "half cycle": [1, 1],
+            "state": [0, 0],
+            "Capacity": [0.1, 0.2],
+        }
+    )
+
+    original_save_bdf = __import__("pydatalab.apps.echem.blocks", fromlist=["save_bdf"]).save_bdf
+
+    def save_bdf_parquet_fails(bdf_df, parquet_path=None, csv_path=None, **kwargs):
+        if parquet_path is not None:
+            raise Exception("parquet write failed")
+        return original_save_bdf(bdf_df, csv_path=csv_path, **kwargs)
+
+    LOGGER.addHandler(caplog.handler)
+    try:
+        with (
+            caplog.at_level(logging.WARNING, logger="pydatalab"),
+            patch("pydatalab.apps.echem.blocks.save_bdf", side_effect=save_bdf_parquet_fails),
+        ):
+            result = block._save_bdf(dummy_df, parquet_path, csv_path)
+    finally:
+        LOGGER.removeHandler(caplog.handler)
+
+    assert result == csv_path
+    assert csv_path.exists()
+    assert not parquet_path.exists()
+    assert "Failed to save parquet cache" in caplog.text
+
+
+def test_save_bdf_csv_failure_logs_warning_and_returns_none(tmp_path, caplog):
+    """Test that a CSV save failure is logged and None is returned."""
+    import logging
+    from unittest.mock import patch
+
+    import pandas as pd
+
+    from pydatalab.logger import LOGGER
+
+    block = CycleBlock(item_id="test")
+    parquet_path = tmp_path / "dummy.bdf.parquet"
+    csv_path = tmp_path / "dummy.bdf.csv"
+    dummy_df = pd.DataFrame(
+        {
+            "Time": [0, 1],
+            "Voltage": [3.0, 3.5],
+            "Current": [1.0, 1.0],
+            "full cycle": [1, 1],
+            "half cycle": [1, 1],
+            "state": [0, 0],
+            "Capacity": [0.1, 0.2],
+        }
+    )
+
+    original_save_bdf = __import__("pydatalab.apps.echem.blocks", fromlist=["save_bdf"]).save_bdf
+
+    def save_bdf_csv_fails(bdf_df, parquet_path=None, csv_path=None, **kwargs):
+        if csv_path is not None:
+            raise Exception("csv write failed")
+        return original_save_bdf(bdf_df, parquet_path=parquet_path, **kwargs)
+
+    LOGGER.addHandler(caplog.handler)
+    try:
+        with (
+            caplog.at_level(logging.WARNING, logger="pydatalab"),
+            patch("pydatalab.apps.echem.blocks.save_bdf", side_effect=save_bdf_csv_fails),
+        ):
+            result = block._save_bdf(dummy_df, parquet_path, csv_path)
+    finally:
+        LOGGER.removeHandler(caplog.handler)
+
+    assert result is None
+    assert not csv_path.exists()
+    assert "Failed to save BDF CSV" in caplog.text
 
 
 @pytest.mark.parametrize(
