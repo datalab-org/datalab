@@ -378,7 +378,9 @@ def test_new_sample_with_relationships(
 
 
 @pytest.mark.dependency(depends=["test_new_sample_with_relationships"])
-def test_saved_sample_has_new_relationships(client, default_sample_dict, complicated_sample):
+def test_saved_sample_has_new_relationships(
+    client, default_sample_dict, complicated_sample, database
+):
     """Create a sample, add a constituent and save it, then make sure
     it appears in relationship searches, without manually using the Sample
     model to populate them.
@@ -415,7 +417,19 @@ def test_saved_sample_has_new_relationships(client, default_sample_dict, complic
         f"/get-item-data/{default_sample_dict['item_id']}",
     )
 
+    complicated_sample_refcode = database.items.find_one({"item_id": complicated_sample.item_id})[
+        "refcode"
+    ]
+
     assert complicated_sample.item_id in response.json["parent_items"]
+    assert (
+        response.json["item_data"]["synthesis_constituents"][0]["item"]["item_id"]
+        == complicated_sample.item_id
+    )
+    assert (
+        response.json["item_data"]["synthesis_constituents"][0]["item"]["refcode"]
+        == complicated_sample_refcode
+    )
 
     response = client.get(
         f"/get-item-data/{complicated_sample.item_id}",
