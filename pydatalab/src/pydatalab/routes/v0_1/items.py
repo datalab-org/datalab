@@ -1,3 +1,4 @@
+import copy
 import datetime
 import json
 import secrets
@@ -18,7 +19,7 @@ from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS, ItemVersion
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
-from pydatalab.models.utils import generate_unique_refcode
+from pydatalab.models.utils import InlineSubstance, generate_unique_refcode
 from pydatalab.models.versions import (
     CompareVersionsQuery,
     RestoreVersionRequest,
@@ -324,6 +325,8 @@ def groups_lookup() -> dict:
 def entry_reference_lookup(item_doc: dict) -> dict:
     """Looks up any field that contains an entry reference and resolves it to the item data."""
 
+    from pydatalab.models.utils import Constituent
+
     # TODO (v0.8): We hard-code this for now but should extract this from pydantic v2 schemas instead
     # Each field contains a reference like {"item": {"item_id": ..., "refcode": ..., "type": ...}},
     # or simply an inlined {"item": {"name": ..., "chemform": ...}} object without reference fields.
@@ -347,17 +350,14 @@ def entry_reference_lookup(item_doc: dict) -> dict:
         dereferenced_fields[field] = []
 
         for subitem in item_doc.get(field, []):
-            refcode = subitem.get("item", {}).get("refcode", None)
-            if refcode:
-                preferred_refs.append({"refcode": refcode})
-                continue
-            item_id = subitem.get("item", {}).get("item_id", None)
-            if item_id:
-                preferred_refs.append({"item_id": item_id})
-                continue
-
-            # If no refcode or item_id, this is an inlined item, so no lookup needed
-            preferred_refs.append(None)
+            constituent = Constituent(**copy.deepcopy(subitem))
+            if isinstance(constituent.item, InlineSubstance):
+                # If no refcode or item_id, this is an inlined item, so no lookup needed
+                preferred_refs.append(None)
+            elif constituent.item.refcode:
+                preferred_refs.append({"refcode": constituent.item.refcode})
+            elif constituent.item.item_id:
+                preferred_refs.append({"item_id": constituent.item.item_id})
 
         for ind, ref in enumerate(preferred_refs):
             if ref:
