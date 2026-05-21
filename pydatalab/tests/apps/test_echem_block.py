@@ -300,6 +300,7 @@ def test_save_bdf_csv_failure_logs_warning_and_returns_none(tmp_path, caplog):
 
     assert result is None
     assert not csv_path.exists()
+    assert parquet_path.exists()
     assert "Failed to save BDF CSV" in caplog.text
 
 
