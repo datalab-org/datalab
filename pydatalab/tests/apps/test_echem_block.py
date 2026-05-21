@@ -128,6 +128,40 @@ def test_load_and_cache_reads_from_bdf_parquet(tmp_path):
     assert len(raw_df_cached) == len(raw_df_first)
 
 
+def test_load_and_cache_regenerates_missing_csv_from_parquet(tmp_path):
+    """Test that a missing CSV is regenerated from the parquet cache without invoking build_bdf_df."""
+    import shutil
+    from unittest.mock import patch
+
+    import pandas as pd
+
+    block = CycleBlock(item_id="test")
+    src = shutil.copy(MPR_FILE, tmp_path / MPR_FILE.name)
+    location = Path(src)
+    parquet_path = location.with_name(location.stem + "_cached.bdf.parquet")
+    csv_path = location.with_name(location.stem + ".bdf.csv")
+
+    # First load: parse and write both cache files
+    block._load_and_cache_echem(location, parquet_path, csv_path, reload=True)
+    assert parquet_path.exists()
+    assert csv_path.exists()
+
+    # Delete the CSV to simulate it being missing
+    csv_path.unlink()
+
+    with patch("pydatalab.apps.echem.blocks.build_bdf_df") as mock_build:
+        raw_df, returned_csv_path = block._load_and_cache_echem(
+            location, parquet_path, csv_path, reload=False
+        )
+
+    mock_build.assert_not_called()
+    assert returned_csv_path == csv_path
+    assert csv_path.exists()
+    regen_cols = set(pd.read_csv(csv_path).columns)
+    assert BDF_REQUIRED_COLUMNS.issubset(regen_cols)
+    assert len(raw_df) > 0
+
+
 def test_load_and_cache_bdf_csv_source_caches_parquet_but_skips_csv(tmp_path):
     """Test that loading a .bdf.csv source writes a .bdf.parquet cache but no redundant .bdf.csv."""
     import shutil
@@ -234,12 +268,14 @@ def test_save_bdf_parquet_failure_still_writes_csv(tmp_path, caplog):
         }
     )
 
-    original_save_bdf = __import__("pydatalab.apps.echem.blocks", fromlist=["save_bdf"]).save_bdf
+    import pydatalab.apps.echem.blocks as echem_blocks
+
+    real_save_bdf = echem_blocks.save_bdf
 
     def save_bdf_parquet_fails(bdf_df, parquet_path=None, csv_path=None, **kwargs):
         if parquet_path is not None:
             raise Exception("parquet write failed")
-        return original_save_bdf(bdf_df, csv_path=csv_path, **kwargs)
+        return real_save_bdf(bdf_df, csv_path=csv_path, **kwargs)
 
     LOGGER.addHandler(caplog.handler)
     try:
@@ -281,12 +317,14 @@ def test_save_bdf_csv_failure_logs_warning_and_returns_none(tmp_path, caplog):
         }
     )
 
-    original_save_bdf = __import__("pydatalab.apps.echem.blocks", fromlist=["save_bdf"]).save_bdf
+    import pydatalab.apps.echem.blocks as echem_blocks
+
+    real_save_bdf = echem_blocks.save_bdf
 
     def save_bdf_csv_fails(bdf_df, parquet_path=None, csv_path=None, **kwargs):
         if csv_path is not None:
             raise Exception("csv write failed")
-        return original_save_bdf(bdf_df, parquet_path=parquet_path, **kwargs)
+        return real_save_bdf(bdf_df, parquet_path=parquet_path, **kwargs)
 
     LOGGER.addHandler(caplog.handler)
     try:
