@@ -7,7 +7,7 @@ import bokeh
 import pandas as pd
 from bson import ObjectId
 from navani import echem as ec
-from navani.bdf import export_to_bdf
+from navani.bdf import build_bdf_df, save_bdf
 
 from pydatalab import bokeh_plots
 from pydatalab.blocks.base import DataBlock
@@ -157,17 +157,26 @@ class CycleBlock(DataBlock):
         Returns the CSV path if written, or None otherwise.
         """
         try:
-            export_to_bdf(raw_df, filepath=parquet_path, save_parquet=True)
+            bdf_df = build_bdf_df(raw_df)
         except Exception as exc:
-            LOGGER.warning("Failed to export parquet cache: %s", exc)
-            LOGGER.debug("Exception details for failed parquet export", exc_info=True)
+            LOGGER.warning("Failed to build BDF DataFrame: %s", exc)
+            LOGGER.debug("Exception details for failed BDF build", exc_info=True)
+            return None
 
         try:
-            if csv_path is not None:
-                export_to_bdf(raw_df, filepath=csv_path, save_csv=True)
+            save_bdf(bdf_df, parquet_path=parquet_path)
         except Exception as exc:
-            LOGGER.warning("Failed to export BDF csv file: %s", exc)
-            LOGGER.debug("Exception details for failed BDF export", exc_info=True)
+            LOGGER.warning("Failed to save parquet cache at %s: %s", parquet_path, exc)
+            LOGGER.debug("Exception details for failed parquet save", exc_info=True)
+
+        if csv_path is None:
+            return None
+
+        try:
+            save_bdf(bdf_df, csv_path=csv_path)
+        except Exception as exc:
+            LOGGER.warning("Failed to save BDF CSV at %s: %s", csv_path, exc)
+            LOGGER.debug("Exception details for failed CSV save", exc_info=True)
             return None
 
         return csv_path
@@ -197,10 +206,15 @@ class CycleBlock(DataBlock):
         if not reload and parquet_path is not None and parquet_path.exists():
             LOGGER.debug("Cache hit: loading parsed data from parquet %s", parquet_path)
             raw_df = self._load_echem_from_cache(parquet_path)
-            # Regenerate CSV if it was deleted
+            # Regenerate CSV if it was deleted — read parquet directly, no raw DataFrame rebuild needed
             if csv_path is not None and not csv_path.exists():
                 LOGGER.debug("CSV cache missing, regenerating at %s", csv_path)
-                csv_path = self._save_bdf(raw_df, parquet_path, csv_path)
+                try:
+                    bdf_df = pd.read_parquet(parquet_path)
+                    save_bdf(bdf_df, csv_path=csv_path)
+                except Exception as exc:
+                    LOGGER.warning("Failed to regenerate CSV from parquet cache: %s", exc)
+                    csv_path = None
             return raw_df, csv_path
 
         if reload and parquet_path is not None and parquet_path.exists():
