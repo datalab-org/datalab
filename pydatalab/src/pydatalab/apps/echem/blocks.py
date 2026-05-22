@@ -218,11 +218,13 @@ class CycleBlock(DataBlock):
             csv_path = self._save_bdf(raw_df, parquet_path, csv_path)
         return raw_df, csv_path
 
-    def _load_single(self, file_id: ObjectId, reload: bool) -> tuple[pd.DataFrame, Path | None]:
-        """Parse a single echem file using navani, with pickle caching.
+    def _load_single(
+        self, file_id: ObjectId, reload: bool
+    ) -> tuple[pd.DataFrame, Path | None, Path | None]:
+        """Parse a single echem file using navani, with parquet caching.
 
-        Returns the raw DataFrame and the BDF export path (or None if the source is already BDF
-        or export failed).
+        Returns the raw DataFrame, the CSV export path, and the parquet cache path.
+        Either path may be None if that format was skipped or export failed.
         """
         file_info = get_file_info_by_id(file_id, update_if_live=True)
         filename = file_info["name"]
@@ -239,23 +241,29 @@ class CycleBlock(DataBlock):
             # The parquet cache uses a _cached suffix to avoid overwriting the source.
             parquet_path = location.with_name(f"{bare_stem}_cached.bdf.parquet")
             csv_path = location.with_name(f"{bare_stem}.bdf.csv")
-            return self._load_and_cache_echem(location, parquet_path, csv_path, reload)
+            raw_df, written_csv = self._load_and_cache_echem(
+                location, parquet_path, csv_path, reload
+            )
+            return raw_df, written_csv, parquet_path if parquet_path.exists() else None
         if ext.startswith(".bdf"):
             # Other BDF formats: cache to parquet but don't write a redundant .bdf.csv.
             # bdf_url will fall back to linking the source file directly.
             parquet_path = location.with_name(f"{bare_stem}_cached.bdf.parquet")
-            return self._load_and_cache_echem(location, parquet_path, None, reload)
+            raw_df, _ = self._load_and_cache_echem(location, parquet_path, None, reload)
+            return raw_df, None, parquet_path if parquet_path.exists() else None
         parquet_path = location.with_name(f"{location.stem}_cached.bdf.parquet")
         csv_path = location.with_name(f"{location.stem}.bdf.csv")
-        return self._load_and_cache_echem(location, parquet_path, csv_path, reload)
+        raw_df, written_csv = self._load_and_cache_echem(location, parquet_path, csv_path, reload)
+        return raw_df, written_csv, parquet_path if parquet_path.exists() else None
 
     def _load_multi(
         self, file_ids: list[ObjectId], reload: bool
-    ) -> tuple[pd.DataFrame, Path | None]:
-        """Parse and stitch multiple echem files using navani, with pickle caching.
+    ) -> tuple[pd.DataFrame, Path | None, Path | None]:
+        """Parse and stitch multiple echem files using navani, with parquet caching.
 
         Cache paths are keyed by a hash of the file IDs so different combinations
         don't collide. Cache files are saved in the same directory as the first file.
+        Returns the raw DataFrame, the CSV export path, and the parquet cache path.
         """
         file_infos = [get_file_info_by_id(fid, update_if_live=True) for fid in file_ids]
         for info in file_infos:
@@ -269,9 +277,10 @@ class CycleBlock(DataBlock):
         cache_location = locations[0].parent / f"merged_{cache_key}"
         parquet_path = cache_location.with_name(cache_location.name + "_cached.bdf.parquet")
         csv_path = cache_location.with_name(cache_location.name + ".bdf.csv")
-        return self._load_and_cache_echem(
+        raw_df, written_csv = self._load_and_cache_echem(
             cache_location, parquet_path, csv_path, reload, locations=locations
         )
+        return raw_df, written_csv, parquet_path if parquet_path.exists() else None
 
     @staticmethod
     def process_raw_echem_df(
@@ -331,12 +340,13 @@ class CycleBlock(DataBlock):
             reload: Whether to reload the data from the file, or use the cached version, if available.
 
         Returns:
-            A tuple of (raw_df, cycle_summary_df, bdf_path, first_file_id) where:
+            A tuple of (raw_df, cycle_summary_df, csv_path, parquet_path, first_file_id) where:
                 raw_df: The processed raw DataFrame with standardised column names.
                 cycle_summary_df: The cycle summary DataFrame, or None if unavailable.
-                bdf_path: Path to the exported BDF file, or None if export was skipped or failed.
+                csv_path: Path to the exported .bdf.csv file, or None if skipped or failed.
+                parquet_path: Path to the .bdf.parquet cache file, or None if skipped or failed.
                 first_file_id: ObjectId of the first file in the file_ids list, used for constructing
-                    download URLs such as /files/<first_file_id>/<bdf_path.name>.
+                    download URLs such as /files/<first_file_id>/<filename>.
 
         """
 
@@ -349,9 +359,9 @@ class CycleBlock(DataBlock):
         first_file_id = file_ids[0]
 
         if len(file_ids) == 1:
-            raw_df, bdf_path = self._load_single(file_ids[0], reload)
+            raw_df, csv_path, parquet_path = self._load_single(file_ids[0], reload)
         else:
-            raw_df, bdf_path = self._load_multi(file_ids, reload)
+            raw_df, csv_path, parquet_path = self._load_multi(file_ids, reload)
 
         cycle_summary_df = None
         try:
@@ -361,7 +371,7 @@ class CycleBlock(DataBlock):
 
         raw_df, cycle_summary_df = self.process_raw_echem_df(raw_df, cycle_summary_df)
 
-        return raw_df, cycle_summary_df, bdf_path, first_file_id
+        return raw_df, cycle_summary_df, csv_path, parquet_path, first_file_id
 
     def plot_cycle(self):
         """Plots the electrochemical cycling data from the file ID provided in the request."""
@@ -410,16 +420,20 @@ class CycleBlock(DataBlock):
         if self.data.get("mode") == "multi" or self.data.get("mode") == "single":
             file_info = get_file_info_by_id(file_ids[0], update_if_live=True)
             filename = file_info["name"]
-            raw_df, cycle_summary_df, bdf_path, first_file_id = self._load(
+            raw_df, cycle_summary_df, csv_path, parquet_path, first_file_id = self._load(
                 file_ids=file_ids, reload=False
             )
-            if bdf_path is not None and bdf_path.exists():
-                self.data["bdf_url"] = f"/files/{first_file_id}/{bdf_path.name}"
-            elif bdf_path is None and len(file_ids) == 1:
+            if csv_path is not None and csv_path.exists():
+                self.data["bdf_url"] = f"/files/{first_file_id}/{csv_path.name}"
+            elif csv_path is None and len(file_ids) == 1:
                 # Source is already a BDF file - link directly to it
                 self.data["bdf_url"] = f"/files/{first_file_id}/{filename}"
             else:
                 self.data["bdf_url"] = None
+            if parquet_path is not None:
+                self.data["parquet_url"] = f"/files/{first_file_id}/{parquet_path.name}"
+            else:
+                self.data["parquet_url"] = None
 
             characteristic_mass_g = self._get_characteristic_mass_g()
 
