@@ -52,7 +52,7 @@
                 </a>
               </span>
             </div>
-            <div v-if="hasStructureIdentifier" class="info-item">
+            <div v-if="hasStructureIdentifier" class="info-item structure-item">
               <span class="display-label">{{ structureIdentifier.label }}</span>
               <span class="structure-value">
                 <span class="identifier-text" :title="structureIdentifier.value">{{
@@ -355,6 +355,7 @@ export default {
   background-color: var(--color-surface, #fff);
   cursor: pointer;
   max-width: 680px;
+  overflow: hidden;
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease;
@@ -384,6 +385,12 @@ export default {
 .info-item {
   display: flex;
   flex-direction: column;
+}
+
+.structure-item {
+  flex-basis: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .ghs-item {
@@ -420,18 +427,16 @@ export default {
 }
 
 .structure-value {
-  display: inline-flex;
+  display: flex;
   align-items: baseline;
   gap: 0.5rem;
-  max-width: 100%;
+  min-width: 0;
 }
 
 .identifier-text {
   font-family: var(--font-monospace, monospace);
   font-size: 0.95rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: break-all;
   min-width: 0;
 }
 
