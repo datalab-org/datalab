@@ -96,7 +96,7 @@ See the [plugins documentation](plugins.md) for the `plugins.toml` format and a 
 
     ```shell
     cd pydatalab
-    uv run flask --app 'pydatalab.main' run --reload --port 5001
+    uv run invoke dev.serve
     ```
 
 === "Launching with `venv`"
@@ -104,8 +104,17 @@ See the [plugins documentation](plugins.md) for the `plugins.toml` format and a 
     ```shell
     cd pydatalab
     source .venv/bin/activate
-    flask --app 'pydatalab.main' run --reload --port 5001
+    invoke dev.serve
     ```
+
+This is a thin wrapper around `flask run` that defaults to port 5001 with `--reload` enabled and injects an insecure development secret key if `PYDATALAB_SECRET_KEY` is not already set in the environment.
+Pass `--no-reload` to disable the Werkzeug reloader, or `--testing` to enable `CONFIG.TESTING` (which disables authentication — see below).
+
+If you would rather invoke Flask directly, the equivalent command is:
+
+```shell
+uv run flask --app 'pydatalab.main' run --reload --port 5001
+```
 
 The server should now be accessible at [http://localhost:5001](http://localhost:5001).
 If the server is running, navigating to this URL will display a simple dashboard.

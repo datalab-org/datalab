@@ -126,6 +126,31 @@ def generate_schemas(_):
 dev.add_task(generate_schemas)
 
 
+@task(
+    help={
+        "host": "Host to bind",
+        "port": "Port to bind",
+        "reload": "Enable the Werkzeug reloader and debugger (disable with --no-reload)",
+        "testing": "Enable CONFIG.TESTING if PYDATALAB_TESTING is not already set",
+    }
+)
+def serve(_, host: str = "127.0.0.1", port: int = 5001, reload: bool = True, testing: bool = False):
+    """Boot the Flask development server."""
+    if testing and "PYDATALAB_TESTING" not in os.environ:
+        os.environ["PYDATALAB_TESTING"] = "1"
+
+    if "PYDATALAB_SECRET_KEY" not in os.environ:
+        os.environ["PYDATALAB_SECRET_KEY"] = "dev-insecure-secret-key-do-not-use-in-production"  # noqa: S105
+        os.environ["PYDATALAB_ALLOW_INSECURE_SECRET_KEY"] = "1"  # noqa: S105
+
+    from pydatalab.main import create_app
+
+    create_app().run(host=host, port=port, debug=reload, use_reloader=reload)
+
+
+dev.add_task(serve)
+
+
 @task
 def install(_, dev=True):
     """This task looks for a plugins.toml and attempts to
