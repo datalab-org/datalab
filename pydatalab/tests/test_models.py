@@ -18,9 +18,10 @@ from pydatalab.models.utils import HumanReadableIdentifier, Refcode
 
 
 def test_sample_with_inlined_reference():
+    from pydatalab.models.relationships import RelationshipType
     from pydatalab.models.samples import Sample
 
-    a = Sample(item_id="test_anode", chemform="C")
+    a = Sample(item_id="test_anode", refcode="test:ANODE", chemform="C")
 
     b = Sample(
         item_id="abcd-1-2-3",
@@ -31,6 +32,29 @@ def test_sample_with_inlined_reference():
 
     assert b
     assert len(b.relationships) == 1
+    # A constituent referenced by item_id alone produces a relationship keyed on item_id
+    assert b.relationships[0].item_id == a.item_id
+    assert b.relationships[0].refcode is None
+
+    # A constituent carrying both identifiers should propagate both onto the
+    # relationship, and re-validation must not duplicate it.
+    b_both = Sample(
+        item_id="abcd-1-2-3",
+        synthesis_constituents=[
+            {
+                "item": {"item_id": a.item_id, "refcode": a.refcode, "type": "samples"},
+                "quantity": None,
+            }
+        ],
+    )
+    parents = [r for r in b_both.relationships if r.relation == RelationshipType.PARENT]
+    assert len(parents) == 1
+    assert parents[0].item_id == a.item_id
+    assert parents[0].refcode == a.refcode
+
+    b_both = Sample(**json.loads(b_both.json()))
+    parents = [r for r in b_both.relationships if r.relation == RelationshipType.PARENT]
+    assert len(parents) == 1
 
     c = Sample(
         item_id="c-123",
