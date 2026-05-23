@@ -18,9 +18,10 @@ from pydatalab.models.utils import HumanReadableIdentifier, Refcode
 
 
 def test_sample_with_inlined_reference():
+    from pydatalab.models.relationships import RelationshipType
     from pydatalab.models.samples import Sample
 
-    a = Sample(item_id="test_anode", chemform="C")
+    a = Sample(item_id="test_anode", refcode="test:ANODE", chemform="C")
 
     b = Sample(
         item_id="abcd-1-2-3",
@@ -31,6 +32,29 @@ def test_sample_with_inlined_reference():
 
     assert b
     assert len(b.relationships) == 1
+    # A constituent referenced by item_id alone produces a relationship keyed on item_id
+    assert b.relationships[0].item_id == a.item_id
+    assert b.relationships[0].refcode is None
+
+    # A constituent carrying both identifiers should propagate both onto the
+    # relationship, and re-validation must not duplicate it.
+    b_both = Sample(
+        item_id="abcd-1-2-3",
+        synthesis_constituents=[
+            {
+                "item": {"item_id": a.item_id, "refcode": a.refcode, "type": "samples"},
+                "quantity": None,
+            }
+        ],
+    )
+    parents = [r for r in b_both.relationships if r.relation == RelationshipType.PARENT]
+    assert len(parents) == 1
+    assert parents[0].item_id == a.item_id
+    assert parents[0].refcode == a.refcode
+
+    b_both = Sample(**json.loads(b_both.json()))
+    parents = [r for r in b_both.relationships if r.relation == RelationshipType.PARENT]
+    assert len(parents) == 1
 
     c = Sample(
         item_id="c-123",
@@ -322,6 +346,171 @@ def test_cell_with_inlined_reference():
     cell = Cell(**cell_json_3)
     assert cell
     assert len(cell.relationships) == 1
+
+
+def test_cell_relationship_deduplication():
+    """Regression test for duplicated parthood relationships.
+
+    `entry_reference_lookup` enriches electrode constituents with their refcode
+    at read time but does not back-fill the stored `relationships` rows. The
+    dedup logic must therefore match a stored relationship that carries only an
+    item_id against a constituent enriched with a refcode (and vice-versa),
+    rather than appending a duplicate, and back-fill the missing identifier so
+    the surviving relationship carries both.
+    """
+    from pydatalab.models.cells import Cell
+
+    # Stored relationship has item_id only; constituent enriched with refcode.
+    cell = Cell(
+        item_id="abcd-1-2-3",
+        positive_electrode=[
+            {
+                "item": {
+                    "type": "samples",
+                    "item_id": "test_cathode",
+                    "refcode": "grey:ABCDEF",
+                },
+                "quantity": 1,
+            }
+        ],
+        relationships=[
+            {
+                "relation": "is_part_of",
+                "type": "samples",
+                "item_id": "test_cathode",
+                "description": "Is a constituent of",
+            }
+        ],
+    )
+    parthood = [r for r in cell.relationships if r.relation == RelationshipType.PARTHOOD]
+    assert len(parthood) == 1
+    # The refcode from the constituent is back-filled onto the stored relationship.
+    assert parthood[0].refcode == "grey:ABCDEF"
+    assert parthood[0].item_id == "test_cathode"
+
+    # Reverse asymmetry: stored relationship has refcode, constituent item_id only.
+    cell = Cell(
+        item_id="abcd-1-2-3",
+        positive_electrode=[
+            {"item": {"type": "samples", "item_id": "test_cathode"}, "quantity": 1}
+        ],
+        relationships=[
+            {
+                "relation": "is_part_of",
+                "type": "samples",
+                "item_id": "test_cathode",
+                "refcode": "grey:ABCDEF",
+                "description": "Is a constituent of",
+            }
+        ],
+    )
+    parthood = [r for r in cell.relationships if r.relation == RelationshipType.PARTHOOD]
+    assert len(parthood) == 1
+    # The item_id from the constituent is back-filled onto the stored relationship.
+    assert parthood[0].refcode == "grey:ABCDEF"
+    assert parthood[0].item_id == "test_cathode"
+
+    # Re-validating an already-clean cell must not grow the relationships list.
+    cell = Cell(**json.loads(cell.json()))
+    parthood = [r for r in cell.relationships if r.relation == RelationshipType.PARTHOOD]
+    assert len(parthood) == 1
+    assert parthood[0].refcode == "grey:ABCDEF"
+    assert parthood[0].item_id == "test_cathode"
+
+    # Two constituents referencing the same entry (with a shared identifier) within
+    # a single pass must collapse to one relationship, not append a duplicate.
+    cell = Cell(
+        item_id="abcd-1-2-3",
+        positive_electrode=[
+            {"item": {"type": "samples", "item_id": "test_cathode"}, "quantity": 1},
+            {
+                "item": {
+                    "type": "samples",
+                    "item_id": "test_cathode",
+                    "refcode": "grey:ABCDEF",
+                },
+                "quantity": 1,
+            },
+        ],
+    )
+    parthood = [r for r in cell.relationships if r.relation == RelationshipType.PARTHOOD]
+    assert len(parthood) == 1
+    assert parthood[0].refcode == "grey:ABCDEF"
+    assert parthood[0].item_id == "test_cathode"
+
+
+def test_sample_synthesis_relationship_deduplication():
+    """Regression test for duplicated parent relationships on synthesis constituents.
+
+    Mirrors `test_cell_relationship_deduplication` for the
+    `add_missing_synthesis_relationships` validator: a stored relationship that
+    carries only one identifier must match a constituent enriched with the other
+    (in either direction), back-fill the missing identifier rather than appending
+    a duplicate, and remain idempotent on re-validation.
+    """
+    from pydatalab.models.samples import Sample
+
+    # Stored relationship has item_id only; constituent enriched with refcode.
+    sample = Sample(
+        item_id="abcd-1-2-3",
+        synthesis_constituents=[
+            {
+                "item": {
+                    "type": "starting_materials",
+                    "item_id": "sm_1",
+                    "refcode": "grey:ABCDEF",
+                },
+                "quantity": 1,
+            }
+        ],
+        relationships=[
+            {
+                "relation": "parent",
+                "type": "starting_materials",
+                "item_id": "sm_1",
+                "description": "Is a constituent of",
+            }
+        ],
+    )
+    parents = [r for r in sample.relationships if r.relation == RelationshipType.PARENT]
+    assert len(parents) == 1
+    assert parents[0].refcode == "grey:ABCDEF"
+    assert parents[0].item_id == "sm_1"
+
+    # Reverse asymmetry: stored relationship has refcode *only*; the constituent
+    # supplies the item_id, which must be back-filled onto the matched relationship.
+    sample = Sample(
+        item_id="abcd-1-2-3",
+        synthesis_constituents=[
+            {
+                "item": {
+                    "type": "starting_materials",
+                    "item_id": "sm_1",
+                    "refcode": "grey:ABCDEF",
+                },
+                "quantity": 1,
+            }
+        ],
+        relationships=[
+            {
+                "relation": "parent",
+                "type": "starting_materials",
+                "refcode": "grey:ABCDEF",
+                "description": "Is a constituent of",
+            }
+        ],
+    )
+    parents = [r for r in sample.relationships if r.relation == RelationshipType.PARENT]
+    assert len(parents) == 1
+    assert parents[0].refcode == "grey:ABCDEF"
+    assert parents[0].item_id == "sm_1"
+
+    # Re-validating an already-clean sample must not grow the relationships list.
+    sample = Sample(**json.loads(sample.json()))
+    parents = [r for r in sample.relationships if r.relation == RelationshipType.PARENT]
+    assert len(parents) == 1
+    assert parents[0].refcode == "grey:ABCDEF"
+    assert parents[0].item_id == "sm_1"
 
 
 def test_molar_mass():
