@@ -378,7 +378,9 @@ def test_new_sample_with_relationships(
 
 
 @pytest.mark.dependency(depends=["test_new_sample_with_relationships"])
-def test_saved_sample_has_new_relationships(client, default_sample_dict, complicated_sample):
+def test_saved_sample_has_new_relationships(
+    client, default_sample_dict, complicated_sample, database
+):
     """Create a sample, add a constituent and save it, then make sure
     it appears in relationship searches, without manually using the Sample
     model to populate them.
@@ -415,7 +417,19 @@ def test_saved_sample_has_new_relationships(client, default_sample_dict, complic
         f"/get-item-data/{default_sample_dict['item_id']}",
     )
 
+    complicated_sample_refcode = database.items.find_one({"item_id": complicated_sample.item_id})[
+        "refcode"
+    ]
+
     assert complicated_sample.item_id in response.json["parent_items"]
+    assert (
+        response.json["item_data"]["synthesis_constituents"][0]["item"]["item_id"]
+        == complicated_sample.item_id
+    )
+    assert (
+        response.json["item_data"]["synthesis_constituents"][0]["item"]["refcode"]
+        == complicated_sample_refcode
+    )
 
     response = client.get(
         f"/get-item-data/{complicated_sample.item_id}",
@@ -1153,3 +1167,67 @@ def test_collections_permissions(client, admin_client, default_sample_dict, defa
     response = admin_client.get(f"/items/{refcode}?sudo=1")
     assert response.json["item_data"]["description"] == "Updated description"
     assert len(response.json["item_data"]["relationships"]) == 1
+
+
+def test_new_sample_with_malformed_constituent_returns_400(client, default_sample_dict):
+    """A POST to /new-sample/ with a constituent that has no refcode, item_id,
+    or name should be rejected with a 400 rather than crashing in
+    entry_reference_lookup."""
+    bad_sample = copy.deepcopy(default_sample_dict)
+    bad_sample["item_id"] = "bad_constituent_sample"
+    bad_sample["synthesis_constituents"] = [
+        {"item": {"type": "starting_materials"}, "quantity": 1, "unit": "g"}
+    ]
+
+    response = client.post("/new-sample/", json=bad_sample)
+    assert response.status_code == 400, response.json
+
+
+def test_save_item_with_malformed_constituent_returns_400(client, default_sample_dict):
+    """A POST to /save-item/ that introduces a malformed constituent should be
+    rejected with a 400 rather than crashing in entry_reference_lookup."""
+    sample = copy.deepcopy(default_sample_dict)
+    sample["item_id"] = "save_bad_constituent_sample"
+    response = client.post("/new-sample/", json=sample)
+    assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/save-item/",
+        json={
+            "item_id": sample["item_id"],
+            "data": {
+                "synthesis_constituents": [
+                    {"item": {"type": "starting_materials"}, "quantity": 1, "unit": "g"}
+                ]
+            },
+        },
+    )
+    assert response.status_code == 400, response.json
+    assert response.json["status"] == "error"
+
+
+def test_get_item_with_malformed_stored_constituent_returns_500(client, database, user_id):
+    """If an item with a malformed constituent ended up in the database (e.g.
+    from an older write path), GET should surface it as a server-side
+    data-integrity error (500) rather than blaming the caller with a 400."""
+    from pydatalab.models.utils import generate_unique_refcode
+
+    bad_doc = {
+        "item_id": "stored_bad_constituent_sample",
+        "refcode": generate_unique_refcode(),
+        "type": "samples",
+        "name": "bad",
+        "date": datetime.datetime(1970, 2, 1, tzinfo=datetime.timezone.utc),
+        "creator_ids": [user_id],
+        "synthesis_constituents": [
+            {"item": {"type": "starting_materials"}, "quantity": 1, "unit": "g"}
+        ],
+    }
+    database.items.insert_one(bad_doc)
+
+    try:
+        response = client.get(f"/get-item-data/{bad_doc['item_id']}")
+        assert response.status_code == 500, response.json
+        assert response.json["status"] == "error"
+    finally:
+        database.items.delete_one({"item_id": bad_doc["item_id"]})

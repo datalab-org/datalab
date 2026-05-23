@@ -1,3 +1,4 @@
+import copy
 import datetime
 import json
 import secrets
@@ -18,7 +19,7 @@ from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS, ItemVersion
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
-from pydatalab.models.utils import generate_unique_refcode
+from pydatalab.models.utils import InlineSubstance, generate_unique_refcode
 from pydatalab.models.versions import (
     CompareVersionsQuery,
     RestoreVersionRequest,
@@ -324,6 +325,8 @@ def groups_lookup() -> dict:
 def entry_reference_lookup(item_doc: dict) -> dict:
     """Looks up any field that contains an entry reference and resolves it to the item data."""
 
+    from pydatalab.models.utils import Constituent
+
     # TODO (v0.8): We hard-code this for now but should extract this from pydantic v2 schemas instead
     # Each field contains a reference like {"item": {"item_id": ..., "refcode": ..., "type": ...}},
     # or simply an inlined {"item": {"name": ..., "chemform": ...}} object without reference fields.
@@ -347,23 +350,39 @@ def entry_reference_lookup(item_doc: dict) -> dict:
         dereferenced_fields[field] = []
 
         for subitem in item_doc.get(field, []):
-            refcode = subitem.get("item", {}).get("refcode", None)
-            if refcode:
-                preferred_refs.append({"refcode": refcode})
+            try:
+                constituent = Constituent(**copy.deepcopy(subitem))
+            except ValidationError as exc:
+                # Enrichment is opportunistic — if a stored subitem can't be parsed,
+                # skip the lookup and leave it untouched so the caller can still see
+                # and repair it.
+                LOGGER.warning(
+                    "Skipping entry reference lookup for unparseable subitem in %s: %s",
+                    field,
+                    exc,
+                )
+                preferred_refs.append(None)
                 continue
-            item_id = subitem.get("item", {}).get("item_id", None)
-            if item_id:
-                preferred_refs.append({"item_id": item_id})
-                continue
-
-            # If no refcode or item_id, this is an inlined item, so no lookup needed
-            preferred_refs.append(None)
+            if isinstance(constituent.item, InlineSubstance):
+                # If no refcode or item_id, this is an inlined item, so no lookup needed
+                preferred_refs.append(None)
+            elif constituent.item.refcode:
+                preferred_refs.append({"refcode": constituent.item.refcode})
+            elif constituent.item.item_id:
+                preferred_refs.append({"item_id": constituent.item.item_id})
 
         for ind, ref in enumerate(preferred_refs):
             if ref:
                 deref = flask_mongo.db.items.find_one(
                     {**ref, **get_default_permissions()},
-                    projection={"name": 1, "item_id": 1, "refcode": 1, "chemform": 1, "type": 1},
+                    projection={
+                        "name": 1,
+                        "item_id": 1,
+                        "refcode": 1,
+                        "chemform": 1,
+                        "type": 1,
+                        "_id": 0,
+                    },
                 )
             # If the source item has been deleted, is inlined or is inaccessible, use the original subitem data
             if not ref or not deref:
@@ -682,6 +701,9 @@ def _create_sample(
 
     # Try to deserialize the item data into the appropriate model
     try:
+        # Check on relationship fields and prefill
+        new_sample = entry_reference_lookup(new_sample)
+
         data_model: Item = model(**new_sample)
 
     except ValidationError as error:
@@ -1127,8 +1149,6 @@ def get_item_data(
             404,
         )
 
-    doc = entry_reference_lookup(doc)
-
     # determine the item type and validate according to the appropriate schema
     try:
         ItemModel = ITEM_MODELS[doc["type"]]
@@ -1138,7 +1158,29 @@ def get_item_data(
         else:
             raise BadRequest(f"Item {item_id=} has no type field in document.")
 
-    doc = ItemModel(**doc)
+    try:
+        doc = entry_reference_lookup(doc)
+        doc = ItemModel(**doc)
+    except ValidationError as error:
+        # The stored document doesn't validate against its declared schema.
+        # This is a server-side data integrity problem, not a bad request,
+        # so surface it as a 500 with a clear message rather than blaming the caller.
+        LOGGER.error(
+            "Stored item %s failed to validate against schema for type %s: %s",
+            item_id,
+            doc["type"],
+            error,
+        )
+        return (
+            jsonify(
+                status="error",
+                message=(
+                    f"Item {item_id=} is stored in a state that does not validate "
+                    f"against the expected schema for its type {doc['type']}: {error}"
+                ),
+            ),
+            500,
+        )
 
     # find any documents with relationships that mention this document
     relationships_query_results = flask_mongo.db.items.find(
@@ -1651,6 +1693,7 @@ def save_item():
     item.update(updated_data)
 
     try:
+        item = entry_reference_lookup(item)
         item = ITEM_MODELS[item_type](**item).dict()
     except ValidationError as exc:
         return (
