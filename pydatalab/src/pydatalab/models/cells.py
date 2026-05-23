@@ -74,7 +74,7 @@ class Cell(Item):
 
     @root_validator
     def add_missing_electrode_relationships(cls, values):
-        """Add any missing sample synthesis constituents to parent relationships"""
+        """Add any missing cell component constituents to parent relationships"""
         from pydatalab.models.relationships import RelationshipType, TypedRelationship
 
         existing_parthood_relationships = {}
