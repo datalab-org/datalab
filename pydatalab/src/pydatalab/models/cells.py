@@ -116,4 +116,11 @@ class Cell(Item):
                     relationship.refcode = relationship.refcode or refcode
                     relationship.item_id = relationship.item_id or item_id
 
+                # Register the relationship's identifiers in the index so a later
+                # constituent referencing the same entry matches it rather than
+                # appending a duplicate within this same validation pass.
+                for identifier in (relationship.refcode, relationship.item_id):
+                    if identifier:
+                        existing_parthood_relationships[identifier] = relationship
+
         return values

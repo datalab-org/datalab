@@ -145,6 +145,13 @@ class HasSynthesisInfo(BaseModel):
                     relationship.refcode = relationship.refcode or refcode
                     relationship.item_id = relationship.item_id or item_id
 
+                # Register the relationship's identifiers in the index so a later
+                # constituent referencing the same entry matches it rather than
+                # appending a duplicate within this same validation pass.
+                for identifier in (relationship.refcode, relationship.item_id):
+                    if identifier:
+                        existing_parent_relationships[identifier] = relationship
+
                 # Accumulate all constituent IDs in a set to filter those that have been deleted
                 constituents_set.update(i for i in (refcode, item_id) if i)
 

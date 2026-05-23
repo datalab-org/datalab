@@ -417,6 +417,101 @@ def test_cell_relationship_deduplication():
     assert parthood[0].refcode == "grey:ABCDEF"
     assert parthood[0].item_id == "test_cathode"
 
+    # Two constituents referencing the same entry (with a shared identifier) within
+    # a single pass must collapse to one relationship, not append a duplicate.
+    cell = Cell(
+        item_id="abcd-1-2-3",
+        positive_electrode=[
+            {"item": {"type": "samples", "item_id": "test_cathode"}, "quantity": 1},
+            {
+                "item": {
+                    "type": "samples",
+                    "item_id": "test_cathode",
+                    "refcode": "grey:ABCDEF",
+                },
+                "quantity": 1,
+            },
+        ],
+    )
+    parthood = [r for r in cell.relationships if r.relation == RelationshipType.PARTHOOD]
+    assert len(parthood) == 1
+    assert parthood[0].refcode == "grey:ABCDEF"
+    assert parthood[0].item_id == "test_cathode"
+
+
+def test_sample_synthesis_relationship_deduplication():
+    """Regression test for duplicated parent relationships on synthesis constituents.
+
+    Mirrors `test_cell_relationship_deduplication` for the
+    `add_missing_synthesis_relationships` validator: a stored relationship that
+    carries only one identifier must match a constituent enriched with the other
+    (in either direction), back-fill the missing identifier rather than appending
+    a duplicate, and remain idempotent on re-validation.
+    """
+    from pydatalab.models.samples import Sample
+
+    # Stored relationship has item_id only; constituent enriched with refcode.
+    sample = Sample(
+        item_id="abcd-1-2-3",
+        synthesis_constituents=[
+            {
+                "item": {
+                    "type": "starting_materials",
+                    "item_id": "sm_1",
+                    "refcode": "grey:ABCDEF",
+                },
+                "quantity": 1,
+            }
+        ],
+        relationships=[
+            {
+                "relation": "parent",
+                "type": "starting_materials",
+                "item_id": "sm_1",
+                "description": "Is a constituent of",
+            }
+        ],
+    )
+    parents = [r for r in sample.relationships if r.relation == RelationshipType.PARENT]
+    assert len(parents) == 1
+    assert parents[0].refcode == "grey:ABCDEF"
+    assert parents[0].item_id == "sm_1"
+
+    # Reverse asymmetry: stored relationship has refcode *only*; the constituent
+    # supplies the item_id, which must be back-filled onto the matched relationship.
+    sample = Sample(
+        item_id="abcd-1-2-3",
+        synthesis_constituents=[
+            {
+                "item": {
+                    "type": "starting_materials",
+                    "item_id": "sm_1",
+                    "refcode": "grey:ABCDEF",
+                },
+                "quantity": 1,
+            }
+        ],
+        relationships=[
+            {
+                "relation": "parent",
+                "type": "starting_materials",
+                "refcode": "grey:ABCDEF",
+                "description": "Is a constituent of",
+            }
+        ],
+    )
+    parents = [r for r in sample.relationships if r.relation == RelationshipType.PARENT]
+    assert len(parents) == 1
+    assert parents[0].refcode == "grey:ABCDEF"
+    assert parents[0].item_id == "sm_1"
+
+    # Re-validating an already-clean sample must not grow the relationships list.
+    sample = Sample(**json.loads(sample.json()))
+    parents = [r for r in sample.relationships if r.relation == RelationshipType.PARENT]
+    assert len(parents) == 1
+    assert parents[0].refcode == "grey:ABCDEF"
+    assert parents[0].item_id == "sm_1"
+
 
 def test_molar_mass():
     import math
