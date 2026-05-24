@@ -103,6 +103,12 @@ def check_feature_flags(app):
                 "No secret key provided, please set `CONFIG.SECRET_KEY` or the `PYDATALAB_SECRET_KEY` environment variable."
             )
 
+        if os.environ.get("PYDATALAB_ALLOW_INSECURE_SECRET_KEY") == "1":
+            LOGGER.critical(
+                "Insecure secret key allowed via `PYDATALAB_ALLOW_INSECURE_SECRET_KEY`, this MUST NOT be used in production."
+            )
+            return
+
         _check_key_strength(CONFIG.SECRET_KEY)
 
     def _check_secret_and_warn(secret: str, error: str, environ: bool = False) -> bool:
