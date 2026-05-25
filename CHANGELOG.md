@@ -1,7 +1,174 @@
 # Changelog
 
-Note: release candidates are not included in this changelog; there may be more
+> [!NOTE]
+> Release candidates are not included in this changelog; there may be more
 recent changes described in the [release notes on GitHub](https://github.com/datalab-org/datalab/releases).
+
+## v0.7.0 (May 2026)
+
+This is a major release with significant new functionality, refined over many months and pre-releases.
+This release roughly coincides with the publication of our preprint on *datalab*, available from ChemRxiv:
+
+> Matthew L. Evans, Joshua D. Bocarsly, Benjamin Charmes, Ben E. Smith, Gian-Marco Rignanese, David Waroquiers, Clare P. Grey, **datalab: Federated data management infrastructure for materials chemistry and beyond**, ChemRxiv (2026). DOI: [10.26434/chemrxiv.15001945/v1](https://doi.org/10.26434/chemrxiv.15001945/v1)
+
+The headline changes are:
+
+- Users can now be assigned to groups, and groups can be given read permissions over different items and collections
+- [ELN file format exports](https://github.com/TheELNConsortium/TheELNFileFormat): collections, items and subgraphs of an item's relationships can now be exported in a single .eln zip file, with all attached data and metadata.
+- Revision control of items: updating an item now triggers a version snapshot, which can be rolled back to at any time.
+- New plugin build system for easier customisation of *datalab* instances.
+- Item models:
+    - Status fields for items (e.g., active, disposed, planned, ordered)
+    - New substance fields and UI for recording hazards and chemical identifiers (CAS, SMILES, Inchi, InchiKey)
+- Data block updates:
+    - New measurement types:
+        - Cyclic voltammetry,
+        - XPS,
+    - Support for new file formats:
+        - [Battery Data Format (BDF)](https://battery-data-alliance.github.io/battery-data-format/) for time-series cycling data,
+        - Bruker's .raw and .brml files for XRD,
+        - Neware cycler Excel exports,
+        - JEOL's NMR format,
+        - BioLogic .mpr for EIS measurements,
+        - .vgd files for XPS.
+    - The NMR block now supports auto-phasing and processing of raw FID data.
+- An experimental backend for processing block data asynchronously (see [Asynchronous Processing](blocks/index.md#asynchronous-processing-experimental)).
+
+In addition, there are several new plugins available, many of which can be found on the GitHub [`datalab-plugins` topic](https://github.com/topics/datalab-plugin).
+
+There is also a new tool called [`beholder`](https://github.com/datalab-industries/datalab-beholder) which can be configured to perform automated data capture, as well as several improvements to the cloud deployment rules at [datalab-ansible-terraform](https://github.com/datalab-industries/datalab-ansible-terraform).
+
+### What's Changed
+
+* Minor fix for email auth notifications with automatically activated accounts by @ml-evs in https://github.com/datalab-org/datalab/pull/1473
+* Enable flake8-logging-rules (G) in ruff by @ml-evs in https://github.com/datalab-org/datalab/pull/1202
+* Update funding info in README.md by @jdbocarsly in https://github.com/datalab-org/datalab/pull/1487
+* Add error handling for file upload size limits by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1472
+* Add status field for items and equipment by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/866
+* Update About page with README acknowledgements by @ml-evs in https://github.com/datalab-org/datalab/pull/1490
+* Remove defunct mongomock local testing config by @ml-evs in https://github.com/datalab-org/datalab/pull/1492
+* Explicitly copy any private plugins into API docker build by @ml-evs in https://github.com/datalab-org/datalab/pull/1495
+* Add button to save csv for differential echem by @ml-evs in https://github.com/datalab-org/datalab/pull/1498
+* Fix NotificationDot positioning in user dropdown menu by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1484
+* Fix copied items with blocks getting wrong IDs by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1475
+* Add contribution graph visualization for user and community activity by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1461
+* Add CRUD API for user groups by @ml-evs in https://github.com/datalab-org/datalab/pull/1493
+* Add read-only group permissions model for items by @ml-evs in https://github.com/datalab-org/datalab/pull/1499
+* UI for creating and adminstering user groups and item permissions by @ml-evs in https://github.com/datalab-org/datalab/pull/1500
+* Fix XRD block legend display issues by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1489
+* Add icon counters for blocks and files in collection items table by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1471
+* Update Person model to better handle partial data by @ml-evs in https://github.com/datalab-org/datalab/pull/1501
+* Add asynchronous collection export as .eln file (ELNFileFormat) by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1371
+* Use item status-style badge for user role in admin dashboard by @ml-evs in https://github.com/datalab-org/datalab/pull/1502
+* Add ELN export for items and item graphs by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1389
+* Adding version control functionality to all item types (checkpoint, rollback, compare) by @be-smith in https://github.com/datalab-org/datalab/pull/1373
+* CI test for plugin builds by @ml-evs in https://github.com/datalab-org/datalab/pull/1510
+* Bump preact from 10.26.9 to 10.28.2 in /webapp by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1513
+* Fixes for editing groups and creating samples and immediately sharing them by @ml-evs in https://github.com/datalab-org/datalab/pull/1515
+* Fix function name in ELN item export by @ml-evs in https://github.com/datalab-org/datalab/pull/1517
+* Add item status icon to ItemSelect and search by @ml-evs in https://github.com/datalab-org/datalab/pull/1531
+* Update affiliations and about page links by @ml-evs in https://github.com/datalab-org/datalab/pull/1527
+* Add formatted group name component by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1533
+* Add group icon display in creators column by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1526
+* Update copyright year by @ml-evs in https://github.com/datalab-org/datalab/pull/1534
+* Add AGENTS.md description of working with the repo by @ml-evs in https://github.com/datalab-org/datalab/pull/1537
+* Use slim Python 3.11 base image for API container by @ml-evs in https://github.com/datalab-org/datalab/pull/1538
+* API Dockerfile: Run apt clean after installing mdb tools by @ml-evs in https://github.com/datalab-org/datalab/pull/1542
+* Fix manager sharing issue by @ml-evs in https://github.com/datalab-org/datalab/pull/1544
+* Add file-based suggestions to "add a block" menu and add bottom menu below blocks by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1482
+* Unify single item and related item export UI by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1520
+* Minor fix preventing duplicate email identities for users by @ml-evs in https://github.com/datalab-org/datalab/pull/1550
+* Show locations where present in item select by @ml-evs in https://github.com/datalab-org/datalab/pull/1554
+* Redirect non-authenticated users to About page by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1483
+* Enable version history UI by @ml-evs in https://github.com/datalab-org/datalab/pull/1546
+* Fix mongodump installation issue in server container by @ml-evs in https://github.com/datalab-org/datalab/pull/1561
+* Add batch sharing menu option in data table and API by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1525
+* Prevent repeated clicks on collection export button by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1549
+* Table layout tweaks: partition button groups, increase width and combine table settings by @ml-evs in https://github.com/datalab-org/datalab/pull/1556
+* Lock down `/info/stats` endpoint and make about section optional by @ml-evs in https://github.com/datalab-org/datalab/pull/1570
+* Add 'sudo' mode for admins that allows them to restrict their admin powers by @ml-evs in https://github.com/datalab-org/datalab/pull/1548
+* Add step that looks up any entry references when returning an item by @ml-evs in https://github.com/datalab-org/datalab/pull/1555
+* Implement smarter regex search for users and collections by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1474
+* Redirect requests for files from the app to the API by @ml-evs in https://github.com/datalab-org/datalab/pull/1589
+* Add a column for plotting echem time-series data in hours by @ml-evs in https://github.com/datalab-org/datalab/pull/1596
+* Add NMR compatibility with JEOL .jdx files by @isabelcooley in https://github.com/datalab-org/datalab/pull/1532
+* Bump webpack from 5.95.0 to 5.105.0 in /webapp by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1587
+* Bump markdown-it from 14.1.0 to 14.1.1 in /webapp by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1599
+* Bump lodash from 4.17.21 to 4.17.23 in /webapp by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1545
+* ELN file format export fixes by @ml-evs in https://github.com/datalab-org/datalab/pull/1600
+* Add checksums to `File` for duplicate detection by @ml-evs in https://github.com/datalab-org/datalab/pull/1592
+* Remove CODEOWNERS by @ml-evs in https://github.com/datalab-org/datalab/pull/1602
+* Add metadata model, support for multiple experiments/nuclei and automatic frequency domain/autophasing in NMR block by @ml-evs in https://github.com/datalab-org/datalab/pull/1598
+* Improve error handling for block updates by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1539
+* Disable add item buttons when not logged in by @ml-evs in https://github.com/datalab-org/datalab/pull/1586
+* Fix `/save-item` to preserve private collections by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1535
+* Add support for Battery Data Format (BDF) and multi-file caching in echem block by @be-smith in https://github.com/datalab-org/datalab/pull/1604
+* Bump navani v0.1.16 by @be-smith in https://github.com/datalab-org/datalab/pull/1621
+* Bump the github-actions group across 1 directory with 3 updates by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1571
+* Update dependabot config (trial uv, use dependency groups) by @ml-evs in https://github.com/datalab-org/datalab/pull/1624
+* More tweaks for dependabot by @ml-evs in https://github.com/datalab-org/datalab/pull/1632
+* Bump the python-production group in /pydatalab with 12 updates by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1635
+* Incorporate in situ plugin updates by @ml-evs in https://github.com/datalab-org/datalab/pull/1623
+* Fix email auth config behaviour: never auto-activate accounts unless config var is set by @ml-evs in https://github.com/datalab-org/datalab/pull/1645
+* Allow blocks to announce multi-file support and use multifile component where supported by @ml-evs in https://github.com/datalab-org/datalab/pull/1647
+* Bump pyjwt from 2.11.0 to 2.12.0 in /pydatalab by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1651
+* Refactor about page into collapsible sections and add route to customise by @ml-evs in https://github.com/datalab-org/datalab/pull/1652
+* Fix item graph rendering by @ml-evs in https://github.com/datalab-org/datalab/pull/1656
+* Vendor GSAS-II Bruker raw reader and add Bruker BRML reader by @ml-evs in https://github.com/datalab-org/datalab/pull/1622
+* Use BDF parquet files when caching parsed echem by @be-smith in https://github.com/datalab-org/datalab/pull/1663
+* Add prototype asynchronous data block processing backend by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1491
+* Collected Python updates from dependabot by @ml-evs in https://github.com/datalab-org/datalab/pull/1683
+* Bump the github-actions group across 1 directory with 3 updates by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1667
+* Echem block: set capacity to null for rest steps for plotting purposes by @be-smith in https://github.com/datalab-org/datalab/pull/1682
+* Add preprint to README and CITATION.cff by @ml-evs in https://github.com/datalab-org/datalab/pull/1684
+* Compute gravatar hashes server side by @ml-evs in https://github.com/datalab-org/datalab/pull/1686
+* EIS block improvements (support for Biologic formats and better plotting) by @be-smith in https://github.com/datalab-org/datalab/pull/1688
+* Fix ability to filter by block type in the data table by @ml-evs in https://github.com/datalab-org/datalab/pull/1693
+* Migrate admin tables to PrimeVue with bulk operations by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1581
+* Return gravatar hashes instead of contact emails from more endpoints by @ml-evs in https://github.com/datalab-org/datalab/pull/1697
+* Use SPA navigation between table and edit pages and lazy-load schemas by @ml-evs in https://github.com/datalab-org/datalab/pull/1687
+* Add clickable link to QR code renderer by @ml-evs in https://github.com/datalab-org/datalab/pull/1698
+* Add sharing API and UI for collections by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1564
+* Add collections, supplier and location info to StartingMaterialTable by @be-smith in https://github.com/datalab-org/datalab/pull/1695
+* Bump node from 20-bullseye to 22.22-bullseye-slim in /.docker/app by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1633
+* Bump the js-production group across 1 directory with 27 updates by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1702
+* Bump fast-uri from 3.0.3 to 3.1.2 in /webapp by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1713
+* Bump lodash from 4.17.23 to 4.18.1 in /webapp by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1673
+* Bump follow-redirects from 1.15.9 to 1.16.0 in /webapp by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1678
+* Assorted deps and pre-commit updates by @ml-evs in https://github.com/datalab-org/datalab/pull/1715
+* Fix row-click handler in data table and add test by @ml-evs in https://github.com/datalab-org/datalab/pull/1716
+* Add cyclic voltammetry (CV) block by @be-smith in https://github.com/datalab-org/datalab/pull/1696
+* Bump lodash-es from 4.17.21 to 4.18.1 in /webapp by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1718
+* Bump @babel/plugin-transform-modules-systemjs from 7.25.9 to 7.29.4 in /webapp by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1717
+* Fix scrolling in '@'-mention dropdown by @ml-evs in https://github.com/datalab-org/datalab/pull/1721
+* Hotfix Current units for echem plotting by @ml-evs in https://github.com/datalab-org/datalab/pull/1723
+* Add git to app docker build by @ml-evs in https://github.com/datalab-org/datalab/pull/1720
+* Bump urllib3 from 2.5.0 to 2.7.0 in /pydatalab by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1724
+* Bump mermaid from 11.14.0 to 11.15.0 in /webapp by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1722
+* Adding "substance" information to samples by @ml-evs in https://github.com/datalab-org/datalab/pull/1536
+* Only install packages older than 1w, and add XPS as core plugin by @ml-evs in https://github.com/datalab-org/datalab/pull/1730
+* Downgrade primevue back to 4.1.x by @ml-evs in https://github.com/datalab-org/datalab/pull/1733
+* CV/EIS: added error messages for empty files by @be-smith in https://github.com/datalab-org/datalab/pull/1735
+* Add datalab-native plugin installer by @ml-evs in https://github.com/datalab-org/datalab/pull/1738
+* Add substance information UI component by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1728
+* Add draft roadmap and freshen up docs generally by @ml-evs in https://github.com/datalab-org/datalab/pull/1743
+* Downsizing bdf.csv and bdf.parquet files by @be-smith in https://github.com/datalab-org/datalab/pull/1729
+* Fix for CV block; pass filename to galvani as string by @ml-evs in https://github.com/datalab-org/datalab/pull/1756
+* Update echem block to better handle bdf exports and caching by @be-smith in https://github.com/datalab-org/datalab/pull/1760
+* Fix SMILES overflow in Substance Information card by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1769
+* Add item reference lookup when patching rather than just retrieval by @ml-evs in https://github.com/datalab-org/datalab/pull/1755
+* Attempt, once again, to optimise the CI  by @ml-evs in https://github.com/datalab-org/datalab/pull/1736
+* Fixing duplication of parthood relationships for cells and samples  by @wuppersaver in https://github.com/datalab-org/datalab/pull/1727
+* Add `invoke dev.serve` wrapper to flask run by @ml-evs in https://github.com/datalab-org/datalab/pull/1739
+* Add Google and Microsoft OAuth authentication by @DianaAliabieva in https://github.com/datalab-org/datalab/pull/1706
+* Fix for dev server unable to load .env by @ml-evs in https://github.com/datalab-org/datalab/pull/1770
+
+## New Contributors
+* @isabelcooley made their first contribution in https://github.com/datalab-org/datalab/pull/1532
+* @wuppersaver made their first contribution in https://github.com/datalab-org/datalab/pull/1727
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.7...v0.7.0
+
 
 ## v0.6.7 (December 2025)
 
