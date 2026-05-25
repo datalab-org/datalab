@@ -16,7 +16,7 @@ At present, a *datalab* plugin is a Python package that registers one or more [d
 Data blocks ingest a file (or set of files) attached to an item and render an interactive view of the parsed data, e.g. an NMR spectrum, an electrochemistry cycler trace, or an XRD pattern.
 *datalab* discovers them at server startup by enumerating the relevant entry point group, with no changes required to the core code.
 
-Additional plugin types: custom item types, ingestion hooks, and webapp components are planned in the future (see [roadmap.md]); please reach out if you have a specific use case.
+Additional plugin types: custom item types, ingestion hooks, and webapp components are planned in the future (see [roadmap.md](roadmap.md)); please reach out if you have a specific use case.
 
 ## Writing a plugin
 
