@@ -207,16 +207,6 @@ class ServerConfig(BaseSettings):
         None, description="A dictionary containing metadata to serve at `/info`."
     )
 
-    ORCID_AUTO_ACTIVATE_ACCOUNTS: bool = Field(
-        False,
-        description="Whether to automatically activate accounts created via ORCID registration.",
-    )
-
-    GITHUB_AUTO_ACTIVATE_ACCOUNTS: bool = Field(
-        False,
-        description="Whether to automatically activate accounts created via GitHub registration.",
-    )
-
     EMAIL_AUTO_ACTIVATE_ACCOUNTS: bool = Field(
         False,
         description="Whether to automatically activate accounts created via email registration.",
