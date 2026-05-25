@@ -136,6 +136,20 @@ dev.add_task(generate_schemas)
 )
 def serve(_, host: str = "127.0.0.1", port: int = 5001, reload: bool = True, testing: bool = False):
     """Boot the Flask development server."""
+    from dotenv import load_dotenv
+
+    # Load .env into os.environ *first*, before the guards below and before
+    # importing pydatalab.main (which instantiates the CONFIG singleton).
+    # Otherwise the `not in os.environ` checks pass spuriously and the dev
+    # fallbacks shadow any real values from .env, since pydantic ranks
+    # os.environ above the .env file.
+    env_path = pathlib.Path(__file__).parent / ".env"
+
+    if not env_path.is_file():
+        print(f"No .env file found at {env_path}, proceeding with environment variables alone.")
+
+    load_dotenv(env_path)
+
     if testing and "PYDATALAB_TESTING" not in os.environ:
         os.environ["PYDATALAB_TESTING"] = "1"
 
@@ -145,7 +159,7 @@ def serve(_, host: str = "127.0.0.1", port: int = 5001, reload: bool = True, tes
 
     from pydatalab.main import create_app
 
-    create_app().run(host=host, port=port, debug=reload, use_reloader=reload)
+    create_app(env_file=env_path).run(host=host, port=port, debug=reload, use_reloader=reload)
 
 
 dev.add_task(serve)
