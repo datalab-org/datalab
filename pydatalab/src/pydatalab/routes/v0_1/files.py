@@ -307,7 +307,8 @@ def get_bdf_cache(item_id: str, block_id: str):
     url_key = "parquet_url" if fmt == "parquet" else "bdf_url"
     stored_url = block_data.get(url_key)
 
-    # Generate cache on demand if not yet present
+    # Generate cache on demand if not yet present, then persist the URLs back to the DB
+    # so subsequent requests use the fast path via stored_url.
     if not stored_url:
         from pydatalab.apps import BLOCK_TYPES
 
@@ -315,6 +316,15 @@ def get_bdf_cache(item_id: str, block_id: str):
             block = BLOCK_TYPES["cycle"].from_web(block_data)
             block.to_web()
             stored_url = block.data.get(url_key)
+            pydatalab.mongo.flask_mongo.db.items.update_one(
+                {"item_id": item_id, f"blocks_obj.{block_id}": {"$exists": True}},
+                {
+                    "$set": {
+                        f"blocks_obj.{block_id}.bdf_url": block.data.get("bdf_url"),
+                        f"blocks_obj.{block_id}.parquet_url": block.data.get("parquet_url"),
+                    }
+                },
+            )
         except Exception as exc:
             return jsonify(
                 {"status": "error", "detail": f"Failed to generate BDF cache: {exc}"}
