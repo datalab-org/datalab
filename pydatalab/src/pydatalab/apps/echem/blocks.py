@@ -465,7 +465,7 @@ class CycleBlock(DataBlock):
                 try:
                     file_info = get_file_info_by_id(file, update_if_live=True)
                     filename = file_info["name"]
-                    comparison_raw_df, comparison_cycle_summary_df, _, _ = self._load(
+                    comparison_raw_df, comparison_cycle_summary_df, _, _, _ = self._load(
                         file_ids=[file], reload=False
                     )
                     # Mark comparison files with a prefix to distinguish them
