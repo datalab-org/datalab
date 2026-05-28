@@ -588,7 +588,7 @@ class TestAutoVersioning:
 
         item = flask_mongo.db.items.find_one({"refcode": refcode})
         version_after_first_save = item["version"]
-        assert version_after_first_save >= 1
+        assert version_after_first_save == 1
 
         # A second identical save must not increment again
         client.post("/save-item/", json={"item_id": sample_with_version.item_id, "data": item_data})
