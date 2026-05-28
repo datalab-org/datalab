@@ -727,8 +727,16 @@ def _create_sample(
 
     # Save initial version snapshot after successful item creation
     try:
-        version_resp, _ = save_version_snapshot(data_model.refcode, action=VersionAction.CREATED)
-        if "version" in version_resp:
+        version_resp, version_status = save_version_snapshot(
+            data_model.refcode, action=VersionAction.CREATED
+        )
+        if version_status != 200:
+            LOGGER.error(
+                "Failed to save initial version for item %s after creation: %s",
+                data_model.item_id,
+                version_resp,
+            )
+        elif "version" in version_resp:
             flask_mongo.db.items.update_one(
                 {"item_id": data_model.item_id},
                 {"$set": {"version": version_resp["version"]}},
