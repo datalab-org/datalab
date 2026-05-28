@@ -49,16 +49,7 @@ bibliography: paper.bib
 *datalab* is an open source laboratory data management platform for chemical and material sciences, consisting of a Python web server, user-friendly Vue.js web app, and an associated ecosystem of plugins and tools.
 It is designed to be deployed at the level of a research group or consortium, providing functionality to track samples and their connections through the entire research lifecycle. In doing so, *datalab* seeks to enable FAIR (Findable, Accessible, Interoperable and Reusable) [@Wilkinson2016; @Scheffler2022a] data workflows while simultaneously saving researchers time and effort in managing and analyzing experiments.
 
-<!-- Not sure all of this needs to be in the summary, maybe we can summarize any remaining points with 1-2 sentences? -->
-<!-- - a flexible, descriptive data model that stores the complex relationships between samples, devices (e.g., batteries) and characterization data,
-- an extensible parsing framework that can automatically extract metadata from a wide range of (often proprietary) file formats directly from instruments [@Evans2025],
-- a scriptable interface for data analysis and visualization that can be used to create custom workflows and data pipelines that can pull from external or existing sources,
-- a free and open source software stack that can be easily deployed in a federated manner that enables enhanced collaboration and data sharing,
-- all within an intuitive user interface that can be customized for a given research lab.
- -->
-
 # Statement of need
-<!-- A section that clearly illustrates the research purpose of the software and places it in the context of related work. This should clearly state what problems the software is designed to solve, who the target audience is, and its relation to other work. -->
 
 As the quantity and diversity of scientific data collected in research laboratories grows, data management becomes an increasingly important challenge.
 Research organizations, funders, and publishers have recently emphasized the importance of FAIR data. Despite this recognized need, the majority of lab data is not managed in such a way that it could be accessed and reused, even within individual research groups.
@@ -68,7 +59,6 @@ Therefore, data management platforms that can enable user-friendly recording of 
 The recent growth in data-driven research and artificial intelligence (AI) for chemistry and materials underscores the importance of effective research data management [@Mroz2025].
 
 # State of the field
-<!-- A description of how this software compares to other commonly-used packages in the research area. If related tools exist, provide a clear “build vs. contribute” justification explaining your unique scholarly contribution and why existing alternatives are insufficient. -->
 
 Currently, there are several open-source electronic lab notebooks (ELNs) or Laboratory Information Management Systems (LIMSs) aimed at performing FAIR research data management in the experimental chemical and materials sciences. Each package draws a different boundary around which types of data and aspects of the data lifecycle they intend to cover. Importantly, these frameworks are often relied on not just for data recording, but also robust backed-up file storage, syncing from remote scientific instruments, data sharing and collaboration, and data analysis and visualization [@Higgins2022].
 Exemplary open source frameworks include: [NOMAD](https://nomad-lab.eu/nomad-lab) [@Scheidgen2023; @Ghiringhelli2023], [openBIS](https://openbis.ch) [@Barillari2016; @Lam2025], [eLabFTW](https://www.elabftw.net), [Chemmotion](https://chemotion.net) [@Tremouilhac2017a; @Herrmann2025], [Kadi4Mat](https://kadi.iam.kit.edu) [@Brandt2021; @Schlabach2024] and [SampleDB](https://scientific-it-systems.iffgit.fz-juelich.de/SampleDB) [@Rhiem2021].
@@ -76,7 +66,6 @@ Exemplary open source frameworks include: [NOMAD](https://nomad-lab.eu/nomad-lab
 One dividing line between the various existing approaches is the balance between extensibility and ease-of-use, with some platforms being highly customizable at the expense of requiring substantial technical expertise. Another differentiator is in the manner in which raw data makes its way into the platform, i.e., whether the user must pre-process data into a generic format or if the platform can directly ingest data from instruments.
 
 # Software design
-<!-- An explanation of the trade-offs you weighed, the design/architecture you chose, and why it matters for your research application. This should demonstrate meaningful design thinking beyond a superficial code structure description. -->
 
 *datalab* consists of a core server (written in [Flask](https://flask.palletsproject.com), a database ([MongoDB](https://mongodb.com)), and a web frontend (written in [Vue.js](https://vuejs.org)), alongside a growing ecosystem of plugins and tools.
 This stack is designed to be deployed and configured for a single research group or research consortium, allowing users to record all the data involved in their research projects.
@@ -137,7 +126,6 @@ We found that one of the major barriers is actually the deployment of a system s
 To combat this, *datalab* is accompanied by a series of automated deployment rules, written as [Ansible playbooks](https://ansible.com), that can be used alongside [Terraform](https://developer.hashicorp.com/terraform)/[OpenTofu](https://opentofu.org/) to (optionally) provision a cloud server and deploy a robust *datalab* instance with encrypted offsite backups (using [Borg](https://www.borgbackup.org/)) and a full monitoring stack (using the open source [Grafana](https://grafana.com/) stack).
 
 ## Research impact statement
-<!-- Evidence of realized impact (publications, external use, integrations) or credible near-term significance (benchmarks, reproducible materials, community-readiness signals). The evidence should be compelling and specific, not aspirational. -->
 
 *datalab* is in use in a variety of academic research labs, consortia, and companies across the world.
 There exists an opt-in federation, where each individual deployment is encouraged to register a (mutable) canonical URL and a prefix [datalab-org/federation](https://github.com/datalab-org/federation) in order to ensure item IDs are globally unique and to provide persistent URLs for physical labelling and data sharing via the resolver service at [purl.datalab-org.io](https://purl.datalab-org.io).
@@ -156,12 +144,11 @@ We expect *datalab* to continue to scale horizontally to new domains and measure
 
 The technical roadmap for a *datalab* v1.0 release includes:
 
-- A rework of the schema system for easier customizability, sharing and extension by deployments, as well as the ability to provide semantic annotations via [LinkML](https://linkml.io); this will be accommodated by a rework of the user interface to allow custom schemas to use the same user-friendly web components that exist in the core *datalab* models for rich text input and relationship tracking.
+- A rework of the schema system for easier customizability, sharing and extension by deployments, as well as the ability to provide semantic annotations via [@Moxon2026]; this will be accommodated by a rework of the user interface to allow custom schemas to use the same user-friendly web components that exist in the core *datalab* models for rich text input and relationship tracking.
 - Further improvements to the *datalab* plugin ecosystem, including enhancements of the base data block with features such as caching, offloading compute, and UI generation, providing clean interfaces to make it easier for contributors to build powerful extensions to handle arbitrary data types.
 - An expansion of existing prototypes for AI-driven user interfaces, building on existing work on conversational interfaces [@Jablonka2023] and coding agents ([datalab-org/yellowhammer](https://github.com/datalab-org/yellowhammer)) [@Zimmermann2025], with the aim of allowing users to create rich and expressive pipelines via end user programming.
 
 # AI usage disclosure
-<!-- Transparent disclosure of any use of generative AI in the software creation, documentation, or paper authoring. If no AI tools were used, state this explicitly. If AI tools were used, describe how they were used and how the quality and correctness of AI-generated content was verified. -->
 
 While initial development of *datalab* was done without the use of AI, recent development has made use of AI code assistants (e.g., OpenAI's Codex, Anthropic's Claude Code) in various parts of *datalab* and related development, mostly code generation for prototyping new features and interfaces.
 Every pull request is still thoroughly reviewed by a human and we maintain an extensive test suite that runs on each pull request to catch regressions across the project.
