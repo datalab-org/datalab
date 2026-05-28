@@ -1622,9 +1622,6 @@ def save_item():
             400,
         )
 
-    # Increment version number on the item itself
-    updated_data["version"] = item.get("version", 0) + 1
-
     user_only = item["type"] not in ("starting_materials", "equipment")
 
     item = flask_mongo.db.items.find_one(
@@ -1728,8 +1725,9 @@ def save_item():
             400,
         )
 
-    # Now save a version AFTER successful item update
-    # If this fails, we log but don't fail the request since item was already saved
+    # Now save a version AFTER successful item update.
+    # Only increment item.version when content actually changed (i.e., a snapshot was minted).
+    # If this fails, we log but don't fail the request since item was already saved.
     try:
         save_version_resp_dict, save_version_status = save_version_snapshot(
             refcode, action=VersionAction.MANUAL_SAVE
@@ -1739,6 +1737,11 @@ def save_item():
                 "Failed to save version for item %s after successful update: %s",
                 item_id,
                 save_version_resp_dict,
+            )
+        elif "version" in save_version_resp_dict:
+            flask_mongo.db.items.update_one(
+                {"item_id": item_id},
+                {"$set": {"version": save_version_resp_dict["version"]}},
             )
     except Exception as e:
         LOGGER.error(
