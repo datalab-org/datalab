@@ -286,7 +286,7 @@ def get_bdf_cache(item_id: str, block_id: str):
 
     item = pydatalab.mongo.flask_mongo.db.items.find_one(
         {"item_id": item_id, **get_default_permissions(user_only=False)},
-        {f"blocks_obj.{block_id}": 1},
+        {f"blocks_obj.{block_id}": 1, "file_ObjectIds": 1},
     )
     if item is None:
         return jsonify(
@@ -317,7 +317,11 @@ def get_bdf_cache(item_id: str, block_id: str):
             block.to_web()
             stored_url = block.data.get(url_key)
             pydatalab.mongo.flask_mongo.db.items.update_one(
-                {"item_id": item_id, f"blocks_obj.{block_id}": {"$exists": True}},
+                {
+                    "item_id": item_id,
+                    **get_default_permissions(user_only=True),
+                    f"blocks_obj.{block_id}": {"$exists": True},
+                },
                 {
                     "$set": {
                         f"blocks_obj.{block_id}.bdf_url": block.data.get("bdf_url"),
@@ -344,6 +348,31 @@ def get_bdf_cache(item_id: str, block_id: str):
         ), 500
 
     file_id, filename = parts[1], parts[2]
+
+    try:
+        file_oid = ObjectId(file_id)
+    except InvalidId:
+        return jsonify(
+            {"status": "error", "detail": f"Unexpected file_id in block URL: {file_id!r}"}
+        ), 500
+
+    if file_oid not in item.get("file_ObjectIds", []):
+        return jsonify(
+            {
+                "status": "error",
+                "detail": "Cache URL points to a file that is not attached to this item",
+            }
+        ), 403
+
+    if not (
+        filename.endswith("_cached.bdf.parquet")
+        or filename.endswith(".bdf.csv")
+        or filename.endswith(".bdf")
+    ):
+        return jsonify(
+            {"status": "error", "detail": f"Unexpected cache filename: {filename!r}"}
+        ), 403
+
     file_dir = os.path.join(CONFIG.FILE_DIRECTORY, secure_filename(file_id))
 
     if not Path(file_dir, filename).exists():
