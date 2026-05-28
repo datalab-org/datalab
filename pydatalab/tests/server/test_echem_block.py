@@ -133,3 +133,42 @@ def test_bdf_cache_endpoint_generates_cache_on_demand(client):
     assert response.status_code == 200
     assert len(response.data) > 0
     response.close()
+
+
+def test_bdf_cache_endpoint_rejects_tampered_url(client):
+    """GET /items/<id>/blocks/<id>/bdf should reject a stored URL that points at a file
+    not attached to the item, and one with a disallowed filename extension."""
+    from bson import ObjectId
+
+    from pydatalab.mongo import flask_mongo
+
+    item_id = "test_echem_tampered_url"
+    block_id, file_id = _upload_mpr_and_add_cycle_block(client, item_id)
+    _process_cycle_block(client, item_id, block_id, file_id)
+
+    # Tamper: swap in a file_id that belongs to no item
+    foreign_file_id = str(ObjectId())
+    flask_mongo.db.items.update_one(
+        {"item_id": item_id},
+        {
+            "$set": {
+                f"blocks_obj.{block_id}.parquet_url": f"/files/{foreign_file_id}/something_cached.bdf.parquet",
+            }
+        },
+    )
+    response = client.get(f"/items/{item_id}/blocks/{block_id}/bdf?format=parquet")
+    assert response.status_code == 403
+    assert "not attached to this item" in response.json["detail"]
+
+    # Tamper: valid file_id but disallowed filename extension (e.g. the raw source file)
+    flask_mongo.db.items.update_one(
+        {"item_id": item_id},
+        {
+            "$set": {
+                f"blocks_obj.{block_id}.parquet_url": f"/files/{file_id}/source.mpr",
+            }
+        },
+    )
+    response = client.get(f"/items/{item_id}/blocks/{block_id}/bdf?format=parquet")
+    assert response.status_code == 403
+    assert "Unexpected cache filename" in response.json["detail"]
