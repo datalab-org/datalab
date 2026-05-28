@@ -1556,6 +1556,15 @@ def save_version(refcode):
         action=VersionAction.MANUAL_SAVE,
         permission_filter=get_default_permissions(user_only=False),
     )
+    if status_code == 200 and "version" in response:
+        if len(refcode.split(":")) != 2:
+            full_refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+        else:
+            full_refcode = refcode
+        flask_mongo.db.items.update_one(
+            {"refcode": full_refcode},
+            {"$set": {"version": response["version"]}},
+        )
     return jsonify(response), status_code
 
 
