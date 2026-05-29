@@ -62,6 +62,14 @@
         :collection-id="itemType === 'collections' ? item_id : null"
         :item-type="itemType"
       />
+      <a
+        v-if="itemDataLoaded && refcode"
+        class="nav-item nav-link"
+        title="Share this item"
+        @click="isSharingModalVisible = true"
+      >
+        <font-awesome-icon icon="share-alt" fixed-width /> Share
+      </a>
       <a class="nav-item nav-link" :href="itemApiUrl" target="_blank">
         <font-awesome-icon icon="code" fixed-width /> View JSON
       </a>
@@ -176,6 +184,12 @@
       :current-version="item_data.version"
       @version-restored="handleVersionRestored"
     />
+    <SharingModal
+      v-if="refcode && item_id"
+      v-model="isSharingModalVisible"
+      :refcode="refcode"
+      :item-id="item_id"
+    />
   </div>
 </template>
 
@@ -188,6 +202,7 @@ import SelectableFileTree from "@/components/SelectableFileTree";
 import FileList from "@/components/FileList";
 import FileSelectModal from "@/components/FileSelectModal";
 import VersionHistoryModal from "@/components/VersionHistoryModal.vue";
+import SharingModal from "@/components/SharingModal.vue";
 import {
   getItemData,
   getItemByRefcode,
@@ -218,6 +233,7 @@ export default {
     LoginDetails,
     FileSelectModal,
     VersionHistoryModal,
+    SharingModal,
     FormattedItemName,
     BlockTooltip,
     ExportDropdown,
@@ -255,6 +271,7 @@ export default {
       isLoadingNewBlock: false,
       lastModified: null,
       isVersionHistoryVisible: false,
+      isSharingModalVisible: false,
     };
   },
   computed: {

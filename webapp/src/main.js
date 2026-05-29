@@ -70,6 +70,10 @@ import {
   faQuoteRight,
   faLaptopCode,
   faSquareRootAlt,
+  faShareAlt,
+  faUserFriends,
+  faCaretDown,
+  faLock,
 } from "@fortawesome/free-solid-svg-icons";
 import { faPlusSquare } from "@fortawesome/free-regular-svg-icons";
 import { faGithub, faOrcid, faGoogle, faMicrosoft } from "@fortawesome/free-brands-svg-icons";
@@ -140,6 +144,10 @@ library.add(
   faQuoteRight,
   faLaptopCode,
   faSquareRootAlt,
+  faShareAlt,
+  faUserFriends,
+  faCaretDown,
+  faLock,
 );
 
 // import "@uppy/vue"
