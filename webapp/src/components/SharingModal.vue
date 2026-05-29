@@ -11,7 +11,7 @@
       />
     </template>
     <template #body>
-      <ul class="nav nav-tabs mb-4">
+      <ul v-if="refcode" class="nav nav-tabs mb-4">
         <li class="nav-item">
           <a
             class="nav-link"
@@ -111,7 +111,7 @@
       </div>
 
       <!-- Sharing links & labels tab -->
-      <div v-else-if="activeTab === 'links'">
+      <div v-else-if="activeTab === 'links' && refcode">
         <p class="text-muted small">
           Share this item with a printable QR code or copyable link. Public links bypass
           authentication and can be revoked at any time.
@@ -210,6 +210,16 @@ export default {
     editingGroups(now, was) {
       if (was && !now) this.persistGroups();
     },
+    modelValue(now) {
+      if (!now) {
+        // Flip editing flags off so the existing watchers run their
+        // persist-or-revert logic, then reset the active tab so the modal
+        // reopens in a predictable state.
+        this.editingPeople = false;
+        this.editingGroups = false;
+        this.activeTab = "direct";
+      }
+    },
   },
   methods: {
     async persistCreators() {
@@ -226,7 +236,9 @@ export default {
       }
       const confirmed = await DialogService.confirm({
         title: "Update Permissions",
-        message: "Update the people with access to this item?",
+        message: `Update the people with access to this ${
+          this.isCollection ? "collection" : "item"
+        }?`,
         type: "warning",
       });
       if (!confirmed) {
@@ -248,10 +260,6 @@ export default {
           });
         }
       } catch (err) {
-        DialogService.error({
-          title: "Permission Update Failed",
-          message: "Error updating permissions: " + err,
-        });
         this.creatorsShadow = [...this.creators];
       }
     },
@@ -261,7 +269,9 @@ export default {
       }
       const confirmed = await DialogService.confirm({
         title: "Update Permissions",
-        message: "Update the groups with access to this item?",
+        message: `Update the groups with access to this ${
+          this.isCollection ? "collection" : "item"
+        }?`,
         type: "warning",
       });
       if (!confirmed) {
@@ -283,10 +293,6 @@ export default {
           });
         }
       } catch (err) {
-        DialogService.error({
-          title: "Permission Update Failed",
-          message: "Error updating group permissions: " + err,
-        });
         this.groupsShadow = [...this.groups];
       }
     },

@@ -2,10 +2,11 @@
   <div
     ref="outerdiv"
     class="h-100 form-group clickable"
-    @click="isEditingGroups = !isEditingGroups"
+    data-testid="toggleable-groups"
+    @click="handleClick"
   >
-    <label id="groups" class="clickable">
-      Shared with Groups (read-only)
+    <label class="clickable">
+      Shared with Groups
       <font-awesome-icon id="edit-icon" class="pl-1" icon="pen" size="xs" :fade="isEditingGroups" />
     </label>
     <div>
@@ -41,6 +42,9 @@ export default {
     GroupSelect,
     FormattedGroupName,
     OnClickOutside,
+  },
+  inject: {
+    openSharingModal: { default: null },
   },
   props: {
     refcode: { type: String, required: false, default: null },
@@ -119,6 +123,15 @@ export default {
   },
   async mounted() {
     this.outerDivRef = this.$refs.outerdiv;
+  },
+  methods: {
+    handleClick() {
+      if (this.openSharingModal) {
+        this.openSharingModal();
+        return;
+      }
+      this.isEditingGroups = !this.isEditingGroups;
+    },
   },
 };
 </script>

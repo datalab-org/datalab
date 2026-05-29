@@ -11,6 +11,15 @@
     <div class="navbar-nav">
       <a class="nav-item nav-link" href="/">Home</a>
       <ExportDropdown :collection-id="collection_id" item-type="collections" />
+      <a
+        v-if="data_loaded"
+        class="nav-item nav-link"
+        href="#"
+        title="Share this collection"
+        @click.prevent="isSharingModalVisible = true"
+      >
+        <font-awesome-icon icon="share-alt" fixed-width /> Share
+      </a>
       <a class="nav-item nav-link" :href="collectionApiUrl" target="_blank">
         <font-awesome-icon icon="code" fixed-width /> View JSON
       </a>
@@ -34,6 +43,7 @@
   <!-- Item-type header information goes here -->
   <div class="editor-body">
     <CollectionInformation :collection_id="collection_id" />
+    <SharingModal v-model="isSharingModalVisible" :collection-id="collection_id" />
   </div>
 </template>
 
@@ -41,6 +51,7 @@
 import { DialogService } from "@/services/DialogService";
 
 import CollectionInformation from "@/components/CollectionInformation";
+import SharingModal from "@/components/SharingModal.vue";
 import { getCollectionData, saveCollection } from "@/server_fetch_utils";
 import FormattedItemName from "@/components/FormattedItemName.vue";
 import { itemTypes } from "@/resources.js";
@@ -52,8 +63,16 @@ import ExportDropdown from "@/components/ExportDropdown";
 export default {
   components: {
     CollectionInformation,
+    SharingModal,
     FormattedItemName,
     ExportDropdown,
+  },
+  provide() {
+    return {
+      openSharingModal: () => {
+        this.isSharingModalVisible = true;
+      },
+    };
   },
   async beforeRouteLeave(to, from, next) {
     // give warning before leaving the page by the vue router (which would not trigger "beforeunload")
@@ -76,6 +95,7 @@ export default {
     return {
       collection_id: this.$route.params.id,
       data_loaded: false,
+      isSharingModalVisible: false,
       isMenuDropdownVisible: false,
       isLoadingNewBlock: false,
       lastModified: null,

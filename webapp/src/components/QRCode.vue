@@ -32,7 +32,7 @@
       <span v-else class="badge bg-warning text-dark">Public QR Code</span>
     </div>
 
-    <div class="shareable-link mt-2 d-flex align-items-center">
+    <div class="shareable-link mt-2 d-flex align-items-center" data-testid="shareable-link">
       <a
         :href="currentQRCodeUrl"
         target="_blank"
