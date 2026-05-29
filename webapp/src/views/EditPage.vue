@@ -65,8 +65,9 @@
       <a
         v-if="itemDataLoaded && refcode"
         class="nav-item nav-link"
+        href="#"
         title="Share this item"
-        @click="isSharingModalVisible = true"
+        @click.prevent="isSharingModalVisible = true"
       >
         <font-awesome-icon icon="share-alt" fixed-width /> Share
       </a>
@@ -237,6 +238,13 @@ export default {
     FormattedItemName,
     BlockTooltip,
     ExportDropdown,
+  },
+  provide() {
+    return {
+      openSharingModal: () => {
+        this.isSharingModalVisible = true;
+      },
+    };
   },
   async beforeRouteLeave(to, from, next) {
     // give warning before leaving the page by the vue router (which would not trigger "beforeunload")
