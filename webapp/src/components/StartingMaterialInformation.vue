@@ -23,20 +23,30 @@
             <label for="startmat-refcode">Refcode</label>
             <div id="startmat-refcode"><FormattedRefcode :refcode="Refcode" /></div>
           </div>
-          <div v-if="Barcode" class="form-group col-md-3 col-sm-4 col-6">
-            <label for="startmat-barcode">Barcode</label>
-            <div id="startmat-barcode"><FormattedBarCode :barcode="Barcode" /></div>
-          </div>
-          <div class="form-group col-md-4 col-sm-4 col-6">
-            <ToggleableCollectionFormGroup v-model="Collections" />
-          </div>
-          <div class="form-group col-md-5 col-sm-4 col-12">
+          <div class="form-group col-md-3 col-sm-4 col-12">
             <ToggleableItemStatusFormGroup
               v-model="Status"
               :possible-item-statuses="possibleItemStatuses"
             />
           </div>
+          <div class="form-group col-md-3 col-sm-4 col-6">
+            <ToggleableCollectionFormGroup v-model="Collections" />
+          </div>
+          <div v-if="Barcode" class="form-group col-md-3 col-sm-4 col-6">
+            <label for="startmat-barcode">Barcode</label>
+            <div id="startmat-barcode"><FormattedBarCode :barcode="Barcode" /></div>
+          </div>
         </div>
+
+        <div class="form-row">
+          <div class="form-group col-6 pb-3">
+            <ToggleableCreatorsFormGroup v-model="ItemCreators" :refcode="Refcode" />
+          </div>
+          <div class="form-group col-6 pb-3">
+            <ToggleableGroupsFormGroup v-model="ItemGroups" :refcode="Refcode" />
+          </div>
+        </div>
+
         <div class="form-row">
           <div class="form-group col-lg-12 col-sm-12">
             <label for="startmat-location">Location</label>
@@ -117,6 +127,8 @@ import FormattedBarCode from "@/components/FormattedBarcode";
 import StyledInput from "@/components/StyledInput";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
+import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
+import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
 
 import AutoComplete from "primevue/autocomplete";
 import { getStartingMaterialList, getEquipmentList } from "@/server_fetch_utils.js";
@@ -135,6 +147,8 @@ export default {
     FormattedBarCode,
     SynthesisInformation,
     SubstanceInformation,
+    ToggleableCreatorsFormGroup,
+    ToggleableGroupsFormGroup,
   },
   props: {
     item_id: { type: String, required: true },
@@ -166,6 +180,8 @@ export default {
     Collections: createComputedSetterForItemField("collections"),
     Refcode: createComputedSetterForItemField("refcode"),
     Status: createComputedSetterForItemField("status"),
+    ItemCreators: createComputedSetterForItemField("creators"),
+    ItemGroups: createComputedSetterForItemField("groups"),
     schema() {
       return this.$store.state.schemas[this.item?.type];
     },
