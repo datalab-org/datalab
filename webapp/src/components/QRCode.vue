@@ -28,8 +28,27 @@
     </div>
 
     <div class="mt-2">
-      <span v-if="!isPublicMode" class="badge bg-primary">Private QR Code</span>
+      <span v-if="!isPublicMode" class="badge bg-primary text-light">Private QR Code</span>
       <span v-else class="badge bg-warning text-dark">Public QR Code</span>
+    </div>
+
+    <div class="shareable-link mt-2 d-flex align-items-center">
+      <a
+        :href="currentQRCodeUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="text-truncate small flex-grow-1"
+      >
+        {{ currentQRCodeUrl }}
+      </a>
+      <button
+        type="button"
+        class="btn btn-link btn-sm p-0 flex-shrink-0 ms-3"
+        :aria-label="copied ? 'Link copied to clipboard' : 'Copy shareable link to clipboard'"
+        @click="copyUrl"
+      >
+        <font-awesome-icon :icon="copied ? 'check' : 'copy'" />
+      </button>
     </div>
   </div>
 
@@ -138,6 +157,7 @@ export default {
       isGenerating: false,
       isInvalidating: false,
       errorMessage: null,
+      copied: false,
     };
   },
   computed: {
@@ -183,6 +203,13 @@ export default {
     this.errorMessage = null;
   },
   methods: {
+    async copyUrl() {
+      await navigator.clipboard.writeText(this.currentQRCodeUrl);
+      this.copied = true;
+      setTimeout(() => {
+        this.copied = false;
+      }, 1500);
+    },
     async checkExistingToken() {
       this.isLoading = true;
       this.errorMessage = null;
@@ -328,5 +355,19 @@ export default {
 .qrcode-text-label {
   font-family: var(--font-monospace);
   font-size: 1.8rem;
+}
+
+.shareable-link {
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  background-color: #f8f9fa;
+  width: 85%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.shareable-link a {
+  min-width: 0;
 }
 </style>
