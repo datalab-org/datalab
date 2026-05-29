@@ -47,26 +47,31 @@ class TestSaveVersion:
         assert "version" in response.json
         assert response.json["version"] == 1
 
-    def test_save_version_multiple_times(self, client, sample_with_version):
-        """Test that version numbers increment atomically."""
-        refcode = sample_with_version.refcode.split(":")[1]
+    def test_save_version_multiple_times_with_changes(self, client, sample_with_version):
+        """Test that version numbers increment when content actually changes."""
+        from pydatalab.mongo import flask_mongo
 
-        # Save first version
+        refcode = sample_with_version.refcode.split(":")[1]
+        full_refcode = sample_with_version.refcode
+
         response1 = client.post(f"/items/{refcode}/save-version/")
         assert response1.status_code == 200
         version1 = response1.json["version"]
 
-        # Save second version
+        flask_mongo.db.items.update_one(
+            {"refcode": full_refcode}, {"$set": {"description": "change 1"}}
+        )
         response2 = client.post(f"/items/{refcode}/save-version/")
         assert response2.status_code == 200
         version2 = response2.json["version"]
 
-        # Save third version
+        flask_mongo.db.items.update_one(
+            {"refcode": full_refcode}, {"$set": {"description": "change 2"}}
+        )
         response3 = client.post(f"/items/{refcode}/save-version/")
         assert response3.status_code == 200
         version3 = response3.json["version"]
 
-        # Ensure versions increment
         assert version2 == version1 + 1
         assert version3 == version2 + 1
 
@@ -99,22 +104,24 @@ class TestListVersions:
         assert response.json["versions"] == []
 
     def test_list_versions_after_saves(self, client, sample_with_version):
-        """Test listing versions after saving multiple versions."""
+        """Test listing versions after saving multiple versions with distinct content."""
+        from pydatalab.mongo import flask_mongo
+
         refcode = sample_with_version.refcode.split(":")[1]
+        full_refcode = sample_with_version.refcode
 
-        # Save three versions
         client.post(f"/items/{refcode}/save-version/")
+        flask_mongo.db.items.update_one({"refcode": full_refcode}, {"$set": {"description": "v2"}})
         client.post(f"/items/{refcode}/save-version/")
+        flask_mongo.db.items.update_one({"refcode": full_refcode}, {"$set": {"description": "v3"}})
         client.post(f"/items/{refcode}/save-version/")
 
-        # List versions
         response = client.get(f"/items/{refcode}/versions/")
 
         assert response.status_code == 200
         assert response.json["status"] == "success"
         assert len(response.json["versions"]) == 3
 
-        # Check that versions are sorted in descending order (newest first)
         versions = response.json["versions"]
         assert versions[0]["version"] == 3
         assert versions[1]["version"] == 2
@@ -570,20 +577,29 @@ class TestAutoVersioning:
         assert full_version["action"] == "manual_save"
 
     def test_save_item_increments_version(self, client, sample_with_version):
-        """Test that save_item increments the version field."""
+        """Test that save_item increments the version field only when content changes."""
         from pydatalab.mongo import flask_mongo
 
         refcode = sample_with_version.refcode
-        original_version = sample_with_version.version
 
-        # Save the item
         item_data = sample_with_version.dict(exclude_unset=False)
-        item_data["description"] = "Updated"
+        item_data["description"] = "First real change"
         client.post("/save-item/", json={"item_id": sample_with_version.item_id, "data": item_data})
 
-        # Check that version incremented
         item = flask_mongo.db.items.find_one({"refcode": refcode})
-        assert item["version"] == original_version + 1
+        version_after_first_save = item["version"]
+        assert version_after_first_save == 1
+
+        # A second identical save must not increment again
+        client.post("/save-item/", json={"item_id": sample_with_version.item_id, "data": item_data})
+        item = flask_mongo.db.items.find_one({"refcode": refcode})
+        assert item["version"] == version_after_first_save
+
+        # A third save with a new change must increment
+        item_data["description"] = "Second real change"
+        client.post("/save-item/", json={"item_id": sample_with_version.item_id, "data": item_data})
+        item = flask_mongo.db.items.find_one({"refcode": refcode})
+        assert item["version"] == version_after_first_save + 1
 
 
 class TestActionFields:
@@ -737,26 +753,104 @@ class TestActionFields:
         assert all_versions[2].get("restored_from_version") is None
 
 
-class TestVersionCounter:
-    """Tests for atomic version counter functionality."""
+class TestNoopVersionDeduplication:
+    """Tests that saving without content changes does not create duplicate versions."""
 
-    def test_version_counter_atomic_increment(self, client, sample_with_version):
-        """Test that version counter increments atomically."""
+    def test_identical_save_does_not_create_version(self, client, sample_with_version):
+        """Saving the same content twice produces only one version snapshot."""
+        refcode = sample_with_version.refcode.split(":")[1]
+
+        response1 = client.post(f"/items/{refcode}/save-version/")
+        assert response1.status_code == 200
+        assert "version" in response1.json
+
+        response2 = client.post(f"/items/{refcode}/save-version/")
+        assert response2.status_code == 200
+        assert "version" not in response2.json
+        assert response2.json["message"] == "No changes detected, version not saved."
+
+        list_response = client.get(f"/items/{refcode}/versions/")
+        assert len(list_response.json["versions"]) == 1
+
+    def test_identical_save_does_not_increment_version_counter(self, client, sample_with_version):
+        """The version counter on the item must not advance when no snapshot is minted."""
         from pydatalab.mongo import flask_mongo
 
         refcode = sample_with_version.refcode.split(":")[1]
         full_refcode = sample_with_version.refcode
 
-        # Save multiple versions and verify each gets unique sequential number
+        client.post(f"/items/{refcode}/save-version/")
+        client.post(f"/items/{refcode}/save-version/")
+
+        counter = flask_mongo.db.version_counters.find_one({"refcode": full_refcode})
+        assert counter["counter"] == 1
+
+    def test_save_item_identical_does_not_create_version(self, client, sample_with_version):
+        """Calling /save-item/ twice with identical data creates only one version."""
+        from pydatalab.mongo import flask_mongo
+
+        item_id = sample_with_version.item_id
+        refcode = sample_with_version.refcode.split(":")[1]
+        full_refcode = sample_with_version.refcode
+
+        item_data = sample_with_version.dict(exclude_unset=False)
+        item_data["description"] = "A new description"
+
+        client.post("/save-item/", json={"item_id": item_id, "data": item_data})
+        client.post("/save-item/", json={"item_id": item_id, "data": item_data})
+
+        list_response = client.get(f"/items/{refcode}/versions/")
+        assert len(list_response.json["versions"]) == 1
+
+        item = flask_mongo.db.items.find_one({"refcode": full_refcode})
+        assert item["version"] == 1
+
+    def test_save_item_with_change_creates_new_version(self, client, sample_with_version):
+        """After an identical no-op save, a real change still creates a new version."""
+        from pydatalab.mongo import flask_mongo
+
+        item_id = sample_with_version.item_id
+        refcode = sample_with_version.refcode.split(":")[1]
+        full_refcode = sample_with_version.refcode
+
+        item_data = sample_with_version.dict(exclude_unset=False)
+        item_data["description"] = "First real change"
+        client.post("/save-item/", json={"item_id": item_id, "data": item_data})
+
+        # Identical re-save — should be a no-op
+        client.post("/save-item/", json={"item_id": item_id, "data": item_data})
+
+        # Now make a real change
+        item_data["description"] = "Second real change"
+        client.post("/save-item/", json={"item_id": item_id, "data": item_data})
+
+        list_response = client.get(f"/items/{refcode}/versions/")
+        assert len(list_response.json["versions"]) == 2
+
+        item = flask_mongo.db.items.find_one({"refcode": full_refcode})
+        assert item["version"] == 2
+
+
+class TestVersionCounter:
+    """Tests for atomic version counter functionality."""
+
+    def test_version_counter_atomic_increment(self, client, sample_with_version):
+        """Test that version counter increments atomically for distinct saves."""
+        from pydatalab.mongo import flask_mongo
+
+        refcode = sample_with_version.refcode.split(":")[1]
+        full_refcode = sample_with_version.refcode
+
         version_numbers = []
         for i in range(5):
+            flask_mongo.db.items.update_one(
+                {"refcode": full_refcode}, {"$set": {"description": f"change {i}"}}
+            )
             response = client.post(f"/items/{refcode}/save-version/")
             version_numbers.append(response.json["version"])
 
-        # All version numbers should be unique and sequential
         assert version_numbers == [1, 2, 3, 4, 5]
 
-        # Check counter document
         counter = flask_mongo.db.version_counters.find_one({"refcode": full_refcode})
         assert counter["counter"] == 5
 
@@ -806,18 +900,21 @@ class TestEdgeCases:
 
     def test_refcode_with_and_without_prefix(self, client, sample_with_version):
         """Test that endpoints work with both short and full refcodes."""
+        from pydatalab.mongo import flask_mongo
+
         short_refcode = sample_with_version.refcode.split(":")[1]
         full_refcode = sample_with_version.refcode
 
-        # Save with short refcode
+        # Save first version, then mutate so the second save produces a distinct snapshot
         response1 = client.post(f"/items/{short_refcode}/save-version/")
         assert response1.status_code == 200
 
-        # Save with full refcode
+        flask_mongo.db.items.update_one(
+            {"refcode": full_refcode}, {"$set": {"description": "changed for prefix test"}}
+        )
         response2 = client.post(f"/items/{full_refcode}/save-version/")
         assert response2.status_code == 200
 
-        # Both should work with list
         response3 = client.get(f"/items/{short_refcode}/versions/")
         response4 = client.get(f"/items/{full_refcode}/versions/")
 
@@ -973,19 +1070,19 @@ class TestUserIdField:
         from pydatalab.mongo import flask_mongo
 
         refcode = sample_with_version.refcode.split(":")[1]
+        full_refcode = sample_with_version.refcode
 
-        # Save multiple versions
-        client.post(f"/items/{refcode}/save-version/")
-        client.post(f"/items/{refcode}/save-version/")
-        client.post(f"/items/{refcode}/save-version/")
+        # Save 3 versions, each with distinct content so deduplication doesn't suppress them
+        for i in range(3):
+            flask_mongo.db.items.update_one(
+                {"refcode": full_refcode}, {"$set": {"description": f"version {i}"}}
+            )
+            client.post(f"/items/{refcode}/save-version/")
 
-        # Query by user_id ObjectId (this uses the index)
         versions_by_user = list(flask_mongo.db.item_versions.find({"user_id": user_id}))
 
-        # Should find all 3 versions
         assert len(versions_by_user) >= 3
 
-        # All should belong to the same user
         for version in versions_by_user:
             assert version["user_id"] == user_id
 

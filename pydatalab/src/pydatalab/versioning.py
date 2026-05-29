@@ -121,6 +121,18 @@ def save_version_snapshot(
     if not item:
         raise NotFound(f"Item {refcode} not found.")
 
+    # Skip creating a new version if content is identical to the last snapshot.
+    # Excludes fields that change mechanically on every save and don't reflect real edits.
+    _MECHANICAL_FIELDS = {"last_modified", "version", "_id"}
+    last_version = flask_mongo.db.item_versions.find_one(
+        {"refcode": refcode}, sort=[("version", -1)]
+    )
+    if last_version:
+        current_data = {k: v for k, v in item.items() if k not in _MECHANICAL_FIELDS}
+        last_data = {k: v for k, v in last_version["data"].items() if k not in _MECHANICAL_FIELDS}
+        if current_data == last_data:
+            return {"status": "success", "message": "No changes detected, version not saved."}, 200
+
     # Atomically get the next version number
     next_version_number = get_next_version_number(refcode)
 
