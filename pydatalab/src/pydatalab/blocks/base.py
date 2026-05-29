@@ -137,6 +137,12 @@ class DataBlock:
     version: str = __version__
     """The implementation version of this particular block."""
 
+    def resolve_uris(self):
+        for uri in uris:
+            get_description()
+            get_docs()
+            get_links()
+
     def __init__(
         self,
         item_id: str | None = None,

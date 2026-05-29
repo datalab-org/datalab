@@ -190,7 +190,10 @@ class HasSubstanceInfo(BaseModel):
     inchi: str | None = Field(None)
     """An International Chemical Identifier (InChI) string representation of chemicals/molecules associated with this sample."""
 
-    inchi_key: str | None = Field(None)
+    inchi_key: str | None = Field(
+        None,
+        uri=["https://w3id....../inchikey", ...]
+    )
     """A unique key derived from the InChI."""
 
     GHS_codes: str | None = Field(

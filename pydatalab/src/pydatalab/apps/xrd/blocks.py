@@ -24,6 +24,7 @@ from .utils import (
 
 
 class XRDBlock(DataBlock):
+    uri = ["https://w3id/chaemo/XRDiffraction", "https://w3id.org/pydatalab/blocks/XrayPowderDiffraction"]
     blocktype = "xrd"
     name = "Powder XRD"
     description = "Visualize XRD patterns and perform simple baseline corrections."
