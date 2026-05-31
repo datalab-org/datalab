@@ -350,16 +350,22 @@ label,
     flex-wrap: wrap;
   }
   .editor-navbar .navbar-brand {
-    /* Only the compact right cluster (dot + save + hamburger) needs reserving now */
-    max-width: calc(100% - 6rem);
+    /* flex-basis 0 (not auto) so the brand's long content doesn't drive line
+       wrapping — the cluster stays on this row, and the brand grows into the
+       leftover space and truncates instead of bumping the cluster to a 2nd row. */
+    flex: 1 1 0;
+    min-width: 0;
     font-size: 1rem;
     margin-right: 0;
   }
-  /* Tighten and align the always-visible right cluster on small screens */
+  /* Keep the cluster at its natural width on the right so the save icon and
+     hamburger stay on-screen; the brand truncates into the space to their left. */
   .navbar-right-cluster {
+    flex: 0 0 auto;
     gap: 0.25rem;
   }
-  .navbar-right-cluster .navbar-icon,
+  /* inline-flex is for the <button> toggler; it must NOT be applied to the save
+     <svg>, which renders/clips wrong when treated as a flex container. */
   .navbar-right-cluster .navbar-toggler {
     display: inline-flex;
     align-items: center;
@@ -368,6 +374,13 @@ label,
     width: 2.25rem;
     height: 2.25rem;
     padding: 0;
+  }
+  /* Save icon: plain box sizing (like the desktop .navbar-icon, just a touch bigger) */
+  .navbar-right-cluster .navbar-icon {
+    flex: 0 0 auto;
+    width: 2.1rem;
+    height: 2.1rem;
+    padding: 0.45rem;
   }
   .editor-navbar .navbar-collapse {
     width: 100%;
