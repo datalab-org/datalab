@@ -96,7 +96,20 @@ def upload():
     is_update = replace_file_id and replace_file_id != "null"
     file = request.files[next(iter(request.files))]
     if is_update:
-        file_information = file_utils.update_uploaded_file(file, ObjectId(replace_file_id))
+        try:
+            file_information = file_utils.update_uploaded_file(file, ObjectId(replace_file_id))
+        except file_utils.NotModified:
+            return (
+                jsonify(
+                    {
+                        "status": "success",
+                        "is_update": True,
+                        "file_id": replace_file_id,
+                        "detail": "File not modified, no update necessary",
+                    }
+                ),
+                304,
+            )
     else:
         file_information = file_utils.save_uploaded_file(
             file, item_ids=[item_id], creator_ids=[creator_id]
