@@ -1,5 +1,5 @@
 <template>
-  <a class="nav-item nav-link" @click="handleExport">
+  <a class="nav-item nav-link" title="Export" @click="handleExport">
     <font-awesome-icon icon="file-export" fixed-width /> Export
   </a>
   <ExportButton

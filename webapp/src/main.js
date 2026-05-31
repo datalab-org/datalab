@@ -11,6 +11,8 @@ import router from "./router";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import {
   faBarcode,
+  faBars,
+  faHome,
   faSave,
   faCloudUploadAlt,
   faRedo,
@@ -80,6 +82,8 @@ import { faGithub, faOrcid, faGoogle, faMicrosoft } from "@fortawesome/free-bran
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 library.add(
   faBarcode,
+  faBars,
+  faHome,
   faSave,
   faPen,
   faRedo,
