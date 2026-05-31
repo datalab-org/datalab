@@ -296,7 +296,7 @@ class CycleBlock(DataBlock):
         parquet_path = cache_location.with_name(cache_location.name + "_cached.bdf.parquet")
         csv_path = cache_location.with_name(cache_location.name + ".bdf.csv")
         return self._load_and_cache_echem(
-            cache_location, parquet_path, csv_path, reload, locations=locations
+            cache_location, parquet_path, csv_path, reload=True, locations=locations
         )
 
     @staticmethod
