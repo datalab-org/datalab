@@ -80,7 +80,6 @@ class CycleBlock(DataBlock):
     }
 
     def _get_characteristic_mass_g(self):
-        # return {"characteristic_mass": 1000}
         doc = flask_mongo.db.items.find_one(
             {"item_id": self.data["item_id"]}, {"characteristic_mass": 1}
         )
@@ -238,7 +237,7 @@ class CycleBlock(DataBlock):
         return raw_df, csv_path
 
     def _load_single(self, file_id: ObjectId, reload: bool) -> tuple[pd.DataFrame, Path | None]:
-        """Parse a single echem file using navani, with pickle caching.
+        """Parse a single echem file using navani and caches to disk.
 
         Returns the raw DataFrame and the BDF export path (or None if the source is already BDF
         or export failed).
@@ -253,18 +252,26 @@ class CycleBlock(DataBlock):
         ext = self._get_file_extension(filename)
         location = Path(file_info["location"])
         bare_stem = Path(filename).stem.removesuffix(".bdf")
+        parquet_path = location.with_name(f"{bare_stem}_cached.bdf.parquet")
+
+        if (
+            parquet_path.exists()
+            and file_info["last_modified"] is not None
+            and parquet_path.stat().st_mtime < file_info["last_modified"].timestamp()
+        ):
+            LOGGER.debug("Cache is older than source file for %s, forcing reload=True", filename)
+            reload = True
+
         if ext == ".bdf.parquet":
             # Source is already parquet: generate a .bdf.csv for download alongside it.
             # The parquet cache uses a _cached suffix to avoid overwriting the source.
-            parquet_path = location.with_name(f"{bare_stem}_cached.bdf.parquet")
             csv_path = location.with_name(f"{bare_stem}.bdf.csv")
             return self._load_and_cache_echem(location, parquet_path, csv_path, reload)
         if ext.startswith(".bdf"):
             # Other BDF formats: cache to parquet but don't write a redundant .bdf.csv.
             # bdf_url will fall back to linking the source file directly.
-            parquet_path = location.with_name(f"{bare_stem}_cached.bdf.parquet")
             return self._load_and_cache_echem(location, parquet_path, None, reload)
-        parquet_path = location.with_name(f"{location.stem}_cached.bdf.parquet")
+
         csv_path = location.with_name(f"{location.stem}.bdf.csv")
         return self._load_and_cache_echem(location, parquet_path, csv_path, reload)
 
@@ -390,11 +397,7 @@ class CycleBlock(DataBlock):
             self.data["file_ids"] = file_ids
 
         else:
-            if "file_ids" not in self.data:
-                LOGGER.warning("No file_ids given, skipping plot.")
-                return
-            if self.data["file_ids"] is None or len(self.data["file_ids"]) == 0:
-                LOGGER.warning("Empty file_ids list given, skipping plot.")
+            if not self.data.get("file_ids", []):
                 return
 
             file_ids = self.data["file_ids"]
@@ -402,7 +405,7 @@ class CycleBlock(DataBlock):
         derivative_modes = (None, "dQ/dV", "dV/dQ", "final capacity")
 
         if self.data["derivative_mode"] not in derivative_modes:
-            LOGGER.warning(
+            warnings.warn(
                 "Invalid derivative_mode provided: %s. Expected one of %s. Falling back to `None`.",
                 self.data["derivative_mode"],
                 derivative_modes,
@@ -426,7 +429,7 @@ class CycleBlock(DataBlock):
             self.data["mode"] = "single"
 
         # Single/multi mode gets a single dataframe - returned as a dict for consistency
-        if self.data.get("mode") == "multi" or self.data.get("mode") == "single":
+        if self.data.get("mode") in ("multi", "single"):
             file_info = get_file_info_by_id(file_ids[0], update_if_live=True)
             filename = file_info["name"]
             raw_df, cycle_summary_df, bdf_path, first_file_id = self._load(
