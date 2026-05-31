@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -265,3 +266,118 @@ def delete_file():
     os.remove(path)
 
     return jsonify({"status": "success"}), 200
+
+
+@FILES.route("/items/<string:item_id>/blocks/<string:block_id>/bdf", methods=["GET"])
+def get_bdf_cache(item_id: str, block_id: str):
+    """Return the BDF cache file (parquet or CSV) for an echem cycle block.
+
+    The block must belong to the given item and the requesting user must have
+    read access to that item. If the cache has not yet been generated it will
+    be created on demand by running the block's plot function.
+
+    Query parameters:
+        format: ``parquet`` (default) or ``csv``
+
+    """
+    fmt = request.args.get("format", "parquet")
+    if fmt not in ("parquet", "csv"):
+        return jsonify({"status": "error", "detail": "format must be 'parquet' or 'csv'"}), 400
+
+    item = pydatalab.mongo.flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=False)},
+        {f"blocks_obj.{block_id}": 1, "file_ObjectIds": 1},
+    )
+    if item is None:
+        return jsonify(
+            {"status": "error", "detail": f"Item {item_id!r} not found or not authorized"}
+        ), 404
+
+    block_data = item.get("blocks_obj", {}).get(block_id)
+    if block_data is None:
+        return jsonify(
+            {"status": "error", "detail": f"Block {block_id!r} not found on item {item_id!r}"}
+        ), 404
+
+    if block_data.get("blocktype") != "cycle":
+        return jsonify(
+            {"status": "error", "detail": "BDF export is only available for echem cycle blocks"}
+        ), 400
+
+    url_key = "parquet_url" if fmt == "parquet" else "bdf_url"
+    stored_url = block_data.get(url_key)
+
+    # Generate cache on demand if not yet present, then persist the URLs back to the DB
+    # so subsequent requests use the fast path via stored_url.
+    if not stored_url:
+        from pydatalab.apps import BLOCK_TYPES
+
+        try:
+            block = BLOCK_TYPES["cycle"].from_web(block_data)
+            block.to_web()
+            stored_url = block.data.get(url_key)
+            pydatalab.mongo.flask_mongo.db.items.update_one(
+                {
+                    "item_id": item_id,
+                    **get_default_permissions(user_only=True),
+                    f"blocks_obj.{block_id}": {"$exists": True},
+                },
+                {
+                    "$set": {
+                        f"blocks_obj.{block_id}.bdf_url": block.data.get("bdf_url"),
+                        f"blocks_obj.{block_id}.parquet_url": block.data.get("parquet_url"),
+                    }
+                },
+            )
+        except Exception as exc:
+            return jsonify(
+                {"status": "error", "detail": f"Failed to generate BDF cache: {exc}"}
+            ), 500
+
+    if not stored_url:
+        return (
+            jsonify({"status": "error", "detail": f"No {fmt} cache available for this block"}),
+            404,
+        )
+
+    # stored_url format: /files/<file_id>/<filename>
+    parts = stored_url.lstrip("/").split("/")  # ["files", "<file_id>", "<filename>"]
+    if len(parts) != 3 or parts[0] != "files":
+        return jsonify(
+            {"status": "error", "detail": f"Unexpected URL format in block data: {stored_url!r}"}
+        ), 500
+
+    file_id, filename = parts[1], parts[2]
+
+    try:
+        file_oid = ObjectId(file_id)
+    except InvalidId:
+        return jsonify(
+            {"status": "error", "detail": f"Unexpected file_id in block URL: {file_id!r}"}
+        ), 500
+
+    if file_oid not in item.get("file_ObjectIds", []):
+        return jsonify(
+            {
+                "status": "error",
+                "detail": "Cache URL points to a file that is not attached to this item",
+            }
+        ), 403
+
+    if not (
+        filename.endswith("_cached.bdf.parquet")
+        or filename.endswith(".bdf.csv")
+        or filename.endswith(".bdf")
+    ):
+        return jsonify(
+            {"status": "error", "detail": f"Unexpected cache filename: {filename!r}"}
+        ), 403
+
+    file_dir = os.path.join(CONFIG.FILE_DIRECTORY, secure_filename(file_id))
+
+    if not Path(file_dir, filename).exists():
+        return jsonify(
+            {"status": "error", "detail": f"Cache file not found on disk: {filename}"}
+        ), 404
+
+    return send_from_directory(file_dir, filename)
