@@ -57,6 +57,7 @@
         <AddBlockDropdown
           variant="navlink"
           key-prefix="nav"
+          trigger-id="navbarDropdown"
           trigger-testid="add-block-button-top"
           menu-testid="add-block-dropdown"
           :suggested-block-types="suggestedBlockTypes"
@@ -88,7 +89,12 @@
         >
           <font-awesome-icon icon="history" fixed-width /> Versions
         </a>
-        <a class="nav-item nav-link d-md-none" title="Save" @click="saveSample">
+        <a
+          v-if="!isNavCollapsed"
+          class="nav-item nav-link d-md-none"
+          title="Save"
+          @click="saveSample"
+        >
           <font-awesome-icon icon="save" fixed-width /> Save
         </a>
         <span v-if="itemDataLoaded && lastModified" class="navbar-text small mx-2 d-md-none"
@@ -134,6 +140,7 @@
           variant="button"
           direction="up"
           key-prefix="bottom"
+          trigger-id="bottomAddBlockDropdown"
           trigger-testid="add-block-button-bottom"
           menu-testid="add-block-dropdown-bottom"
           :suggested-block-types="suggestedBlockTypes"

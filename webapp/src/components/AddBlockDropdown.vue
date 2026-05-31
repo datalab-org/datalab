@@ -2,6 +2,7 @@
   <div ref="root" :class="rootClass">
     <button
       v-if="variant === 'button'"
+      :id="triggerId"
       type="button"
       class="btn btn-primary dropdown-toggle"
       :data-testid="triggerTestid"
@@ -13,6 +14,7 @@
     </button>
     <a
       v-else
+      :id="triggerId"
       class="nav-link dropdown-toggle"
       role="button"
       title="Add a block"
@@ -23,7 +25,12 @@
     >
       <font-awesome-icon icon="cubes" fixed-width /> Add a block
     </a>
-    <div class="dropdown-menu" :class="{ show: isOpen }" :data-testid="menuTestid">
+    <div
+      class="dropdown-menu"
+      :class="{ show: isOpen }"
+      :data-testid="menuTestid"
+      :aria-labelledby="triggerId"
+    >
       <h6 v-if="suggestedBlockTypes.length > 0" class="dropdown-header">
         Suggested based on your files
       </h6>
@@ -78,6 +85,11 @@ export default {
       default: "down",
     },
     triggerTestid: {
+      type: String,
+      default: null,
+    },
+    // DOM id for the trigger (kept for existing selectors / aria-labelledby)
+    triggerId: {
       type: String,
       default: null,
     },

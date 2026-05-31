@@ -66,7 +66,12 @@
         <a class="nav-item nav-link" :href="collectionApiUrl" target="_blank" title="View JSON">
           <font-awesome-icon icon="code" fixed-width /> View JSON
         </a>
-        <a class="nav-item nav-link d-md-none" title="Save" @click="saveCollectionData">
+        <a
+          v-if="!isNavCollapsed"
+          class="nav-item nav-link d-md-none"
+          title="Save"
+          @click="saveCollectionData"
+        >
           <font-awesome-icon icon="save" fixed-width /> Save
         </a>
         <span v-if="data_loaded && lastModified" class="navbar-text small mx-2 d-md-none"
