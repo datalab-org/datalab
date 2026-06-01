@@ -23,7 +23,7 @@
       style="height: 200px; width: 100%; border: 1px solid transparent; border-radius: 5px"
       :default-graph-style="'elk-stress'"
       :show-options="false"
-      :default-show-blocks="true"
+      :default-show-blocks="false"
     />
   </div>
 </template>
