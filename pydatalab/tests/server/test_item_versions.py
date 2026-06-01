@@ -624,6 +624,31 @@ class TestActionFields:
         # Manual saves should not have restored_from_version
         assert version.get("restored_from_version") is None
 
+    def test_automated_save_version_endpoint_action(
+        self, client, sample_with_version, user_api_key
+    ):
+        """Test that manual save_version endpoint creates action='manual_save'."""
+        refcode = sample_with_version.refcode.split(":")[1]
+
+        # Manually save a version via save-version endpoint
+        resp = client.post(
+            f"/items/{refcode}/save-version/",
+            headers={
+                "User-Agent": "datalab-python-api/v1.0",
+                "Datalab-Api-Key": user_api_key,
+            },
+        )
+        assert resp.status_code == 200
+
+        # Check the version action in list
+        list_response = client.get(f"/items/{refcode}/versions/")
+        version = list_response.json["versions"][0]
+
+        assert version["action"] == "agent_save"
+        assert version["user_agent"] == "datalab-python-api/v1.0"
+        # Manual saves should not have restored_from_version
+        assert version.get("restored_from_version") is None
+
     def test_save_item_endpoint_creates_manual_save_action(self, client, sample_with_version):
         """Test that save_item endpoint creates action='manual_save' (user-triggered save)."""
         refcode_short = sample_with_version.refcode.split(":")[1]

@@ -93,7 +93,7 @@ def get_next_version_number(refcode: str) -> int:
 
 def save_version_snapshot(
     refcode: str,
-    action: VersionAction = VersionAction.MANUAL_SAVE,
+    action: VersionAction | None = None,
     permission_filter: dict | None = None,
 ) -> tuple[dict, int]:
     """Save the current state of an item as a version snapshot.
@@ -104,11 +104,9 @@ def save_version_snapshot(
 
     Args:
         refcode: The refcode of the item to save a version for
-        action: The reason for saving this version (VersionAction enum):
-            - VersionAction.CREATED: Initial version when item is first created
-            - VersionAction.MANUAL_SAVE: User explicitly saved the version
-            - VersionAction.AUTO_SAVE: System or block auto-save
-            - VersionAction.RESTORED: Version created after restoring to a previous version
+        action: The reason for saving this version (VersionAction enum): if None,
+                it will be set to VersionAction.AGENT_SAVE if the user agent matches a known agent,
+                or VersionAction.MANUAL_SAVE otherwise.
         permission_filter: Optional MongoDB filter to apply for permission checking.
             If None, no permission check is performed.
 
@@ -154,11 +152,15 @@ def save_version_snapshot(
 
     # Only store user agent if it matches a known agent
     _user_agent = request.headers.get("User-Agent", "unknown")
-    user_agent = "Manual save"
+    user_agent = None
     for known_agent in KNOWN_USER_AGENTS:
         if _user_agent.startswith(known_agent):
             user_agent = _user_agent
             break
+    if user_agent is not None and action is None:
+        action = VersionAction.AGENT_SAVE
+
+    action = VersionAction.MANUAL_SAVE if action is None else action
 
     version_entry = {
         "refcode": refcode,
