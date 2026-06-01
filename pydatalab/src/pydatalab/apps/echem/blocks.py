@@ -419,9 +419,7 @@ class CycleBlock(DataBlock):
 
         if self.data["derivative_mode"] not in derivative_modes:
             warnings.warn(
-                "Invalid derivative_mode provided: %s. Expected one of %s. Falling back to `None`.",
-                self.data["derivative_mode"],
-                derivative_modes,
+                f"Invalid derivative_mode provided: {self.data['derivative_mode']}. Expected one of {derivative_modes}. Falling back to `None`."
             )
             self.data["derivative_mode"] = None
 
