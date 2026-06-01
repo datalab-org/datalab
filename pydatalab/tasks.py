@@ -550,22 +550,41 @@ admin.add_task(check_remotes)
 
 
 @task
-def import_cheminventory(_, filename: str | None = None):
-    """For a given ChemInventory Excel export, ingest the .xlsx file at
-    <filename> into the datalab items collection with type `starting_materials`.
-
-    This task has been migrated to `datalab-api` package https://github.com/datalab-org/datalab-python-api
-    as `datalab_api.helpers.import_cheminventory`.
+def cleanup_files(_):
+    """This task looks for any files in the file storage directory that are
+    not referenced by any items in the database and logs by filename, printing
+    a summary to stderr. Can be piped to xargs/rm to actually delete the files.
 
     """
+    from pydatalab.mongo import get_database
 
-    raise NotImplementedError(
-        "This task has been migrated to the `datalab-api` package as "
-        "`datalab_api.helpers.import_cheminventory`: https://github.com/datalab-org/datalab-python-api"
+    files = get_database().files
+    items = get_database().items
+
+    total_size = 0
+    orphans = 0
+    marked = 0
+    for file_doc in files.find(projection={"_id": 1, "location": 1, "size": 1}):
+        file_id = file_doc["_id"]
+        location = file_doc["location"]
+        size_bytes = file_doc.get("size", 0) or 0
+
+        if location and items.find_one({"file_ObjectIds": file_id}, projection={"_id": 1}) is None:
+            loc = pathlib.Path(location)
+            marked += 1
+            if loc.is_file():
+                print(loc.parent)
+                total_size += size_bytes
+            else:
+                orphans += 1
+
+    print(
+        f"{marked_for_del} unreferenced files found, totaling {total_size / 1e9:.2f} GB, with {orphans} orphaned references to non-existent files.",
+        file=os.sys.stderr,
     )
 
 
-admin.add_task(import_cheminventory)
+admin.add_task(cleanup_files)
 
 
 @task
