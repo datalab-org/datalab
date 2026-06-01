@@ -572,14 +572,14 @@ def cleanup_files(_):
         if location and items.find_one({"file_ObjectIds": file_id}, projection={"_id": 1}) is None:
             loc = pathlib.Path(location)
             marked += 1
-            if loc.is_file():
+            if loc.is_file() or loc.parent.is_dir():
                 print(loc.parent)
                 total_size += size_bytes
             else:
                 orphans += 1
 
     print(
-        f"{marked_for_del} unreferenced files found, totaling {total_size / 1e9:.2f} GB, with {orphans} orphaned references to non-existent files.",
+        f"{marked} unreferenced files found, totaling {total_size / 1e9:.2f} GB, with {orphans} orphaned references to non-existent files.",
         file=os.sys.stderr,
     )
 
