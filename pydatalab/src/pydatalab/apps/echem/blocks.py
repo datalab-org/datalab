@@ -237,7 +237,7 @@ class CycleBlock(DataBlock):
         return raw_df, csv_path
 
     def _load_single(self, file_id: ObjectId, reload: bool) -> tuple[pd.DataFrame, Path | None]:
-        """Parse a single echem file using navani and caches to disk.
+        """Parse a single echem file using navani and cache to disk.
 
         Returns the raw DataFrame and the BDF export path (or None if the source is already BDF
         or export failed).
@@ -272,7 +272,7 @@ class CycleBlock(DataBlock):
             # bdf_url will fall back to linking the source file directly.
             return self._load_and_cache_echem(location, parquet_path, None, reload)
 
-        csv_path = location.with_name(f"{location.stem}.bdf.csv")
+        csv_path = location.with_name(f"{bare_stem}.bdf.csv")
         return self._load_and_cache_echem(location, parquet_path, csv_path, reload)
 
     def _load_multi(
@@ -297,8 +297,7 @@ class CycleBlock(DataBlock):
         csv_path = cache_location.with_name(cache_location.name + ".bdf.csv")
 
         # Check cache age and invalidate based on the most recent source file modification time
-        reload = False
-        if parquet_path.exists():
+        if not reload and parquet_path.exists():
             cache_age = parquet_path.stat().st_mtime
             source_ages = [
                 file_info["last_modified"].timestamp()
