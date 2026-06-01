@@ -7,6 +7,7 @@ import json
 import shutil
 import tempfile
 import zipfile
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -22,6 +23,14 @@ from pydatalab.routes.v0_1.items import (
 )
 
 __all__ = ("generate_ro_crate_metadata", "create_eln_file")
+
+StageCallback = Callable[..., None]
+"""A callback invoked with progress messages as the export proceeds.
+
+Called as ``on_stage(message, level="info")`` where ``level`` is one of
+``"info"``, ``"warning"`` or ``"error"``. Used to report per-entry progress back
+to the caller (e.g. to persist stages on the export task).
+"""
 
 ALTERNATIVE_REPRESENTATION_PATTERNS: tuple[str, ...] = ("*.bdf.parquet",)
 """Glob patterns for alternative/derived representations of an uploaded file.
@@ -62,7 +71,7 @@ def find_alternative_representations(source_path: Path) -> list[Path]:
     return sorted(matches)
 
 
-def write_eln_file(root_folder_name, items, info, output_path) -> None:
+def write_eln_file(root_folder_name, items, info, output_path, on_stage=None) -> None:
     """Write an ELN file to disk containing the given items and collection metadata.
     Will first write to an intermediate temporary directory.
 
@@ -71,8 +80,12 @@ def write_eln_file(root_folder_name, items, info, output_path) -> None:
         items: List of items to include in the ELN file, with all metadata and file info included.
         info: Metadata for the collection (or item) being exported.
         output_path: Path where the .eln file should be saved.
+        on_stage: Optional :data:`StageCallback` invoked with a progress message
+            as each entry is archived.
 
     """
+
+    total = len(items)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
@@ -84,7 +97,10 @@ def write_eln_file(root_folder_name, items, info, output_path) -> None:
         with open(root_folder / "ro-crate-metadata.json", "w", encoding="utf-8") as f:
             json.dump(ro_crate_metadata, f, ensure_ascii=False)
 
-        for item in items:
+        for ind, item in enumerate(items):
+            if on_stage is not None:
+                on_stage(f"Archiving entry {ind + 1}/{total}: {item['refcode']}")
+
             item_folder = root_folder / item["refcode"]
             item_folder.mkdir()
 
@@ -104,6 +120,13 @@ def write_eln_file(root_folder_name, items, info, output_path) -> None:
                         shutil.copy2(alt, item_folder / alt.name)
                 else:
                     LOGGER.warning("ELN export: File not found on disk: %s", file["location"])
+                    if on_stage is not None:
+                        on_stage(
+                            f"File not found on disk, skipping: {file['name']}", level="warning"
+                        )
+
+        if on_stage is not None:
+            on_stage(f"Compressing archive of {total} entries")
 
         with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zipf:
             for file_path in root_folder.rglob("*"):
@@ -288,6 +311,7 @@ def create_eln_file(
     collection_id: str | None = None,
     item_id: str | None = None,
     related_item_ids: list[str] | None = None,
+    on_stage: "StageCallback | None" = None,
 ) -> None:
     """Create a .eln file for a collection, item, or set of items.
 
@@ -296,6 +320,8 @@ def create_eln_file(
         output_path: Path where the .eln file should be saved
         item_id: ID of the item to export
         related_item_ids: List of related item IDs to include in the export.
+        on_stage: Optional :data:`StageCallback` invoked with progress messages
+            as the export proceeds.
 
     """
     if not collection_id and not item_id:
@@ -393,4 +419,7 @@ def create_eln_file(
 
     all_items = _all_items
 
-    write_eln_file(root_folder_name, all_items, collection_data, output_path)
+    if on_stage is not None:
+        on_stage(f"Resolved {len(all_items)} entries for export")
+
+    write_eln_file(root_folder_name, all_items, collection_data, output_path, on_stage=on_stage)

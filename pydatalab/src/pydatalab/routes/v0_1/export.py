@@ -9,7 +9,7 @@ from flask_login import current_user
 
 from pydatalab.config import CONFIG
 from pydatalab.export import create_eln_file
-from pydatalab.models.tasks import ExportTaskSpec, Task, TaskStatus, TaskType
+from pydatalab.models.tasks import ExportTaskSpec, Task, TaskStage, TaskStatus, TaskType
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only
 from pydatalab.scheduler import task_scheduler
@@ -37,6 +37,12 @@ def _do_export(
     export_type: str = "collection",
     related_item_ids: list[str] | None = None,
 ):
+    def add_stage(message: str, level: str = "info"):
+        stage = TaskStage(timestamp=datetime.now(tz=timezone.utc), message=message, level=level)
+        flask_mongo.db.tasks.update_one(
+            {"task_id": task_id}, {"$push": {"spec.stages": stage.dict()}}
+        )
+
     try:
         flask_mongo.db.tasks.update_one(
             {"task_id": task_id}, {"$set": {"status": TaskStatus.PROCESSING}}
@@ -48,9 +54,14 @@ def _do_export(
         output_path = export_dir / f"{task_id}.eln"
 
         if export_type == "collection":
-            create_eln_file(str(output_path), collection_id=collection_id)
+            create_eln_file(str(output_path), collection_id=collection_id, on_stage=add_stage)
         elif export_type in ["item", "graph"]:
-            create_eln_file(str(output_path), item_id=item_id, related_item_ids=related_item_ids)
+            create_eln_file(
+                str(output_path),
+                item_id=item_id,
+                related_item_ids=related_item_ids,
+                on_stage=add_stage,
+            )
 
         flask_mongo.db.tasks.update_one(
             {"task_id": task_id},
@@ -148,6 +159,9 @@ def get_export_status(task_id: str):
         "status": task["status"],
         "created_at": task["created_at"].isoformat() if task.get("created_at") else None,
     }
+
+    if task.get("spec", {}).get("stages"):
+        response["stages"] = task["spec"]["stages"]
 
     if task["status"] == TaskStatus.READY:
         response["download_url"] = f"/exports/{task_id}/download"
