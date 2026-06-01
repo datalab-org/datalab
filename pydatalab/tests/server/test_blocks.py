@@ -1,6 +1,8 @@
+import datetime
 from pathlib import Path
 
 import pytest
+from bson import ObjectId
 
 from pydatalab.apps import BLOCK_TYPES, BLOCKS
 
@@ -261,7 +263,9 @@ def test_uvvis_block_lifecycle(admin_client, default_sample_dict, example_data_d
     assert web_block.get("errors") is None
 
 
-def test_echem_block_lifecycle(admin_client, default_sample_dict, example_data_dir):
+def test_echem_block_lifecycle(
+    admin_client, default_sample_dict, example_data_dir, files_directory, database
+):
     block_type = "cycle"
 
     sample_id = f"test_sample_with_files-{block_type}-lifecycle"
@@ -356,6 +360,45 @@ def test_echem_block_lifecycle(admin_client, default_sample_dict, example_data_d
     assert "bokeh_plot_data" in web_block
     assert web_block["bokeh_plot_data"] is not None
     assert web_block.get("errors") is None
+
+    # Now back to single mode on a single file
+    block_data = item_data["blocks_obj"][block_id]
+    block_data["mode"] = "single"
+    block_data["file_ids"] = [example_file_ids[0]]
+    block_data["comparison_file_ids"] = []
+
+    response = admin_client.post("/update-block/", json={"block_data": block_data})
+    assert response.status_code == 200
+    web_block = response.json["new_block_data"]
+
+    # Check the cache exists
+    expected_cache_loc = (
+        files_directory
+        / example_file_ids[0]
+        / (str(example_files[0].stem.removesuffix(".mpr") + "_cached.bdf.parquet"))
+    )
+    assert expected_cache_loc.exists()
+    mtime = expected_cache_loc.stat().st_mtime
+    update = database.files.update_one(
+        {"_id": ObjectId(example_file_ids[0])},
+        {"$set": {"last_modified": datetime.datetime.now(tz=datetime.timezone.utc).isoformat()}},
+    )
+    assert update.modified_count == 1, "Failed to update file last_modified in database"
+
+    # Try to update the block again with the same file - should trigger a cache refresh and update the mtime
+    block_data = item_data["blocks_obj"][block_id]
+    block_data["mode"] = "single"
+    block_data["file_ids"] = [example_file_ids[0]]
+    block_data["comparison_file_ids"] = []
+
+    response = admin_client.post("/update-block/", json={"block_data": block_data})
+    assert response.status_code == 200
+    web_block = response.json["new_block_data"]
+
+    # Check the cache exists
+    assert expected_cache_loc.exists()
+    new_mtime = expected_cache_loc.stat().st_mtime
+    assert new_mtime > mtime, "Cache file was not updated on block update with same file"
 
 
 def test_xrd_block_lifecycle(admin_client, client, user_id, default_sample_dict, example_data_dir):

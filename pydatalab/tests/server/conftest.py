@@ -35,7 +35,12 @@ def database(real_mongo_client):
 
 
 @pytest.fixture(scope="session")
-def app_config(tmp_path_factory, secret_key):
+def files_directory(tmp_path_factory):
+    return tmp_path_factory.mktemp("files")
+
+
+@pytest.fixture(scope="session")
+def app_config(secret_key, files_directory):
     example_remotes = [
         {
             "name": "example_data",
@@ -51,7 +56,7 @@ def app_config(tmp_path_factory, secret_key):
     yield {
         "MONGO_URI": MONGO_URI,
         "REMOTE_FILESYSTEMS": example_remotes,
-        "FILE_DIRECTORY": str(tmp_path_factory.mktemp("files")),
+        "FILE_DIRECTORY": str(files_directory),
         "TESTING": False,
         "ROOT_PATH": "/",
         "SECRET_KEY": secret_key,
