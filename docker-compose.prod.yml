@@ -1,0 +1,62 @@
+name: datalab
+services:
+  app:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: .docker/app/Dockerfile
+    volumes:
+      - ./logs:/logs
+    restart: unless-stopped
+    environment:
+      - VUE_APP_GIT_VERSION
+      - VUE_APP_API_URL
+      - VUE_APP_LOGO_URL
+      - VUE_APP_HOMEPAGE_URL
+      - VUE_APP_EDITABLE_INVENTORY
+      - VUE_APP_WEBSITE_TITLE
+      - VUE_APP_QR_CODE_RESOLVER_URL
+      - VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT
+    ports:
+      - "8081:8081"
+
+  api:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: .docker/server/Dockerfile
+      args:
+        SETUPTOOLS_SCM_PRETEND_VERSION: ${SETUPTOOLS_SCM_PRETEND_VERSION}
+    depends_on:
+      - database
+    restart: unless-stopped
+    volumes:
+      - ./logs:/logs
+      - /data/files:/app/files
+      - /tmp/eln-exports:/tmp/eln-exports
+      - /data/backups:/tmp/datalab-backups
+    ports:
+      - "5001:5001"
+    networks:
+      - backend
+    environment:
+      - PYDATALAB_MONGO_URI=mongodb://database:27017/datalabvue
+      - WEB_CONCURRENCY=4
+      - GUNICORN_CMD_ARGS=--timeout 120 --graceful-timeout 90
+      - PORT=5001
+
+  database:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: .docker/mongo/Dockerfile
+    volumes:
+      - ./logs:/var/logs/mongod
+      - /data/db:/data/db
+    restart: unless-stopped
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
