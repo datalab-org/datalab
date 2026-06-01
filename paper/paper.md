@@ -67,7 +67,7 @@ One dividing line between the various existing approaches is the balance between
 
 # Software design
 
-*datalab* consists of a core server (written in [Flask](https://flask.palletsproject.com), a database ([MongoDB](https://mongodb.com)), and a web frontend (written in [Vue.js](https://vuejs.org)), alongside a growing ecosystem of plugins and tools.
+*datalab* consists of a server (using [Flask](https://flask.palletsproject.com)), a database ([MongoDB](https://mongodb.com)), and a web frontend (written in [Vue.js](https://vuejs.org)), alongside a growing ecosystem of plugins and tools.
 This stack is designed to be deployed and configured for a single research group or research consortium, allowing users to record all the data involved in their research projects.
 
 The core data model is inspired by how researchers traditionally record data in physical lab notebooks. Each sample or device (generically, `Item`) studied in a lab is stored as a document in the database. Unique identifying information for each item is recorded along with information such as its chemical formula, synthesis procedure, chemical hazard statements, qualitative notes, etc., along with data files and visualizations from any measurements that were performed on that sample. Similar interfaces are also provided for managing a chemical inventory, and lab equipment.
