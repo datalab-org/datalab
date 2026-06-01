@@ -117,6 +117,9 @@ class TestListVersions:
         client.post(f"/items/{refcode}/save-version/")
 
         response = client.get(f"/items/{refcode}/versions/")
+        assert response.json["versions"][0]["creator"]["display_name"] == "Test User"
+        assert response.json["versions"][1]["creator"]["display_name"] == "Test User"
+        assert response.json["versions"][2]["creator"]["display_name"] == "Test User"
 
         assert response.status_code == 200
         assert response.json["status"] == "success"
@@ -177,6 +180,7 @@ class TestGetVersion:
         assert response.json["version"]["refcode"] == sample_with_version.refcode
         assert "data" in response.json["version"]
         assert response.json["version"]["data"]["name"] == "Version Test Sample"
+        assert response.json["version"]["creator"]["display_name"] == "Test User"
 
     def test_get_version_invalid_id(self, client, sample_with_version):
         """Test getting version with invalid ID format."""

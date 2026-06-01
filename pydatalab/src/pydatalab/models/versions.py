@@ -39,6 +39,9 @@ class ItemVersion(BaseModel):
     user_id: PyObjectId | None = Field(
         None, description="User's ObjectId for efficient querying and indexing"
     )
+    creator: dict | None = Field(
+        None, description="Inlined information about the user who created this version (e.g., name)"
+    )
     datalab_version: str = Field(
         ..., description="Version of datalab-server that created this snapshot"
     )
