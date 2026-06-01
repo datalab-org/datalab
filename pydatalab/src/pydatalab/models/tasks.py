@@ -37,6 +37,9 @@ class ExportTaskSpec(TaskSpec):
     item_id: str | None = Field(None, description="Item ID being exported")
     export_type: str = Field(..., description="Type of export: collection/item/graph")
     file_path: str | None = Field(None, description="Path to generated .eln file")
+    stages: list[TaskStage] = Field(
+        default_factory=list, description="Timestamped processing stages"
+    )
 
 
 class BlockProcessingTaskSpec(TaskSpec):

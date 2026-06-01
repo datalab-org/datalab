@@ -7,22 +7,26 @@
       @click="handleExport"
     >
       <span v-if="!isExporting"> <i class="fa fa-download"></i> Export as .eln </span>
-      <span v-else> <i class="fa fa-spinner fa-spin"></i> {{ exportStatusText }} </span>
+      <span v-else> <i class="fa fa-spinner fa-spin"></i> Exporting&hellip; </span>
     </button>
+    <ExportProgressModal
+      ref="progressModal"
+      :export-type="exportType"
+      @close="isExporting = false"
+    />
   </div>
 </template>
 
 <script>
-import {
-  startCollectionExport,
-  startItemExport,
-  getExportStatus,
-  getExportDownloadUrl,
-} from "@/server_fetch_utils";
+import { startCollectionExport, startItemExport } from "@/server_fetch_utils";
 import { DialogService } from "@/services/DialogService";
+import ExportProgressModal from "@/components/ExportProgressModal";
 
 export default {
   name: "ExportButton",
+  components: {
+    ExportProgressModal,
+  },
   props: {
     collectionId: {
       type: String,
@@ -36,8 +40,6 @@ export default {
   data() {
     return {
       isExporting: false,
-      exportStatusText: "Preparing export...",
-      pollInterval: null,
     };
   },
   computed: {
@@ -45,18 +47,13 @@ export default {
       return this.collectionId ? "collection" : "item";
     },
   },
-  beforeUnmount() {
-    if (this.pollInterval) {
-      clearInterval(this.pollInterval);
-    }
-  },
   methods: {
     async handleExport() {
+      if (this.isExporting) {
+        return;
+      }
       try {
         this.isExporting = true;
-        this.exportStatusText = "Starting export...";
-
-        console.log("Export - collectionId:", this.collectionId, "itemId:", this.itemId);
 
         let response;
         if (this.collectionId) {
@@ -67,15 +64,7 @@ export default {
           throw new Error("Either collectionId or itemId must be provided");
         }
 
-        const taskId = response.task_id;
-
-        DialogService.alert({
-          title: "Export in Progress",
-          message: `Your ${this.exportType} is being exported. This may take a few moments. You'll be notified when it's ready to download.`,
-          type: "info",
-        });
-
-        this.pollExportStatus(taskId);
+        this.$refs.progressModal.start(response.task_id);
       } catch (error) {
         console.error("Export failed:", error);
         this.isExporting = false;
@@ -84,51 +73,6 @@ export default {
           message: error.message || "Failed to start the export. Please try again.",
         });
       }
-    },
-
-    async pollExportStatus(taskId) {
-      this.exportStatusText = "Processing...";
-
-      this.pollInterval = setInterval(async () => {
-        try {
-          const status = await getExportStatus(taskId);
-
-          if (status.status === "ready") {
-            clearInterval(this.pollInterval);
-            this.downloadExport(taskId);
-            this.isExporting = false;
-            DialogService.closeCurrentDialog(true);
-            DialogService.alert({
-              title: "Export Complete",
-              message: `Your ${this.exportType} has been exported successfully.`,
-              type: "success",
-            });
-          } else if (status.status === "error") {
-            clearInterval(this.pollInterval);
-            this.isExporting = false;
-            DialogService.error({
-              title: "Export Failed",
-              message: status.error_message || "An error occurred during export.",
-            });
-          } else if (status.status === "processing") {
-            this.exportStatusText = "Generating .eln file...";
-          }
-        } catch (error) {
-          clearInterval(this.pollInterval);
-          this.isExporting = false;
-          console.error("Error polling export status:", error);
-        }
-      }, 2000);
-    },
-
-    downloadExport(taskId) {
-      const downloadUrl = getExportDownloadUrl(taskId);
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.style.display = "none";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
     },
   },
 };

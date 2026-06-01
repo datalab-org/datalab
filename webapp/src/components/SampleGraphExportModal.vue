@@ -152,20 +152,17 @@
         <button type="button" class="btn btn-secondary" @click="isModalOpen = false">Cancel</button>
       </template>
     </Modal>
+
+    <ExportProgressModal ref="progressModal" export-type="item" />
   </div>
 </template>
 
 <script>
 import Modal from "@/components/Modal";
 import ItemGraph from "@/components/ItemGraph";
+import ExportProgressModal from "@/components/ExportProgressModal";
 
-import {
-  startItemExport,
-  getExportStatus,
-  getExportDownloadUrl,
-  createNewCollection,
-  getItemGraph,
-} from "@/server_fetch_utils";
+import { startItemExport, createNewCollection, getItemGraph } from "@/server_fetch_utils";
 import { DialogService } from "@/services/DialogService";
 
 export default {
@@ -173,6 +170,7 @@ export default {
   components: {
     Modal,
     ItemGraph,
+    ExportProgressModal,
   },
   props: {
     itemId: {
@@ -191,7 +189,6 @@ export default {
       createCollection: false,
       collectionId: "",
       collectionTitle: "",
-      pollInterval: null,
       graphDepth: 1,
       graphData: { nodes: [], edges: [] },
       isGraphLoading: false,
@@ -212,11 +209,6 @@ export default {
       this.loadGraphWithDepth();
       this.loadRelatedSamples();
     },
-  },
-  beforeUnmount() {
-    if (this.pollInterval) {
-      clearInterval(this.pollInterval);
-    }
   },
   methods: {
     async loadRelatedSamples() {
@@ -271,19 +263,15 @@ export default {
     },
 
     async handleExport() {
+      if (this.isExporting) {
+        return;
+      }
       try {
         this.isExporting = true;
 
         if (this.exportOnlyThisItem) {
           const response = await startItemExport(this.itemId);
-          const taskId = response.task_id;
-          DialogService.alert({
-            title: "Export in Progress",
-            message:
-              "Your item is being exported. This may take a few moments. You'll be notified when it's ready to download.",
-            type: "info",
-          });
-          this.pollExportStatus(taskId);
+          this.showProgress(response.task_id);
           return;
         }
 
@@ -326,16 +314,7 @@ export default {
           related_item_ids: this.selectedSampleIds,
           max_depth: this.graphDepth,
         });
-        const taskId = response.task_id;
-
-        DialogService.alert({
-          title: "Export in Progress",
-          message:
-            "Your items are being exported. This may take a few moments. You'll be notified when it's ready to download.",
-          type: "info",
-        });
-
-        this.pollExportStatus(taskId);
+        this.showProgress(response.task_id);
       } catch (error) {
         console.error("Export failed:", error);
         this.isExporting = false;
@@ -346,48 +325,11 @@ export default {
       }
     },
 
-    async pollExportStatus(taskId) {
-      this.pollInterval = setInterval(async () => {
-        try {
-          const status = await getExportStatus(taskId);
-
-          if (status.status === "ready") {
-            clearInterval(this.pollInterval);
-            this.downloadExport(taskId);
-            this.isExporting = false;
-            this.isModalOpen = false;
-            DialogService.closeCurrentDialog(true);
-
-            DialogService.alert({
-              title: "Export Complete",
-              message:
-                "Your items have been exported successfully and the download should begin shortly.",
-              type: "success",
-            });
-          } else if (status.status === "error") {
-            clearInterval(this.pollInterval);
-            this.isExporting = false;
-            DialogService.error({
-              title: "Export Failed",
-              message: status.error_message || "An error occurred during export.",
-            });
-          }
-        } catch (error) {
-          clearInterval(this.pollInterval);
-          this.isExporting = false;
-          console.error("Error polling export status:", error);
-        }
-      }, 2000);
-    },
-
-    downloadExport(taskId) {
-      const downloadUrl = getExportDownloadUrl(taskId);
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.style.display = "none";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    // Close this configuration modal and stream the export's progress in the progress modal.
+    showProgress(taskId) {
+      this.isExporting = false;
+      this.isModalOpen = false;
+      this.$refs.progressModal.start(taskId);
     },
 
     show() {
