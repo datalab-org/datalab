@@ -740,7 +740,7 @@ requires-dist = [
     { name = "navani", marker = "extra == 'apps'", specifier = ">=0.1.20" },
     { name = "nmrglue", marker = "extra == 'apps'", git = "https://github.com/jjhelmus/nmrglue.git?rev=b6408751bf18801a0a4ce084acf4d31335e2b02a" },
     { name = "pandas", extras = ["excel"], specifier = "~=2.2" },
-    { name = "periodictable", specifier = "~=1.7" },
+    { name = "periodictable", specifier = ">=1.7,<3.0" },
     { name = "pillow", marker = "extra == 'server'", specifier = ">=11,<13" },
     { name = "pint", specifier = "~=0.24" },
     { name = "psutil", marker = "extra == 'apps'", specifier = ">=7.0.0" },
@@ -2133,13 +2133,15 @@ wheels = [
 
 [[package]]
 name = "periodictable"
-version = "1.7.1"
+version = "2.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
     { name = "pyparsing" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/dd/27/4f91ad7d725408d9660e96cb958a335a7233dc5e816bd6a9d68428a066f7/periodictable-1.7.1.tar.gz", hash = "sha256:43d7db7233d6b33962f83d79ea54f47c3b923d3e83403cbc03f58f353af4b52c", size = 1003709, upload-time = "2024-07-08T22:10:04.795Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/44/0d/f494a2ec62ab56ffd44da4f236db374421fe0cd1e39d9ebc9785751eb432/periodictable-2.1.0-py3-none-any.whl", hash = "sha256:e9155d2bf5ac10050abeff2f99096d4f04312c0c8a6bb432e28744367c5064b3", size = 830749, upload-time = "2026-02-28T00:08:27.135Z" },
+]
 
 [[package]]
 name = "pillow"
