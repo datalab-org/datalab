@@ -182,8 +182,11 @@ def _cleanup_stale_tasks():
         deleted_files = 0
         for task_id in task_ids:
             for grid_file in bucket.find({"filename": task_id}):
-                bucket.delete(grid_file._id)
-                deleted_files += 1
+                try:
+                    bucket.delete(grid_file._id)
+                    deleted_files += 1
+                except Exception as e:
+                    LOGGER.error("Error deleting GridFS file for task %s: %s", task_id, str(e))
 
         # Delete the task documents
         result = flask_mongo.db.tasks.delete_many(
