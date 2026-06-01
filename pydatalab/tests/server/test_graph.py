@@ -158,3 +158,44 @@ def test_simple_graph(admin_client):
     graph = admin_client.get("/item-graph/parent").json
     assert len(graph["nodes"]) == 6
     assert len(graph["edges"]) == 5
+
+    # Add blocks to items and verify they appear in the graph
+    response = admin_client.post(
+        "/add-data-block/",
+        json={"block_type": "comment", "item_id": "parent", "index": 0},
+    )
+    assert response.status_code == 200
+    parent_block_id = response.json["new_block_obj"]["block_id"]
+
+    response = admin_client.post(
+        "/add-data-block/",
+        json={"block_type": "comment", "item_id": "child_1", "index": 0},
+    )
+    assert response.status_code == 200
+    child_1_block_id = response.json["new_block_obj"]["block_id"]
+
+    # Full graph should now include block nodes and edges
+    graph = admin_client.get("/item-graph").json
+    node_ids = {n["data"]["id"] for n in graph["nodes"]}
+    assert parent_block_id in node_ids
+    assert child_1_block_id in node_ids
+    block_nodes = [n for n in graph["nodes"] if n["data"]["type"] == "blocks"]
+    assert len(block_nodes) == 2
+    assert all(n["data"]["name"] == "comment" for n in block_nodes)
+    assert all(n["data"]["shape"] == "rectangle" for n in block_nodes)
+
+    # Block nodes should have edges connecting them to their parent items
+    block_edges = [
+        e for e in graph["edges"] if e["data"]["target"] in {parent_block_id, child_1_block_id}
+    ]
+    assert len(block_edges) == 2
+    block_edge_map = {e["data"]["target"]: e["data"]["source"] for e in block_edges}
+    assert block_edge_map[parent_block_id] == "parent"
+    assert block_edge_map[child_1_block_id] == "child_1"
+
+    # Item-specific graph should include that item's blocks
+    graph = admin_client.get("/item-graph/parent").json
+    node_ids = {n["data"]["id"] for n in graph["nodes"]}
+    assert parent_block_id in node_ids
+    # child_1's block should also appear since child_1 is in parent's graph
+    assert child_1_block_id in node_ids

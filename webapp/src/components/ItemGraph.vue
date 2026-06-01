@@ -108,6 +108,10 @@
           label samples/cells by name</label
         >
       </div>
+      <div class="form-group form-check mt-3">
+        <input id="show-blocks" v-model="showBlocks" class="form-check-input" type="checkbox" />
+        <label class="form-check-label" for="show-blocks"> show data blocks </label>
+      </div>
     </div>
   </div>
   <div id="cy" ref="cyContainer" v-bind="$attrs" />
@@ -131,7 +135,8 @@ cytoscape.use(fcose);
 const layoutOptions = {
   "elk-disco": {
     name: "elk",
-    animate: true,
+    animate: "end",
+    animationDuration: 1000,
     elk: {
       algorithm: "disco",
     },
@@ -141,23 +146,28 @@ const layoutOptions = {
   },
   "elk-stress": {
     name: "elk",
+    animate: "end",
+    animationDuration: 300,
     elk: {
       algorithm: "stress",
     },
   },
   cola: {
     name: "cola",
-    animate: true,
+    animate: "end",
+    animationDuration: 300,
     centerGraph: false,
   },
   euler: {
     name: "euler",
-    animate: true,
+    animate: "end",
+    animationDuration: 300,
     pull: 0.002,
   },
   fcose: {
     name: "fcose",
-    animate: true,
+    animate: "end",
+    animationDuration: 300,
     randomize: false,
     packComponents: true,
   },
@@ -182,6 +192,10 @@ export default {
       type: Boolean,
       default: true,
     },
+    defaultShowBlocks: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
@@ -192,6 +206,7 @@ export default {
       ignoreCollections: [],
       labelStartingMaterialsByName: true,
       labelItemsByName: false,
+      showBlocks: this.defaultShowBlocks,
       layoutIsRunning: true,
     };
   },
@@ -215,6 +230,18 @@ export default {
         .selector('node[type = "samples"], node[type = "cells"]')
         .style("label", this.labelItemsByName ? "data(name)" : "data(id)")
         .update();
+    },
+    showBlocks() {
+      const blockNodes = this.cy.$('node[type = "blocks"]');
+      const blockEdges = blockNodes.connectedEdges();
+      if (this.showBlocks) {
+        blockNodes.show();
+        blockEdges.show();
+      } else {
+        blockNodes.hide();
+        blockEdges.hide();
+      }
+      this.updateAndRunLayout();
     },
   },
   mounted() {
@@ -295,6 +322,15 @@ export default {
             },
           },
           {
+            selector: 'node[type = "blocks"]',
+            style: {
+              label: "data(name)",
+              shape: "rectangle",
+              width: 20,
+              height: 20,
+            },
+          },
+          {
             selector: "edge",
             style: {
               width: 4,
@@ -310,16 +346,24 @@ export default {
 
       // set colors of each of the nodes by type
       this.cy.nodes().each(function (element) {
-        element.style(
-          "background-color",
-          element.data("special") == 1
-            ? itemTypes[element.data("type")].lightColor
-            : itemTypes[element.data("type")].navbarColor,
-        );
+        const type = element.data("type");
+        if (type && itemTypes[type]) {
+          element.style(
+            "background-color",
+            element.data("special") == 1 ? itemTypes[type].lightColor : itemTypes[type].navbarColor,
+          );
+        }
         element.style("border-width", element.data("special") == 1 ? 2 : 0);
         element.style("border-color", "grey");
         (element.style("shape"), element.data("shape") == "triangle" ? "triangle" : "ellipse");
       });
+
+      // Toggle hide block nodes
+      if (!this.showBlocks) {
+        const blockNodes = this.cy.$('node[type = "blocks"]');
+        blockNodes.hide();
+        blockNodes.connectedEdges().hide();
+      }
 
       this.cy.on("layoutstart", () => {
         this.layoutIsRunning = true;
@@ -343,10 +387,21 @@ export default {
         node.style("border-width", node.data("special") == 1 ? 2 : 0);
         node.style("border-color", "grey");
       });
+      // Re-run layout when a node is dragged, locking the dragged node in place
+      // so the rest of the graph adjusts around it
+      this.cy.on("dragfree", "node", (evt) => {
+        var node = evt.target;
+        node.lock();
+        this.updateAndRunLayout();
+        node.unlock();
+      });
+
       this.cy.on("click", "node", function (evt) {
         var node = evt.target;
         if (node.data("type") == "collections") {
           window.open(`/collections/${node.data("id").replace("Collection: ", "")}`, "_blank");
+        } else if (node.data("type") == "blocks") {
+          window.open(`/edit/${node.data("parent_item_id")}`, "_blank");
         } else {
           window.open(`/edit/${node.data("id")}`, "_blank");
         }
@@ -366,7 +421,7 @@ export default {
 
 #cy {
   width: 100%;
-  height: 90vh;
+  height: 80vh;
   /* display: block;*/
 }
 </style>
