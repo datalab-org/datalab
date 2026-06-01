@@ -1309,6 +1309,7 @@ def list_versions(refcode):
                         "action": 1,
                         "restored_from_version": 1,
                         "data.version": 1,
+                        "user_agent": 1,
                     }
                 },
                 {"$sort": {"version": -1}},
@@ -1601,7 +1602,7 @@ def save_version(refcode):
     """Manually save the current state of an item as a version snapshot with an incremental version number."""
     response, status_code = save_version_snapshot(
         refcode,
-        action=VersionAction.MANUAL_SAVE,
+        action=None,  # let the function determine the appropriate action (e.g. AGENT_SAVE vs MANUAL_SAVE) based on user-agent
         permission_filter=get_default_permissions(user_only=False),
     )
     if status_code == 200 and "version" in response:
@@ -1792,7 +1793,7 @@ def save_item():
     # If this fails, we log but don't fail the request since item was already saved.
     try:
         save_version_resp_dict, save_version_status = save_version_snapshot(
-            refcode, action=VersionAction.MANUAL_SAVE
+            refcode,
         )
         if save_version_status != 200:
             LOGGER.error(
