@@ -295,8 +295,21 @@ class CycleBlock(DataBlock):
         cache_location = locations[0].parent / f"merged_{cache_key}"
         parquet_path = cache_location.with_name(cache_location.name + "_cached.bdf.parquet")
         csv_path = cache_location.with_name(cache_location.name + ".bdf.csv")
+
+        # Check cache age and invalidate based on the most recent source file modification time
+        reload = False
+        if parquet_path.exists():
+            cache_age = parquet_path.stat().st_mtime
+            source_ages = [
+                file_info["last_modified"].timestamp()
+                for file_info in file_infos
+                if file_info["last_modified"]
+            ]
+            if source_ages and cache_age < max(source_ages):
+                reload = True
+
         return self._load_and_cache_echem(
-            cache_location, parquet_path, csv_path, reload=True, locations=locations
+            cache_location, parquet_path, csv_path, reload=reload, locations=locations
         )
 
     @staticmethod
