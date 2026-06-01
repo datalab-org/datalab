@@ -23,6 +23,44 @@ from pydatalab.routes.v0_1.items import (
 
 __all__ = ("generate_ro_crate_metadata", "create_eln_file")
 
+ALTERNATIVE_REPRESENTATION_PATTERNS: tuple[str, ...] = ("*.bdf.parquet",)
+"""Glob patterns for alternative/derived representations of an uploaded file.
+
+Each uploaded file lives in its own directory keyed by its database ID, and some
+blocks write derived representations of the data alongside the original (for
+example, the echem block writes a ``*.bdf.parquet`` cache next to the source
+file). Any sibling matching one of these patterns is included in the export and
+described as a file in its own right. Extend this tuple to capture further
+representation formats.
+"""
+
+
+def find_alternative_representations(source_path: Path) -> list[Path]:
+    """Find alternative representation files stored alongside ``source_path``.
+
+    Looks in the same directory as the file for siblings matching any of the
+    configured :data:`ALTERNATIVE_REPRESENTATION_PATTERNS`, excluding the source
+    file itself.
+
+    Parameters:
+        source_path: The on-disk location of the original uploaded file.
+
+    Returns:
+        A sorted, de-duplicated list of matching sibling paths.
+
+    """
+    file_dir = source_path.parent
+    matches: list[Path] = []
+    seen: set[Path] = set()
+    for pattern in ALTERNATIVE_REPRESENTATION_PATTERNS:
+        for match in file_dir.glob(pattern):
+            if match == source_path or match in seen or not match.is_file():
+                continue
+            seen.add(match)
+            matches.append(match)
+
+    return sorted(matches)
+
 
 def write_eln_file(root_folder_name, items, info, output_path) -> None:
     """Write an ELN file to disk containing the given items and collection metadata.
@@ -60,6 +98,10 @@ def write_eln_file(root_folder_name, items, info, output_path) -> None:
                 if source_path.exists():
                     dest_file = item_folder / file["name"]
                     shutil.copy2(source_path, dest_file)
+
+                    # Include any alternative representations stored alongside the file.
+                    for alt in find_alternative_representations(source_path):
+                        shutil.copy2(alt, item_folder / alt.name)
                 else:
                     LOGGER.warning("ELN export: File not found on disk: %s", file["location"])
 
@@ -178,6 +220,25 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
                 file_metadata["dateCreated"] = file["last_modified"].isoformat()
 
             files_metadata.append(file_metadata)
+
+            # Describe any alternative representations stored alongside the file.
+            if file.get("location"):
+                for alt in find_alternative_representations(Path(file["location"])):
+                    alt_id = f"./{item['refcode']}/{alt.name}"
+                    files.append({"@id": alt_id})
+
+                    alt_metadata = {
+                        "@id": alt_id,
+                        "@type": "File",
+                        "contentSize": alt.stat().st_size,
+                        "name": alt.name,
+                        "description": f"Alternative representation of {file['name']}",
+                    }
+
+                    alt_mtime = datetime.fromtimestamp(alt.stat().st_mtime, tz=timezone.utc)
+                    alt_metadata["dateCreated"] = alt_mtime.isoformat()
+
+                    files_metadata.append(alt_metadata)
 
         # Add file for datalab metadata
         item_metadata_file = {
