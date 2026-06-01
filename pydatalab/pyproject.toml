@@ -67,7 +67,7 @@ apps = [
     "nmrglue ~= 0.12",
     # Electrochemistry
     "navani >= 0.1.20",
-    "pyarrow ~= 23.0.1",
+    "pyarrow>=23.0.1,<24.1.0",
     # Raman
     "pybaselines ~= 1.1",
     "renishawwire >= 0.1.16",
