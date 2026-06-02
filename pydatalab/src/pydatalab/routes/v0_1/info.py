@@ -17,6 +17,7 @@ from pydatalab.models import Collection, Person
 from pydatalab.models.items import Item
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only
+from pydatalab.versioning import KNOWN_USER_AGENTS
 
 from ._version import __api_version__
 
@@ -69,6 +70,7 @@ class Info(Attributes, Meta):
     identifier_prefix: str
     features: FeatureFlags = FEATURE_FLAGS
     max_upload_bytes: int
+    known_user_agents: list[str] = KNOWN_USER_AGENTS
 
     @validator("maintainer")
     def strip_maintainer_fields(cls, v):
