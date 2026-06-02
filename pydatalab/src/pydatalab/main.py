@@ -86,6 +86,15 @@ def create_app(
         # https://flask.palletsprojects.com/en/2.2.x/deploying/proxy_fix/
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)  # type: ignore
 
+    if CONFIG.USE_X_ACCEL_REDIRECT and not CONFIG.BEHIND_REVERSE_PROXY:
+        # X-Accel-Redirect hands downloads off to nginx; without a proxy in front
+        # to intercept the header, clients would receive empty-bodied responses.
+        LOGGER.warning(
+            "USE_X_ACCEL_REDIRECT is enabled but BEHIND_REVERSE_PROXY is False: "
+            "file/export downloads will return empty responses unless an nginx "
+            "proxy is configured to honour the X-Accel-Redirect header."
+        )
+
     CORS(
         app,
         resources={r"/*": {"origins": "*"}},
