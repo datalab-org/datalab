@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from flask import Blueprint, jsonify, request, send_file
+from flask import Blueprint, jsonify, make_response, request, send_file
 from flask_login import current_user
 
 from pydatalab.config import CONFIG
@@ -178,6 +178,51 @@ def get_export_status(task_id: str):
     return jsonify(response), 200
 
 
+# Internal nginx location that aliases the on-disk export directory (see
+# `_do_export`, which writes to `<tempdir>/eln-exports/`). The matching nginx
+# config marks this location `internal;` so clients cannot request it directly:
+#
+#     location /_protected_exports/ {
+#         internal;
+#         alias /tmp/eln-exports/;   # must match the export dir used in _do_export
+#     }
+#
+# Only the basename of the export file is appended, so the alias above is the
+# single source of truth for where the bytes live on disk.
+X_ACCEL_EXPORT_LOCATION = "/_protected_exports"
+
+EXPORT_MIMETYPE = "application/vnd.eln+zip"
+
+
+def _serve_export_file(file_path: str, filename: str):
+    """Return a response that delivers a generated export file to the client.
+
+    When `CONFIG.USE_X_ACCEL_REDIRECT` is enabled (nginx deployments), the
+    gunicorn worker does *not* stream the bytes itself: it returns an empty
+    response carrying an `X-Accel-Redirect` header, and nginx serves the file
+    off disk with kernel sendfile. This frees the worker the instant auth
+    passes, so multi-GB downloads no longer tie up (or time out) a worker.
+
+    Otherwise (dev/test, a non-nginx proxy, or running without a proxy) we fall
+    back to streaming the file directly through Flask with `send_file`.
+    """
+    if CONFIG.USE_X_ACCEL_REDIRECT:
+        # Map the absolute on-disk path to the internal nginx location by
+        # basename; nginx's `alias` resolves it back to the real directory.
+        internal_uri = f"{X_ACCEL_EXPORT_LOCATION}/{Path(file_path).name}"
+
+        response = make_response("")
+        response.headers["X-Accel-Redirect"] = internal_uri
+        response.headers["Content-Type"] = EXPORT_MIMETYPE
+        response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+        # Deliberately omit Content-Length: nginx sets it from the file it serves.
+        return response
+
+    return send_file(
+        file_path, as_attachment=True, download_name=filename, mimetype=EXPORT_MIMETYPE
+    )
+
+
 @EXPORT.route("/exports/<string:task_id>/download", methods=["GET"])
 def download_export(task_id: str):
     if not CONFIG.TESTING:
@@ -203,9 +248,7 @@ def download_export(task_id: str):
 
     filename = f"{spec.get('collection_id') or spec.get('item_id')}.eln"
 
-    return send_file(
-        file_path, as_attachment=True, download_name=filename, mimetype="application/vnd.eln+zip"
-    )
+    return _serve_export_file(file_path, filename)
 
 
 @EXPORT.route("/items/<string:item_id>/export", methods=["POST"])

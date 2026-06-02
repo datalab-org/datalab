@@ -198,6 +198,11 @@ class ServerConfig(BaseSettings):
         description="Whether the Flask app is being deployed behind a reverse proxy. If `True`, the reverse proxy middleware described in the [Flask docs](https://flask.palletsprojects.com/en/2.2.x/deploying/proxy_fix/) will be attached to the app.",
     )
 
+    USE_X_ACCEL_REDIRECT: bool = Field(
+        False,
+        description="Whether to offload large file/export downloads to the reverse proxy via the `X-Accel-Redirect` header rather than streaming them through a Flask worker. Requires an **nginx** proxy with a matching `internal` location; leave `False` for other proxies (Caddy, traefik) or when running without a proxy.",
+    )
+
     GITHUB_ORG_ALLOW_LIST: list[str] | None = Field(
         [],
         description="A list of GitHub organization IDs (available from `https://api.github.com/orgs/<org_name>`, and are immutable) or organisation names (which can change, so be warned), that the membership of which will be required to register a new datalab account. Setting the value to `None` will allow any GitHub user to register an account.",
