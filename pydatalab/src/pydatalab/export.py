@@ -71,7 +71,9 @@ def find_alternative_representations(source_path: Path) -> list[Path]:
     return sorted(matches)
 
 
-def write_eln_file(root_folder_name, items, info, output_path, on_stage=None) -> None:
+def write_eln_file(
+    root_folder_name, items, info, output_path, on_stage=None, primary_key="item_id"
+) -> None:
     """Write an ELN file to disk containing the given items and collection metadata.
     Will first write to an intermediate temporary directory.
 
@@ -82,6 +84,7 @@ def write_eln_file(root_folder_name, items, info, output_path, on_stage=None) ->
         output_path: Path where the .eln file should be saved.
         on_stage: Optional :data:`StageCallback` invoked with a progress message
             as each entry is archived.
+        primary_key: The primary key field to use for item folders (default: "item_id", but "refcode" is more user-friendly and stable)
 
     """
 
@@ -93,15 +96,15 @@ def write_eln_file(root_folder_name, items, info, output_path, on_stage=None) ->
         root_folder = temp_path / root_folder_name
         root_folder.mkdir()
 
-        ro_crate_metadata = generate_ro_crate_metadata(info, items)
+        ro_crate_metadata = generate_ro_crate_metadata(info, items, primary_key=primary_key)
         with open(root_folder / "ro-crate-metadata.json", "w", encoding="utf-8") as f:
             json.dump(ro_crate_metadata, f, ensure_ascii=False)
 
         for ind, item in enumerate(items):
             if on_stage is not None:
-                on_stage(f"Archiving entry {ind + 1}/{total}: {item['refcode']}")
+                on_stage(f"Archiving entry {ind + 1}/{total}: {item[primary_key]}")
 
-            item_folder = root_folder / item["refcode"]
+            item_folder = root_folder / item[primary_key]
             item_folder.mkdir()
 
             item_metadata = ITEM_MODELS[item.get("type")](**item).json(indent=2)
@@ -135,7 +138,9 @@ def write_eln_file(root_folder_name, items, info, output_path, on_stage=None) ->
                     zipf.write(file_path, arcname)
 
 
-def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -> dict:
+def generate_ro_crate_metadata(
+    collection_data: dict, child_items: list[dict], primary_key: str = "item_id"
+) -> dict:
     """Generate RO-Crate metadata for the .eln file.
 
     Parameters:
@@ -150,7 +155,7 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
     for item in child_items:
         experiments.append(
             {
-                "@id": f"./{item['refcode']}/",
+                "@id": f"./{item[primary_key]}/",
             }
         )
 
@@ -201,7 +206,7 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
         identifier = item["refcode"]
 
         item_metadata = {
-            "@id": f"./{item['refcode']}/",
+            "@id": f"./{item[primary_key]}/",
             "@type": "Dataset",
             "name": item.get("name", item["item_id"]),
             "identifier": identifier,
@@ -229,7 +234,7 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
         files = []
         files_metadata: list[dict] = []
         for file in item.get("files", []):
-            file_id = f"./{item['refcode']}/{file['name']}"
+            file_id = f"./{item[primary_key]}/{file['name']}"
             files.append({"@id": file_id})
 
             file_metadata = {
@@ -247,7 +252,7 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
             # Describe any alternative representations stored alongside the file.
             if file.get("location"):
                 for alt in find_alternative_representations(Path(file["location"])):
-                    alt_id = f"./{item['refcode']}/{alt.name}"
+                    alt_id = f"./{item[primary_key]}/{alt.name}"
                     files.append({"@id": alt_id})
 
                     alt_metadata = {
@@ -265,11 +270,11 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
 
         # Add file for datalab metadata
         item_metadata_file = {
-            "@id": f"./{item['refcode']}/metadata.json",
+            "@id": f"./{item[primary_key]}/metadata.json",
             "@type": "File",
             "name": "metadata.json",
             "encodingFormat": "application/json",
-            "description": f"Metadata for item {item['refcode']}",
+            "description": f"Metadata for item {item['refcode']} / {item['item_id']}",
         }
 
         files.append({"@id": item_metadata_file["@id"]})
@@ -312,6 +317,7 @@ def create_eln_file(
     item_id: str | None = None,
     related_item_ids: list[str] | None = None,
     on_stage: "StageCallback | None" = None,
+    primary_key: str = "item_id",
 ) -> None:
     """Create a .eln file for a collection, item, or set of items.
 
@@ -322,6 +328,8 @@ def create_eln_file(
         related_item_ids: List of related item IDs to include in the export.
         on_stage: Optional :data:`StageCallback` invoked with progress messages
             as the export proceeds.
+        primary_key: The item field used to key item folders in the archive
+            (``"item_id"`` by default, or ``"refcode"`` for stable identifiers).
 
     """
     if not collection_id and not item_id:
@@ -422,4 +430,11 @@ def create_eln_file(
     if on_stage is not None:
         on_stage(f"Resolved {len(all_items)} entries for export")
 
-    write_eln_file(root_folder_name, all_items, collection_data, output_path, on_stage=on_stage)
+    write_eln_file(
+        root_folder_name,
+        all_items,
+        collection_data,
+        output_path,
+        on_stage=on_stage,
+        primary_key=primary_key,
+    )
