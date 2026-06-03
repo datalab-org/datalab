@@ -1,6 +1,5 @@
 """This module implements methods for exporting datalab data
 to other formats, such as .eln files.
-
 """
 
 import json
@@ -97,7 +96,7 @@ def write_eln_file(
         ro_crate_metadata = generate_ro_crate_metadata(info, items, primary_key=primary_key)
         zipf.writestr(
             str(root_folder / "ro-crate-metadata.json"),
-            json.dumps(ro_crate_metadata, ensure_ascii=False),
+            json.dumps(ro_crate_metadata, ensure_ascii=False, indent=2),
         )
 
         for ind, item in enumerate(items):
