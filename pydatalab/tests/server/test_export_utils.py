@@ -50,7 +50,90 @@ def test_generate_ro_crate_metadata():
     sample1 = next(item for item in metadata["@graph"] if item["@id"] == "./sample1/")
     assert sample1["@type"] == "Dataset"
     assert sample1["name"] == "Sample 1"
-    assert sample1["identifier"] == "test:sample1"
+    assert sample1["identifier"] == "sample1"
+
+
+def _people_sharing_items(num_items, creator_id):
+    """Build ``num_items`` child items that all share a single creator."""
+    return [
+        {
+            "item_id": f"sample{i}",
+            "name": f"Sample {i}",
+            "refcode": f"test:CODE{i}",
+            "creators": [{"display_name": "Shared Creator", "immutable_id": creator_id}],
+        }
+        for i in range(num_items)
+    ]
+
+
+def test_ro_crate_people_not_duplicated():
+    """A creator shared across many items should appear exactly once in the graph."""
+    creator_id = ObjectId()
+    child_items = _people_sharing_items(3, creator_id)
+
+    metadata = generate_ro_crate_metadata({"collection_id": "c", "title": "C"}, child_items)
+
+    people = [node for node in metadata["@graph"] if node.get("@type") == "Person"]
+    assert len(people) == 1
+    assert people[0]["@id"] == f"./people/{creator_id}"
+
+    # The single person node should still be referenced as an author by every item.
+    for item in child_items:
+        dataset = next(n for n in metadata["@graph"] if n["@id"] == f"./{item['item_id']}/")
+        assert dataset["authors"] == [{"@id": f"./people/{creator_id}"}]
+
+
+def test_ro_crate_software_and_action_not_duplicated_per_item():
+    """The ``SoftwareApplication`` and ``CreateAction`` nodes describe the export
+    as a whole, so they must appear once regardless of the number of items."""
+    child_items = _people_sharing_items(4, ObjectId())
+
+    metadata = generate_ro_crate_metadata({"collection_id": "c", "title": "C"}, child_items)
+
+    software = [n for n in metadata["@graph"] if n.get("@type") == "SoftwareApplication"]
+    actions = [n for n in metadata["@graph"] if n.get("@type") == "CreateAction"]
+    assert len(software) == 1
+    assert len(actions) == 1
+
+    # No graph node should be emitted twice (would be invalid RO-Crate).
+    ids = [n["@id"] for n in metadata["@graph"]]
+    assert len(ids) == len(set(ids))
+
+
+@pytest.mark.parametrize("primary_key", ["item_id", "refcode"])
+def test_ro_crate_primary_key_switch(primary_key):
+    """The folder/``@id`` key can be switched between ``item_id`` and ``refcode``."""
+    child_items = [
+        {
+            "item_id": "sample_a",
+            "name": "Sample A",
+            "refcode": "test:REFA",
+            "creators": [],
+        }
+    ]
+
+    metadata = generate_ro_crate_metadata(
+        {"collection_id": "c", "title": "C"}, child_items, primary_key=primary_key
+    )
+
+    expected_key = child_items[0][primary_key]
+    other_key = child_items[0]["refcode" if primary_key == "item_id" else "item_id"]
+
+    dataset_ids = [n["@id"] for n in metadata["@graph"] if n.get("@type") == "Dataset"]
+    assert f"./{expected_key}/" in dataset_ids
+    if expected_key != other_key:
+        assert f"./{other_key}/" not in dataset_ids
+
+    # The per-item metadata.json file should hang off the same key.
+    assert any(
+        n["@id"] == f"./{expected_key}/metadata.json"
+        for n in metadata["@graph"]
+        if n.get("@type") == "File"
+    )
+
+    # The stable identifier is always the refcode, independent of the folder key.
+    dataset = next(n for n in metadata["@graph"] if n["@id"] == f"./{expected_key}/")
+    assert dataset["identifier"] == "test:REFA"
 
 
 def test_create_eln_file_items(database, tmp_path, user_id):
@@ -86,7 +169,12 @@ def test_create_eln_file_items(database, tmp_path, user_id):
     output_path = tmp_path / "test_samples.eln"
 
     try:
-        create_eln_file(output_path, item_id=sample_item_id, related_item_ids=[sample_item_id_2])
+        create_eln_file(
+            output_path,
+            item_id=sample_item_id,
+            related_item_ids=[sample_item_id_2],
+            primary_key="refcode",
+        )
         assert output_path.exists()
 
         with zipfile.ZipFile(output_path, "r") as zf:
@@ -114,6 +202,66 @@ def test_create_eln_file_items(database, tmp_path, user_id):
 
             except KeyError:
                 pytest.fail(f"Metadata file for {sample_item_id} not found in ELN file: {files}")
+
+    finally:
+        database.items.delete_one({"_id": sample_id})
+        database.items.delete_one({"_id": sample_id_2})
+
+
+def test_create_eln_file_items_default_item_id_key(database, tmp_path, user_id):
+    """By default (no ``primary_key``) exports key item folders by ``item_id``,
+    which is the more human-friendly layout preferred for manual exports."""
+    sample_id = ObjectId()
+    sample_id_2 = ObjectId()
+    sample_item_id = "human_sample"
+    sample_item_id_2 = "human_sample_2"
+
+    sample_data = {
+        "_id": sample_id,
+        "item_id": sample_item_id,
+        "name": "Test Sample",
+        "type": "samples",
+        "refcode": "test:HUMAN1",
+        "relationships": [{"type": "samples", "immutable_id": sample_id_2}],
+        "creator_ids": [user_id],
+        "creators": [{"display_name": "Test User", "immutable_id": user_id}],
+    }
+
+    sample_data_2 = {
+        "_id": sample_id_2,
+        "item_id": sample_item_id_2,
+        "name": "Test Sample 2",
+        "type": "samples",
+        "refcode": "test:HUMAN2",
+        "creator_ids": [user_id],
+        "creators": [{"display_name": "Test User", "immutable_id": user_id}],
+    }
+
+    database.items.insert_one(sample_data)
+    database.items.insert_one(sample_data_2)
+
+    output_path = tmp_path / "human_samples.eln"
+
+    try:
+        # No primary_key argument -> defaults to "item_id"
+        create_eln_file(output_path, item_id=sample_item_id, related_item_ids=[sample_item_id_2])
+        assert output_path.exists()
+
+        # The root folder is still the main item's refcode, but item folders inside
+        # are keyed by item_id, not refcode.
+        root = sample_data["refcode"]
+        with zipfile.ZipFile(output_path, "r") as zf:
+            files = zf.namelist()
+
+            assert f"{root}/{sample_item_id}/metadata.json" in files
+            assert f"{root}/{sample_item_id_2}/metadata.json" in files
+
+            # The refcode-keyed paths must NOT be present under the default.
+            assert f"{root}/{sample_data['refcode']}/metadata.json" not in files
+            assert f"{root}/{sample_data_2['refcode']}/metadata.json" not in files
+
+            with zf.open(f"{root}/{sample_item_id}/metadata.json") as f:
+                assert json.load(f)["item_id"] == sample_item_id
 
     finally:
         database.items.delete_one({"_id": sample_id})
@@ -158,7 +306,7 @@ def test_create_eln_file_collection(database, tmp_path, user_id):
     output_path = tmp_path / "test.eln"
 
     try:
-        create_eln_file(output_path, collection_id)
+        create_eln_file(output_path, collection_id, primary_key="refcode")
         assert output_path.exists()
 
         with zipfile.ZipFile(output_path, "r") as zf:
