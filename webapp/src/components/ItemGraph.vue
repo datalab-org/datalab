@@ -296,11 +296,11 @@ export default {
         container: this.$refs.cyContainer,
         elements: { nodes: this.graphData.nodes || [], edges: validEdges },
         userPanningEnabled: true,
-        minZoom: 0.5,
+        minZoom: 0.05,
         maxZoom: 1,
         animatedZooming: false,
         userZoomingEnabled: true,
-        wheelSensitivity: 0.2,
+        wheelSensitivity: 0.5,
         boxSelectionEnabled: false,
         style: [
           {
@@ -371,6 +371,9 @@ export default {
 
       this.cy.on("layoutstop", () => {
         this.layoutIsRunning = false;
+        // Once the layout has settled, fit the whole graph within the container
+        // box (with a little padding) so nothing overflows the visible area.
+        this.cy.fit(undefined, 20);
       });
 
       // tapdragover and tapdragout are mouseover and mouseout events
@@ -386,14 +389,6 @@ export default {
         node.style("opacity", 1);
         node.style("border-width", node.data("special") == 1 ? 2 : 0);
         node.style("border-color", "grey");
-      });
-      // Re-run layout when a node is dragged, locking the dragged node in place
-      // so the rest of the graph adjusts around it
-      this.cy.on("dragfree", "node", (evt) => {
-        var node = evt.target;
-        node.lock();
-        this.updateAndRunLayout();
-        node.unlock();
       });
 
       this.cy.on("click", "node", function (evt) {
