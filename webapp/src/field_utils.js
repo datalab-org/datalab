@@ -96,16 +96,24 @@ export function createComputedSetterForItemField(item_field) {
   };
 }
 
-export function createComputedSetterForCollectionField(collection_field) {
+export function createComputedSetterForCollectionField(collection_field, defaultValue = undefined) {
   return {
     get() {
       if (this.collection_id in store.state.all_collection_data) {
         let value = store.state.all_collection_data[this.collection_id][collection_field];
+        if (value === undefined || value === null) {
+          // Field absent (e.g. collection not yet loaded, or an optional field
+          // that was never set): fall back to the supplied default so that, for
+          // example, array-typed v-model bindings receive [] rather than
+          // undefined and don't trip required-prop validation.
+          return defaultValue;
+        }
         if (DATETIME_FIELDS.has(collection_field)) {
           value = dateTimeParser(value);
         }
         return value;
       }
+      return defaultValue;
     },
     set(value) {
       if (DATETIME_FIELDS.has(collection_field)) {

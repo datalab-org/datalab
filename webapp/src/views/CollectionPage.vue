@@ -4,6 +4,7 @@
     class="navbar navbar-expand-md sticky-top navbar-dark py-0 editor-navbar"
     :style="{ backgroundColor: navbarColor }"
   >
+    <div v-show="false" class="navbar-nav"><LoginDetails /></div>
     <span class="navbar-brand clickable" @click="scrollToID($event, 'topScrollPoint')">
       <span class="navbar-brand-type"
         >{{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;</span
@@ -83,7 +84,7 @@
 
   <!-- Item-type header information goes here -->
   <div class="editor-body">
-    <CollectionInformation :collection_id="collection_id" />
+    <CollectionInformation v-if="data_loaded" :collection_id="collection_id" />
     <SharingModal v-model="isSharingModalVisible" :collection-id="collection_id" />
   </div>
 </template>
@@ -92,6 +93,7 @@
 import { DialogService } from "@/services/DialogService";
 
 import CollectionInformation from "@/components/CollectionInformation";
+import LoginDetails from "@/components/LoginDetails";
 import SharingModal from "@/components/SharingModal.vue";
 import { getCollectionData, saveCollection } from "@/server_fetch_utils";
 import FormattedItemName from "@/components/FormattedItemName.vue";
@@ -104,6 +106,7 @@ import ExportDropdown from "@/components/ExportDropdown";
 export default {
   components: {
     CollectionInformation,
+    LoginDetails,
     SharingModal,
     FormattedItemName,
     ExportDropdown,
