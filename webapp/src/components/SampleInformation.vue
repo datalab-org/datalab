@@ -63,6 +63,10 @@
 
     <TableOfContents :item_id="item_id" :information-sections="tableOfContentsSections" />
     <SynthesisInformation class="mt-3" :item_id="item_id" />
+
+    <div id="sample-stages" class="mt-3">
+      <SampleStagesTimeline :stages="sampleStages" @stage-click="scrollToBlock" />
+    </div>
   </div>
 </template>
 
@@ -78,6 +82,7 @@ import SynthesisInformation from "@/components/SynthesisInformation";
 import SubstanceInformation from "@/components/SubstanceInformation";
 import TableOfContents from "@/components/TableOfContents";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
+import SampleStagesTimeline from "@/components/SampleStagesTimeline";
 
 export default {
   components: {
@@ -86,6 +91,7 @@ export default {
     SubstanceInformation,
     TableOfContents,
     ItemRelationshipVisualization,
+    SampleStagesTimeline,
     FormattedRefcode,
     ToggleableCollectionFormGroup,
     ToggleableCreatorsFormGroup,
@@ -106,6 +112,7 @@ export default {
         { title: "Sample Information", targetID: "sample-information" },
         { title: "Substance Information", targetID: "substance-information" },
         { title: "Synthesis Information", targetID: "synthesis-information" },
+        { title: "Sample Stages", targetID: "sample-stages" },
       ],
     };
   },
@@ -127,6 +134,65 @@ export default {
     },
     possibleItemStatuses() {
       return this.schema?.attributes?.schema?.definitions?.ItemStatus?.enum;
+    },
+    sampleStages() {
+      const item = this.item || {};
+      const blocks = item.blocks_obj || {};
+      const displayOrder = item.display_order || Object.keys(blocks);
+      const baseTimestamp = item.date ? new Date(item.date).getTime() : Date.now();
+
+      return displayOrder
+        .map((blockId, index) => {
+          const block = blocks[blockId];
+
+          if (!block) {
+            return null;
+          }
+
+          const blocktype = block.blocktype || "Block";
+          const title = block.title || blocktype;
+          const rawTimestamp =
+            block.created_at || block.createdAt || block.date_created || block.timestamp;
+          const timestamp = rawTimestamp
+            ? rawTimestamp
+            : new Date(baseTimestamp + index * 10 * 60 * 1000).toISOString();
+          const previousBlockId = displayOrder[index - 1];
+          const previousBlock = previousBlockId ? blocks[previousBlockId] : null;
+          const transitionLabel = previousBlock
+            ? `from ${previousBlock.blocktype || "Block"} to ${blocktype}`
+            : "initial stage";
+
+          return {
+            id: blockId,
+            block_id: blockId,
+            blocktype,
+            full_name: title,
+            title,
+            name: title,
+            timestamp,
+            detail: block.freeform_comment || "",
+            metadata: block.metadata || null,
+            transition_label: transitionLabel,
+          };
+        })
+        .filter(Boolean);
+    },
+  },
+  methods: {
+    scrollToBlock(stage) {
+      const blockId = stage?.block_id || stage?.id;
+      if (!blockId || typeof document === "undefined") {
+        return;
+      }
+
+      const target = document.getElementById(blockId);
+      if (!target) {
+        return;
+      }
+
+      const headerOffset = 88;
+      const top = target.getBoundingClientRect().top + window.scrollY - headerOffset;
+      window.scrollTo({ top, behavior: "smooth" });
     },
   },
 };
