@@ -333,6 +333,95 @@ def test_do_export_error_handling(database, user_id):
     database.tasks.delete_one({"task_id": task_id})
 
 
+def test_cleanup_old_exports(database, user_id, tmp_path):
+    """The periodic cleanup should delete export tasks (and their .eln files)
+    older than EXPORT_MAX_AGE_HOURS, while leaving recent ones untouched."""
+    from datetime import timedelta
+
+    from pydatalab.routes.v0_1.export import EXPORT_MAX_AGE_HOURS, _cleanup_old_exports
+
+    now = datetime.now(tz=timezone.utc)
+
+    # An old export: created beyond the max age, with a file still on disk.
+    old_task_id = "old-export-to-clean"
+    old_file = tmp_path / f"{old_task_id}.eln"
+    old_file.write_bytes(b"old export content")
+    old_task = Task(
+        type=TaskType.EXPORT,
+        task_id=old_task_id,
+        creator_id=user_id,
+        status=TaskStatus.READY,
+        created_at=now - timedelta(hours=EXPORT_MAX_AGE_HOURS + 1),
+        spec=ExportTaskSpec(
+            collection_id="test_collection",
+            export_type="collection",
+            file_path=str(old_file),
+        ),
+    )
+    database.tasks.insert_one(old_task.dict())
+
+    # A recent export: created within the window, must be retained.
+    recent_task_id = "recent-export-to-keep"
+    recent_file = tmp_path / f"{recent_task_id}.eln"
+    recent_file.write_bytes(b"recent export content")
+    recent_task = Task(
+        type=TaskType.EXPORT,
+        task_id=recent_task_id,
+        creator_id=user_id,
+        status=TaskStatus.READY,
+        created_at=now - timedelta(hours=1),
+        spec=ExportTaskSpec(
+            collection_id="test_collection",
+            export_type="collection",
+            file_path=str(recent_file),
+        ),
+    )
+    database.tasks.insert_one(recent_task.dict())
+
+    try:
+        _cleanup_old_exports()
+
+        # Old task and its file are gone.
+        assert database.tasks.find_one({"task_id": old_task_id}) is None
+        assert not old_file.exists()
+
+        # Recent task and its file remain.
+        assert database.tasks.find_one({"task_id": recent_task_id}) is not None
+        assert recent_file.exists()
+
+    finally:
+        database.tasks.delete_one({"task_id": old_task_id})
+        database.tasks.delete_one({"task_id": recent_task_id})
+
+
+def test_cleanup_old_exports_missing_file(database, user_id):
+    """Cleanup should still purge an old task whose .eln file is already gone."""
+    from datetime import timedelta
+
+    from pydatalab.routes.v0_1.export import EXPORT_MAX_AGE_HOURS, _cleanup_old_exports
+
+    task_id = "old-export-missing-file"
+    task = Task(
+        type=TaskType.EXPORT,
+        task_id=task_id,
+        creator_id=user_id,
+        status=TaskStatus.READY,
+        created_at=datetime.now(tz=timezone.utc) - timedelta(hours=EXPORT_MAX_AGE_HOURS + 1),
+        spec=ExportTaskSpec(
+            collection_id="test_collection",
+            export_type="collection",
+            file_path="/nonexistent/already-deleted.eln",
+        ),
+    )
+    database.tasks.insert_one(task.dict())
+
+    try:
+        _cleanup_old_exports()
+        assert database.tasks.find_one({"task_id": task_id}) is None
+    finally:
+        database.tasks.delete_one({"task_id": task_id})
+
+
 def test_do_export_status_transitions(database, sample_collection, user_id):
     from pydatalab.routes.v0_1.export import _do_export
 
