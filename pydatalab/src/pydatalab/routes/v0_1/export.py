@@ -1,7 +1,8 @@
+import contextlib
 import os
 import tempfile
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from flask import Blueprint, jsonify, make_response, request, send_file
@@ -9,6 +10,7 @@ from flask_login import current_user
 
 from pydatalab.config import CONFIG
 from pydatalab.export import create_eln_file
+from pydatalab.logger import LOGGER
 from pydatalab.models.tasks import ExportTaskSpec, Task, TaskStage, TaskStatus, TaskType
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only
@@ -18,11 +20,79 @@ EXPORT = Blueprint("export", __name__)
 
 _app = None
 
+EXPORT_MAX_AGE_HOURS = 24
+"""Generated `.eln` files (and their export tasks) are purged this many hours
+after creation by the periodic :func:`_cleanup_old_exports` job."""
+
+
+def _export_dir() -> Path:
+    """The directory in which generated `.eln` files are stored.
+
+    Single source of truth shared by export generation, the cleanup job, and
+    (by convention) the nginx alias in :data:`X_ACCEL_EXPORT_LOCATION`.
+    """
+    return Path(tempfile.gettempdir()) / "eln-exports"
+
 
 @EXPORT.record_once
 def _register_app(state):
     global _app
     _app = state.app
+
+    task_scheduler.add_periodic_job(
+        func=_cleanup_old_exports,
+        job_id="export_file_cleanup",
+        hours=EXPORT_MAX_AGE_HOURS,
+    )
+    LOGGER.info("Registered export cleanup job (every %d hours)", EXPORT_MAX_AGE_HOURS)
+
+
+def _cleanup_old_exports():
+    """Periodic cleanup of generated `.eln` exports older than the max age.
+
+    Runs on an interval via APScheduler. Deletes any export task whose file is
+    older than :data:`EXPORT_MAX_AGE_HOURS`, removing both the on-disk `.eln`
+    file and the task document. Idempotent and safe to run per-worker.
+    """
+    app_ctx = _app.app_context() if _app else contextlib.nullcontext()
+
+    with app_ctx:
+        age_cutoff = datetime.now(tz=timezone.utc) - timedelta(hours=EXPORT_MAX_AGE_HOURS)
+
+        old_tasks = flask_mongo.db.tasks.find(
+            {
+                "type": TaskType.EXPORT,
+                "created_at": {"$lt": age_cutoff},
+            },
+            {"task_id": 1, "spec.file_path": 1},
+        )
+
+        deleted_files = 0
+        task_ids = []
+        for task in old_tasks:
+            task_ids.append(task["task_id"])
+            file_path = task.get("spec", {}).get("file_path")
+            if file_path:
+                try:
+                    os.remove(file_path)
+                    deleted_files += 1
+                except FileNotFoundError:
+                    pass
+                except OSError as exc:
+                    LOGGER.warning("Could not remove export file %s: %s", file_path, exc)
+
+        if not task_ids:
+            return
+
+        result = flask_mongo.db.tasks.delete_many(
+            {"task_id": {"$in": task_ids}, "type": TaskType.EXPORT}
+        )
+
+        LOGGER.info(
+            "Cleaned up %d old export tasks and %d export files",
+            result.deleted_count,
+            deleted_files,
+        )
 
 
 @EXPORT.before_request
@@ -48,7 +118,7 @@ def _do_export(
             {"task_id": task_id}, {"$set": {"status": TaskStatus.PROCESSING}}
         )
 
-        export_dir = Path(tempfile.gettempdir()) / "eln-exports"
+        export_dir = _export_dir()
         export_dir.mkdir(exist_ok=True, parents=True)
 
         output_path = export_dir / f"{task_id}.eln"
@@ -94,8 +164,6 @@ def _generate_export_in_background(
     export_type: str = "collection",
     related_item_ids: list[str] | None = None,
 ):
-    import contextlib
-
     app_ctx = _app.app_context() if _app is not None else contextlib.nullcontext()
     with app_ctx:
         _do_export(task_id, collection_id, item_id, export_type, related_item_ids)
