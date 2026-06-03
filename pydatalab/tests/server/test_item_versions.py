@@ -117,6 +117,9 @@ class TestListVersions:
         client.post(f"/items/{refcode}/save-version/")
 
         response = client.get(f"/items/{refcode}/versions/")
+        assert response.json["versions"][0]["creator"]["display_name"] == "Test User"
+        assert response.json["versions"][1]["creator"]["display_name"] == "Test User"
+        assert response.json["versions"][2]["creator"]["display_name"] == "Test User"
 
         assert response.status_code == 200
         assert response.json["status"] == "success"
@@ -177,6 +180,7 @@ class TestGetVersion:
         assert response.json["version"]["refcode"] == sample_with_version.refcode
         assert "data" in response.json["version"]
         assert response.json["version"]["data"]["name"] == "Version Test Sample"
+        assert response.json["version"]["creator"]["display_name"] == "Test User"
 
     def test_get_version_invalid_id(self, client, sample_with_version):
         """Test getting version with invalid ID format."""
@@ -617,6 +621,31 @@ class TestActionFields:
         version = list_response.json["versions"][0]
 
         assert version["action"] == "manual_save"
+        # Manual saves should not have restored_from_version
+        assert version.get("restored_from_version") is None
+
+    def test_automated_save_version_endpoint_action(
+        self, client, sample_with_version, user_api_key
+    ):
+        """Test that manual save_version endpoint creates action='manual_save'."""
+        refcode = sample_with_version.refcode.split(":")[1]
+
+        # Manually save a version via save-version endpoint
+        resp = client.post(
+            f"/items/{refcode}/save-version/",
+            headers={
+                "User-Agent": "Datalab Python API/v1.0",
+                "Datalab-Api-Key": user_api_key,
+            },
+        )
+        assert resp.status_code == 200
+
+        # Check the version action in list
+        list_response = client.get(f"/items/{refcode}/versions/")
+        version = list_response.json["versions"][0]
+
+        assert version["action"] == "agent_save"
+        assert version["user_agent"] == "Datalab Python API/v1.0"
         # Manual saves should not have restored_from_version
         assert version.get("restored_from_version") is None
 

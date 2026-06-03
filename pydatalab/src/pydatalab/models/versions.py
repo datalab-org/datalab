@@ -15,6 +15,7 @@ class VersionAction(str, Enum):
     MANUAL_SAVE = "manual_save"
     AUTO_SAVE = "auto_save"
     RESTORED = "restored"
+    AGENT_SAVE = "agent_save"
 
 
 class ItemVersion(BaseModel):
@@ -38,6 +39,9 @@ class ItemVersion(BaseModel):
     user_id: PyObjectId | None = Field(
         None, description="User's ObjectId for efficient querying and indexing"
     )
+    creator: dict | None = Field(
+        None, description="Inlined information about the user who created this version (e.g., name)"
+    )
     datalab_version: str = Field(
         ..., description="Version of datalab-server that created this snapshot"
     )
@@ -45,6 +49,10 @@ class ItemVersion(BaseModel):
     restored_from_version: PyObjectId | None = Field(
         None,
         description="ObjectId of the version that was restored from (only present if action='restored')",
+    )
+    user_agent: str | None = Field(
+        None,
+        description="User agent string of the client that triggered this version. Will only be stored if it matches a known value from the datalab ecosystem.",
     )
 
     @validator("restored_from_version")

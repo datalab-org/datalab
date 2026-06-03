@@ -1282,22 +1282,40 @@ def list_versions(refcode):
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
 
     versions = list(
-        flask_mongo.db.item_versions.find(
-            {"refcode": refcode},
-            {
-                "_id": 1,
-                "timestamp": 1,
-                "user_id": 1,
-                "datalab_version": 1,
-                "version": 1,
-                "action": 1,
-                "restored_from_version": 1,
-                "data.version": 1,
-            },
-        ).sort("version", -1)
+        flask_mongo.db.item_versions.aggregate(
+            [
+                {"$match": {"refcode": refcode}},
+                {
+                    "$lookup": {
+                        "from": "users",
+                        "as": "creator",
+                        "let": {"user_id": "$user_id"},
+                        "pipeline": [
+                            {"$match": {"$expr": {"$eq": ["$_id", "$$user_id"]}}},
+                            {"$project": {"_id": 0, "display_name": 1, "gravatar_hash": 1}},
+                        ],
+                    }
+                },
+                # $lookup always yields an array; collapse the (0 or 1) match
+                # to a single-valued creator, leaving it null when absent.
+                {"$set": {"creator": {"$arrayElemAt": ["$creator", 0]}}},
+                {
+                    "$project": {
+                        "_id": 1,
+                        "timestamp": 1,
+                        "creator": 1,
+                        "datalab_version": 1,
+                        "version": 1,
+                        "action": 1,
+                        "restored_from_version": 1,
+                        "data.version": 1,
+                        "user_agent": 1,
+                    }
+                },
+                {"$sort": {"version": -1}},
+            ]
+        )
     )
-    for v in versions:
-        v["_id"] = str(v["_id"])
     return jsonify({"status": "success", "versions": versions}), 200
 
 
@@ -1322,10 +1340,33 @@ def get_version(refcode, version_id):
     except (InvalidId, TypeError):
         return jsonify({"status": "error", "message": f"Invalid version_id: {version_id}"}), 400
 
-    version = flask_mongo.db.item_versions.find_one({"_id": version_object_id, "refcode": refcode})
+    version = list(
+        flask_mongo.db.item_versions.aggregate(
+            [
+                {"$match": {"_id": version_object_id, "refcode": refcode}},
+                # Lookup from user_id from users collection and fill in creator info
+                {
+                    "$lookup": {
+                        "from": "users",
+                        "as": "creator",
+                        "let": {"user_id": "$user_id"},
+                        "pipeline": [
+                            {"$match": {"$expr": {"$eq": ["$_id", "$$user_id"]}}},
+                            {"$project": {"_id": 0, "display_name": 1, "gravatar_hash": 1}},
+                        ],
+                    }
+                },
+                {"$set": {"creator": {"$arrayElemAt": ["$creator", 0]}}},
+            ]
+        )
+    )
+
+    if len(version) >= 1:
+        version = version[0]
+
     if not version:
         return jsonify({"status": "error", "message": "Version not found"}), 404
-    version["_id"] = str(version["_id"])
+
     return jsonify({"status": "success", "version": version}), 200
 
 
@@ -1561,7 +1602,7 @@ def save_version(refcode):
     """Manually save the current state of an item as a version snapshot with an incremental version number."""
     response, status_code = save_version_snapshot(
         refcode,
-        action=VersionAction.MANUAL_SAVE,
+        action=None,  # let the function determine the appropriate action (e.g. AGENT_SAVE vs MANUAL_SAVE) based on user-agent
         permission_filter=get_default_permissions(user_only=False),
     )
     if status_code == 200 and "version" in response:
@@ -1752,7 +1793,7 @@ def save_item():
     # If this fails, we log but don't fail the request since item was already saved.
     try:
         save_version_resp_dict, save_version_status = save_version_snapshot(
-            refcode, action=VersionAction.MANUAL_SAVE
+            refcode,
         )
         if save_version_status != 200:
             LOGGER.error(
