@@ -68,7 +68,7 @@
 
 <script>
 import { createComputedSetterForCollectionField } from "@/field_utils.js";
-import { getCollectionSampleList } from "@/server_fetch_utils";
+import { getCollectionData } from "@/server_fetch_utils";
 import TiptapInline from "@/components/TiptapInline";
 import Creators from "@/components/Creators";
 import CollectionRelationshipVisualization from "@/components/CollectionRelationshipVisualization";
@@ -140,8 +140,8 @@ export default {
     CollectionDescription: createComputedSetterForCollectionField("description"),
     Title: createComputedSetterForCollectionField("title"),
     Name: createComputedSetterForCollectionField("name"),
-    CollectionCreators: createComputedSetterForCollectionField("creators"),
-    CollectionGroups: createComputedSetterForCollectionField("groups"),
+    CollectionCreators: createComputedSetterForCollectionField("creators", []),
+    CollectionGroups: createComputedSetterForCollectionField("groups", []),
     children() {
       return this.$store.state.all_collection_children[this.collection_id] || [];
     },
@@ -150,21 +150,12 @@ export default {
       return collection?.refcode || null;
     },
   },
-  created() {
-    this.getCollectionChildren();
-  },
   methods: {
-    getCollectionChildren() {
-      getCollectionSampleList(this.collection_id)
-        .then(() => {
-          this.tableIsReady = true;
-        })
-        .catch(() => {
-          this.fetchError = true;
-        });
-    },
     handleItemsRemovedFromCollection() {
-      this.getCollectionChildren();
+      // The page-level fetch already populated the child items; after a removal
+      // we re-fetch the collection (data + child items in one request) to refresh
+      // the table.
+      getCollectionData(this.collection_id);
     },
   },
 };
