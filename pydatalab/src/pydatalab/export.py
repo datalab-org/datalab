@@ -4,8 +4,6 @@ to other formats, such as .eln files.
 """
 
 import json
-import shutil
-import tempfile
 import zipfile
 from collections.abc import Callable
 from datetime import datetime, timezone
@@ -75,7 +73,11 @@ def write_eln_file(
     root_folder_name, items, info, output_path, on_stage=None, primary_key="item_id"
 ) -> None:
     """Write an ELN file to disk containing the given items and collection metadata.
-    Will first write to an intermediate temporary directory.
+
+    Each entry is streamed directly into the output zip archive as it is
+    processed, rather than first being staged in an intermediate directory.
+    This avoids copying every uploaded file twice and keeping a second full copy
+    of the export on disk.
 
     Parameters:
         root_folder_name: The name of the root folder in the ELN file.
@@ -89,38 +91,32 @@ def write_eln_file(
     """
 
     total = len(items)
+    root_folder = Path(root_folder_name)
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_path = Path(temp_dir)
-
-        root_folder = temp_path / root_folder_name
-        root_folder.mkdir()
-
+    with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zipf:
         ro_crate_metadata = generate_ro_crate_metadata(info, items, primary_key=primary_key)
-        with open(root_folder / "ro-crate-metadata.json", "w", encoding="utf-8") as f:
-            json.dump(ro_crate_metadata, f, ensure_ascii=False)
+        zipf.writestr(
+            str(root_folder / "ro-crate-metadata.json"),
+            json.dumps(ro_crate_metadata, ensure_ascii=False),
+        )
 
         for ind, item in enumerate(items):
             if on_stage is not None:
                 on_stage(f"Archiving entry {ind + 1}/{total}: {item[primary_key]}")
 
             item_folder = root_folder / item[primary_key]
-            item_folder.mkdir()
 
             item_metadata = ITEM_MODELS[item.get("type")](**item).json(indent=2)
-
-            with open(item_folder / "metadata.json", "w", encoding="utf-8") as f:
-                f.write(item_metadata)
+            zipf.writestr(str(item_folder / "metadata.json"), item_metadata)
 
             for file in item.get("files", []):
                 source_path = Path(file["location"])
                 if source_path.exists():
-                    dest_file = item_folder / file["name"]
-                    shutil.copy2(source_path, dest_file)
+                    zipf.write(source_path, str(item_folder / file["name"]))
 
                     # Include any alternative representations stored alongside the file.
                     for alt in find_alternative_representations(source_path):
-                        shutil.copy2(alt, item_folder / alt.name)
+                        zipf.write(alt, str(item_folder / alt.name))
                 else:
                     LOGGER.warning("ELN export: File not found on disk: %s", file["location"])
                     if on_stage is not None:
@@ -129,13 +125,7 @@ def write_eln_file(
                         )
 
         if on_stage is not None:
-            on_stage(f"Compressing archive of {total} entries")
-
-        with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-            for file_path in root_folder.rglob("*"):
-                if file_path.is_file():
-                    arcname = file_path.relative_to(temp_path)
-                    zipf.write(file_path, arcname)
+            on_stage(f"Finished archiving {total} entries")
 
 
 def generate_ro_crate_metadata(
