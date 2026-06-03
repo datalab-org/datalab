@@ -198,7 +198,7 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
     people = {}
 
     for item in child_items:
-        identifier = f"{CONFIG.IDENTIFIER_PREFIX}:{item['refcode']}"
+        identifier = item["refcode"]
 
         item_metadata = {
             "@id": f"./{item['refcode']}/",
