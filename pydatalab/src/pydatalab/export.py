@@ -286,27 +286,28 @@ def generate_ro_crate_metadata(
         graph.append(item_metadata)
         if files_metadata:
             graph.extend(files_metadata)
-        if people:
-            graph.extend(people.values())
 
-        create_action = {
-            "@id": "#ro-crate-created",
-            "@type": "CreateAction",
-            "object": {"@id": "./"},
-            "endTime": datetime.now(tz=timezone.utc).isoformat(),
-            "instrument": {"@id": "https://datalab-org.io"},
-            "actionStatus": {"@id": "http://schema.org/CompletedActionStatus"},
-        }
+    create_action = {
+        "@id": "#ro-crate-created",
+        "@type": "CreateAction",
+        "object": {"@id": "./"},
+        "endTime": datetime.now(tz=timezone.utc).isoformat(),
+        "instrument": {"@id": "https://datalab-org.io"},
+        "actionStatus": {"@id": "http://schema.org/CompletedActionStatus"},
+    }
 
-        software = {
-            "@id": "https://datalab-org.io",
-            "@type": "SoftwareApplication",
-            "name": "datalab",
-            "version": __version__,
-        }
+    software = {
+        "@id": "https://datalab-org.io",
+        "@type": "SoftwareApplication",
+        "name": "datalab",
+        "version": __version__,
+    }
 
-        graph.append(create_action)
-        graph.append(software)
+    graph.append(create_action)
+    graph.append(software)
+
+    if people:
+        graph.extend(people.values())
 
     return metadata
 
