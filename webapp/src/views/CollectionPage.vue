@@ -199,6 +199,16 @@ export default {
     async getCollection() {
       await getCollectionData(this.collection_id);
       this.data_loaded = true;
+      // Mark the collection as saved once child components (e.g. the Tiptap
+      // description editor) have mounted and emitted their initial v-model
+      // normalisation, which would otherwise flip the status to "unsaved" on
+      // first load. Mirrors the same guard in EditPage.getSampleData.
+      this.$nextTick(() => {
+        this.$store.commit("setSavedCollection", {
+          collection_id: this.collection_id,
+          isSaved: true,
+        });
+      });
       this.setLastModified();
     },
     leavePageWarningListener(event) {
