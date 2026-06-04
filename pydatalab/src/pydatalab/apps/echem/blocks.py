@@ -1,7 +1,8 @@
 import hashlib
 import warnings
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import bokeh
 import pandas as pd
@@ -78,6 +79,25 @@ class CycleBlock(DataBlock):
         "win_size_1": 1001,
         "derivative_mode": None,
     }
+
+    post_plot_hooks: ClassVar[
+        list[Callable[["CycleBlock", pd.DataFrame, pd.DataFrame | None], None]]
+    ] = []
+    """Hooks called after plot_cycle completes, receiving (block, raw_df, cycle_summary_df).
+
+    Plugins can append callables here to extract derived metrics into ``block.data["computed"]``
+    without monkey-patching. Each hook is called once per plot update with the primary
+    (non-comparison) raw and cycle-summary DataFrames.
+
+    Example::
+
+        from pydatalab.apps.echem import CycleBlock
+
+        def my_hook(block, raw_df, cycle_summary_df):
+            block.data["computed"] = {"my_metric": raw_df["voltage (V)"].max()}
+
+        CycleBlock.post_plot_hooks.append(my_hook)
+    """
 
     def _get_characteristic_mass_g(self):
         doc = flask_mongo.db.items.find_one(
@@ -434,6 +454,8 @@ class CycleBlock(DataBlock):
 
         raw_dfs = {}
         cycle_summary_dfs = {}
+        raw_df = None
+        cycle_summary_df = None
 
         if self.data.get("mode") is None:
             self.data["mode"] = "single"
@@ -539,6 +561,14 @@ class CycleBlock(DataBlock):
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(
                 layout, theme=bokeh_plots.DATALAB_BOKEH_THEME
             )
+
+        if raw_df is not None:
+            for hook in self.post_plot_hooks:
+                try:
+                    hook(self, raw_df, cycle_summary_df)
+                except Exception as exc:
+                    warnings.warn(f"post_plot_hook {hook!r} failed: {exc}")
+
         return
 
     @property
