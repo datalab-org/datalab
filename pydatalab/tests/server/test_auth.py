@@ -191,7 +191,6 @@ def test_google_login_bad_api_response(database, app):
     assert result is False
     assert database.users.find_one({"identities.identity_type": "google"}) is None
 
-
 # ──────────────────────────────────────────────
 # Microsoft OAuth tests
 # ──────────────────────────────────────────────

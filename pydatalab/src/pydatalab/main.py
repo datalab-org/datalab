@@ -65,11 +65,13 @@ def create_app(
     else:
         app.config.update(dotenv_values(dotenv_path=env_file))
 
-    # Testing config: to enable OAuth2 on dev servers without https, we need to control the
-    # OAUTHLIB_INSECURE_TRANSPORT setting. If this is provided in the .env file, we also need
-    # to set it as an environment variable for the underlying oauthlib library to pick it up
+    # Testing config: to enable OAuth2 on dev servers without https and tolerate
+    # provider scope normalization, we need to forward oauthlib settings into the process
+    # environment because oauthlib reads them directly.
     if app.config.get("OAUTHLIB_INSECURE_TRANSPORT"):
         os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = app.config["OAUTHLIB_INSECURE_TRANSPORT"]
+    if app.config.get("OAUTHLIB_RELAX_TOKEN_SCOPE"):
+        os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = app.config["OAUTHLIB_RELAX_TOKEN_SCOPE"]
 
     # Set LLM API keys as env vars if present in the flask config
     for key in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
@@ -203,13 +205,14 @@ def create_app(
 
             if current_user.is_authenticated:
                 for k in OAUTH_PROXIES:
-                    if k not in current_user.identity_types:
-                        auth_string += f"<li>{connect_buttons[k]}</li>"
+                    if k not in current_user.identity_types and k.value in connect_buttons:
+                        auth_string += f"<li>{connect_buttons[k.value]}</li>"
                 logout_string += f"<a href={url_for('logout')}>Log out</a>"
 
             else:
                 for k in OAUTH_PROXIES:
-                    auth_string += f"<li>{connect_buttons[k].replace('Connect', 'Login via')}</li>"
+                    if k.value in connect_buttons:
+                        auth_string += f"<li>{connect_buttons[k.value].replace('Connect', 'Login via')}</li>"
 
             auth_string += "</ul>"
 

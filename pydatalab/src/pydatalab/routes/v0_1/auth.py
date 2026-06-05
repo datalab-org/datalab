@@ -417,7 +417,11 @@ OAUTH: dict[IdentityType, Blueprint] = {
     ),
     IdentityType.EMAIL: EMAIL_BLUEPRINT,
     IdentityType.GOOGLE: make_google_blueprint(
-        scope=["openid", "email", "https://www.googleapis.com/auth/userinfo.profile"],
+        scope=[
+            "openid",
+            "https://www.googleapis.com/auth/userinfo.email",
+            "https://www.googleapis.com/auth/userinfo.profile",
+        ],
         reprompt_select_account=True,
     ),
     IdentityType.MICROSOFT: make_microsoft_blueprint(
