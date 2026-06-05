@@ -60,4 +60,42 @@ describe("Collection page", () => {
     cy.get(".navbar-toggler").click();
     cy.get("nav.editor-navbar").findByText("Home").should("be.visible");
   });
+
+  it("does not show a spurious 'Unsaved changes' warning on first load", () => {
+    cy.visit(`/collections/${collectionId}`);
+
+    // wait for the page to finish loading (collection information rendered)
+    cy.get("#collection-information").should("exist");
+
+    // The collection has not been edited, so no unsaved warning should appear.
+    // Give any first-load v-model normalisation a chance to (incorrectly) fire.
+    cy.wait(500);
+    cy.get(".unsaved-warning").should("not.exist");
+    cy.get(".navbar-icon-unsaved").should("not.exist");
+  });
+
+  it("loads the relationship graph", () => {
+    cy.intercept("GET", "**/item-graph*").as("getItemGraph");
+
+    cy.visit(`/collections/${collectionId}`);
+    cy.get("#collection-information").should("exist");
+
+    // The graph fetch must actually fire (it short-circuits if the current user
+    // is not loaded into the store), and the cytoscape canvas should render.
+    cy.wait("@getItemGraph").its("response.statusCode").should("eq", 200);
+    cy.get("#cy canvas").should("exist");
+  });
+
+  it("shows the unsaved warning after editing the title", () => {
+    cy.visit(`/collections/${collectionId}`);
+    cy.get("#collection-information").should("exist");
+
+    // Editing a field marks the collection as unsaved...
+    cy.get("#name").clear();
+    cy.get("#name").type("Edited but unsaved title");
+    cy.get(".unsaved-warning").should("exist");
+
+    // ...and the edited value is retained in the input.
+    cy.get("#name").should("have.value", "Edited but unsaved title");
+  });
 });
