@@ -51,7 +51,8 @@ export default {
     collectionId: { type: String, required: false, default: null },
     modelValue: {
       type: Array,
-      required: true,
+      required: false,
+      default: () => [],
     },
   },
   emits: ["update:modelValue"],

@@ -57,7 +57,8 @@ export default {
     label: { type: String, default: "Creators" },
     modelValue: {
       type: Array,
-      required: true,
+      required: false,
+      default: () => [],
     },
   },
   emits: ["update:modelValue"],
