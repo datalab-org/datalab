@@ -40,10 +40,13 @@
       </template>
 
       <template #footer>
+        <!-- No `download` attribute: the server sets `Content-Disposition: attachment`
+             with the intended `<collection_id|item_id>.eln` filename, and a `download`
+             attribute here would override it (e.g. to `collection.eln`) for same-origin
+             deployments. -->
         <a
           v-if="status === 'ready'"
           :href="downloadUrl"
-          :download="downloadName"
           class="btn btn-primary"
           data-testid="export-download-link"
         >
@@ -100,9 +103,6 @@ export default {
     },
     downloadUrl() {
       return this.taskId ? getExportDownloadUrl(this.taskId) : "#";
-    },
-    downloadName() {
-      return `${this.exportType}.eln`;
     },
   },
   watch: {
