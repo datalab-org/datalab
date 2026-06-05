@@ -61,14 +61,12 @@
       ]"
       :show-buttons="true"
       :collection-id="collection_id"
-      @remove-selected-items-from-collection="handleItemsRemovedFromCollection"
     />
   </div>
 </template>
 
 <script>
 import { createComputedSetterForCollectionField } from "@/field_utils.js";
-import { getCollectionData } from "@/server_fetch_utils";
 import TiptapInline from "@/components/TiptapInline";
 import Creators from "@/components/Creators";
 import CollectionRelationshipVisualization from "@/components/CollectionRelationshipVisualization";
@@ -140,22 +138,14 @@ export default {
     CollectionDescription: createComputedSetterForCollectionField("description"),
     Title: createComputedSetterForCollectionField("title"),
     Name: createComputedSetterForCollectionField("name"),
-    CollectionCreators: createComputedSetterForCollectionField("creators", []),
-    CollectionGroups: createComputedSetterForCollectionField("groups", []),
+    CollectionCreators: createComputedSetterForCollectionField("creators"),
+    CollectionGroups: createComputedSetterForCollectionField("groups"),
     children() {
       return this.$store.state.all_collection_children[this.collection_id] || [];
     },
     collectionRefcode() {
       const collection = this.$store.state.all_collection_data[this.collection_id];
       return collection?.refcode || null;
-    },
-  },
-  methods: {
-    handleItemsRemovedFromCollection() {
-      // The page-level fetch already populated the child items; after a removal
-      // we re-fetch the collection (data + child items in one request) to refresh
-      // the table.
-      getCollectionData(this.collection_id);
     },
   },
 };
