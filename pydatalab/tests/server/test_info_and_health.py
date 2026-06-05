@@ -21,6 +21,15 @@ def test_info_endpoint(client, url_prefix, app):
     assert auth["email"] is bool(app.config.get("MAIL_PASSWORD", None))
 
 
+def test_landing_page(unauthenticated_client, client):
+    """Check that the rudimentary landing page renders without error for both
+    unauthenticated and authenticated users."""
+    for _client in (unauthenticated_client, client):
+        response = _client.get("/")
+        assert response.status_code == 200
+        assert b"Welcome to pydatalab" in response.data
+
+
 @pytest.mark.parametrize("url_prefix", ["", "/v0", "/v0.1", "/v0.1.0"])
 def test_healthcheck_is_alive_endpoint(client, url_prefix):
     response = client.get(f"{url_prefix}/healthcheck/is_alive")
