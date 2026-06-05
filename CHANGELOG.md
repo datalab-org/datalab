@@ -4,6 +4,32 @@
 > Release candidates are not included in this changelog; there may be more
 recent changes described in the [release notes on GitHub](https://github.com/datalab-org/datalab/releases).
 
+## v0.7.1 (June 2026)
+
+Minor release with bug fixes and usability improvements relative to v0.7.0. Highlights include:
+
+- better handling of item versioning with respect to scripted updates that may not actually change the item data,
+- electrochemistry block now reprocesses properly in async mode when its source file is updated,
+- item graph layout and UI optimisations to prevent complex graphs locking up the app,
+- better mobile scaling for the edit page navbar
+- improved sharing UI with clear distinction between read and write permissions
+
+## What's Changed
+* Add directly copyable text link under sharing QR codes by @ml-evs in https://github.com/datalab-org/datalab/pull/1777
+* Only write a new version when item data actually changes by @be-smith in https://github.com/datalab-org/datalab/pull/1775
+* Add a modal for sharing items with creators and groups by @ml-evs in https://github.com/datalab-org/datalab/pull/1779
+* Better mobile support for navbar by @ml-evs in https://github.com/datalab-org/datalab/pull/1778
+* Make use file hashes when user requests an existing file be updated by @ml-evs in https://github.com/datalab-org/datalab/pull/1744
+* Enable echem block cache invalidation based on file upload timestamps by @ml-evs in https://github.com/datalab-org/datalab/pull/1780
+* Add blocks as nodes to item graph and optimise rendering by @ml-evs in https://github.com/datalab-org/datalab/pull/1659
+* Handle block cleanup when gridfs file has been dereferenced by @ml-evs in https://github.com/datalab-org/datalab/pull/1798
+* Add an admin task for cleaning up old dereferenced files by @ml-evs in https://github.com/datalab-org/datalab/pull/1797
+* Add user agent and creator retrieval for item versions by @ml-evs in https://github.com/datalab-org/datalab/pull/1785
+* Assorted fixes for collections page (spurious unsaved warning, graph layout & loading) by @ml-evs in https://github.com/datalab-org/datalab/pull/1809
+
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.0...v0.7.1
+
 ## v0.7.0 (May 2026)
 
 This is a major release with significant new functionality, refined over many months and pre-releases.
