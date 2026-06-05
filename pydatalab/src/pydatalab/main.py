@@ -5,10 +5,10 @@ import pathlib
 from typing import Any
 
 from dotenv import dotenv_values
-from flask import Flask, redirect, request, url_for
+from flask import Flask, redirect, request
 from flask_compress import Compress
 from flask_cors import CORS
-from flask_login import current_user, logout_user
+from flask_login import logout_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import pydatalab.mongo
@@ -130,107 +130,10 @@ def create_app(
             the embedded inputs.
 
         """
-        from pydatalab.routes import OAUTH_PROXIES
+        if CONFIG.APP_URL:
+            return redirect(CONFIG.APP_URL)
 
-        connected = True
-        try:
-            pydatalab.mongo.check_mongo_connection()
-        except RuntimeError:
-            connected = False
-
-        if connected:
-            database_string = (
-                '<p style="color: DarkSeaGreen">✅ Connected to underlying database</p>'
-            )
-        else:
-            database_string = (
-                '<p style="color: FireBrick">❎ Unable to connect to underlying database</p>'
-            )
-
-        if connected:
-            if current_user.is_authenticated:
-                welcome_string = f"""
-                    <h2>Hello, {current_user.display_name}!</h2>
-                    <h3>Connected identities:</h3>
-                    <ul>
-                """
-
-                for identity in current_user.identities:
-                    if identity.identity_type == "github":
-                        welcome_string += f"""
-                            <li>
-                                <a href="https://github.com/{identity.name}">
-                                    <i class="fa fa-github"></i>
-                                    {identity.name}
-                                </a>
-                            </li>
-                        """
-
-                    elif identity.identity_type == "orcid":
-                        welcome_string += f"""
-                            <li>
-                                <a href="https://orcid.org/{identity.name}">
-                                    <img alt="ORCID logo" style="vertical-align: middle;", src="https://info.orcid.org/wp-content/uploads/2019/11/orcid_16x16.png" width="16" height="16" />
-                                    {identity.name}
-                                </a>
-                            </li>
-                        """
-
-                welcome_string += "</ul>"
-
-            else:
-                welcome_string = (
-                    """<h2>Welcome!</h2><h4>Please connect an OAuth account to continue:</h4>"""
-                )
-
-            connect_buttons = {
-                "github": f"""
-                    <a href={url_for("github.login")}>
-                        <i class="fa fa-github"></i>
-                        Connect GitHub
-                    </a></br>
-                """,
-                "orcid": f"""
-                    <a href={url_for("orcid.login")}>
-                        <img alt="ORCID logo" style="vertical-align: middle;", src="https://info.orcid.org/wp-content/uploads/2019/11/orcid_16x16.png" width="16" height="16" />
-                        Connect ORCID
-                    </a></br>
-                """,
-            }
-
-            auth_string = "<ul>"
-            logout_string = ""
-
-            if current_user.is_authenticated:
-                for k in OAUTH_PROXIES:
-                    if k in connect_buttons and k not in current_user.identity_types:
-                        auth_string += f"<li>{connect_buttons[k]}</li>"
-                logout_string += f"<a href={url_for('logout')}>Log out</a>"
-
-            else:
-                for k in OAUTH_PROXIES:
-                    if k in connect_buttons:
-                        auth_string += (
-                            f"<li>{connect_buttons[k].replace('Connect', 'Login via')}</li>"
-                        )
-
-            auth_string += "</ul>"
-
-        else:
-            auth_string = ""
-            logout_string = ""
-            welcome_string = ""
-
-        return f"""<head>
-            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-            </head>
-            <h2><p style="color: CornflowerBlue">Welcome to pydatalab</p></h2>
-<p>{welcome_string}</p>
-<p>{auth_string}</p>
-<p>{logout_string}</p>
-<h3>API status:</h3>
-<h4>{database_string}</h4>
-"""
+        return redirect("/info")
 
     return app
 
