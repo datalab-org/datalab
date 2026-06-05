@@ -83,24 +83,31 @@ def write_eln_file(
         items: List of items to include in the ELN file, with all metadata and file info included.
         info: Metadata for the collection (or item) being exported.
         output_path: Path where the .eln file should be saved.
-        on_stage: Optional :data:`StageCallback` invoked with a progress message
+        on_stage: Optional `StageCallback` invoked with a progress message
             as each entry is archived.
-        primary_key: The primary key field to use for item folders (default: "item_id", but "refcode" is more user-friendly and stable)
+        primary_key: The item field used to key item folders in the archive
+            (`"item_id"` by default, the human-friendly identifier, or
+            `"refcode"` for stable, immutable identifiers).
 
     """
 
     total = len(items)
     root_folder = Path(root_folder_name)
 
-    with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+    with zipfile.ZipFile(output_path, "w", zipfile.ZIP_STORED) as zipf:
         ro_crate_metadata = generate_ro_crate_metadata(info, items, primary_key=primary_key)
         zipf.writestr(
             str(root_folder / "ro-crate-metadata.json"),
             json.dumps(ro_crate_metadata, ensure_ascii=False, indent=2),
         )
 
+        # Emit ~10 progress stages across the whole export regardless of size, so
+        # the stored `stages` list stays small (and well clear of MongoDB's 16MB
+        # document limit) for large collections.
+        stage_interval = max(1, total // 10)
+
         for ind, item in enumerate(items):
-            if on_stage is not None:
+            if on_stage is not None and (ind % stage_interval == 0 or ind == total - 1):
                 on_stage(f"Archiving entry {ind + 1}/{total}: {item[primary_key]}")
 
             item_folder = root_folder / item[primary_key]
@@ -316,10 +323,10 @@ def create_eln_file(
         output_path: Path where the .eln file should be saved
         item_id: ID of the item to export
         related_item_ids: List of related item IDs to include in the export.
-        on_stage: Optional :data:`StageCallback` invoked with progress messages
+        on_stage: Optional `StageCallback` invoked with progress messages
             as the export proceeds.
         primary_key: The item field used to key item folders in the archive
-            (``"item_id"`` by default, or ``"refcode"`` for stable identifiers).
+            (`"item_id"` by default, or `"refcode"` for stable identifiers).
 
     """
     if not collection_id and not item_id:

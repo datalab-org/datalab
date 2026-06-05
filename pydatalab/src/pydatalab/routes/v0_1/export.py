@@ -34,6 +34,24 @@ def _export_dir() -> Path:
     return Path(tempfile.gettempdir()) / "eln-exports"
 
 
+def _is_export_path_safe(file_path: str, task_id: str) -> bool:
+    """Whether a task's stored ``file_path`` is a legitimate generated export.
+
+    Defends :func:`download_export` and :func:`_cleanup_old_exports` against
+    serving or deleting arbitrary local files should a task document become
+    corrupted or tampered with. Generated exports are always written as
+    ``<export_dir>/<task_id>.eln`` (see :func:`_do_export`), so the resolved
+    path must match that location *exactly* — both the directory and the random
+    per-task ``<task_id>.eln`` basename — so a path such as
+    ``/some/other/dir/<task_id>.eln`` or ``/etc/passwd`` is rejected.
+    """
+    try:
+        expected = (_export_dir() / f"{task_id}.eln").resolve()
+        return Path(file_path).resolve() == expected
+    except (OSError, ValueError, RuntimeError):
+        return False
+
+
 @EXPORT.record_once
 def _register_app(state):
     global _app
@@ -72,7 +90,13 @@ def _cleanup_old_exports():
         for task in old_tasks:
             task_ids.append(task["task_id"])
             file_path = task.get("spec", {}).get("file_path")
-            if file_path:
+            if file_path and not _is_export_path_safe(file_path, task["task_id"]):
+                LOGGER.warning(
+                    "Refusing to remove unexpected export path %s for task %s",
+                    file_path,
+                    task["task_id"],
+                )
+            elif file_path:
                 try:
                     os.remove(file_path)
                     deleted_files += 1
@@ -311,7 +335,11 @@ def download_export(task_id: str):
 
     spec = task.get("spec", {})
     file_path = spec.get("file_path")
-    if not file_path or not os.path.exists(file_path):
+    if (
+        not file_path
+        or not _is_export_path_safe(file_path, task_id)
+        or not os.path.exists(file_path)
+    ):
         return jsonify({"status": "error", "message": "Export file not found"}), 404
 
     filename = f"{spec.get('collection_id') or spec.get('item_id')}.eln"

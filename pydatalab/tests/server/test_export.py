@@ -158,7 +158,12 @@ def test_get_export_status_not_found(client):
     assert "not found" in data["message"].lower()
 
 
-def test_download_export_success(client, user_id, database, tmp_path):
+def test_download_export_success(client, user_id, database, tmp_path, monkeypatch):
+    import pydatalab.routes.v0_1.export as export_routes
+
+    # Point the export dir at tmp_path so the file passes _is_export_path_safe.
+    monkeypatch.setattr(export_routes, "_export_dir", lambda: tmp_path)
+
     task_id = "test-download-task"
     collection_id = "test_collection"
     file_path = tmp_path / f"{task_id}.eln"
@@ -333,12 +338,16 @@ def test_do_export_error_handling(database, user_id):
     database.tasks.delete_one({"task_id": task_id})
 
 
-def test_cleanup_old_exports(database, user_id, tmp_path):
+def test_cleanup_old_exports(database, user_id, tmp_path, monkeypatch):
     """The periodic cleanup should delete export tasks (and their .eln files)
     older than EXPORT_MAX_AGE_HOURS, while leaving recent ones untouched."""
     from datetime import timedelta
 
+    import pydatalab.routes.v0_1.export as export_routes
     from pydatalab.routes.v0_1.export import EXPORT_MAX_AGE_HOURS, _cleanup_old_exports
+
+    # Point the export dir at tmp_path so files pass _is_export_path_safe.
+    monkeypatch.setattr(export_routes, "_export_dir", lambda: tmp_path)
 
     now = datetime.now(tz=timezone.utc)
 
