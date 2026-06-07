@@ -167,7 +167,7 @@ def insert_pydantic_model_fork_safe(model: BaseModel, collection: str) -> str:
     """Inserts a Pydantic model into chosen collection, returning the inserted ID."""
     return (
         get_database()[collection]
-        .insert_one(model.model_dump(by_alias=True, exclude_none=True))
+        .insert_one(model.model_dump(by_alias=False, exclude_none=True))
         .inserted_id
     )
 

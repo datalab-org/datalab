@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Literal
 
-from pydantic import Field, validator
+from pydantic import ConfigDict, Field, field_validator
 
 from pydatalab.models.utils import BaseModel, PyObjectId
 
@@ -90,9 +90,10 @@ class Task(BaseModel):
     spec: ExportTaskSpec | BlockProcessingTaskSpec
     """Task-specific data"""
 
-    @validator("spec", pre=True, always=True)
-    def validate_spec_type(cls, v, values):
-        task_type = values.get("type")
+    @field_validator("spec", mode="before")
+    @classmethod
+    def validate_spec_type(cls, v, info):
+        task_type = info.data.get("type")
 
         if task_type == TaskType.EXPORT:
             if not isinstance(v, ExportTaskSpec):
@@ -103,5 +104,4 @@ class Task(BaseModel):
 
         return v
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
