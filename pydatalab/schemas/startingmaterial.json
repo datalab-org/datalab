@@ -14,14 +14,15 @@
       "additionalProperties": true,
       "description": "A reference to a collection, used for inlining collection info within other models.",
       "properties": {
-        "collection_id": {
+        "immutable_id": {
           "description": "The immutable ID of the collection.",
-          "title": "Collection Id",
+          "format": "objectid",
+          "title": "Immutable Id",
           "type": "string"
         }
       },
       "required": [
-        "collection_id"
+        "immutable_id"
       ],
       "title": "CollectionReference",
       "type": "object"
@@ -211,6 +212,7 @@
           ],
           "datalab_exclude_from_db": true,
           "datalab_exclude_from_load": true,
+          "default": null,
           "description": "Any base64-encoded image data associated with the block, keyed by `file_id`.",
           "title": "B64 Encoded Image"
         },
@@ -226,6 +228,7 @@
           ],
           "datalab_exclude_from_db": true,
           "datalab_exclude_from_load": true,
+          "default": null,
           "description": "A JSON-encoded string containing the Bokeh plot data, if any.",
           "title": "Bokeh Plot Data"
         },
@@ -243,6 +246,20 @@
           "default": null,
           "description": "Any processed or computed data associated with the block, small enough to store and filter directly in the database,\ni.e., strings or a few hundred numbers not exceeding 16KB in size.\nExamples could include peak positions, and widths, but not the full spectrum.",
           "title": "Computed"
+        },
+        "processed": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "datalab_exclude_from_load": true,
+          "default": null,
+          "title": "Processed"
         },
         "metadata": {
           "anyOf": [
@@ -262,9 +279,7 @@
       },
       "required": [
         "blocktype",
-        "block_id",
-        "b64_encoded_image",
-        "bokeh_plot_data"
+        "block_id"
       ],
       "title": "DataBlockResponse",
       "type": "object"
@@ -581,10 +596,18 @@
           "title": "Source"
         },
         "time_added": {
+          "anyOf": [
+            {
+              "format": "datetime",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
           "description": "The timestamp for the original file upload.",
-          "format": "datetime",
-          "title": "Time Added",
-          "type": "string"
+          "title": "Time Added"
         },
         "metadata": {
           "anyOf": [
@@ -650,15 +673,14 @@
               "type": "null"
             }
           ],
+          "default": null,
           "description": "Content checksums (MD5 and SHA-256) of the file."
         }
       },
       "required": [
         "name",
         "extension",
-        "time_added",
-        "is_live",
-        "checksums"
+        "is_live"
       ],
       "title": "File",
       "type": "object"
@@ -1498,6 +1520,7 @@
           "type": "null"
         }
       ],
+      "default": null,
       "description": "The name of the substance in the container.",
       "title": "Name"
     },
@@ -1567,6 +1590,7 @@
           "type": "null"
         }
       ],
+      "default": null,
       "description": "The chemical purity of this container with regards to the defined substance.",
       "title": "Chemical Purity"
     },
@@ -1618,6 +1642,7 @@
           "type": "null"
         }
       ],
+      "default": null,
       "description": "Supplier or manufacturer of the chemical.",
       "title": "Supplier"
     },
@@ -1649,10 +1674,7 @@
     }
   },
   "required": [
-    "item_id",
-    "name",
-    "chemical_purity",
-    "supplier"
+    "item_id"
   ],
   "title": "StartingMaterial",
   "type": "object"

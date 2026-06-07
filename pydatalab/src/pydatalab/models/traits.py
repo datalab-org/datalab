@@ -52,9 +52,9 @@ class HasBlocks(BaseModel):
 class CollectionReference(BaseModel):
     """A reference to a collection, used for inlining collection info within other models."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
 
-    collection_id: str
+    immutable_id: PyObjectId = Field(alias="_id")
     """The immutable ID of the collection."""
 
 
