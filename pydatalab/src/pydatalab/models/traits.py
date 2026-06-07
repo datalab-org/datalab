@@ -1,10 +1,19 @@
 from typing import Any
 
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from pydatalab.models.blocks import DataBlockResponse
 from pydatalab.models.people import Group, Person
 from pydatalab.models.utils import Constituent, InlineSubstance, PyObjectId
+
+__all__ = (
+    "HasOwner",
+    "HasRevisionControl",
+    "HasBlocks",
+    "IsCollectable",
+    "HasSynthesisInfo",
+    "HasSubstanceInfo",
+)
 
 
 class HasOwner(BaseModel):
@@ -50,7 +59,8 @@ class IsCollectable(BaseModel):
     collections: list[Collection] = Field([])
     """Inlined info for the collections associated with this item."""
 
-    @root_validator
+    @model_validator(mode="before")
+    @classmethod
     def add_missing_collection_relationships(cls, values):
         from pydatalab.models.relationships import TypedRelationship
 
@@ -99,7 +109,8 @@ class HasSynthesisInfo(BaseModel):
     synthesis_description: str | None = None
     """Free-text details of the procedure applied to synthesise the sample"""
 
-    @root_validator
+    @model_validator(mode="before")
+    @classmethod
     def add_missing_synthesis_relationships(cls, values):
         """Add any missing sample synthesis constituents to parent relationships"""
         from pydatalab.models.relationships import RelationshipType, TypedRelationship
@@ -205,7 +216,8 @@ class HasSubstanceInfo(BaseModel):
     CAS: str | None = Field(alias="Substance CAS")
     """The CAS Registry Number for the substance described by this entry."""
 
-    @validator("molar_mass")
+    @field_validator("molar_mass", mode="before")
+    @classmethod
     def add_molar_mass(cls, v, values):
         from periodictable import formula
 
