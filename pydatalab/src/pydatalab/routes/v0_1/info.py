@@ -160,7 +160,7 @@ def list_block_types():
                     )
                     for block_type, block in BLOCK_TYPES.items()
                 ],
-                meta=Meta(query=request.query_string),
+                meta=Meta(query=request.query_string.decode() if request.query_string else ""),
             ).model_dump_json()
         )
     )
@@ -185,7 +185,7 @@ def list_supported_types():
                     )
                     for item_type, schema in ITEM_SCHEMAS.items()
                 ],
-                meta=Meta(query=request.query_string),
+                meta=Meta(query=request.query_string.decode() if request.query_string else ""),
             ).model_dump_json()
         )
     )
@@ -211,7 +211,7 @@ def get_schema_type(item_type):
                         "schema": ITEM_SCHEMAS[item_type],
                     },
                 ),
-                meta=Meta(query=request.query_string),
+                meta=Meta(query=request.query_string.decode() if request.query_string else ""),
             ).model_dump_json()
         )
     )
