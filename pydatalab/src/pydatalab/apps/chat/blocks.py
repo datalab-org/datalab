@@ -19,7 +19,9 @@ class ChatBlockResponse(DataBlockResponse):
     prompt: str | None = None
     model: str
     available_models: dict[str, ModelCard] | None = Field(
-        None, validate_default=True, datalab_exclude_from_db=True, datalab_exclude_from_load=True
+        None,
+        validate_default=True,
+        json_schema_extra={"datalab_exclude_from_db": True, "datalab_exclude_from_load": True},
     )
     token_count: int | None = None
     temperature: float
