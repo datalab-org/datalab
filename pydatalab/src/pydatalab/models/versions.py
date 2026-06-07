@@ -3,7 +3,7 @@
 from datetime import datetime
 from enum import Enum
 
-from pydantic import Field, validator
+from pydantic import ConfigDict, Field, model_validator
 
 from pydatalab.models.utils import BaseModel, PyObjectId, Refcode
 
@@ -56,17 +56,16 @@ class ItemVersion(BaseModel):
     user_agent: str | None = None
     """User agent string of the client that triggered this version. Will only be stored if it matches a known value from the datalab ecosystem."""
 
-    @validator("restored_from_version")
-    def validate_restored_from_version(cls, v, values):
+    @model_validator(mode="after")
+    def validate_restored_from_version(self):
         """Ensure restored_from_version is only present when action='restored'."""
-        action = values.get("action")
-        if action == VersionAction.RESTORED and v is None:
+        if self.action == VersionAction.RESTORED and self.restored_from_version is None:
             raise ValueError("restored_from_version must be provided when action='restored'")
-        if action != VersionAction.RESTORED and v is not None:
+        if self.action != VersionAction.RESTORED and self.restored_from_version is not None:
             raise ValueError(
-                f"restored_from_version should only be present when action='restored', got action='{action}'"
+                f"restored_from_version should only be present when action='restored', got action='{self.action}'"
             )
-        return v
+        return self
 
 
 class VersionCounter(BaseModel):
@@ -82,50 +81,25 @@ class VersionCounter(BaseModel):
     counter: int = Field(1, ge=1)
     """Current version counter value (1-indexed, matches version numbers)"""
 
-    class Config:
-        extra = "ignore"  # Allow MongoDB's _id field and other internal fields
+    model_config = ConfigDict(extra="ignore")
 
 
 class RestoreVersionRequest(BaseModel):
     """Request body for restoring a version."""
 
-    version_id: str
+    version_id: PyObjectId
     """ObjectId string of the version to restore to"""
 
-    @validator("version_id")
-    def validate_version_id_format(cls, v):
-        """Validate that version_id is a valid ObjectId string."""
-        try:
-            from bson import ObjectId
-
-            ObjectId(v)
-        except Exception as e:
-            raise ValueError(f"version_id must be a valid ObjectId string: {e}")
-        return v
-
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
 
 class CompareVersionsQuery(BaseModel):
     """Query parameters for comparing two versions."""
 
-    v1: str
+    v1: PyObjectId
     """ObjectId string of the first version"""
 
-    v2: str
+    v2: PyObjectId
     """ObjectId string of the second version"""
 
-    @validator("v1", "v2")
-    def validate_version_ids(cls, v):
-        """Validate that version IDs are valid ObjectId strings."""
-        try:
-            from bson import ObjectId
-
-            ObjectId(v)
-        except Exception as e:
-            raise ValueError(f"Version ID must be a valid ObjectId string: {e}")
-        return v
-
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")

@@ -52,7 +52,7 @@ class File(Entry, HasOwner, HasRevisionControl):
     source: str | None = None
     """The source of the file, e.g. 'remote' or 'uploaded'."""
 
-    time_added: IsoformatDateTime
+    time_added: IsoformatDateTime | None = None
     """The timestamp for the original file upload."""
 
     metadata: dict[Any, Any] | None = None
@@ -69,5 +69,5 @@ class File(Entry, HasOwner, HasRevisionControl):
     is_live: bool
     """Whether or not the file should be watched for future updates."""
 
-    checksums: FileChecksums | None
+    checksums: FileChecksums | None = None
     """Content checksums (MD5 and SHA-256) of the file."""

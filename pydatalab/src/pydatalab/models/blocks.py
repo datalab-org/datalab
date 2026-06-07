@@ -44,12 +44,12 @@ class DataBlockResponse(BaseModel):
     """Any warnings that occurred during block processing."""
 
     b64_encoded_image: dict[str, str] | None = Field(
-        datalab_exclude_from_db=True, datalab_exclude_from_load=True
+        None, datalab_exclude_from_db=True, datalab_exclude_from_load=True
     )
     """Any base64-encoded image data associated with the block, keyed by `file_id`."""
 
     bokeh_plot_data: dict | None = Field(
-        datalab_exclude_from_db=True, datalab_exclude_from_load=True
+        None, datalab_exclude_from_db=True, datalab_exclude_from_load=True
     )
     """A JSON-encoded string containing the Bokeh plot data, if any."""
 
@@ -58,6 +58,8 @@ class DataBlockResponse(BaseModel):
     i.e., strings or a few hundred numbers not exceeding 16KB in size.
     Examples could include peak positions, and widths, but not the full spectrum.
     """
+
+    processed: dict | None = Field(default=None, datalab_exclude_from_load=True)
 
     metadata: dict | None = Field(default=None, datalab_exclude_from_load=True)
     """Any structured metadata associated with the block, for example,
