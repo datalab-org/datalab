@@ -112,7 +112,7 @@ def write_eln_file(
 
             item_folder = root_folder / item[primary_key]
 
-            item_metadata = ITEM_MODELS[item.get("type")](**item).json(indent=2)
+            item_metadata = ITEM_MODELS[item.get("type")](**item).model_dump_json(indent=2)
             zipf.writestr(str(item_folder / "metadata.json"), item_metadata)
 
             for file in item.get("files", []):
@@ -378,7 +378,7 @@ def create_eln_file(
             item_data = list(cursor)[0]
 
             ItemModel = ITEM_MODELS[item_data["type"]]
-            item_data = ItemModel(**item_data).dict()
+            item_data = ItemModel(**item_data).model_dump()
 
         except IndexError:
             item_data = None
@@ -420,7 +420,7 @@ def create_eln_file(
 
     for ind, item in enumerate(all_items):
         ItemModel = ITEM_MODELS[item["type"]]
-        _all_items.append(ItemModel(**item).dict())
+        _all_items.append(ItemModel(**item).model_dump())
 
     all_items = _all_items
 
