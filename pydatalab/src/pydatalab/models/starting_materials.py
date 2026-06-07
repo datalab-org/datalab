@@ -24,13 +24,13 @@ class StartingMaterial(Item, HasSynthesisInfo, HasSubstanceInfo):
     date_opened: IsoformatDateTime | None = Field(None, alias="Date opened")
     """The date the item was opened"""
 
-    chemical_purity: str | None = Field(alias="Chemical purity")
+    chemical_purity: str | None = Field(None, alias="Chemical purity")
     """The chemical purity of this container with regards to the defined substance."""
 
     full_percent: str | None = Field(None, alias="Full %")
     """The amount of the defined substance remaining in the container, expressed as a percentage."""
 
-    name: str | None = Field(alias="Container Name")
+    name: str | None = Field(None, alias="Container Name")
     """The name of the substance in the container."""
 
     size: str | None = Field(None, alias="Container Size")
@@ -39,7 +39,7 @@ class StartingMaterial(Item, HasSynthesisInfo, HasSubstanceInfo):
     size_unit: str | None = Field(None, alias="Unit")
     """Units for the 'size' field."""
 
-    supplier: str | None = Field(alias="Supplier")
+    supplier: str | None = Field(None, alias="Supplier")
     """Supplier or manufacturer of the chemical."""
 
     location: str | None = Field(None, alias="Location")
