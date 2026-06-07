@@ -206,7 +206,7 @@ class DataBlock:
         LOGGER.debug("Casting block %s to database object.", self.__class__.__name__)
         exclude_fields: set[str] = {
             f
-            for (f, s) in self.block_db_model.schema()["properties"].items()
+            for (f, s) in self.block_db_model.model_json_schema()["properties"].items()
             if s.get("datalab_exclude_from_db")
         }
         return self.block_db_model(**self.data).model_dump(
@@ -353,7 +353,7 @@ class DataBlock:
         )
         exclude_fields: set[str] = {
             f
-            for (f, s) in self.block_db_model.schema()["properties"].items()
+            for (f, s) in self.block_db_model.model_json_schema()["properties"].items()
             if s.get("datalab_exclude_from_load")
         }
         [data.pop(f, None) for f in exclude_fields]
