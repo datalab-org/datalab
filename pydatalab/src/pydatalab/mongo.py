@@ -25,6 +25,9 @@ __all__ = (
     "GROUPS_FTS_FIELDS",
     "generate_heuristic_regex_search",
     "build_search_pipeline",
+    "creators_lookup",
+    "groups_lookup",
+    "files_lookup",
 )
 
 flask_mongo = PyMongo()
@@ -33,6 +36,43 @@ flask_mongo = PyMongo()
 """One-liner that pulls all non-semantic string fields out of all item
 models implemented for this server.
 """
+
+
+def creators_lookup() -> dict:
+    return {
+        "from": "users",
+        "let": {"creator_ids": "$creator_ids"},
+        "pipeline": [
+            {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$creator_ids", []]}]}}},
+            {"$addFields": {"__order": {"$indexOfArray": ["$$creator_ids", "$_id"]}}},
+            {"$sort": {"__order": 1}},
+            {"$project": {"_id": 1, "display_name": 1, "gravatar_hash": 1}},
+        ],
+        "as": "creators",
+    }
+
+
+def groups_lookup() -> dict:
+    return {
+        "from": "groups",
+        "let": {"group_ids": "$group_ids"},
+        "pipeline": [
+            {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$group_ids", []]}]}}},
+            {"$addFields": {"__order": {"$indexOfArray": ["$$group_ids", "$_id"]}}},
+            {"$sort": {"__order": 1}},
+            {"$project": {"_id": 1, "display_name": 1, "group_id": 1}},
+        ],
+        "as": "groups",
+    }
+
+
+def files_lookup() -> dict:
+    return {
+        "from": "files",
+        "localField": "file_ObjectIds",
+        "foreignField": "_id",
+        "as": "files",
+    }
 
 
 @lru_cache(maxsize=1)
