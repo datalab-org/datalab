@@ -5,15 +5,21 @@ from pathlib import Path
 import bokeh
 import numpy as np
 import pandas as pd
+from pydantic import Field
 from scipy.signal import medfilt
 
-from pydatalab.blocks.base import DataBlock, event, generate_js_callback_single_float_parameter
+from pydatalab.blocks.base import (
+    DataBlock,
+    DataBlockResponse,
+    event,
+    generate_js_callback_single_float_parameter,
+)
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
 
-from .models import PeakInformation
+from .models import PeakInformation, XRDPattern
 from .utils import (
     compute_cif_pxrd,
     parse_bruker_brml,
@@ -23,7 +29,14 @@ from .utils import (
 )
 
 
+class XRDBlockResponse(DataBlockResponse):
+    processed: dict[str, dict] | None = Field(
+        datalab_exclude_from_db=True, datalab_exclude_from_response=True
+    )
+
+
 class XRDBlock(DataBlock):
+    block_db_model = XRDBlockResponse
     blocktype = "xrd"
     name = "Powder XRD"
     description = "Visualize XRD patterns and perform simple baseline corrections."
@@ -325,6 +338,16 @@ class XRDBlock(DataBlock):
                 pattern_dfs = [pattern_df]
 
         if pattern_dfs:
+            for ind, df in enumerate(pattern_dfs):
+                if "processed" not in self.data or self.data["processed"] is None:
+                    self.data["processed"] = {}
+
+                self.data["processed"][ind] = XRDPattern(
+                    two_theta=df["2θ (°)"].tolist(),
+                    intensity=df["intensity"].tolist(),
+                    error=df["error"].tolist() if "error" in df.columns else None,
+                ).dict()
+
             p = self._make_plots(pattern_dfs, y_options)
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=DATALAB_BOKEH_THEME)
 

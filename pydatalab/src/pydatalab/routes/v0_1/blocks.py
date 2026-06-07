@@ -543,6 +543,27 @@ def delete_collection_block():
     )
 
 
+@BLOCKS.route("/blocks/<block_id>", methods=["GET"])
+def get_block(block_id: str):
+    """Endpoint to retrieve the current state of a block by its ID. This is used by the frontend
+    to poll for updates after an asynchronous processing task completes, and could also be used
+    for other purposes in the future."""
+    blocks_obj = flask_mongo.db.items.find_one(
+        {f"blocks_obj.{block_id}": {"$exists": True}, **get_default_permissions(user_only=False)},
+        {f"blocks_obj.{block_id}": 1},
+    )
+
+    if not blocks_obj or "blocks_obj" not in blocks_obj or block_id not in blocks_obj["blocks_obj"]:
+        return jsonify({"status": "error", "message": "Block not found"}), 404
+
+    block = blocks_obj["blocks_obj"][block_id]
+    block_type = block["blocktype"]
+
+    block = BLOCK_TYPES[block_type].from_web(block)
+
+    return jsonify({"status": "success", "block_data": block.to_web()}), 200
+
+
 @BLOCKS.route("/blocks/<string:task_id>/status", methods=["GET"])
 def get_block_task_status(task_id: str):
     task = flask_mongo.db.tasks.find_one({"task_id": task_id, "type": TaskType.BLOCK_PROCESSING})

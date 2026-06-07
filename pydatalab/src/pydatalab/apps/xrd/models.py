@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-__all__ = ("PeakInformation",)
+__all__ = ("PeakInformation", "XRDPattern")
 
 
 class PeakInformation(BaseModel):
@@ -9,3 +9,9 @@ class PeakInformation(BaseModel):
     widths: list[float] | None = None
     hkls: list[tuple[int, int, int]] | None = None
     theoretical: bool = False
+
+
+class XRDPattern(BaseModel):
+    two_theta: list[float]
+    intensity: list[float]
+    error: list[float] | None = None
