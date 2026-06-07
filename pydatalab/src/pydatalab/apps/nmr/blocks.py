@@ -130,7 +130,7 @@ class NMRBlock(DataBlock):
         metadata["pulse_program_name"] = a_dic["acqus"]["PULPROG"]
         metadata["title"] = topspin_title
 
-        self.data["metadata"] = NMRMetadata(**metadata).dict()
+        self.data["metadata"] = NMRMetadata(**metadata).model_dump()
 
         return serialized_df, metadata
 
@@ -209,7 +209,7 @@ class NMRBlock(DataBlock):
             pass
 
         serialized_df = df.to_dict() if (df is not None) else None
-        self.data["metadata"] = NMRMetadata(**metadata).dict()
+        self.data["metadata"] = NMRMetadata(**metadata).model_dump()
 
         return serialized_df, metadata
 
@@ -293,7 +293,7 @@ class NMRBlock(DataBlock):
         metadata["nscans"] = nscans
 
         serialized_df = df.to_dict() if (df is not None) else None
-        self.data["metadata"] = NMRMetadata(**metadata).dict()
+        self.data["metadata"] = NMRMetadata(**metadata).model_dump()
 
         return serialized_df, metadata
 
