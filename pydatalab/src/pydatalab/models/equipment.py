@@ -22,7 +22,7 @@ class Equipment(Item):
     location: str | None = None
     """Place where the equipment is located"""
 
-    contact: str | None
+    contact: str | None = None
     """Contact information for equipment (e.g., email address or phone number)."""
 
     status: EquipmentStatus = Field(default=EquipmentStatus.WORKING)
