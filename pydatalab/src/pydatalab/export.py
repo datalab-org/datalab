@@ -12,10 +12,10 @@ from pydatalab import __version__
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
-from pydatalab.mongo import flask_mongo
-from pydatalab.routes.v0_1.items import (
+from pydatalab.mongo import (
     creators_lookup,
     files_lookup,
+    flask_mongo,
     groups_lookup,
 )
 
