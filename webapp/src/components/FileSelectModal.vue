@@ -1,17 +1,7 @@
 <template>
   <div class="modal-enclosure">
     <Modal v-model="fileSelectModalIsOpen">
-      <template #header>
-        Select files to add
-        <button
-          :disabled="isLoadingRemoteTree"
-          class="ml-4 btn btn-small btn-default"
-          @click="fetchRemoteTree"
-        >
-          <font-awesome-icon v-show="isLoadingRemoteTree" :icon="['fa', 'sync']" class="fa-spin" />
-          Update tree
-        </button>
-      </template>
+      <template #header> Select files to add </template>
 
       <template #body>
         <SelectableFileTree
@@ -47,7 +37,7 @@
 import Modal from "@/components/Modal";
 import SelectableFileTree from "@/components/SelectableFileTree";
 
-import { fetchRemoteTree, addRemoteFileToSample } from "@/server_fetch_utils";
+import { fetchRemotesList, addRemoteFileToSample } from "@/server_fetch_utils";
 
 export default {
   components: {
@@ -64,12 +54,10 @@ export default {
     return {
       selectedRemoteFiles: [],
       isLoadingRemoteFiles: false,
+      hasLoadedRemotesList: false,
     };
   },
   computed: {
-    isLoadingRemoteTree() {
-      return this.$store.state.remoteDirectoryTreeIsLoading;
-    },
     // Change the text on the load files button based for singular/plural file uploads
     loadFilesButtonValue() {
       const len = this.selectedRemoteFiles.length;
@@ -91,33 +79,15 @@ export default {
       },
     },
   },
-  mounted() {
-    this.loadCachedTree();
-  },
-  methods: {
-    fetchRemoteTree: fetchRemoteTree, // imported directly from server_fetch_utils. Note: automatically sets and usets the remote tree loading status.
-    async loadCachedTree() {
-      var response_json = await fetchRemoteTree(false);
-      if (!response_json) {
-        return;
-      }
-      var oldest_cache_update = null;
-      var seconds_since_oldest_update = null;
-      if ("meta" in response_json) {
-        if ("oldest_cache_update" in response_json.meta) {
-          oldest_cache_update = new Date(response_json.meta.oldest_cache_update + "Z");
-          seconds_since_oldest_update = (new Date() - oldest_cache_update) / 1000;
-          console.log(
-            `loadCachedTree received, oldest dir update was ${seconds_since_oldest_update} s ago`,
-          );
-        }
-      }
-
-      if (seconds_since_oldest_update == null || seconds_since_oldest_update > 3600) {
-        console.log("cache is probably more than 1 hr out of date. Fetching new sample tree");
-        this.fetchRemoteTree(true);
+  watch: {
+    fileSelectModalIsOpen(isOpen) {
+      if (isOpen && !this.hasLoadedRemotesList) {
+        this.hasLoadedRemotesList = true;
+        fetchRemotesList();
       }
     },
+  },
+  methods: {
     async loadSelectedRemoteFiles() {
       this.isLoadingRemoteFiles = true;
       var promises = [];
