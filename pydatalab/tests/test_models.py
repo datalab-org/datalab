@@ -52,7 +52,7 @@ def test_sample_with_inlined_reference():
     assert parents[0].item_id == a.item_id
     assert parents[0].refcode == a.refcode
 
-    b_both = Sample(**json.loads(b_both.json()))
+    b_both = Sample(**json.loads(b_both.model_dump_json()))
     parents = [r for r in b_both.relationships if r.relation == RelationshipType.PARENT]
     assert len(parents) == 1
 
@@ -209,7 +209,7 @@ def test_custom_and_inherited_items():
         tzinfo=datetime.timezone.utc
     )
 
-    item_json = json.loads(item.json())
+    item_json = json.loads(item.model_dump_json())
     assert item_json["type"] == "items_custom"
     assert item_json["creator_ids"][0] == "0123456789ab0123456789ab"
     assert item_json["creator_ids"][1] == "1023456789ab0123456789ab"
@@ -239,7 +239,7 @@ def test_custom_and_inherited_items():
         "2020-01-01 00:00"
     ).replace(tzinfo=datetime.timezone.utc)
 
-    sample_json = json.loads(sample.json())
+    sample_json = json.loads(sample.model_dump_json())
     assert sample_json["type"] == "samples"
     assert sample_json["creator_ids"][0] == str(ObjectId("0123456789ab0123456789ab"))
     assert sample_json["creator_ids"][1] == str(ObjectId("1023456789ab0123456789ab"))
