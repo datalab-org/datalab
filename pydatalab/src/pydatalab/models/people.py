@@ -190,10 +190,6 @@ class Person(Entry):
             v = "people"
         return v
 
-    @classmethod
-    def set_default_type(cls, _):
-        return "people"
-
     @staticmethod
     def new_user_from_identity(
         identity: Identity,
