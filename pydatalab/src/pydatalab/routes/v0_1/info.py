@@ -5,6 +5,7 @@ from datetime import datetime
 from datetime import timedelta as td
 from datetime import timezone as tz
 from functools import lru_cache
+from typing import Any, Generic, TypeVar
 
 from flask import Blueprint, jsonify, request
 from pydantic import (
@@ -13,7 +14,6 @@ from pydantic import (
     ConfigDict,
     Field,
     field_validator,
-    model_validator,
 )
 
 from pydatalab import __version__
@@ -47,14 +47,19 @@ class Links(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
-class Data(BaseModel):
+AttributesT = TypeVar("AttributesT")
+
+
+class Data(BaseModel, Generic[AttributesT]):
     id: str
     type: str
-    attributes: Attributes
+    attributes: AttributesT
+    """The attributes payload, serialized as whatever concrete type the envelope is
+    parametrised with (e.g. ``Data[Info]``) so subclass fields are not stripped."""
 
 
-class JSONAPIResponse(BaseModel):
-    data: Data | list[Data]
+class JSONAPIResponse(BaseModel, Generic[AttributesT]):
+    data: Data[AttributesT] | list[Data[AttributesT]]
     meta: Meta
     links: Links | None = None
 
@@ -70,7 +75,7 @@ class Info(Attributes, Meta):
     homepage: AnyUrl | None = None
     source_repository: AnyUrl | None = None
     identifier_prefix: str
-    features: FeatureFlags = FEATURE_FLAGS
+    features: FeatureFlags | None = None
     max_upload_bytes: int
 
     @field_validator("maintainer", mode="before")
@@ -79,18 +84,6 @@ class Info(Attributes, Meta):
         if isinstance(v, Person):
             return MetaPerson(contact_email=v.contact_email, display_name=v.display_name)
         return v
-
-    @model_validator(mode="after")
-    def ensure_features_serialization(self):
-        """Ensure features are properly serialized for frontend consumption."""
-        if hasattr(self.features, "model_dump"):
-            features_dict = self.features.model_dump()
-        else:
-            features_dict = self.features
-
-        if not isinstance(self.features, FeatureFlags):
-            self.features = FeatureFlags(**features_dict)
-        return self
 
 
 @lru_cache(maxsize=1)
@@ -118,7 +111,7 @@ def get_info():
 
     """
 
-    response_data = JSONAPIResponse(
+    response_data = JSONAPIResponse[Info](
         data=Data(id="/", type="info", attributes=Info(**_get_deployment_metadata_once())),
         meta=Meta(query=request.query_string.decode() if request.query_string else ""),
         links=Links(self=request.url),
@@ -150,7 +143,7 @@ def list_block_types():
     """Returns a list of all blocks implemented in this server."""
     return jsonify(
         json.loads(
-            JSONAPIResponse(
+            JSONAPIResponse[dict[str, Any]](
                 data=[
                     Data(
                         id=block_type,
@@ -179,7 +172,7 @@ def list_supported_types():
 
     return jsonify(
         json.loads(
-            JSONAPIResponse(
+            JSONAPIResponse[dict[str, Any]](
                 data=[
                     Data(
                         id=item_type,
@@ -208,7 +201,7 @@ def get_schema_type(item_type):
 
     return jsonify(
         json.loads(
-            JSONAPIResponse(
+            JSONAPIResponse[dict[str, Any]](
                 data=Data(
                     id=item_type,
                     type="item_type",
