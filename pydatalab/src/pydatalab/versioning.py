@@ -220,7 +220,7 @@ def save_version_snapshot(
     next_version_number = get_next_version_number(refcode)
 
     # Insert validated data (convert to dict and exclude None values)
-    version_doc = validated_version.dict(by_alias=True, exclude_none=True)
+    version_doc = validated_version.model_dump(exclude_none=True)
     version_doc["version"] = next_version_number
     flask_mongo.db.item_versions.insert_one(version_doc)
     return (
