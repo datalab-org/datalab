@@ -218,5 +218,5 @@ def search_users():
 
     cursor = flask_mongo.db.users.aggregate(pipeline)
     return jsonify(
-        {"status": "success", "users": [json.loads(Person(**d).json()) for d in cursor]}
+        {"status": "success", "users": [json.loads(Person(**d).model_dump_json()) for d in cursor]}
     ), 200
