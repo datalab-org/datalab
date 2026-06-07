@@ -4,7 +4,7 @@ import string
 from collections.abc import Callable
 from enum import Enum
 from functools import partial
-from typing import Annotated, Any, TypeAlias
+from typing import Annotated, Any, TypeAlias, get_args
 
 import pint
 from bson import ObjectId
@@ -28,6 +28,25 @@ class BaseModel(PydanticBaseModel):
     """
 
     model_config = ConfigDict(use_attribute_docstrings=True)
+
+    @classmethod
+    def __pydantic_init_subclass__(cls, **kwargs):
+        """Restore pydantic v1's implicit `None` default for optional fields.
+
+        In pydantic v2 a field annotated ``T | None`` with no assigned default is
+        *required*, whereas in v1 it implicitly defaulted to ``None``. This back-fills
+        a ``None`` default for any required field that allows ``None``, so that models
+        (including those in plugins not yet migrated to v2) keep their v1 semantics.
+        Fields that already declare a default are untouched.
+        """
+        super().__pydantic_init_subclass__(**kwargs)
+        changed = False
+        for field in cls.model_fields.values():
+            if field.is_required() and type(None) in get_args(field.annotation):
+                field.default = None
+                changed = True
+        if changed:
+            cls.model_rebuild(force=True)
 
 
 class ItemType(str, Enum):
