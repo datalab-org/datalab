@@ -54,7 +54,7 @@ def _process_block_async(
             timestamp=datetime.now(tz=timezone.utc), message=message, level=level, detail=traceback
         )
         flask_mongo.db.tasks.update_one(
-            {"task_id": task_id}, {"$push": {"spec.stages": stage.dict()}}
+            {"task_id": task_id}, {"$push": {"spec.stages": stage.model_dump()}}
         )
 
     with app_ctx, req_ctx:
@@ -369,7 +369,7 @@ def update_block():
             ),
         )
 
-        flask_mongo.db.tasks.insert_one(block_task.dict())
+        flask_mongo.db.tasks.insert_one(block_task.model_dump())
 
         task_scheduler.add_job(
             func=_process_block_async,

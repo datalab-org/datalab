@@ -276,7 +276,7 @@ def test_item_regex_search(
 def test_new_sample_with_relationships(
     client, complicated_sample, insert_complicated_sample_constituents
 ):
-    complicated_sample_json = json.loads(complicated_sample.json())
+    complicated_sample_json = json.loads(complicated_sample.model_dump_json())
     response = client.post("/new-sample/", json=complicated_sample_json)
     # Test that 201: Created is emitted
     assert response.status_code == 201, response.json
@@ -340,7 +340,7 @@ def test_new_sample_with_relationships(
             description="This is a new relationship",
         )
     )
-    derived_sample_json = json.loads(derived_sample.json())
+    derived_sample_json = json.loads(derived_sample.model_dump_json())
 
     response = client.post("/new-sample/", json=derived_sample_json)
     # Test that 201: Created is emitted
@@ -444,7 +444,7 @@ def test_copy_from_sample(client, complicated_sample):
 
     """
     complicated_sample.item_id = "new_complicated_sample"
-    complicated_sample_json = json.loads(complicated_sample.json())
+    complicated_sample_json = json.loads(complicated_sample.model_dump_json())
     response = client.post("/new-sample/", json=complicated_sample_json)
 
     # Test that 201: Created is emitted
@@ -474,12 +474,13 @@ def test_copy_from_sample(client, complicated_sample):
 
 @pytest.mark.dependency(depends=["test_copy_from_sample"])
 def test_create_multiple_samples(client, complicated_sample):
-    samples = [complicated_sample, complicated_sample.copy()]
+    samples = [complicated_sample, complicated_sample.model_copy()]
     samples[0].item_id = "another_new_complicated_sample"
     samples[1].item_id = "additional_new_complicated_sample"
 
     response = client.post(
-        "/new-samples/", json={"new_sample_datas": [json.loads(s.json()) for s in samples]}
+        "/new-samples/",
+        json={"new_sample_datas": [json.loads(s.model_dump_json()) for s in samples]},
     )
     assert response.status_code == 207, response.json
     assert response.json["nsuccess"] == 2, response.json
@@ -493,7 +494,7 @@ def test_create_multiple_samples(client, complicated_sample):
     response = client.post(
         "/new-samples/",
         json={
-            "new_sample_datas": [json.loads(s.json()) for s in samples],
+            "new_sample_datas": [json.loads(s.model_dump_json()) for s in samples],
             "copy_from_item_ids": [
                 "another_new_complicated_sample",
                 "additional_new_complicated_sample",
@@ -515,7 +516,7 @@ def test_create_multiple_samples(client, complicated_sample):
 
 @pytest.mark.dependency(depends=["test_create_multiple_samples"])
 def test_create_cell(client, default_cell):
-    response = client.post("/new-sample/", json=json.loads(default_cell.json()))
+    response = client.post("/new-sample/", json=json.loads(default_cell.model_dump_json()))
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
 
@@ -588,7 +589,9 @@ def test_create_collections(client, default_collection, database):
     assert response.status_code == 200
 
     # Create an empty collection
-    response = client.put("/collections", json={"data": json.loads(default_collection.json())})
+    response = client.put(
+        "/collections", json={"data": json.loads(default_collection.model_dump_json())}
+    )
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
     assert response.json["data"]["collection_id"] == "test_collection"
@@ -607,7 +610,7 @@ def test_create_collections(client, default_collection, database):
     new_collection = copy.deepcopy(default_collection)
     new_collection.collection_id = "test_collection_2"
 
-    data = json.loads(new_collection.json())
+    data = json.loads(new_collection.model_dump_json())
     data.update(
         {
             "starting_members": [
