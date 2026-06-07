@@ -25,7 +25,14 @@ from pydatalab.models.versions import (
     RestoreVersionRequest,
     VersionAction,
 )
-from pydatalab.mongo import build_search_pipeline, flask_mongo, get_items_fts_fields
+from pydatalab.mongo import (
+    build_search_pipeline,
+    creators_lookup,
+    files_lookup,
+    flask_mongo,
+    get_items_fts_fields,
+    groups_lookup,
+)
 from pydatalab.permissions import (
     PUBLIC_USER_ID,
     access_token_or_active_users,
@@ -294,34 +301,6 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
     )
 
 
-def creators_lookup() -> dict:
-    return {
-        "from": "users",
-        "let": {"creator_ids": "$creator_ids"},
-        "pipeline": [
-            {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$creator_ids", []]}]}}},
-            {"$addFields": {"__order": {"$indexOfArray": ["$$creator_ids", "$_id"]}}},
-            {"$sort": {"__order": 1}},
-            {"$project": {"_id": 1, "display_name": 1, "gravatar_hash": 1}},
-        ],
-        "as": "creators",
-    }
-
-
-def groups_lookup() -> dict:
-    return {
-        "from": "groups",
-        "let": {"group_ids": "$group_ids"},
-        "pipeline": [
-            {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$group_ids", []]}]}}},
-            {"$addFields": {"__order": {"$indexOfArray": ["$$group_ids", "$_id"]}}},
-            {"$sort": {"__order": 1}},
-            {"$project": {"_id": 1, "display_name": 1, "group_id": 1}},
-        ],
-        "as": "groups",
-    }
-
-
 def entry_reference_lookup(item_doc: dict) -> dict:
     """Looks up any field that contains an entry reference and resolves it to the item data."""
 
@@ -399,15 +378,6 @@ def entry_reference_lookup(item_doc: dict) -> dict:
     item_doc.update(dereferenced_fields)
 
     return item_doc
-
-
-def files_lookup() -> dict:
-    return {
-        "from": "files",
-        "localField": "file_ObjectIds",
-        "foreignField": "_id",
-        "as": "files",
-    }
 
 
 def collections_lookup() -> dict:
