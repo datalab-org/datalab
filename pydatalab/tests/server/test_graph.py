@@ -61,7 +61,7 @@ def test_simple_graph(admin_client):
     )
 
     new_samples = [
-        json.loads(d.json())
+        json.loads(d.model_dump_json())
         for d in [parent, child_1, child_2, child_3, child_4, missing_child, cell]
     ]
 

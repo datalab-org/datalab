@@ -24,7 +24,7 @@ def sample_with_version(client, user_id):
             "synthesis_description": "Initial synthesis",
         }
     )
-    flask_mongo.db.items.insert_one(sample.dict(exclude_unset=False))
+    flask_mongo.db.items.insert_one(sample.model_dump(exclude_unset=False))
 
     yield sample
 
@@ -525,7 +525,7 @@ class TestAutoVersioning:
         refcode_short = sample_with_version.refcode.split(":")[1]
 
         # Modify and save the item using save-item endpoint
-        item_data = sample_with_version.dict(exclude_unset=False)
+        item_data = sample_with_version.model_dump(exclude_unset=False)
         item_data["description"] = "Updated via save-item"
 
         response = client.post("/save-item/", json={"item_id": item_id, "data": item_data})
@@ -549,7 +549,7 @@ class TestAutoVersioning:
 
         refcode = sample_with_version.refcode
 
-        item_data = sample_with_version.dict(exclude_unset=False)
+        item_data = sample_with_version.model_dump(exclude_unset=False)
         item_data["description"] = "First real change"
         client.post("/save-item/", json={"item_id": sample_with_version.item_id, "data": item_data})
 
@@ -617,7 +617,7 @@ class TestActionFields:
         refcode_short = sample_with_version.refcode.split(":")[1]
 
         # Save via save-item endpoint (user clicking save button)
-        item_data = sample_with_version.dict(exclude_unset=False)
+        item_data = sample_with_version.model_dump(exclude_unset=False)
         item_data["description"] = "Updated via save-item"
         client.post("/save-item/", json={"item_id": sample_with_version.item_id, "data": item_data})
 
@@ -785,7 +785,7 @@ class TestNoopVersionDeduplication:
         refcode = sample_with_version.refcode.split(":")[1]
         full_refcode = sample_with_version.refcode
 
-        item_data = sample_with_version.dict(exclude_unset=False)
+        item_data = sample_with_version.model_dump(exclude_unset=False)
         item_data["description"] = "A new description"
 
         client.post("/save-item/", json={"item_id": item_id, "data": item_data})
@@ -805,7 +805,7 @@ class TestNoopVersionDeduplication:
         refcode = sample_with_version.refcode.split(":")[1]
         full_refcode = sample_with_version.refcode
 
-        item_data = sample_with_version.dict(exclude_unset=False)
+        item_data = sample_with_version.model_dump(exclude_unset=False)
         item_data["description"] = "First real change"
         client.post("/save-item/", json={"item_id": item_id, "data": item_data})
 
