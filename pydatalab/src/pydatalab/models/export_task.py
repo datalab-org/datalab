@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from enum import Enum
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from pydatalab.models.utils import BaseModel, PyObjectId
 
@@ -48,5 +48,4 @@ class ExportTask(BaseModel):
     error_message: str | None = None
     """Error message if status is ERROR"""
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
