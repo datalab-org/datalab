@@ -695,9 +695,13 @@ def _create_sample(
         raise BadRequest(f"Failed to add new item {new_sample['item_id']!r} to database.")
 
     # Save initial version snapshot after successful item creation
+    refcode = data_model.refcode
+    if not isinstance(refcode, str):
+        raise InternalServerError(f"Invalid refcode generated for new item: {refcode!r}")
     try:
         version_resp, version_status = save_version_snapshot(
-            data_model.refcode, action=VersionAction.CREATED
+            refcode,
+            action=VersionAction.CREATED,  # type: ignore
         )
         if version_status != 200:
             LOGGER.error(
@@ -1313,7 +1317,7 @@ def compare_versions(refcode):
     v1 = flask_mongo.db.item_versions.find_one({"_id": query_params.v1, "refcode": refcode})
     v2 = flask_mongo.db.item_versions.find_one({"_id": query_params.v2, "refcode": refcode})
     if not v1 or not v2:
-        return NotFound("One or both versions not found")
+        raise NotFound("One or both versions not found")
 
     # Use DeepDiff for proper nested structure comparison
     # This handles nested dicts, lists, type changes, and provides detailed change information
