@@ -9,8 +9,6 @@ import time
 import tomlkit
 from invoke import Collection, task
 
-from pydatalab.models.utils import UserRole
-
 ns = Collection()
 dev = Collection("dev")
 admin = Collection("admin")
@@ -263,12 +261,14 @@ admin.add_task(create_mongo_indices)
 
 
 @task
-def change_user_role(_, display_name: str, role: "UserRole"):
+def change_user_role(_, display_name: str, role: str):
     """This task takes a user's name and gives them the desired role."""
     from bson import ObjectId
 
     from pydatalab.models.utils import UserRole
     from pydatalab.mongo import _get_active_mongo_client
+
+    role = UserRole(role.upper())
 
     try:
         role = getattr(UserRole, role.upper())
