@@ -253,6 +253,11 @@ its importance when deploying a datalab instance.""",
         description="A list of block type slugs (e.g. ['cycle', 'xrd']) that should be processed asynchronously via the task queue. Defaults to no blocks.",
     )
 
+    CUSTOM_ITEM_MODELS: list[str] = Field(
+        [],
+        description="A list of dotted import paths ('package.module:ClassName') to custom `Item` subclasses to register as additional item types served through the generic item endpoints, e.g. ['mypackage.models:MySample']. Each model must declare its own unique `type` literal.",
+    )
+
     BACKUP_STRATEGIES: dict[str, BackupStrategy] | None = Field(
         {
             "daily-snapshots": BackupStrategy(

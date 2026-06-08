@@ -140,3 +140,33 @@ def load_block_plugins():
 
 
 load_block_plugins()
+
+
+def load_item_plugins():
+    """Search through any registered entry points at 'pydatalab.item_types' and
+    register them as custom `Item` subclasses, making them available through the
+    generic item endpoints and at `/info/types`.
+
+    Each entry point must resolve to a concrete `Item` subclass declaring its
+    own unique `type` literal; `register_item_model` enforces this and mutates
+    the global `ITEM_MODELS`/`ITEM_SCHEMAS` registries in place.
+    """
+    from importlib.metadata import entry_points
+
+    from pydatalab.models import register_item_model
+
+    item_plugins = []
+    for entry_point in entry_points(group="pydatalab.item_types"):
+        # As with block plugins, tolerate the pydantic v2 deprecation warnings
+        # emitted at import time by plugins that have not yet migrated.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", PydanticDeprecatedSince20)
+            model = entry_point.load()
+
+        register_item_model(model)
+        item_plugins.append(model)
+
+    return item_plugins
+
+
+load_item_plugins()

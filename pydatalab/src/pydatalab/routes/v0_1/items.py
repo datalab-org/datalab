@@ -16,7 +16,7 @@ from werkzeug.exceptions import BadRequest, Conflict, InternalServerError, NotFo
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
-from pydatalab.models import ITEM_MODELS, ItemVersion
+from pydatalab.models import ITEM_MODELS, ItemVersion, flagged_summary_fields
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import InlineSubstance, generate_unique_refcode
@@ -71,6 +71,9 @@ def get_equipment_summary():
         "status": 1,
     }
 
+    for field in flagged_summary_fields(("equipment",)):
+        _project.setdefault(field, 1)
+
     items = [
         doc
         for doc in flask_mongo.db.items.aggregate(
@@ -89,6 +92,44 @@ def get_equipment_summary():
 
 @ITEMS.route("/starting-materials/", methods=["GET"])
 def get_starting_materials():
+    _project = {
+        "_id": 0,
+        "item_id": 1,
+        "blocks": {
+            "$map": {
+                "input": {"$objectToArray": {"$ifNull": ["$blocks_obj", {}]}},
+                "as": "b",
+                "in": {
+                    "blocktype": "$$b.v.blocktype",
+                    "title": "$$b.v.title",
+                },
+            }
+        },
+        "collections": {
+            "collection_id": 1,
+        },
+        "nblocks": {"$size": "$display_order"},
+        "nfiles": {"$size": "$file_ObjectIds"},
+        "date": 1,
+        "chemform": 1,
+        "smiles": 1,
+        "inchi_key": 1,
+        "GHS_codes": 1,
+        "molar_mass": 1,
+        "name": 1,
+        "type": 1,
+        "chemical_purity": 1,
+        "barcode": 1,
+        "refcode": 1,
+        "supplier": 1,
+        "location": 1,
+        "status": 1,
+        "CAS": 1,
+    }
+
+    for field in flagged_summary_fields(("starting_materials",)):
+        _project.setdefault(field, 1)
+
     items = [
         doc
         for doc in flask_mongo.db.items.aggregate(
@@ -203,6 +244,11 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
         "status": 1,
     }
 
+    # Include any fields (across all registered item types, including custom
+    # ones) that opt into summaries via `datalab_include_field_in_summary`.
+    for field in flagged_summary_fields(ITEM_MODELS):
+        _project.setdefault(field, 1)
+
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
     if project:
         for key in project:
@@ -278,6 +324,11 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
         "refcode": 1,
         "status": 1,
     }
+
+    # Include any fields on samples/cells (including custom subclasses) that opt
+    # into summaries via `datalab_include_field_in_summary`.
+    for field in flagged_summary_fields(("samples", "cells")):
+        _project.setdefault(field, 1)
 
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
     if project:
