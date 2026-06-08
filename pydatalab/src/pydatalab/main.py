@@ -139,6 +139,7 @@ def create_app(
     # Register any custom item models declared in the config so that they are
     # served via the generic item endpoints and appear in `/info/types`.
     from pydatalab.models import load_custom_item_models
+
     load_custom_item_models(CONFIG.CUSTOM_ITEM_MODELS)
 
     register_endpoints(app)
