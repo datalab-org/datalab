@@ -613,11 +613,12 @@ def find_create_or_modify_user(
             )
             LOGGER.debug("Inserting new user model %s into database", user)
             inserted_id = insert_pydantic_model_fork_safe(user, "users")
-            user = get_by_id(inserted_id)
-            if user is None:
+            login_user = get_by_id(inserted_id)
+            if login_user is None:
                 raise RuntimeError("Failed to insert user into database")
 
-            wrapped_login_user(user)
+            user = login_user.person
+
             # Send email notification to admins
             _send_admin_email_notification(user)
 
