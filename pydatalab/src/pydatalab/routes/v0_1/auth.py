@@ -617,6 +617,7 @@ def find_create_or_modify_user(
             if user is None:
                 raise RuntimeError("Failed to insert user into database")
 
+            wrapped_login_user(user)
             # Send email notification to admins
             _send_admin_email_notification(user)
 
@@ -625,7 +626,8 @@ def find_create_or_modify_user(
 
     # Log the user into the session with this identity
     if user is not None:
-        wrapped_login_user(user)
+        login_user = get_by_id(user.immutable_id)
+        wrapped_login_user(login_user)
 
 
 def _validate_magic_link_request(email: str, referrer: str) -> None:
