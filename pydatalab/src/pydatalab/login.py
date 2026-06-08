@@ -105,7 +105,7 @@ def groups_lookup() -> dict:
     }
 
 
-def get_by_id(user_id: str) -> LoginUser | None:
+def get_by_id(user_id: str | ObjectId) -> LoginUser | None:
     """Lookup the user database ID and create a new `LoginUser`
     with the relevant metadata.
 
