@@ -70,6 +70,7 @@ def handle_pydantic_validation_error(exc: ValidationError) -> tuple[Response, in
     These always come from malformed data, so should not necessarily trigger the
     Flask debugger.
     """
+    LOGGER.critical("Pydantic validation error: %s", exc, exc_info=True)
     response = {
         "title": exc.__class__.__name__,
         "message": str(exc.args[:]) if exc.args else "",

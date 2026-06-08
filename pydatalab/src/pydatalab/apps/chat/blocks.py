@@ -2,7 +2,7 @@ import json
 import warnings
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 
 from pydatalab.blocks.base import DataBlock
 from pydatalab.models import ITEM_MODELS
@@ -16,15 +16,18 @@ __all__ = ("ChatBlock",)
 
 class ChatBlockResponse(DataBlockResponse):
     messages: list[dict] = Field(default_factory=list)
-    prompt: str | None
+    prompt: str | None = None
     model: str
     available_models: dict[str, ModelCard] | None = Field(
-        datalab_exclude_from_db=True, datalab_exclude_from_load=True
+        None,
+        validate_default=True,
+        json_schema_extra={"datalab_exclude_from_db": True, "datalab_exclude_from_load": True},
     )
-    token_count: int | None
+    token_count: int | None = None
     temperature: float
 
-    @validator("available_models", pre=True, always=True)
+    @field_validator("available_models", mode="before")
+    @classmethod
     def set_available_models(cls, _):
         return AVAILABLE_MODELS
 
@@ -206,8 +209,8 @@ Please make a new chat block to start fresh, or use a model with a larger contex
             item_model.blocks_obj = {
                 k: block for k, block in item_model.blocks_obj.items() if block.blocktype != "chat"
             }
-        item_data = item_model.dict(exclude_none=True, exclude_unset=True)
-        item_data["type"] = item_model.type
+        item_info = item_model.model_dump(exclude_none=True, exclude_unset=True)
+        item_info["type"] = item_model.type
 
         # strip irrelevant or large fields
         item_filenames = {

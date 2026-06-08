@@ -276,7 +276,7 @@ def test_item_regex_search(
 def test_new_sample_with_relationships(
     client, complicated_sample, insert_complicated_sample_constituents
 ):
-    complicated_sample_json = json.loads(complicated_sample.json())
+    complicated_sample_json = json.loads(complicated_sample.model_dump_json())
     response = client.post("/new-sample/", json=complicated_sample_json)
     # Test that 201: Created is emitted
     assert response.status_code == 201, response.json
@@ -340,7 +340,7 @@ def test_new_sample_with_relationships(
             description="This is a new relationship",
         )
     )
-    derived_sample_json = json.loads(derived_sample.json())
+    derived_sample_json = json.loads(derived_sample.model_dump_json())
 
     response = client.post("/new-sample/", json=derived_sample_json)
     # Test that 201: Created is emitted
@@ -444,7 +444,7 @@ def test_copy_from_sample(client, complicated_sample):
 
     """
     complicated_sample.item_id = "new_complicated_sample"
-    complicated_sample_json = json.loads(complicated_sample.json())
+    complicated_sample_json = json.loads(complicated_sample.model_dump_json())
     response = client.post("/new-sample/", json=complicated_sample_json)
 
     # Test that 201: Created is emitted
@@ -474,12 +474,13 @@ def test_copy_from_sample(client, complicated_sample):
 
 @pytest.mark.dependency(depends=["test_copy_from_sample"])
 def test_create_multiple_samples(client, complicated_sample):
-    samples = [complicated_sample, complicated_sample.copy()]
+    samples = [complicated_sample, complicated_sample.model_copy()]
     samples[0].item_id = "another_new_complicated_sample"
     samples[1].item_id = "additional_new_complicated_sample"
 
     response = client.post(
-        "/new-samples/", json={"new_sample_datas": [json.loads(s.json()) for s in samples]}
+        "/new-samples/",
+        json={"new_sample_datas": [json.loads(s.model_dump_json()) for s in samples]},
     )
     assert response.status_code == 207, response.json
     assert response.json["nsuccess"] == 2, response.json
@@ -493,7 +494,7 @@ def test_create_multiple_samples(client, complicated_sample):
     response = client.post(
         "/new-samples/",
         json={
-            "new_sample_datas": [json.loads(s.json()) for s in samples],
+            "new_sample_datas": [json.loads(s.model_dump_json()) for s in samples],
             "copy_from_item_ids": [
                 "another_new_complicated_sample",
                 "additional_new_complicated_sample",
@@ -515,7 +516,7 @@ def test_create_multiple_samples(client, complicated_sample):
 
 @pytest.mark.dependency(depends=["test_create_multiple_samples"])
 def test_create_cell(client, default_cell):
-    response = client.post("/new-sample/", json=json.loads(default_cell.json()))
+    response = client.post("/new-sample/", json=json.loads(default_cell.model_dump_json()))
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
 
@@ -540,8 +541,8 @@ def test_create_cell(client, default_cell):
     assert cell["electrolyte"][1]["item"]["chemform"] == "NaCl"
 
     assert (
-        cell["positive_electrode"][0]["item"]["name"]
-        == default_cell.positive_electrode[0].item.name
+        cell["positive_electrode"][0]["item"]["item_id"]
+        == default_cell.positive_electrode[0].item.item_id
     )
     # The anode has a "real" entry in the db, so it should be looked up properly
     # with dereferenced chemical formula and name, even if it was not provided at link time
@@ -588,7 +589,9 @@ def test_create_collections(client, default_collection, database):
     assert response.status_code == 200
 
     # Create an empty collection
-    response = client.put("/collections", json={"data": json.loads(default_collection.json())})
+    response = client.put(
+        "/collections", json={"data": json.loads(default_collection.model_dump_json())}
+    )
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
     assert response.json["data"]["collection_id"] == "test_collection"
@@ -607,7 +610,7 @@ def test_create_collections(client, default_collection, database):
     new_collection = copy.deepcopy(default_collection)
     new_collection.collection_id = "test_collection_2"
 
-    data = json.loads(new_collection.json())
+    data = json.loads(new_collection.model_dump_json())
     data.update(
         {
             "starting_members": [
@@ -840,7 +843,7 @@ def test_remove_items_from_collection_success(
         response = client.post("/new-sample/", json=sample_dict)
         assert response.status_code == 201
 
-    collection_dict = default_collection.dict()
+    collection_dict = default_collection.model_dump()
     collection_dict["collection_id"] = "test_collection_remove"
     response = client.put("/collections", json={"data": collection_dict})
     assert response.status_code == 201
@@ -912,7 +915,7 @@ def test_remove_items_from_collection_not_found(client):
 @pytest.mark.dependency()
 def test_remove_items_from_collection_no_items_provided(client, default_collection):
     """Test removing with no item IDs provided."""
-    collection_dict = default_collection.dict()
+    collection_dict = default_collection.model_dump()
     collection_dict["collection_id"] = "test_collection_empty_items"
     response = client.put("/collections", json={"data": collection_dict})
     assert response.status_code == 201
@@ -928,7 +931,7 @@ def test_remove_items_from_collection_no_items_provided(client, default_collecti
 @pytest.mark.dependency()
 def test_remove_items_from_collection_no_matching_items(client, default_collection):
     """Test removing items that don't exist."""
-    collection_dict = default_collection.dict()
+    collection_dict = default_collection.model_dump()
     collection_dict["collection_id"] = "test_collection_no_match"
     response = client.put("/collections", json={"data": collection_dict})
     assert response.status_code == 201
@@ -957,7 +960,7 @@ def test_remove_items_from_collection_partial_success(
     response = client.post("/new-sample/", json=sample_dict)
     assert response.status_code == 201
 
-    collection_dict = default_collection.dict()
+    collection_dict = default_collection.model_dump()
     collection_dict["collection_id"] = "test_collection_partial"
     response = client.put("/collections", json={"data": collection_dict})
     assert response.status_code == 201
@@ -1016,7 +1019,7 @@ def test_copy_sample_and_add_to_collection(client, default_sample_dict, default_
     assert response.status_code == 201
     assert response.json["status"] == "success"
 
-    collection_dict = default_collection.dict().copy()
+    collection_dict = default_collection.model_dump().copy()
     collection_dict["collection_id"] = "test_copy_collection"
     response = client.put("/collections", json={"data": collection_dict})
     assert response.status_code == 201
@@ -1048,12 +1051,12 @@ def test_copy_sample_and_add_to_collection(client, default_sample_dict, default_
 def test_copy_sample_from_collection_to_different_collection(
     client, default_sample_dict, default_collection
 ):
-    collection1_dict = default_collection.dict().copy()
+    collection1_dict = default_collection.model_dump().copy()
     collection1_dict["collection_id"] = "collection_1"
     response = client.put("/collections", json={"data": collection1_dict})
     assert response.status_code == 201
 
-    collection2_dict = default_collection.dict().copy()
+    collection2_dict = default_collection.model_dump().copy()
     collection2_dict["collection_id"] = "collection_2"
     response = client.put("/collections", json={"data": collection2_dict})
     assert response.status_code == 201
@@ -1093,7 +1096,7 @@ def test_copy_sample_from_collection_to_different_collection(
 
 @pytest.mark.dependency(depends=["test_copy_sample_from_collection_to_different_collection"])
 def test_copy_sample_without_copying_collections(client, default_sample_dict, default_collection):
-    collection_dict = default_collection.dict().copy()
+    collection_dict = default_collection.model_dump().copy()
     collection_dict["collection_id"] = "test_no_auto_copy_collection"
     response = client.put("/collections", json={"data": collection_dict})
     assert response.status_code == 201
@@ -1133,7 +1136,7 @@ def test_collections_permissions(client, admin_client, default_sample_dict, defa
     assert response.json["status"] == "success"
     refcode = response.json["sample_list_entry"]["refcode"]
 
-    admin_collection = default_collection.dict().copy()
+    admin_collection = default_collection.model_dump().copy()
     admin_collection["collection_id"] = "admin_only_collection"
     response = admin_client.put("/collections", json={"data": admin_collection})
 

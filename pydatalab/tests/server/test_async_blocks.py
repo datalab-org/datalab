@@ -147,7 +147,7 @@ class TestBlockTaskStatus:
                 block_id="test_block",
             ),
         )
-        database.tasks.insert_one(task.dict())
+        database.tasks.insert_one(task.model_dump())
 
         response = client.get(f"/blocks/{task_id}/status")
         assert response.status_code == 200
@@ -182,7 +182,7 @@ class TestBlockTaskStatus:
                 stages=stages,
             ),
         )
-        database.tasks.insert_one(task.dict())
+        database.tasks.insert_one(task.model_dump())
 
         response = client.get(f"/blocks/{task_id}/status")
         assert response.status_code == 200
@@ -226,7 +226,7 @@ class TestBlockTaskStatus:
                 block_id=block_id,
             ),
         )
-        database.tasks.insert_one(task.dict())
+        database.tasks.insert_one(task.model_dump())
 
         # Write block data to GridFS
         from pydatalab.mongo import get_database
@@ -276,7 +276,7 @@ class TestBlockTaskStatus:
                 block_id=block_id,
             ),
         )
-        database.tasks.insert_one(task.dict())
+        database.tasks.insert_one(task.model_dump())
 
         response = client.get(f"/blocks/{task_id}/status")
         assert response.status_code == 200
@@ -304,7 +304,7 @@ class TestBlockTaskStatus:
                 block_id="test_block",
             ),
         )
-        database.tasks.insert_one(task.dict())
+        database.tasks.insert_one(task.model_dump())
 
         response = client.get(f"/blocks/{task_id}/status")
         assert response.status_code == 200
@@ -334,7 +334,7 @@ class TestBlockTaskStatus:
                 export_type="collection",
             ),
         )
-        database.tasks.insert_one(task.dict())
+        database.tasks.insert_one(task.model_dump())
 
         response = client.get(f"/blocks/{task_id}/status")
         assert response.status_code == 404
@@ -369,7 +369,7 @@ class TestBlockTaskStatus:
                 block_id=block_id,
             ),
         )
-        database.tasks.insert_one(task.dict())
+        database.tasks.insert_one(task.model_dump())
 
         from pydatalab.mongo import get_database
 
@@ -428,7 +428,7 @@ class TestProcessBlockAsync:
             status=TaskStatus.PENDING,
             spec=BlockProcessingTaskSpec(item_id=item_id, block_id=block_id),
         )
-        database.tasks.insert_one(task.dict())
+        database.tasks.insert_one(task.model_dump())
 
         block_data = {
             "blocktype": "comment",
@@ -470,7 +470,7 @@ class TestProcessBlockAsync:
             status=TaskStatus.PENDING,
             spec=BlockProcessingTaskSpec(item_id="x", block_id="y"),
         )
-        database.tasks.insert_one(task.dict())
+        database.tasks.insert_one(task.model_dump())
 
         # Pass an invalid block type to trigger an error
         block_data = {
@@ -509,7 +509,7 @@ class TestCleanupStaleTasks:
             status=TaskStatus.PROCESSING,
             spec=BlockProcessingTaskSpec(item_id="x", block_id="y"),
         )
-        task_dict = task.dict()
+        task_dict = task.model_dump()
         task_dict["created_at"] = old_time
         database.tasks.insert_one(task_dict)
 
@@ -534,7 +534,7 @@ class TestCleanupStaleTasks:
             status=TaskStatus.PROCESSING,
             spec=BlockProcessingTaskSpec(item_id="x", block_id="y"),
         )
-        database.tasks.insert_one(task.dict())
+        database.tasks.insert_one(task.model_dump())
 
         _cleanup_stale_tasks()
 
@@ -558,7 +558,7 @@ class TestCleanupStaleTasks:
             completed_at=old_time,
             spec=BlockProcessingTaskSpec(item_id="x", block_id="y"),
         )
-        task_dict = task.dict()
+        task_dict = task.model_dump()
         task_dict["created_at"] = old_time
         database.tasks.insert_one(task_dict)
 
@@ -586,7 +586,7 @@ class TestCleanupStaleTasks:
             completed_at=datetime.now(tz=timezone.utc),
             spec=BlockProcessingTaskSpec(item_id="x", block_id="y"),
         )
-        database.tasks.insert_one(task.dict())
+        database.tasks.insert_one(task.model_dump())
 
         _cleanup_stale_tasks()
 
