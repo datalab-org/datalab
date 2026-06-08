@@ -136,3 +136,48 @@ def test_unknown_custom_type_rejected(client, custom_item_models):
         json={"new_sample_data": {"type": "not_a_real_type", "item_id": "bad-1"}},
     )
     assert response.status_code == 400, response.json
+
+
+def test_bad_custom_item_type_rejected():
+    """A custom model is rejected at registration time if it reuses a reserved
+    built-in `type`, or if it is not an `Item` subclass at all."""
+    from typing import Literal
+
+    from pydatalab.models import register_item_model
+    from pydatalab.models.samples import Sample
+
+    class ClashingSample(Sample):
+        # Reuses the built-in "samples" type instead of declaring its own.
+        type: Literal["samples"] = "samples"  # type: ignore[assignment]
+
+    with pytest.raises(ValueError, match="reserved built-in type"):
+        register_item_model(ClashingSample)
+
+    # Anything that is not an `Item` subclass is also rejected.
+    with pytest.raises(TypeError):
+        register_item_model(dict)
+
+
+def test_extra_fields_on_builtin_sample_are_ignored(client):
+    """Stuffing custom-schema fields into a plain `samples` item does not persist
+    them: the built-in `Sample` model ignores unknown fields (`extra="ignore"`),
+    so custom data only "sticks" on a registered custom type."""
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "samples",
+                "item_id": "plain-sample-extra",
+                "drying_time": 99.0,
+                "custom_properties": {"batch": "X", "purity": 0.1},
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.get("/get-item-data/plain-sample-extra")
+    assert response.status_code == 200, response.json
+    item_data = response.json["item_data"]
+    assert item_data["type"] == "samples"
+    assert "drying_time" not in item_data
+    assert "custom_properties" not in item_data
