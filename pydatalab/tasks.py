@@ -64,17 +64,16 @@ def load_plugin_schema():
         dependencies: list[str] = []
         tool: ToolSection = ToolSection()
 
-        @model_validator(mode="before")
-        @classmethod
-        def _sources_must_match_dependencies(cls, values):
-            deps = {d.split("[")[0].strip() for d in values.get("dependencies", [])}
-            sources = values.get("tool", ToolSection()).uv.sources
+        @model_validator(mode="after")
+        def _sources_must_match_dependencies(self):
+            deps = {d.split("[")[0].strip() for d in self.dependencies}
+            sources = self.tool.uv.sources
             orphans = sorted(set(sources) - deps)
             if orphans:
                 raise ValueError(
                     f"[tool.uv.sources] entries have no matching dependency: {orphans}"
                 )
-            return values
+            return self
 
     return PluginConfigModel
 
