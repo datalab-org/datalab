@@ -120,6 +120,12 @@ def create_app(
     if CONFIG.FILE_DIRECTORY is not None:
         pathlib.Path(CONFIG.FILE_DIRECTORY).mkdir(parents=False, exist_ok=True)
 
+    # Register any custom item models declared in the config so that they are
+    # served via the generic item endpoints and appear in `/info/types`.
+    from pydatalab.models import load_custom_item_models
+
+    load_custom_item_models(CONFIG.CUSTOM_ITEM_MODELS)
+
     register_endpoints(app)
     LOGGER.info("App created.")
 
