@@ -79,6 +79,11 @@ const routes = [
     component: CollectionPage,
   },
   {
+    path: "/compare",
+    name: "compare",
+    component: () => import(/* webpackChunkName: "compare" */ "@/views/ComparisonPage.vue"),
+  },
+  {
     path: "/test-graph/",
     name: "test-graph",
     component: ExampleGraph,

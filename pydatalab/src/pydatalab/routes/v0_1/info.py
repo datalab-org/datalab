@@ -144,6 +144,7 @@ def list_block_types():
                                 block, "accepted_file_extensions", []
                             ),
                             "multi_file": getattr(block, "multi_file", False),
+                            "supports_overlay": block.supports_comparison(),
                         },
                     )
                     for block_type, block in BLOCK_TYPES.items()
