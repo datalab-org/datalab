@@ -192,7 +192,7 @@
               connectorLabel(stage, visibleStages[index + 1])
             }}</span>
             <span class="sample-stage-link__line"></span>
-            <ArrowRightIcon
+            <ArrowLeftIcon
               v-if="orientation === 'horizontal'"
               aria-hidden="true"
               class="sample-stage-link__icon"
@@ -259,7 +259,7 @@ import StyledTooltip from "@/components/StyledTooltip";
 import AngleDoubleLeftIcon from "@primevue/icons/angledoubleleft";
 import AngleDoubleRightIcon from "@primevue/icons/angledoubleright";
 import ArrowDownIcon from "@primevue/icons/arrowdown";
-import ArrowRightIcon from "@primevue/icons/angleright";
+import ArrowLeftIcon from "@primevue/icons/angleright";
 import DatePicker from "primevue/datepicker";
 import ChevronLeftIcon from "@primevue/icons/chevronleft";
 import ChevronRightIcon from "@primevue/icons/chevronright";
@@ -274,7 +274,7 @@ export default {
     AngleDoubleLeftIcon,
     AngleDoubleRightIcon,
     ArrowDownIcon,
-    ArrowRightIcon,
+    ArrowLeftIcon,
     DatePicker,
     ChevronLeftIcon,
     ChevronRightIcon,
@@ -288,7 +288,7 @@ export default {
     },
     title: {
       type: String,
-      default: "Sample stages",
+      default: "Sample blocks",
     },
     orientation: {
       type: String,
@@ -421,7 +421,18 @@ export default {
     stages: {
       immediate: true,
       handler() {
-        this.syncSelectedTypes();
+        const wereAllSelected = this.allTypesSelected || this.selectedTypes.length === 0;
+
+        this.$nextTick(() => {
+          this.syncSelectedTypes();
+          if (wereAllSelected) {
+            this.availableTypeOptions.forEach((type) => {
+              if (!this.selectedTypes.includes(type.blocktype)) {
+                this.selectedTypes.push(type.blocktype);
+              }
+            });
+          }
+        });
         this.currentPage = 0;
       },
     },
@@ -738,7 +749,7 @@ export default {
     },
     isHighlighted(type) {
       if (this.selectedTypes.length === 0) {
-        return true;
+        return false;
       }
 
       return this.selectedTypes.includes(type);
@@ -1052,7 +1063,7 @@ export default {
   filter: grayscale(0.85);
   transform: scale(0.55);
   transform-origin: center center;
-  width: 2.4rem;
+  width: 1.4rem;
   min-height: 7rem;
   align-items: center;
   justify-content: center;
@@ -1202,6 +1213,7 @@ export default {
 
 .sample-stage-link__icon {
   color: var(--connector);
+  transform: scale(-1);
 }
 
 .sample-stage-link.is-muted {
