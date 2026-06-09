@@ -176,6 +176,16 @@
             Add to collection
           </a>
           <a
+            v-if="!['collections', 'users', 'tokens', 'groups'].includes(dataType)"
+            data-testid="compare-selected-button"
+            class="dropdown-item"
+            :class="{ disabled: itemsSelected.length < 2 }"
+            :title="itemsSelected.length < 2 ? 'Select at least two items to compare' : ''"
+            @click="handleCompare"
+          >
+            Compare selected
+          </a>
+          <a
             v-if="dataType === 'collectionItems'"
             data-testid="remove-from-collection-dropdown"
             class="dropdown-item"
@@ -376,6 +386,7 @@ export default {
     "open-create-equipment-modal",
     "open-add-to-collection-modal",
     "open-batch-share-modal",
+    "compare-selected-items",
     "delete-selected-items",
     "update:filters",
     "update:selected-columns",
@@ -486,6 +497,13 @@ export default {
     },
     handleAddToCollection() {
       this.$emit("open-add-to-collection-modal");
+      this.isSelectedDropdownVisible = false;
+    },
+    handleCompare() {
+      if (this.itemsSelected.length < 2) {
+        return;
+      }
+      this.$emit("compare-selected-items");
       this.isSelectedDropdownVisible = false;
     },
     columnLabel(option) {

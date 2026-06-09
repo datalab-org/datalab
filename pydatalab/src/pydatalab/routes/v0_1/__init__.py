@@ -5,6 +5,7 @@ from .admin import ADMIN
 from .auth import AUTH, OAUTH, OAUTH_PROXIES
 from .blocks import BLOCKS
 from .collections import COLLECTIONS
+from .comparison import COMPARISON
 from .export import EXPORT
 from .files import FILES
 from .graphs import GRAPHS
@@ -24,6 +25,7 @@ BLUEPRINTS: tuple[Blueprint, ...] = (
     ADMIN,
     ITEMS,
     BLOCKS,
+    COMPARISON,
     FILES,
     HEALTHCHECK,
     INFO,

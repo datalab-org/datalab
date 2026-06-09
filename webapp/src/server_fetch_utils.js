@@ -1512,6 +1512,16 @@ export async function compareItemVersions(refcode, baseVersion, targetVersion) {
     });
 }
 
+export async function compareBlocks(blocks) {
+  // `blocks` is an array of { item_id, block_id, label? }
+  return fetch_post(`${API_URL}/blocks/compare/`, { blocks }).then(function (response_json) {
+    if (response_json.status !== "success") {
+      throw new Error(response_json.message || "Comparison failed");
+    }
+    return response_json.bokeh_plot_data;
+  });
+}
+
 export function invalidateToken(refcode) {
   return fetch_post(`${API_URL}/items/${refcode}/invalidate-access-token`, {
     token: "admin-invalidation",

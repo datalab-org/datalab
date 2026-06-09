@@ -29,6 +29,7 @@ import {
   faUsersCog,
   faUsers,
   faChevronRight,
+  faChevronLeft,
   faArrowUp,
   faArrowDown,
   faProjectDiagram,
@@ -76,6 +77,8 @@ import {
   faUserFriends,
   faCaretDown,
   faLock,
+  faFlask,
+  faLayerGroup,
 } from "@fortawesome/free-solid-svg-icons";
 import { faPlusSquare } from "@fortawesome/free-regular-svg-icons";
 import { faGithub, faOrcid, faGoogle, faMicrosoft } from "@fortawesome/free-brands-svg-icons";
@@ -100,6 +103,7 @@ library.add(
   faUsersCog,
   faUsers,
   faChevronRight,
+  faChevronLeft,
   faProjectDiagram,
   faArrowUp,
   faArrowDown,
@@ -152,6 +156,8 @@ library.add(
   faUserFriends,
   faCaretDown,
   faLock,
+  faFlask,
+  faLayerGroup,
 );
 
 // import "@uppy/vue"
