@@ -5,6 +5,52 @@ from uuid import uuid4
 import pytest
 
 XRD_FILE = "XRD/Scan_C4.xrdml"
+RAMAN_FILE = "raman/raman_example.txt"
+
+
+def _make_sample_with_file_block(
+    admin_client, default_sample_dict, example_data_dir, sample_id, block_type, rel_file
+):
+    """Create a sample with a single, file-backed block of ``block_type`` and return
+    ``(sample_id, block_id)``."""
+    sample_data = default_sample_dict.copy()
+    sample_data["item_id"] = sample_id
+
+    response = admin_client.post("/new-sample/", json=sample_data)
+    assert response.status_code == 201, response.json
+
+    response = admin_client.post(
+        "/add-data-block/",
+        json={"block_type": block_type, "item_id": sample_id, "index": 0},
+    )
+    assert response.status_code == 200, response.json
+    block_id = response.json["new_block_obj"]["block_id"]
+
+    example_file = example_data_dir / rel_file
+    with open(example_file, "rb") as f:
+        response = admin_client.post(
+            "/upload-file/",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "item_id": sample_id,
+                "file": [(f, example_file.name)],
+                "type": "application/octet-stream",
+                "replace_file": "null",
+                "relativePath": "null",
+            },
+        )
+    assert response.status_code == 201, response.json
+    file_id = response.json["file_id"]
+
+    response = admin_client.get(f"/get-item-data/{sample_id}")
+    block_data = response.json["item_data"]["blocks_obj"][block_id]
+    block_data["file_id"] = file_id
+    response = admin_client.post("/update-block/", json={"block_data": block_data})
+    assert response.status_code == 200, response.json
+    assert response.json["new_block_data"].get("errors") is None
+
+    return sample_id, block_id
 
 
 def _make_sample_with_xrd_block(admin_client, default_sample_dict, example_data_dir, sample_id):
@@ -62,8 +108,47 @@ def two_xrd_samples(admin_client, default_sample_dict, example_data_dir):
     return a, b
 
 
+@pytest.fixture()
+def two_raman_samples(admin_client, default_sample_dict, example_data_dir):
+    suffix = uuid4().hex[:8]
+    a = _make_sample_with_file_block(
+        admin_client,
+        default_sample_dict,
+        example_data_dir,
+        f"cmp_raman_a_{suffix}",
+        "raman",
+        RAMAN_FILE,
+    )
+    b = _make_sample_with_file_block(
+        admin_client,
+        default_sample_dict,
+        example_data_dir,
+        f"cmp_raman_b_{suffix}",
+        "raman",
+        RAMAN_FILE,
+    )
+    return a, b
+
+
 def test_compare_two_xrd_blocks(admin_client, two_xrd_samples):
     (item_a, block_a), (item_b, block_b) = two_xrd_samples
+
+    response = admin_client.post(
+        "/blocks/compare/",
+        json={
+            "blocks": [
+                {"item_id": item_a, "block_id": block_a, "label": "A"},
+                {"item_id": item_b, "block_id": block_b, "label": "B"},
+            ]
+        },
+    )
+    assert response.status_code == 200, response.json
+    assert response.json["status"] == "success"
+    assert response.json["bokeh_plot_data"] is not None
+
+
+def test_compare_two_raman_blocks(admin_client, two_raman_samples):
+    (item_a, block_a), (item_b, block_b) = two_raman_samples
 
     response = admin_client.post(
         "/blocks/compare/",
@@ -188,8 +273,9 @@ def test_supports_overlay_flag(client):
     assert response.status_code == 200
     supports = {d["id"]: d["attributes"].get("supports_overlay") for d in response.json["data"]}
 
-    # XRD implements get_comparison_data; comment does not.
+    # XRD and Raman implement get_comparison_data; comment does not.
     assert supports.get("xrd") is True
+    assert supports.get("raman") is True
     assert supports.get("comment") is False
 
 

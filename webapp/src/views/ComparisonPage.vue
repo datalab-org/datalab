@@ -35,7 +35,7 @@
     </div>
 
     <template v-else>
-      <!-- Metadata comparison -->
+      <!-- Metadata comparison (samples as rows, fields as columns) -->
       <section class="comparison-card mb-4">
         <header class="comparison-card-header d-flex align-items-center flex-wrap">
           <button
@@ -51,15 +51,48 @@
           </button>
           <span class="mr-auto">Metadata</span>
           <div class="d-flex align-items-center small font-weight-normal">
-            <label class="mb-0 mr-3 toggle-inline">
-              <input v-model="showDiffOnly" type="checkbox" class="mr-1" />Differences only
-              <span v-if="showDiffOnly && hiddenIdenticalCount" class="text-muted">
-                ({{ hiddenIdenticalCount }} identical hidden)</span
+            <div v-if="totalPages > 1" class="d-flex align-items-center mr-3 pager">
+              <button
+                class="pager-btn"
+                title="Previous samples"
+                :disabled="metadataPage === 0"
+                @click="metadataPage--"
               >
-            </label>
-            <a href="#" @click.prevent="showMoreFields = !showMoreFields">{{
-              showMoreFields ? "Fewer fields" : "More fields"
-            }}</a>
+                <font-awesome-icon icon="chevron-left" />
+              </button>
+              <span class="text-muted mx-2"
+                >{{ pageStart }}–{{ pageEnd }} of {{ items.length }}</span
+              >
+              <button
+                class="pager-btn"
+                title="Next samples"
+                :disabled="metadataPage >= totalPages - 1"
+                @click="metadataPage++"
+              >
+                <font-awesome-icon icon="chevron-right" />
+              </button>
+            </div>
+            <div class="btn-group btn-group-sm" role="group">
+              <button
+                type="button"
+                class="btn"
+                :class="showDiffOnly ? 'btn-primary' : 'btn-outline-secondary'"
+                @click="showDiffOnly = true"
+              >
+                Differences
+                <span v-if="hiddenIdenticalCount" class="diff-count">{{
+                  displayedMetadataRows.length
+                }}</span>
+              </button>
+              <button
+                type="button"
+                class="btn"
+                :class="!showDiffOnly ? 'btn-primary' : 'btn-outline-secondary'"
+                @click="showDiffOnly = false"
+              >
+                All fields
+              </button>
+            </div>
           </div>
         </header>
         <div v-show="!metadataCollapsed" class="table-responsive">
@@ -68,18 +101,21 @@
               <tr>
                 <th class="field-col">Field</th>
                 <th
-                  v-for="(item, index) in items"
-                  :key="item.item_id"
+                  v-for="entry in pagedItems"
+                  :key="entry.item.item_id"
                   class="sample-col"
-                  :style="{ borderTopColor: sampleColor(index) }"
+                  :style="{ borderTopColor: sampleColor(entry.index) }"
                 >
                   <div class="d-flex align-items-center justify-content-between">
                     <span class="d-flex align-items-center">
-                      <span class="sample-dot" :style="{ backgroundColor: sampleColor(index) }" />
+                      <span
+                        class="sample-dot"
+                        :style="{ backgroundColor: sampleColor(entry.index) }"
+                      />
                       <FormattedItemName
-                        :item_id="item.item_id"
-                        :item-type="item.type || 'samples'"
-                        :name="item.name"
+                        :item_id="entry.item.item_id"
+                        :item-type="entry.item.type || 'samples'"
+                        :name="entry.item.name"
                         enable-click
                         enable-modified-click
                       />
@@ -87,7 +123,7 @@
                     <button
                       class="btn btn-sm btn-link text-muted p-0 ml-2 remove-btn"
                       title="Remove from comparison"
-                      @click="removeItem(item.item_id)"
+                      @click="removeItem(entry.item.item_id)"
                     >
                       <font-awesome-icon icon="times" />
                     </button>
@@ -97,24 +133,27 @@
             </thead>
             <tbody>
               <tr
-                v-for="row in displayedMetadataRows"
-                :key="row.label"
-                :class="{ 'row-differs': rowDiffers(row) }"
+                v-for="field in displayedMetadataRows"
+                :key="field.label"
+                :class="{ 'row-differs': !showDiffOnly && fieldDiffers(field) }"
               >
-                <th class="field-col">{{ row.label }}</th>
-                <td v-for="item in items" :key="item.item_id">
+                <th class="field-col">{{ field.label }}</th>
+                <td v-for="entry in pagedItems" :key="entry.item.item_id">
                   <ChemicalFormula
-                    v-if="row.key === 'chemform' && item.chemform"
-                    :formula="item.chemform"
+                    v-if="field.key === 'chemform' && entry.item.chemform"
+                    :formula="entry.item.chemform"
                   />
-                  <span v-else :class="{ 'text-muted': row.render(item) === '—' }">{{
-                    row.render(item)
+                  <span v-else :class="{ 'text-muted': field.render(entry.item) === '—' }">{{
+                    field.render(entry.item)
                   }}</span>
                 </td>
               </tr>
               <tr v-if="!displayedMetadataRows.length">
-                <td :colspan="items.length + 1" class="text-muted text-center">
-                  No differing fields.
+                <td :colspan="pagedItems.length + 1" class="text-muted text-center py-3">
+                  <font-awesome-icon icon="check-circle" class="text-success mr-1" />
+                  These samples share the same metadata. Switch to
+                  <a href="#" @click.prevent="showDiffOnly = false">All fields</a> to see
+                  everything.
                 </td>
               </tr>
             </tbody>
@@ -163,15 +202,6 @@
                   Overlay
                 </button>
               </div>
-              <template v-if="mode === 'side-by-side'">
-                <label class="small text-muted mb-0 mr-1">Columns</label>
-                <select v-model="gridColumns" class="form-control form-control-sm w-auto">
-                  <option value="auto">Auto</option>
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                </select>
-              </template>
             </div>
           </div>
 
@@ -251,20 +281,37 @@
                       enable-click
                       enable-modified-click
                     />
-                    <span v-if="entry.title" class="text-muted small ml-2">{{ entry.title }}</span>
                     <span
-                      v-if="entry.fileLabel"
-                      class="text-muted small ml-1 file-label"
+                      v-if="entry.distinguisher"
+                      class="text-muted small ml-2 file-label"
                       :title="entry.fileTooltip"
-                      >· {{ entry.fileLabel }}</span
+                      >· {{ entry.distinguisher }}</span
                     >
                   </div>
-                  <BokehPlot v-if="entry.bokehPlotData" :bokeh-plot-data="entry.bokehPlotData" />
-                  <div v-else-if="entry.error" class="alert alert-danger small mb-0">
+                  <div v-if="entry.error" class="alert alert-danger small mb-0">
                     {{ entry.error }}
                   </div>
+                  <BokehPlot
+                    v-else-if="entry.bokehPlotData"
+                    :bokeh-plot-data="entry.bokehPlotData"
+                  />
+                  <img
+                    v-else-if="entry.imageData"
+                    :src="entry.imageData"
+                    :alt="entry.fileLabel || 'media'"
+                    class="comparison-media"
+                  />
+                  <div v-else-if="entry.comment" class="comparison-comment">
+                    {{ entry.comment }}
+                  </div>
+                  <div
+                    v-else-if="isUpdating(entry) || !isProcessed(entry)"
+                    class="text-muted small py-3 text-center"
+                  >
+                    <font-awesome-icon :icon="['fa', 'sync']" :spin="true" /> Generating preview...
+                  </div>
                   <div v-else class="text-muted small py-3 text-center">
-                    <font-awesome-icon :icon="['fa', 'sync']" :spin="true" /> Generating plot...
+                    No preview available for this block type.
                   </div>
                 </div>
               </div>
@@ -298,6 +345,10 @@ import ChemicalFormula from "@/components/ChemicalFormula";
 import BokehPlot from "@/components/BokehPlot";
 import ItemSelect from "@/components/ItemSelect";
 import { getItemData, updateBlockFromServer, compareBlocks } from "@/server_fetch_utils.js";
+import { API_URL } from "@/resources.js";
+
+// How many sample rows to show per page in the metadata table before paging.
+const PAGE_SIZE = 5;
 
 // Mirrors the backend Dark2[8] palette (pydatalab.bokeh_plots.COLORS) so that a
 // sample's accent colour here matches its trace colour in the overlay plot.
@@ -331,15 +382,15 @@ export default {
       overlayError: null,
       itemToAdd: null,
       requestedBlocks: new Set(),
+      processedBlocks: new Set(),
       // Per-block-key enable flags for the participating-blocks toggle bar.
       // A key absent from this map is treated as enabled (default-on).
       blockEnabled: {},
       // UI controls
-      showDiffOnly: false,
-      showMoreFields: false,
+      showDiffOnly: true,
       metadataCollapsed: false,
       blocksCollapsed: false,
-      gridColumns: "auto",
+      metadataPage: 0,
     };
   },
   computed: {
@@ -386,17 +437,32 @@ export default {
       ];
     },
     visibleMetadataRows() {
-      return this.showMoreFields
-        ? [...this.coreMetadataRows, ...this.extraMetadataRows]
-        : this.coreMetadataRows;
+      return [...this.coreMetadataRows, ...this.extraMetadataRows];
     },
     displayedMetadataRows() {
       if (!this.showDiffOnly) return this.visibleMetadataRows;
-      return this.visibleMetadataRows.filter((row) => this.rowDiffers(row));
+      return this.visibleMetadataRows.filter((field) => this.fieldDiffers(field));
     },
     hiddenIdenticalCount() {
       if (!this.showDiffOnly) return 0;
       return this.visibleMetadataRows.length - this.displayedMetadataRows.length;
+    },
+    // Samples shown on the current metadata page, keeping each one's global index
+    // (so its accent colour matches its overlay trace).
+    pagedItems() {
+      const start = this.metadataPage * PAGE_SIZE;
+      return this.items
+        .slice(start, start + PAGE_SIZE)
+        .map((item, i) => ({ item, index: start + i }));
+    },
+    totalPages() {
+      return Math.max(1, Math.ceil(this.items.length / PAGE_SIZE));
+    },
+    pageStart() {
+      return this.items.length ? this.metadataPage * PAGE_SIZE + 1 : 0;
+    },
+    pageEnd() {
+      return Math.min((this.metadataPage + 1) * PAGE_SIZE, this.items.length);
     },
     allBlockTypes() {
       return this.blockTypeStats.map((t) => t.type);
@@ -431,9 +497,12 @@ export default {
         this.$store.state.blocksInfos[this.selectedBlockType]?.attributes?.supports_overlay,
       );
     },
+    // Fixed two-column layout: one block spans full width, two or more lay out
+    // in two equal columns. A stable column count keeps each Bokeh plot's
+    // container width from shifting as blocks render in asynchronously.
     gridStyle() {
-      if (this.gridColumns === "auto") return {};
-      return { gridTemplateColumns: `repeat(${this.gridColumns}, minmax(0, 1fr))` };
+      const cols = Math.min(this.activeBlocks.length || 1, 2);
+      return { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` };
     },
     // Every block of the selected type across all samples (the candidate set).
     matchingBlocks() {
@@ -465,6 +534,21 @@ export default {
           // When a sample has several blocks of this type, distinguish them by
           // file name (preferred) or a positional #N fallback. null otherwise.
           const distinguisher = sameTypeOnItem > 1 ? fileLabel || `#${ordinal}` : null;
+          // Non-Bokeh content: mirrors MediaBlock.vue logic.
+          // TIF/TIFF are base64-encoded server-side; other web images use a direct URL.
+          const b64 = block.b64_encoded_image;
+          let imageData = null;
+          if (b64 && block.file_id && b64[block.file_id]) {
+            imageData = `data:image/png;base64,${b64[block.file_id]}`;
+          } else if (block.file_id) {
+            const fileName = nameOf(block.file_id);
+            if (fileName) {
+              const ext = fileName.split(".").pop().toLowerCase();
+              if (["png", "jpeg", "jpg"].includes(ext)) {
+                imageData = `${API_URL}/files/${block.file_id}/${fileName}`;
+              }
+            }
+          }
           entries.push({
             key: `${item.item_id}:${block_id}`,
             item_id: item.item_id,
@@ -478,6 +562,8 @@ export default {
             fileTooltip: fileNames.length ? fileNames.join(", ") : null,
             color: this.sampleColor(index),
             bokehPlotData: block.bokeh_plot_data || null,
+            imageData,
+            comment: block.freeform_comment || null,
             error: (block.errors && block.errors.join("; ")) || null,
           });
         }
@@ -527,6 +613,7 @@ export default {
   methods: {
     async loadItems() {
       this.loading = true;
+      this.metadataPage = 0;
       await Promise.all(
         this.itemIds.map((id) =>
           this.$store.state.all_item_data[id] ? Promise.resolve() : getItemData(id).catch(() => {}),
@@ -540,14 +627,46 @@ export default {
     ensureSideBySidePlots() {
       if (this.mode !== "side-by-side") return;
       for (const entry of this.activeBlocks) {
-        if (entry.bokehPlotData || this.requestedBlocks.has(entry.key)) continue;
+        // Skip blocks that already have something to show (plot/image/comment) or
+        // that we've already requested.
+        if (
+          entry.bokehPlotData ||
+          entry.imageData ||
+          entry.comment ||
+          this.requestedBlocks.has(entry.key)
+        ) {
+          continue;
+        }
         const block = this.$store.state.all_item_data[entry.item_id]?.blocks_obj?.[entry.block_id];
         if (!block) continue;
         this.requestedBlocks.add(entry.key);
-        updateBlockFromServer(entry.item_id, entry.block_id, { ...block }).catch(() => {
-          this.requestedBlocks.delete(entry.key);
-        });
+        updateBlockFromServer(entry.item_id, entry.block_id, { ...block })
+          .catch(() => {
+            this.requestedBlocks.delete(entry.key);
+          })
+          .finally(() => {
+            this.processedBlocks.add(entry.key);
+            this.nudgeBokehResize();
+          });
       }
+      // Plots that were already cached render synchronously; nudge them too.
+      this.nudgeBokehResize();
+    },
+    // Bokeh plots use sizing_mode="scale_width" and measure their container at
+    // embed time. When cells settle to their final width after async renders,
+    // a window resize event makes every embedded plot recompute its size so
+    // side-by-side plots end up identically sized. Debounced to one call.
+    nudgeBokehResize() {
+      if (this._resizeNudge) clearTimeout(this._resizeNudge);
+      this._resizeNudge = setTimeout(() => {
+        window.dispatchEvent(new Event("resize"));
+      }, 100);
+    },
+    isUpdating(entry) {
+      return Boolean(this.$store.state.updating[entry.block_id]);
+    },
+    isProcessed(entry) {
+      return this.processedBlocks.has(entry.key);
     },
     setOverlayMode() {
       if (!this.overlaySupported) return;
@@ -595,9 +714,9 @@ export default {
       });
     },
     // True when the samples don't all share the same value for this field.
-    rowDiffers(row) {
+    fieldDiffers(field) {
       if (this.items.length < 2) return false;
-      const values = this.items.map((i) => String(row.render(i)));
+      const values = this.items.map((i) => String(field.render(i)));
       return new Set(values).size > 1;
     },
     isBlockEnabled(key) {
@@ -686,10 +805,6 @@ export default {
 .collapse-caret.collapsed {
   transform: rotate(-90deg);
 }
-.toggle-inline {
-  cursor: pointer;
-  white-space: nowrap;
-}
 
 /* Block-type pills */
 .type-pills {
@@ -729,7 +844,21 @@ export default {
   background: rgba(255, 255, 255, 0.25);
 }
 
-/* Metadata table */
+/* Count badge inside the "Differences" toggle button */
+.diff-count {
+  display: inline-block;
+  font-size: 0.7rem;
+  line-height: 1;
+  padding: 0.15rem 0.4rem;
+  margin-left: 0.3rem;
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.25);
+}
+.btn-outline-secondary .diff-count {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* Metadata table (fields as rows, samples as paged columns) */
 .comparison-table {
   margin-bottom: 0;
   table-layout: fixed;
@@ -738,17 +867,16 @@ export default {
 .comparison-table td,
 .comparison-table th {
   overflow-wrap: anywhere;
-}
-.comparison-table th,
-.comparison-table td {
   vertical-align: top;
   border-color: #eef1f3;
+  padding: 0.3rem 0.6rem;
 }
+/* zebra striping by field row */
 .comparison-table tbody tr:nth-child(odd) td,
 .comparison-table tbody tr:nth-child(odd) .field-col {
   background-color: #fcfcfd;
 }
-/* Highlight rows whose values differ across samples (overrides zebra) */
+/* highlight field rows whose values differ across samples (overrides zebra) */
 .comparison-table tbody tr.row-differs td {
   background-color: #fff8e1;
 }
@@ -766,6 +894,21 @@ export default {
 .comparison-table thead th.sample-col {
   border-top: 3px solid transparent;
   background: #fff;
+}
+/* pager */
+.pager {
+  white-space: nowrap;
+}
+.pager-btn {
+  border: none;
+  background: transparent;
+  color: #007bff;
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+.pager-btn:disabled {
+  color: #c8ced3;
+  cursor: default;
 }
 .sample-dot {
   display: inline-block;
@@ -829,11 +972,18 @@ export default {
   vertical-align: bottom;
 }
 
-/* Block grid */
+/* Block grid: column count is set inline (gridStyle), capped at two. */
 .block-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.25rem;
+}
+/* Collapse to a single column on narrow viewports. !important is needed to
+   override the inline grid-template-columns set by gridStyle. */
+@media (max-width: 900px) {
+  .block-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
 }
 .block-cell {
   border: 1px solid #e7eaee;
@@ -847,6 +997,18 @@ export default {
   display: flex;
   align-items: center;
   margin-bottom: 0.5rem;
+}
+.comparison-media {
+  display: block;
+  max-width: 100%;
+  max-height: 360px;
+  margin: 0 auto;
+  object-fit: contain;
+}
+.comparison-comment {
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+  color: #2c3e50;
 }
 .overlay-plot-wrapper {
   max-width: 1100px;
