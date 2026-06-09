@@ -127,8 +127,6 @@ def compare_blocks():
     )
 
     return jsonify(
-        {
-            "status": "success",
-            "bokeh_plot_data": bokeh.embed.json_item(plot, theme=DATALAB_BOKEH_THEME),
-        }
+        status="success",
+        bokeh_plot_data=bokeh.embed.json_item(plot, theme=DATALAB_BOKEH_THEME),
     )
