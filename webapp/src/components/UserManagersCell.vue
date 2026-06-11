@@ -64,10 +64,7 @@ export default {
       if (!this.allUsers || !Array.isArray(this.allUsers)) {
         return [];
       }
-      return this.allUsers.filter(
-        (u) =>
-          u.immutable_id !== this.user.immutable_id && (u.role === "admin" || u.role === "manager"),
-      );
+      return this.allUsers.filter((u) => u.immutable_id !== this.user.immutable_id);
     },
   },
   watch: {
