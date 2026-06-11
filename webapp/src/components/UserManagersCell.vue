@@ -16,7 +16,7 @@
         <div class="d-flex align-items-center">
           <UserBubble :creator="option" :size="20" />
           <span class="ml-2">{{ option.display_name }}</span>
-          <span class="ml-auto"><RoleBadge :role="option.role" /></span>
+          <span class="ml-2"><RoleBadge :role="option.role" /></span>
         </div>
       </template>
       <template #selected-option="option">
@@ -64,10 +64,7 @@ export default {
       if (!this.allUsers || !Array.isArray(this.allUsers)) {
         return [];
       }
-      return this.allUsers.filter(
-        (u) =>
-          u.immutable_id !== this.user.immutable_id && (u.role === "admin" || u.role === "manager"),
-      );
+      return this.allUsers.filter((u) => u.immutable_id !== this.user.immutable_id);
     },
   },
   watch: {
