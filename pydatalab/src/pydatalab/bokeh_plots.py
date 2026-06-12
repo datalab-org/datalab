@@ -548,9 +548,8 @@ def selectable_axes_plot(
             input_widget = TextInput(title=parameter["label"], value=str(parameter["value"]))
             if parameter["event"]:
                 code = parameter["event"]
-                code += (
-                    f"console.log('Dispatched event for {parameter['label']}', event.target.value)"
-                )
+                label = parameter["label"]
+                code += f"\nconsole.log('Dispatched event for {label}', cb_obj.value)"
                 input_widget.js_on_change("value", *[CustomJS(code=code)])
             input_widgets.append(input_widget)
 
