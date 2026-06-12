@@ -415,6 +415,123 @@ def add_missing_refcodes(_):
 migration.add_task(add_missing_refcodes)
 
 
+@task(
+    help={
+        "version": "Version to record (defaults to the installed datalab version).",
+        "force": "Overwrite an already-recorded schema version.",
+    }
+)
+def initialise_schema_version(_, version=None, force=False):
+    """Record the database schema version for a NEW installation.
+
+    Use this once on a fresh deployment. It stamps the current version without
+    applying any upgrades (there is no pre-existing data to migrate). For an
+    existing database that predates schema versioning, use `migration.upgrade`
+    with `--from-version` instead.
+    """
+    from pydatalab.mongo import get_database
+    from pydatalab.upgrade import DatabaseUpgrader
+
+    upgrader = DatabaseUpgrader(get_database())
+    try:
+        recorded = upgrader.initialise(version=version, force=force)
+    except RuntimeError as exc:
+        raise SystemExit(str(exc))
+    print(f"Database schema version recorded as {recorded}.")
+
+
+admin.add_task(initialise_schema_version)
+
+
+@task(
+    help={
+        "dry-run": "Show the actions that would be performed without applying them.",
+        "force": "Apply the upgrade even if skippable preconditions are not satisfied.",
+        "yes": "Skip the confirmation prompt (assume 'yes').",
+        "from-version": (
+            "Starting version for an unstamped (pre-versioning) database; required "
+            "when the database has no recorded version and upgrades exist."
+        ),
+        "target-version": "Override the version to upgrade to (defaults to the installed version).",
+    }
+)
+def upgrade(_, dry_run=False, force=False, yes=False, from_version=None, target_version=None):
+    """Apply backward-incompatible database upgrades for the current datalab version.
+
+    Run this with the server stopped and direct access to the database. Take a
+    backup first with `invoke admin.create-backup`. For a brand-new installation,
+    use `admin.initialise-schema-version` instead.
+    """
+    from pydatalab.mongo import get_database
+    from pydatalab.upgrade import DatabaseUpgrader, UpgradeConditionsFailedError
+
+    upgrader = DatabaseUpgrader(get_database())
+    target = target_version or (
+        str(upgrader.current_version) if upgrader.current_version else "(latest registered)"
+    )
+
+    try:
+        actions, failed_conditions = upgrader.dry_run(
+            from_version=from_version, target_version=target_version, force=force
+        )
+    except RuntimeError as exc:
+        # Covers both an unstamped database needing an operator decision and a
+        # --from-version that contradicts the recorded schema version.
+        raise SystemExit(str(exc))
+
+    stamped = upgrader.get_db_version()
+    db_version = from_version or (str(stamped) if stamped is not None else "uninitialised")
+
+    if not actions:
+        print(f"Database is already up to date (version {db_version}); nothing to do.")
+        return
+
+    print(f"Planned upgrade: {db_version} -> {target}")
+    print("\nThe following actions would be performed:")
+    for action in actions:
+        print(f"  - [{action.collection}] {action.description}")
+
+    if failed_conditions:
+        print("\nThe following preconditions are NOT satisfied:")
+        for vv, failed in failed_conditions:
+            print(f"  - {failed['condition'].description} (for version {vv}): {failed['message']}")
+        if not force:
+            print(
+                "\nResolve the issues above, or re-run with `--force` to bypass skippable conditions."
+            )
+
+    if dry_run:
+        print("\nDry run only; no changes were made.")
+        return
+
+    print(
+        "\nWARNING: this will modify the database in place. Make sure the server is"
+        " stopped and that you have run `invoke admin.create-backup` first."
+    )
+    if not yes:
+        response = input("Proceed with the upgrade? [y/N] ").strip().lower()
+        if response not in ("y", "yes"):
+            print("Aborted; no changes were made.")
+            return
+
+    try:
+        upgraded = upgrader.upgrade(
+            from_version=from_version, target_version=target_version, force=force
+        )
+    except UpgradeConditionsFailedError:
+        raise SystemExit(
+            "Upgrade aborted because some preconditions were not satisfied (see above)."
+        )
+
+    if upgraded:
+        print("Database upgrade completed successfully.")
+    else:
+        print("Database was already up to date; nothing to do.")
+
+
+migration.add_task(upgrade)
+
+
 def _check_id(id=None, base_url=None, api_key=None):
     from pydatalab.logger import setup_log
 

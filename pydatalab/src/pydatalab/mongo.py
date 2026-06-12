@@ -20,6 +20,7 @@ __all__ = (
     "insert_pydantic_model_fork_safe",
     "gravatar_hash_for",
     "run_startup_migrations",
+    "METADATA_COLLECTION",
     "ITEMS_FTS_FIELDS",
     "USERS_FTS_FIELDS",
     "COLLECTIONS_FTS_FIELDS",
@@ -188,6 +189,10 @@ def _get_active_mongo_client(timeoutMS: int = 1000) -> pymongo.MongoClient:
 def get_database() -> pymongo.database.Database:
     """Returns the configured database."""
     return _get_active_mongo_client().get_database()
+
+
+# Collection name for small, singleton application/database metadata documents.
+METADATA_COLLECTION = "database_metadata"
 
 
 def check_mongo_connection() -> None:
@@ -417,6 +422,10 @@ STARTUP_MIGRATIONS = (_backfill_user_gravatar_hashes,)
 
 Each entry takes a pymongo database handle and returns the number of documents
 updated. Keep migrations idempotent and cheap — they run on every boot.
+
+For version-gated, potentially expensive, backward-incompatible upgrades that an
+administrator runs deliberately (via ``invoke migration.upgrade``), use
+:mod:`pydatalab.upgrade` instead.
 """
 
 
