@@ -3,7 +3,7 @@
     <div
       class="datablock-header"
       :class="{ clickable: !isEditing, expanded: isEditing }"
-      @click="!isEditing && enterEditMode()"
+      @click="toggleEditMode"
     >
       <font-awesome-icon
         :icon="['fas', 'chevron-right']"
