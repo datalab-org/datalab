@@ -114,7 +114,7 @@
       :information-sections="tableOfContentsSections"
     />
 
-    <SynthesisInformation class="mt-3" :item_id="item_id" />
+    <SynthesisInformation class="mt-3" :item_id="item_id" :is-editable="isEditable" />
   </div>
 </template>
 

@@ -115,7 +115,7 @@
 
     <TableOfContents :item_id="item_id" :information-sections="tableOfContentsSections" />
 
-    <CellPreparationInformation class="mt-3" :item_id="item_id" />
+    <CellPreparationInformation class="mt-3" :item_id="item_id" :is-editable="isEditable" />
   </div>
 </template>
 

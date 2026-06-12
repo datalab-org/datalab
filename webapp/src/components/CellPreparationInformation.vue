@@ -12,6 +12,7 @@
             id="pos-electrode-table"
             v-model="PosElectrodeConstituents"
             :types-to-query="['starting_materials', 'samples']"
+            :readonly="!isEditable"
           />
         </div>
       </div>
@@ -27,6 +28,7 @@
             id="electrolyte-table"
             v-model="ElectrolyteConstituents"
             :types-to-query="['starting_materials', 'samples']"
+            :readonly="!isEditable"
           />
         </div>
       </div>
@@ -42,6 +44,7 @@
             id="neg-electrode-table"
             v-model="NegElectrodeConstituents"
             :types-to-query="['starting_materials', 'samples']"
+            :readonly="!isEditable"
           />
         </div>
       </div>
@@ -52,6 +55,7 @@
       <TiptapInline
         v-model="CellPreparationDescription"
         aria-labelledby="synthesis-procedure-label"
+        :readonly="!isEditable"
       />
     </div>
   </div>
@@ -74,6 +78,10 @@ export default {
   },
   props: {
     item_id: { type: String, required: true },
+    isEditable: {
+      type: Boolean,
+      default: true,
+    },
   },
   data() {
     return {

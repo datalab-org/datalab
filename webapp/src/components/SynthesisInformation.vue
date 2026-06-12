@@ -21,6 +21,7 @@
             id="synthesis-table"
             v-model="constituents"
             :types-to-query="['samples', 'starting_materials']"
+            :readonly="!isEditable"
           />
         </div>
       </div>
@@ -28,6 +29,7 @@
       <TiptapInline
         v-model="SynthesisDescription"
         aria-labelledby="synthesis-procedure-label"
+        :readonly="!isEditable"
       ></TiptapInline>
     </div>
   </div>
@@ -45,6 +47,10 @@ export default {
   },
   props: {
     item_id: { type: String, required: true },
+    isEditable: {
+      type: Boolean,
+      default: true,
+    },
   },
   data() {
     return {
