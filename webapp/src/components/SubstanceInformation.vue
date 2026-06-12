@@ -103,7 +103,7 @@
           <div class="form-group col-sm-6 pr-2">
             <label for="substance-smiles">SMILES</label>
             <div class="input-with-copy">
-              <InputText id="substance-smiles" v-model="smiles" fluid class="p-inputtext-sm" />
+              <input id="substance-smiles" v-model="smiles" type="text" class="form-control" />
               <button
                 v-if="smiles"
                 type="button"
@@ -120,7 +120,7 @@
           <div class="form-group col-sm-6 pr-2">
             <label for="substance-inchi">InChI</label>
             <div class="input-with-copy">
-              <InputText id="substance-inchi" v-model="inchi" fluid class="p-inputtext-sm" />
+              <input id="substance-inchi" v-model="inchi" type="text" class="form-control" />
               <button
                 v-if="inchi"
                 type="button"
@@ -135,11 +135,11 @@
           <div class="form-group col-sm-6 pr-2">
             <label for="substance-inchi-key">InChI Key</label>
             <div class="input-with-copy">
-              <InputText
+              <input
                 id="substance-inchi-key"
                 v-model="inchi_key"
-                fluid
-                class="p-inputtext-sm"
+                type="text"
+                class="form-control"
               />
               <button
                 v-if="inchi_key"
@@ -156,18 +156,18 @@
         <div class="form-row">
           <div class="form-group col-sm-6 pr-2">
             <label for="substance-mass">Molar mass (g/mol)</label>
-            <InputNumber
+            <input
               id="substance-mass"
-              v-model="molar_mass"
-              fluid
-              input-class="p-inputtext-sm"
-              style="width: 100%"
+              v-model.number="molar_mass"
+              type="number"
+              step="any"
+              class="form-control"
             />
           </div>
           <div class="form-group col-sm-6 pr-2">
             <label for="substance-cas">CAS</label>
             <div class="input-with-copy">
-              <InputText id="substance-cas" v-model="CAS" fluid class="p-inputtext-sm" />
+              <input id="substance-cas" v-model="CAS" type="text" class="form-control" />
               <button
                 v-if="CAS"
                 type="button"
@@ -202,8 +202,6 @@ import ChemFormulaInput from "@/components/ChemFormulaInput";
 import ChemicalFormula from "@/components/ChemicalFormula";
 import { OnClickOutside } from "@vueuse/components";
 import { getPictogramsFromHazardInformation } from "@/resources.js";
-import InputText from "primevue/inputtext";
-import InputNumber from "primevue/inputnumber";
 
 export default {
   components: {
@@ -212,8 +210,6 @@ export default {
     GHSHazardInformation,
     GHSHazardPictograms,
     OnClickOutside,
-    InputText,
-    InputNumber,
   },
   props: {
     item_id: { type: String, required: true },
@@ -463,7 +459,7 @@ export default {
   position: relative;
 }
 
-.input-with-copy :deep(.p-inputtext) {
+.input-with-copy .form-control {
   padding-right: 2rem;
 }
 
