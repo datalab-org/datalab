@@ -26,7 +26,12 @@
             </div>
             <div v-if="molar_mass" class="info-item">
               <span class="display-label">Molar mass</span>
-              <span class="info-value">{{ molar_mass }} g/mol</span>
+              <span class="info-value"
+                >{{
+                  Number.isFinite(Number(molar_mass)) ? Number(molar_mass).toFixed(2) : molar_mass
+                }}
+                g/mol</span
+              >
             </div>
             <div v-if="CAS" class="info-item">
               <span class="display-label">CAS</span>
@@ -155,8 +160,6 @@
               id="substance-mass"
               v-model="molar_mass"
               fluid
-              :min-fraction-digits="0"
-              :max-fraction-digits="4"
               input-class="p-inputtext-sm"
               style="width: 100%"
             />
