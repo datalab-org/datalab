@@ -75,7 +75,7 @@ def _process_block_async(
 
             block = BLOCK_TYPES[block_type].from_web(block_data)
 
-            if event_data and not event_data.get("trigger_async", True):
+            if event_data:
                 add_stage("Processing block events")
                 try:
                     block.process_events(event_data)
@@ -447,7 +447,7 @@ def update_block():
             202,
         )
     else:
-        if event_data and not event_data.get("trigger_async", True):
+        if event_data:
             try:
                 block.process_events(event_data)
             except NotImplementedError:
