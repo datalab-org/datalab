@@ -23,6 +23,23 @@ from pydatalab.utils import BSONProvider
 COMPRESS = Compress()
 
 
+def _check_database_version() -> None:
+    """Run the non-fatal schema-version check at startup.
+
+    The server always starts; depending on the recorded version it may stamp the
+    current version (when provably safe) or log guidance to run
+    ``invoke admin.initialise-schema-version`` / ``invoke migration.upgrade``. See
+    :mod:`pydatalab.upgrade`.
+    """
+    try:
+        from pydatalab.mongo import get_database
+        from pydatalab.upgrade import check_database_version_on_startup
+
+        check_database_version_on_startup(get_database())
+    except Exception as exc:
+        LOGGER.warning("Could not check the database schema version: %s", exc)
+
+
 def create_app(
     config_override: dict[str, Any] | None = None, env_file: pathlib.Path | None = None
 ) -> Flask:
@@ -107,6 +124,7 @@ def create_app(
 
     pydatalab.mongo.create_default_indices()
     pydatalab.mongo.run_startup_migrations()
+    _check_database_version()
 
     if CONFIG.FILE_DIRECTORY is not None:
         pathlib.Path(CONFIG.FILE_DIRECTORY).mkdir(parents=False, exist_ok=True)
