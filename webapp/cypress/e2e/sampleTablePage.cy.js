@@ -202,7 +202,7 @@ describe("Sample table page", () => {
   });
 });
 
-describe.only("Advanced sample creation features", () => {
+describe("Advanced sample creation features", () => {
   beforeEach(() => {
     cy.loginViaTestMagicLink("test-user@example.com", "user");
     cy.visit("/");
