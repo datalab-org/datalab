@@ -2,21 +2,27 @@
   <div id="substance-information" ref="outerdiv" class="data-block" data-testid="substance-block">
     <div
       class="datablock-header"
-      :class="{ clickable: !isEditing, expanded: isEditing }"
-      @click="!isEditing && enterEditMode()"
+      :class="{ clickable: canEnterEditMode, expanded: isEditing }"
+      @click="enterEditMode"
     >
       <font-awesome-icon
+        v-if="isEditable"
         :icon="['fas', 'chevron-right']"
         fixed-width
         class="collapse-arrow"
         @click.stop="toggleEditMode"
       />
       <label class="block-title">Substance Information</label>
-      <font-awesome-icon v-if="!isEditing" id="edit-icon" class="ml-2" icon="pen" size="xs" />
+      <font-awesome-icon v-if="canEnterEditMode" id="edit-icon" class="ml-2" icon="pen" size="xs" />
     </div>
 
     <!-- VIEW MODE -->
-    <div v-if="!isEditing && hasAnyData" class="substance-card" @click="enterEditMode">
+    <div
+      v-if="!isEditing && hasAnyData"
+      class="substance-card"
+      :class="{ editable: isEditable }"
+      @click="enterEditMode"
+    >
       <div class="substance-card-content">
         <div class="substance-display-row">
           <div class="info-items">
@@ -214,6 +220,10 @@ export default {
   },
   props: {
     item_id: { type: String, required: true },
+    isEditable: {
+      type: Boolean,
+      default: true,
+    },
   },
   data() {
     return {
@@ -270,12 +280,26 @@ export default {
       if (!this.GHS_codes) return false;
       return getPictogramsFromHazardInformation(this.GHS_codes).size > 0;
     },
+
+    canEnterEditMode() {
+      return this.isEditable && !this.isEditing;
+    },
+  },
+  watch: {
+    isEditable(value) {
+      if (!value) {
+        this.exitEditMode();
+      }
+    },
   },
   mounted() {
     this.outerDivRef = this.$refs.outerdiv;
   },
   methods: {
     enterEditMode() {
+      if (!this.canEnterEditMode) {
+        return;
+      }
       this.isEditing = true;
     },
     exitEditMode() {
@@ -353,7 +377,6 @@ export default {
   border-radius: 0.375rem;
   padding: 1rem 1.25rem;
   background-color: var(--color-surface, #fff);
-  cursor: pointer;
   max-width: 680px;
   overflow: hidden;
   transition:
@@ -361,7 +384,11 @@ export default {
     box-shadow 0.15s ease;
 }
 
-.substance-card:hover {
+.substance-card.editable {
+  cursor: pointer;
+}
+
+.substance-card.editable:hover {
   border-color: var(--color-text-muted, #adb5bd);
   box-shadow: var(--shadow-sm, 0 2px 4px rgba(0, 0, 0, 0.05));
 }

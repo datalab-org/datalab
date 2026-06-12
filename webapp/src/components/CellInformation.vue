@@ -6,15 +6,15 @@
         <div id="sample-information" class="form-row">
           <div class="form-group col-sm-8">
             <label for="cell-name" class="mr-2">Name</label>
-            <input id="cell-name" v-model="Name" class="form-control" />
+            <StyledInput id="cell-name" v-model="Name" :readonly="!isEditable" />
           </div>
           <div class="form-group col-sm-4">
             <label for="cell-date" class="mr-2">Date Created</label>
-            <input
+            <StyledInput
               id="cell-date"
               v-model="DateCreated"
               type="datetime-local"
-              class="form-control"
+              :readonly="!isEditable"
             />
           </div>
         </div>
@@ -46,23 +46,27 @@
         <div class="form-row">
           <div class="form-group col-sm-4 pr-2">
             <label for="cell-format-dropdown">Cell format</label>
-            <select id="cell-format-dropdown" v-model="CellFormat" class="form-control">
-              <option
-                v-for="(description, key) in availableCellFormats"
-                :key="key"
-                :value="description"
-              >
-                {{ description }}
+            <select
+              v-if="isEditable"
+              id="cell-format-dropdown"
+              v-model="CellFormat"
+              class="form-control"
+            >
+              <option v-for="(format, key) in availableCellFormats" :key="key" :value="format">
+                {{ format }}
               </option>
             </select>
+            <div v-else class="form-control-plaintext">
+              {{ CellFormat }}
+            </div>
           </div>
           <div class="form-group col-sm-8">
             <label for="cell-format-description">Cell format description</label>
-            <input
+            <StyledInput
               id="cell-format-description"
               v-model="CellFormatDescription"
               type="text"
-              class="form-control"
+              :readonly="!isEditable"
             />
           </div>
         </div>
@@ -70,26 +74,26 @@
         <div class="form-row py-4">
           <div class="form-group col-lg-3 col-md-4 pr-3">
             <label for="cell-characteristic-mass">Active mass (mg)</label>
-            <input
+            <StyledInput
               id="cell-characteristic-mass"
               v-model="CharacteristicMass"
-              class="form-control"
               type="text"
-              :class="{ 'red-border': isNaN(CharacteristicMass) }"
+              :readonly="!isEditable"
+              :class="isNaN(CharacteristicMass) ? 'red-border' : ''"
             />
           </div>
           <div class="form-group col-lg-4 col-md-4 pr-3">
             <label for="cell-chemform">Active formula</label>
-            <ChemFormulaInput id="cell-chemform" v-model="ChemForm" />
+            <ChemFormulaInput id="cell-chemform" v-model="ChemForm" :readonly="!isEditable" />
           </div>
           <div class="form-group col-lg-3 col-md-4">
             <label for="cell-characteristic-molar-mass">Molar mass</label>
-            <input
+            <StyledInput
               id="cell-characteristic-molar-mass"
               v-model="MolarMass"
-              class="form-control"
               type="text"
-              :class="{ 'red-border': isNaN(MolarMass) }"
+              :readonly="!isEditable"
+              :class="isNaN(MolarMass) ? 'red-border' : ''"
             />
           </div>
         </div>
@@ -99,6 +103,7 @@
             <TiptapInline
               v-model="SampleDescription"
               aria-labelledby="cell-description-label"
+              :readonly="!isEditable"
             ></TiptapInline>
           </div>
         </div>
@@ -110,7 +115,7 @@
 
     <TableOfContents :item_id="item_id" :information-sections="tableOfContentsSections" />
 
-    <CellPreparationInformation class="mt-3" :item_id="item_id" />
+    <CellPreparationInformation class="mt-3" :item_id="item_id" :is-editable="isEditable" />
   </div>
 </template>
 
@@ -126,6 +131,7 @@ import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionForm
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
 import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
+import StyledInput from "@/components/StyledInput";
 import { cellFormats } from "@/resources.js";
 
 export default {
@@ -140,11 +146,16 @@ export default {
     ToggleableCreatorsFormGroup,
     ToggleableItemStatusFormGroup,
     ToggleableGroupsFormGroup,
+    StyledInput,
   },
   props: {
     item_id: {
       type: String,
       required: true,
+    },
+    isEditable: {
+      type: Boolean,
+      default: false,
     },
   },
   data() {

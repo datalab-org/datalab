@@ -18,7 +18,7 @@
             /> -->
           <!-- </transition> -->
           <ItemSelect
-            v-if="selectShown[index]"
+            v-if="!readonly && selectShown[index]"
             :ref="`select${index}`"
             v-model="selectedChangedConstituent"
             class="select-in-row"
@@ -41,7 +41,7 @@
             :max-length="25"
             enable-click
             enable-modified-click
-            @dblclick="turnOnRowSelect(index)"
+            @dblclick="!readonly && turnOnRowSelect(index)"
           />
         </td>
         <!--         <td>
@@ -53,6 +53,7 @@
             class="form-control form-control-sm quantity-input"
             :class="{ 'red-border': isNaN(constituent.quantity) }"
             placeholder="quantity"
+            :readonly="readonly"
           />
         </td>
         <td>
@@ -60,11 +61,13 @@
             v-model="constituent.unit"
             class="form-control form-control-sm"
             placeholder="unit"
+            :readonly="readonly"
           />
         </td>
 
         <td>
           <button
+            v-if="!readonly"
             type="button"
             class="close"
             aria-label="delete"
@@ -74,7 +77,7 @@
           </button>
         </td>
       </tr>
-      <tr>
+      <tr v-if="!readonly">
         <td
           class="first-column"
           :class="{ clickable: !newSelectIsShown }"
@@ -125,6 +128,10 @@ export default {
     typesToQuery: {
       type: Array,
       default: () => ["samples", "starting_materials", "cells"],
+    },
+    readonly: {
+      type: Boolean,
+      default: false,
     },
   },
   emits: ["update:modelValue"],

@@ -6,15 +6,15 @@
         <div id="sample-information" class="form-row">
           <div class="form-group col-sm-6 pr-2">
             <label for="samp-name">Name</label>
-            <input id="samp-name" v-model="Name" class="form-control" />
+            <StyledInput id="samp-name" v-model="Name" :readonly="!isEditable" />
           </div>
           <div class="form-group col-sm-6">
             <label for="samp-date">Date Created</label>
-            <input
+            <StyledInput
               id="samp-date"
               v-model="DateCreated"
               type="datetime-local"
-              class="form-control"
+              :readonly="!isEditable"
             />
           </div>
         </div>
@@ -51,18 +51,22 @@
     </div>
     <div class="row">
       <div class="col">
-        <SubstanceInformation class="mt-3" :item_id="item_id" />
+        <SubstanceInformation class="mt-3" :item_id="item_id" :is-editable="isEditable" />
       </div>
     </div>
     <div class="row">
       <div class="col">
         <label id="samp-description-label">Description</label>
-        <TiptapInline v-model="SampleDescription" aria-labelledby="samp-description-label" />
+        <TiptapInline
+          v-model="SampleDescription"
+          aria-labelledby="samp-description-label"
+          :readonly="!isEditable"
+        />
       </div>
     </div>
 
     <TableOfContents :item_id="item_id" :information-sections="tableOfContentsSections" />
-    <SynthesisInformation class="mt-3" :item_id="item_id" />
+    <SynthesisInformation class="mt-3" :item_id="item_id" :is-editable="isEditable" />
   </div>
 </template>
 
@@ -78,6 +82,7 @@ import SynthesisInformation from "@/components/SynthesisInformation";
 import SubstanceInformation from "@/components/SubstanceInformation";
 import TableOfContents from "@/components/TableOfContents";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
+import StyledInput from "@/components/StyledInput";
 
 export default {
   components: {
@@ -91,12 +96,17 @@ export default {
     ToggleableCreatorsFormGroup,
     ToggleableItemStatusFormGroup,
     ToggleableGroupsFormGroup,
+    StyledInput,
   },
   props: {
     item_id: { type: String, required: true },
     refcode: {
       type: String,
       default: null,
+    },
+    isEditable: {
+      type: Boolean,
+      default: true,
     },
   },
   data() {

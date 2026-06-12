@@ -5,7 +5,7 @@
         <div id="starting-material-information" class="form-row">
           <div class="form-group col-sm-6 pr-2">
             <label for="samp-name">Name</label>
-            <input id="samp-name" v-model="Name" class="form-control" />
+            <StyledInput id="samp-name" v-model="Name" :readonly="!isEditable" />
           </div>
           <div class="form-group col-sm-6">
             <label for="startmat-date-acquired">Date acquired</label>
@@ -13,7 +13,6 @@
               id="startmat-date-acquired"
               v-model="DateAcquired"
               type="datetime-local"
-              class="form-control"
               :readonly="!isEditable"
             />
           </div>
@@ -103,7 +102,11 @@
     </div>
 
     <label class="mr-2">Description</label>
-    <TiptapInline v-model="ItemDescription" data-testid="item-description"></TiptapInline>
+    <TiptapInline
+      v-model="ItemDescription"
+      data-testid="item-description"
+      :readonly="!isEditable"
+    ></TiptapInline>
 
     <TableOfContents
       class="mb-3"
@@ -111,7 +114,7 @@
       :information-sections="tableOfContentsSections"
     />
 
-    <SynthesisInformation class="mt-3" :item_id="item_id" />
+    <SynthesisInformation class="mt-3" :item_id="item_id" :is-editable="isEditable" />
   </div>
 </template>
 
@@ -132,7 +135,6 @@ import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
 
 import AutoComplete from "primevue/autocomplete";
 import { getStartingMaterialList, getEquipmentList } from "@/server_fetch_utils.js";
-import { EDITABLE_INVENTORY } from "@/resources.js";
 
 export default {
   components: {
@@ -152,6 +154,10 @@ export default {
   },
   props: {
     item_id: { type: String, required: true },
+    isEditable: {
+      type: Boolean,
+      default: true,
+    },
   },
   data() {
     return {
@@ -212,7 +218,6 @@ export default {
     },
   },
   created() {
-    this.isEditable = EDITABLE_INVENTORY;
     if (this.$store.state.starting_material_list === null) {
       getStartingMaterialList();
     }

@@ -110,6 +110,7 @@
       :is="itemTypeEntry?.itemInformationComponent"
       ref="sampleInformation"
       :item_id="item_id"
+      :is-editable="itemInformationIsEditable"
     />
     <FileList :item_id="item_id" :stored_files="stored_files" />
 
@@ -190,7 +191,7 @@ import FormattedItemName from "@/components/FormattedItemName";
 
 import setupUppy from "@/file_upload.js";
 
-import { itemTypes, API_URL, customBlockTypes } from "@/resources.js";
+import { itemTypes, API_URL, customBlockTypes, EDITABLE_INVENTORY } from "@/resources.js";
 import BokehBlock from "@/components/datablocks/BokehBlock.vue";
 import ErrorBlock from "@/components/datablocks/ErrorBlock.vue";
 import { formatDistanceToNow } from "date-fns";
@@ -260,6 +261,12 @@ export default {
     },
     itemTypeEntry() {
       return itemTypes[this.itemType] || undefined;
+    },
+    itemInformationIsEditable() {
+      if (this.itemType === "starting_materials") {
+        return EDITABLE_INVENTORY;
+      }
+      return true;
     },
     navbarColor() {
       return this.itemTypeEntry?.navbarColor || "DarkGrey";
