@@ -131,7 +131,6 @@ import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
 
 import AutoComplete from "primevue/autocomplete";
 import { getStartingMaterialList, getEquipmentList } from "@/server_fetch_utils.js";
-import { EDITABLE_INVENTORY } from "@/resources.js";
 
 export default {
   components: {
@@ -153,7 +152,7 @@ export default {
     item_id: { type: String, required: true },
     isEditable: {
       type: Boolean,
-      default: EDITABLE_INVENTORY,
+      default: true,
     },
   },
   data() {
