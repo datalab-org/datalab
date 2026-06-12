@@ -84,7 +84,7 @@
           </div>
           <div class="form-group col-lg-4 col-md-4 pr-3">
             <label for="cell-chemform">Active formula</label>
-            <ChemFormulaInput id="cell-chemform" v-model="ChemForm" />
+            <ChemFormulaInput id="cell-chemform" v-model="ChemForm" :readonly="!isEditable" />
           </div>
           <div class="form-group col-lg-3 col-md-4">
             <label for="cell-characteristic-molar-mass">Molar mass</label>

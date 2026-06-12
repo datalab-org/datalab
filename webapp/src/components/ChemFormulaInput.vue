@@ -1,13 +1,13 @@
 <template>
   <ChemicalFormula
-    v-show="!editable"
-    class="form-control"
+    v-show="readonly || !editable"
+    :class="readonly ? 'form-control-plaintext' : 'form-control'"
     :formula="internal_chemform"
     @click="handleSpanClick"
   />
 
   <input
-    v-show="editable"
+    v-show="!readonly && editable"
     v-bind="$attrs"
     ref="input"
     v-model="internal_chemform"
@@ -28,6 +28,10 @@ export default {
       type: String,
       default: "",
     },
+    readonly: {
+      type: Boolean,
+      default: false,
+    },
   },
   emits: ["update:modelValue"],
   data() {
@@ -45,6 +49,13 @@ export default {
       },
     },
   },
+  watch: {
+    readonly(value) {
+      if (value) {
+        this.editable = false;
+      }
+    },
+  },
   methods: {
     chemFormulaFormat(chemform) {
       if (!chemform) {
@@ -54,6 +65,9 @@ export default {
       return chemform.replace(re, "<sub>$1</sub>");
     },
     handleSpanClick() {
+      if (this.readonly) {
+        return;
+      }
       this.editable = true; // triggers the span to dissappear and the click to appear
       this.$nextTick(function () {
         // wait for the dom to update (i.e. wait for the input to appear) and then focus the input
