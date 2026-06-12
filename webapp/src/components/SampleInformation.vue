@@ -51,7 +51,7 @@
     </div>
     <div class="row">
       <div class="col">
-        <SubstanceInformation class="mt-3" :item_id="item_id" />
+        <SubstanceInformation class="mt-3" :item_id="item_id" :is-editable="isEditable" />
       </div>
     </div>
     <div class="row">

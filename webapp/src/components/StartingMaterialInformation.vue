@@ -5,7 +5,7 @@
         <div id="starting-material-information" class="form-row">
           <div class="form-group col-sm-6 pr-2">
             <label for="samp-name">Name</label>
-            <input id="samp-name" v-model="Name" class="form-control" />
+            <StyledInput id="samp-name" v-model="Name" :readonly="!isEditable" />
           </div>
           <div class="form-group col-sm-6">
             <label for="startmat-date-acquired">Date acquired</label>
@@ -13,7 +13,6 @@
               id="startmat-date-acquired"
               v-model="DateAcquired"
               type="datetime-local"
-              class="form-control"
               :readonly="!isEditable"
             />
           </div>
@@ -152,6 +151,10 @@ export default {
   },
   props: {
     item_id: { type: String, required: true },
+    isEditable: {
+      type: Boolean,
+      default: EDITABLE_INVENTORY,
+    },
   },
   data() {
     return {
@@ -212,7 +215,6 @@ export default {
     },
   },
   created() {
-    this.isEditable = EDITABLE_INVENTORY;
     if (this.$store.state.starting_material_list === null) {
       getStartingMaterialList();
     }
