@@ -137,7 +137,7 @@ export default {
       return this.$store.state.schemas[this.item?.type];
     },
     possibleItemStatuses() {
-      return this.schema?.attributes?.schema?.definitions?.EquipmentStatus?.enum;
+      return this.schema?.attributes?.schema?.["$defs"]?.EquipmentStatus?.enum;
     },
     uniqueLocations() {
       return [
