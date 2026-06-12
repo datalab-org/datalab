@@ -1,7 +1,7 @@
 <template>
   <div ref="editorContainer" class="position-relative" v-bind="$attrs">
     <div
-      v-if="editor && (showToolbar || markdownMode)"
+      v-if="editor && !readonly && (showToolbar || markdownMode)"
       ref="toolbarContainer"
       class="btn-toolbar mb-2 border rounded p-2 shadow-sm bg-white sticky-top overflow-auto flex-wrap"
       style="z-index: 10; gap: 0.5rem"
@@ -76,7 +76,7 @@
     </teleport>
 
     <editor-content
-      v-if="!markdownMode"
+      v-if="readonly || !markdownMode"
       :editor="editor"
       class="tiptap-editor-wrapper"
       :class="{ 'editor-focused': showToolbar }"
@@ -132,6 +132,7 @@ export default {
     modelValue: { type: String, default: "" },
     placeholder: { type: String, default: "Add a description" },
     inline: { type: Boolean, default: true },
+    readonly: { type: Boolean, default: false },
   },
 
   emits: ["update:modelValue"],
@@ -448,10 +449,20 @@ export default {
         this.editor.commands.setContent(value, false);
       }
     },
+    readonly(value) {
+      this.editor?.setEditable(!value);
+      if (value) {
+        this.markdownMode = false;
+        this.showToolbar = false;
+        this.showColorPicker = false;
+      }
+    },
   },
 
   mounted() {
+    const component = this;
     this.editor = new Editor({
+      editable: !this.readonly,
       extensions: [
         StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] } }),
         Underline,
@@ -486,6 +497,8 @@ export default {
                 props: {
                   handleDOMEvents: {
                     drop: (view, event) => {
+                      if (component.readonly) return false;
+
                       const hasFiles = event.dataTransfer?.files?.length > 0;
                       if (!hasFiles) return false;
 
@@ -518,6 +531,8 @@ export default {
                       return true;
                     },
                     paste: (view, event) => {
+                      if (component.readonly) return false;
+
                       const hasFiles = event.clipboardData?.files?.length > 0;
                       if (!hasFiles) return false;
 
@@ -574,6 +589,8 @@ export default {
           },
           inlineOptions: {
             onClick: (node, pos) => {
+              if (this.readonly) return;
+
               const currentLatex = node.attrs.latex || "";
               const newLatex = window.prompt("Edit Math formula (KaTeX):", currentLatex);
               if (newLatex !== null && this.editor) {
@@ -588,6 +605,8 @@ export default {
           },
           blockOptions: {
             onClick: (node, pos) => {
+              if (this.readonly) return;
+
               const currentLatex = node.attrs.latex || "";
               const newLatex = window.prompt("Edit Math formula (KaTeX):", currentLatex);
               if (newLatex !== null && this.editor) {

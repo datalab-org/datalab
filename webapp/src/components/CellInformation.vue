@@ -103,6 +103,7 @@
             <TiptapInline
               v-model="SampleDescription"
               aria-labelledby="cell-description-label"
+              :readonly="!isEditable"
             ></TiptapInline>
           </div>
         </div>
@@ -154,7 +155,7 @@ export default {
     },
     isEditable: {
       type: Boolean,
-      default: true,
+      default: false,
     },
   },
   data() {

@@ -102,7 +102,11 @@
     </div>
 
     <label class="mr-2">Description</label>
-    <TiptapInline v-model="ItemDescription" data-testid="item-description"></TiptapInline>
+    <TiptapInline
+      v-model="ItemDescription"
+      data-testid="item-description"
+      :readonly="!isEditable"
+    ></TiptapInline>
 
     <TableOfContents
       class="mb-3"
