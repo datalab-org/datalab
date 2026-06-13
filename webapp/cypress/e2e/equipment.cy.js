@@ -141,7 +141,8 @@ describe("Equipment edit page", () => {
     cy.findByText("test_e3").click();
     cy.findByLabelText("Description").type("this is a description of testB.");
     cy.findByLabelText("Date").type("2000-01-01T00:00");
-    cy.findByLabelText("Location").type("room 101");
+    cy.get("#equip-location").click();
+    cy.get(".location-segment-input").first().type("room 101");
 
     cy.get('[data-testid="add-block-button-top"]').click();
     cy.get('[data-testid="add-block-dropdown"]').findByText("Comment").click();

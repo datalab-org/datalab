@@ -50,7 +50,7 @@
         <input id="equip-manufacturer" v-model="Manufacturer" class="form-control" />
       </div>
       <div class="form-group col-md-6">
-        <label for="equip-location" class="mr-2">Location</label>
+        <label class="mr-2">Location</label>
         <LocationInput
           v-model="Location"
           :suggestions="uniqueLocations"
