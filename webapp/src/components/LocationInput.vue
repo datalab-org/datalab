@@ -2,6 +2,7 @@
   <div class="location-input" @focusout="onFocusOut">
     <div
       v-if="!isEditing"
+      :id="inputId || undefined"
       class="form-control location-display"
       :class="{ 'location-display--readonly': readonly }"
       :tabindex="readonly ? -1 : 0"
@@ -46,6 +47,7 @@ export default {
     modelValue: { type: String, default: "" },
     suggestions: { type: Array, default: () => [] },
     readonly: { type: Boolean, default: false },
+    inputId: { type: String, default: "" },
   },
   emits: ["update:modelValue"],
   data() {

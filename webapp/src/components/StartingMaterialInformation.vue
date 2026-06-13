@@ -49,11 +49,12 @@
 
         <div class="form-row">
           <div class="form-group col-lg-12 col-sm-12">
-            <label>Location</label>
+            <label for="startmat-location">Location</label>
             <LocationInput
               v-model="Location"
               :suggestions="uniqueLocations"
               :readonly="!isEditable"
+              input-id="startmat-location"
             />
           </div>
         </div>
