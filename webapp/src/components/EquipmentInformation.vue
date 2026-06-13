@@ -50,15 +50,8 @@
         <input id="equip-manufacturer" v-model="Manufacturer" class="form-control" />
       </div>
       <div class="form-group col-md-6">
-        <label for="equip-location" class="mr-2">Location</label>
-        <AutoComplete
-          v-model="Location"
-          input-id="equip-location"
-          :suggestions="filteredLocations"
-          class="form-control p-0 border-0"
-          input-class="form-control"
-          @complete="filterLocations"
-        />
+        <label class="mr-2">Location</label>
+        <LocationInput v-model="Location" :suggestions="uniqueLocations" />
       </div>
     </div>
     <div class="form-row">
@@ -86,6 +79,7 @@
 import AutoComplete from "primevue/autocomplete";
 import { getStartingMaterialList, getEquipmentList } from "@/server_fetch_utils.js";
 import { createComputedSetterForItemField } from "@/field_utils.js";
+import LocationInput from "@/components/LocationInput";
 import TiptapInline from "@/components/TiptapInline";
 import TableOfContents from "@/components/TableOfContents";
 import CollectionList from "@/components/CollectionList";
@@ -104,13 +98,13 @@ export default {
     ToggleableCreatorsFormGroup,
     ToggleableItemStatusFormGroup,
     ToggleableGroupsFormGroup,
+    LocationInput,
   },
   props: {
     item_id: { type: String, required: true },
   },
   data() {
     return {
-      filteredLocations: [],
       tableOfContentsSections: [
         { title: "Equipment Information", targetID: "equipment-information" },
         { title: "Table of Contents", targetID: "table-of-contents" },
@@ -160,12 +154,7 @@ export default {
       getEquipmentList();
     }
   },
-  methods: {
-    filterLocations(event) {
-      const query = event.query.toLowerCase();
-      this.filteredLocations = this.uniqueLocations.filter((l) => l.toLowerCase().includes(query));
-    },
-  },
+  methods: {},
 };
 </script>
 

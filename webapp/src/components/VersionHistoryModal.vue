@@ -137,7 +137,7 @@
           <div v-if="previewData.location" class="row mb-3">
             <div class="col-md-6">
               <strong>Location:</strong>
-              <p>{{ previewData.location }}</p>
+              <p><LocationInput :model-value="previewData.location" :readonly="true" /></p>
             </div>
           </div>
 
@@ -204,10 +204,12 @@ import Modal from "@/components/Modal.vue";
 import { getItemVersions, getItemVersion, restoreItemVersion } from "@/server_fetch_utils";
 import { formatDistanceToNow } from "date-fns";
 import { DialogService } from "@/services/DialogService";
+import LocationInput from "@/components/LocationInput";
 
 export default {
   components: {
     Modal,
+    LocationInput,
   },
   props: {
     modelValue: Boolean,
