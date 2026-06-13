@@ -49,15 +49,11 @@
 
         <div class="form-row">
           <div class="form-group col-lg-12 col-sm-12">
-            <label for="startmat-location">Location</label>
-            <AutoComplete
+            <label>Location</label>
+            <LocationInput
               v-model="Location"
-              input-id="startmat-location"
-              :suggestions="filteredLocations"
-              :disabled="!isEditable"
-              class="form-control p-0 border-0"
-              input-class="form-control"
-              @complete="filterLocations"
+              :suggestions="uniqueLocations"
+              :readonly="!isEditable"
             />
           </div>
         </div>
@@ -129,6 +125,7 @@ import SynthesisInformation from "@/components/SynthesisInformation";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
 import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
+import LocationInput from "@/components/LocationInput";
 
 import AutoComplete from "primevue/autocomplete";
 import { getStartingMaterialList, getEquipmentList } from "@/server_fetch_utils.js";
@@ -149,6 +146,7 @@ export default {
     SubstanceInformation,
     ToggleableCreatorsFormGroup,
     ToggleableGroupsFormGroup,
+    LocationInput,
   },
   props: {
     item_id: { type: String, required: true },
@@ -156,7 +154,6 @@ export default {
   data() {
     return {
       filteredSuppliers: [],
-      filteredLocations: [],
       tableOfContentsSections: [
         { title: "Starting Material Information", targetID: "starting-material-information" },
         { title: "Table of Contents", targetID: "table-of-contents" },
@@ -224,10 +221,6 @@ export default {
     filterSuppliers(event) {
       const query = event.query.toLowerCase();
       this.filteredSuppliers = this.uniqueSuppliers.filter((s) => s.toLowerCase().includes(query));
-    },
-    filterLocations(event) {
-      const query = event.query.toLowerCase();
-      this.filteredLocations = this.uniqueLocations.filter((l) => l.toLowerCase().includes(query));
     },
   },
 };
