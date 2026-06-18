@@ -1,4 +1,7 @@
 // Resources for the application
+
+import { reactive } from "vue";
+
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import MediaBlock from "@/components/datablocks/MediaBlock";
 import XRDBlock from "@/components/datablocks/XRDBlock";
@@ -15,6 +18,8 @@ import StartingMaterialInformation from "@/components/StartingMaterialInformatio
 import CellInformation from "@/components/CellInformation";
 import CollectionInformation from "@/components/CollectionInformation";
 import EquipmentInformation from "@/components/EquipmentInformation";
+
+import { PLUGIN_PANELS } from "./plugins/index.js";
 
 import SampleCreateModalAddon from "@/components/itemCreateModalAddons/SampleCreateModalAddon";
 import CellCreateModalAddon from "@/components/itemCreateModalAddons/CellCreateModalAddon";
@@ -77,7 +82,10 @@ export const customBlockTypes = {
   "insitu-xrd": { description: "XRD insitu", component: XRDInsituBlock, name: "XRD insitu" },
 };
 
-export const itemTypes = {
+// Reactive so that components re-render when dynamic (plugin) types are
+// registered after app startup — plain mutation would be cached forever by
+// computeds that read it before `loadItemSchemas()` finished.
+export const itemTypes = reactive({
   samples: {
     itemInformationComponent: SampleInformation,
     itemCreateModalAddon: SampleCreateModalAddon,
@@ -139,7 +147,62 @@ export const itemTypes = {
     labelColor: "#9C2007",
     display: "block",
   },
+});
+
+// Maps built-in backend type strings to their base information components.
+const BASE_TYPE_COMPONENTS = {
+  samples: SampleInformation,
+  cells: CellInformation,
+  starting_materials: StartingMaterialInformation,
+  equipment: EquipmentInformation,
 };
+
+export function prettifyType(type) {
+  return type
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
+}
+
+// Lighten a hex colour toward white to produce a pastel badge/tint background,
+// mirroring the hand-picked `lightColor` pastels of the built-in types. Used to give
+// custom (plugin) types a coloured badge derived from their `datalab_ui_color`.
+function lightTint(hex, amount = 0.82) {
+  const h = (hex || "").replace("#", "");
+  if (h.length !== 6) return "#e0e0e0";
+  const n = parseInt(h, 16);
+  if (Number.isNaN(n)) return "#e0e0e0";
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  const mix = (c) => Math.round(c + (255 - c) * amount);
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+}
+
+// Register a custom/plugin item type (one served by the backend but not hardcoded
+// above) into the shared `itemTypes` registry.
+// - base_type: the built-in type string this model inherits from (e.g. "samples")
+// - hidden_fields: base-component fields the plugin wants to hide (from model_config)
+// - title: human-readable display name
+// - ui_color: accent color for navbar/labels (`datalab_ui_color` on model_config)
+export function registerDynamicItemType(type, { title, base_type, hidden_fields, ui_color } = {}) {
+  if (!type || itemTypes[type]) return; // never clobber a built-in / existing entry
+  const display = title || prettifyType(type);
+  const color = ui_color || "#4a4a4a";
+  itemTypes[type] = {
+    itemInformationComponent: BASE_TYPE_COMPONENTS[base_type] || null,
+    navbarColor: color,
+    navbarName: display,
+    lightColor: lightTint(color),
+    labelColor: color,
+    isCreateable: true,
+    display: display.toLowerCase(),
+    isDynamic: true,
+    baseType: base_type || null,
+    hiddenFields: hidden_fields || [],
+    customPanel: PLUGIN_PANELS[type] || null,
+  };
+}
 
 export const SAMPLE_TABLE_TYPES = ["samples", "cells"];
 export const INVENTORY_TABLE_TYPES = ["starting_materials"];

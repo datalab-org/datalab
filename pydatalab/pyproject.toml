@@ -31,6 +31,9 @@ dependencies = [
     "tomlkit ~= 0.14",
 ]
 
+[project.scripts]
+datalab-collect-plugin-panels = "pydatalab.cli:collect_plugin_panels"
+
 [project.urls]
 homepage = "https://github.com/datalab-org/datalab"
 repository = "https://github.com/datalab-org/datalab"

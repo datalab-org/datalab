@@ -374,7 +374,10 @@ class Constituent(BaseModel):
     def check_itemhood(cls, v):
         """Check that the reference within the constituent is to an item type."""
         if hasattr(v, "type") and v.type not in [item_type.value for item_type in ItemType]:
-            raise ValueError(f"`type` must be one of {[t.value for t in ItemType]!r}")
+            from pydatalab.models import ITEM_MODELS  # lazy — avoids circular import
+
+            if v.type not in ITEM_MODELS:
+                raise ValueError(f"`type` must be one of {[t.value for t in ItemType]!r}")
         return v
 
     @field_validator("item", mode="before")

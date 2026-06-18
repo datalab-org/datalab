@@ -9,7 +9,6 @@ from pydantic import (
 from pydatalab.models.utils import (
     BaseModel,
     HumanReadableIdentifier,
-    KnownType,
     PyObjectId,
     Refcode,
 )
@@ -44,7 +43,7 @@ class TypedRelationship(BaseModel):
     relation: RelationshipType | None = None
     """The type of relationship between the two items. If the type is 'other', then a human-readable description should be provided."""
 
-    type: KnownType
+    type: str
     """The type of the related resource."""
 
     immutable_id: PyObjectId | None = None

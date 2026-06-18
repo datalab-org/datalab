@@ -25,13 +25,19 @@
               <FormattedRefcode :refcode="Refcode" />
             </div>
           </div>
-          <div class="form-group col-md-3 col-sm-3 col-3 pb-3">
+          <div
+            v-if="!hiddenFields.includes('status')"
+            class="form-group col-md-3 col-sm-3 col-3 pb-3"
+          >
             <ToggleableItemStatusFormGroup
               v-model="Status"
               :possible-item-statuses="possibleItemStatuses"
             />
           </div>
-          <div class="form-group col-md-6 col-sm-6 col-6 pr-2">
+          <div
+            v-if="!hiddenFields.includes('collections')"
+            class="form-group col-md-6 col-sm-6 col-6 pr-2"
+          >
             <ToggleableCollectionFormGroup v-model="Collections" />
           </div>
         </div>
@@ -49,12 +55,12 @@
         <ItemRelationshipVisualization :item_id="item_id" />
       </div>
     </div>
-    <div class="row">
+    <div v-if="!hiddenFields.includes('substance_information')" class="row">
       <div class="col">
         <SubstanceInformation class="mt-3" :item_id="item_id" />
       </div>
     </div>
-    <div class="row">
+    <div v-if="!hiddenFields.includes('description')" class="row">
       <div class="col">
         <label id="samp-description-label">Description</label>
         <TiptapInline v-model="SampleDescription" aria-labelledby="samp-description-label" />
@@ -62,7 +68,11 @@
     </div>
 
     <TableOfContents :item_id="item_id" :information-sections="tableOfContentsSections" />
-    <SynthesisInformation class="mt-3" :item_id="item_id" />
+    <SynthesisInformation
+      v-if="!hiddenFields.includes('synthesis_information')"
+      class="mt-3"
+      :item_id="item_id"
+    />
   </div>
 </template>
 
@@ -94,22 +104,24 @@ export default {
   },
   props: {
     item_id: { type: String, required: true },
-    refcode: {
-      type: String,
-      default: null,
-    },
+    refcode: { type: String, default: null },
+    hiddenFields: { type: Array, default: () => [] },
   },
   data() {
-    return {
-      tableOfContentsSections: [
+    return {};
+  },
+  computed: {
+    tableOfContentsSections() {
+      const ALL_SECTIONS = [
         { title: "Table of Contents", targetID: "table-of-contents" },
         { title: "Sample Information", targetID: "sample-information" },
         { title: "Substance Information", targetID: "substance-information" },
         { title: "Synthesis Information", targetID: "synthesis-information" },
-      ],
-    };
-  },
-  computed: {
+      ];
+      return ALL_SECTIONS.filter(
+        (section) => !this.hiddenFields.includes(section.targetID.replace(/-/g, "_")),
+      );
+    },
     item() {
       return this.$store.state.all_item_data[this.item_id];
     },
@@ -126,7 +138,7 @@ export default {
       return this.$store.state.schemas[this.item?.type];
     },
     possibleItemStatuses() {
-      return this.schema?.attributes?.schema?.definitions?.ItemStatus?.enum;
+      return this.schema?.attributes?.schema?.["$defs"]?.ItemStatus?.enum;
     },
   },
 };

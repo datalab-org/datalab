@@ -20,7 +20,7 @@ from pydatalab import __version__
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.feature_flags import FEATURE_FLAGS, FeatureFlags
-from pydatalab.models import ITEM_SCHEMAS, Person
+from pydatalab.models import BUILTIN_ITEM_TYPES, ITEM_MODELS, ITEM_SCHEMAS, Person
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only
 
@@ -166,6 +166,55 @@ def list_block_types():
     )
 
 
+def _get_base_type(item_type: str) -> str | None:
+    """Return the built-in type that this item type inherits from, or None if it is a built-in.
+
+    Uses issubclass against the registered built-in models, so it works regardless of
+    whether the plugin's intermediate base class (e.g. Sample) appears in the MRO
+    (which depends on the installed version of the plugin package).
+    The most-derived built-in base is returned.
+    """
+    model = ITEM_MODELS.get(item_type)
+    if model is None or item_type in BUILTIN_ITEM_TYPES:
+        return None
+    best_type: str | None = None
+    best_model: type | None = None
+    for builtin_type, builtin_model in ITEM_MODELS.items():
+        if builtin_type not in BUILTIN_ITEM_TYPES:
+            continue
+        if issubclass(model, builtin_model):
+            # Prefer the most specific (most-derived) built-in base.
+            if best_model is None or issubclass(builtin_model, best_model):
+                best_type = builtin_type
+                best_model = builtin_model
+    return best_type
+
+
+def _get_model_schema_extra(item_type: str) -> dict:
+    """Return the `json_schema_extra` dict declared on the model's config, if any."""
+    model = ITEM_MODELS.get(item_type)
+    if model is None:
+        return {}
+    extra = model.model_config.get("json_schema_extra") or {}
+    if callable(extra):
+        return {}
+    return extra
+
+
+def _type_attributes(item_type: str, schema: dict) -> dict:
+    """Build the attributes dict for a single item type in the /info/types response."""
+    extra = _get_model_schema_extra(item_type)
+    return {
+        "version": __version__,
+        "api_version": __api_version__,
+        "schema": schema,
+        "title": schema.get("title"),
+        "base_type": _get_base_type(item_type),
+        "hidden_fields": extra.get("datalab_ui_hidden_fields", []),
+        "ui_color": extra.get("datalab_ui_color"),
+    }
+
+
 @INFO.route("/info/types", methods=["GET"])
 def list_supported_types():
     """Returns a list of supported schemas."""
@@ -177,11 +226,7 @@ def list_supported_types():
                     Data(
                         id=item_type,
                         type="item_type",
-                        attributes={
-                            "version": __version__,
-                            "api_version": __api_version__,
-                            "schema": schema,
-                        },
+                        attributes=_type_attributes(item_type, schema),
                     )
                     for item_type, schema in ITEM_SCHEMAS.items()
                 ],
@@ -205,11 +250,7 @@ def get_schema_type(item_type):
                 data=Data(
                     id=item_type,
                     type="item_type",
-                    attributes={
-                        "version": __version__,
-                        "api_version": __api_version__,
-                        "schema": ITEM_SCHEMAS[item_type],
-                    },
+                    attributes=_type_attributes(item_type, ITEM_SCHEMAS[item_type]),
                 ),
                 meta=Meta(query=request.query_string.decode() if request.query_string else ""),
             ).model_dump_json()

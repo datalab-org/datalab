@@ -10,7 +10,6 @@ from pydatalab.models.files import File
 from pydatalab.models.items import Item
 from pydatalab.models.people import DisplayName, EmailStr
 from pydatalab.models.relationships import (
-    KnownType,
     RelationshipType,
     TypedRelationship,
 )
@@ -109,19 +108,19 @@ def test_relationship_with_custom_type():
     """Test that a relationship with a custom type can be created."""
     relationship = TypedRelationship(
         relation=RelationshipType.OTHER,
-        type=KnownType.SAMPLES,
+        type="samples",
         item_id="1234",
         description="This is a relationship",
     )
     assert relationship.relation == RelationshipType.OTHER
-    assert relationship.type == KnownType.SAMPLES
+    assert relationship.type == "samples"
     assert relationship.item_id == "1234"
     assert relationship.description == "This is a relationship"
 
     with pytest.raises(pydantic.ValidationError):
         relationship = TypedRelationship(
             relation=RelationshipType.OTHER,
-            type=KnownType.SAMPLES,
+            type="samples",
             item_id="1234",
             description=None,
         )

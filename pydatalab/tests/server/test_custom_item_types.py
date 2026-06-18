@@ -158,6 +158,56 @@ def test_bad_custom_item_type_rejected():
         register_item_model(dict)
 
 
+def test_info_types_base_type_for_custom_types(client, custom_item_models):
+    """Custom types advertise their base_type; built-in types return base_type=None."""
+    attrs = client.get("/info/types/my_samples", follow_redirects=True).json["data"]["attributes"]
+    assert attrs["base_type"] == "samples"
+    assert attrs["hidden_fields"] == []
+    assert attrs["ui_color"] is None
+
+    # MyItem inherits from Item directly — no built-in collection type in its MRO.
+    attrs = client.get("/info/types/my_items", follow_redirects=True).json["data"]["attributes"]
+    assert attrs["base_type"] is None
+
+    # Built-in types themselves always return base_type=None.
+    attrs = client.get("/info/types/samples", follow_redirects=True).json["data"]["attributes"]
+    assert attrs["base_type"] is None
+
+
+def test_save_item_null_field_is_cleared(client, custom_item_models):
+    """Setting a custom field to null in a save call removes it from the DB.
+
+    Without the $unset fix, model_dump(exclude_none=True) silently drops the
+    null field from $set, leaving the old value in place in MongoDB.
+    """
+    client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "my_samples",
+                "item_id": "unset-test-1",
+                "drying_time": 5.0,
+            }
+        },
+    )
+
+    response = client.get("/get-item-data/unset-test-1")
+    assert response.json["item_data"]["drying_time"] == 5.0
+
+    # Now clear the field by saving with null.
+    client.post(
+        "/save-item/",
+        json={
+            "item_id": "unset-test-1",
+            "data": {"type": "my_samples", "item_id": "unset-test-1", "drying_time": None},
+        },
+    )
+
+    response = client.get("/get-item-data/unset-test-1")
+    assert response.status_code == 200
+    assert response.json["item_data"].get("drying_time") is None
+
+
 def test_extra_fields_on_builtin_sample_are_ignored(client):
     """Stuffing custom-schema fields into a plain `samples` item does not persist
     them: the built-in `Sample` model ignores unknown fields (`extra="ignore"`),
