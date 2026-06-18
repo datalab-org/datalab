@@ -909,19 +909,6 @@
       "title": "InlineSubstance",
       "type": "object"
     },
-    "KnownType": {
-      "description": "An enumeration of the types of entry known by this implementation, should be made dynamic in the future.",
-      "enum": [
-        "samples",
-        "starting_materials",
-        "blocks",
-        "files",
-        "people",
-        "collections"
-      ],
-      "title": "KnownType",
-      "type": "string"
-    },
     "Person": {
       "description": "A model that describes an individual and their digital identities.",
       "properties": {
@@ -1121,8 +1108,9 @@
           "description": "The type of relationship between the two items. If the type is 'other', then a human-readable description should be provided."
         },
         "type": {
-          "$ref": "#/$defs/KnownType",
-          "description": "The type of the related resource."
+          "description": "The type of the related resource.",
+          "title": "Type",
+          "type": "string"
         },
         "immutable_id": {
           "anyOf": [

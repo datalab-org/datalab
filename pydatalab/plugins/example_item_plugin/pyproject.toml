@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "example-item-plugin"
+version = "0.0.1"
+description = "Example plugin demonstrating the pydatalab.item_types entry-point registration path."
+requires-python = ">=3.10"
+
+# This is the mechanism under test: datalab's `load_item_plugins()` enumerates
+# this entry-point group at startup and registers each as a custom item type.
+[project.entry-points."pydatalab.item_types"]
+example_samples = "example_item_plugin.models:ExampleSample"
+# Annotation-rendered (no .vue): schedule rendered by core CustomFieldsPanel.
+annealing_protocols = "example_item_plugin.models:AnnealingProtocol"
+# Custom panel: HeatTreatmentPanel.vue; references annealing_protocols.
+heat_treatments = "example_item_plugin.models:HeatTreatment"
+
+[tool.setuptools]
+packages = ["example_item_plugin"]
