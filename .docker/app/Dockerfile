@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:22.22-bullseye-slim AS build
+FROM node:22.22-bullseye-slim AS base
 SHELL ["/bin/bash", "--login", "-c"]
 
 WORKDIR /app
@@ -13,6 +13,12 @@ COPY webapp/package.json webapp/yarn.lock ./
 # Using a custom node_modules location to avoid mounting it outside of docker
 RUN --mount=type=cache,target=/root/.cache/yarn yarn install --frozen-lockfile --modules-folder /node_modules
 
+# dev target: deps installed, source mounted at runtime — no production build.
+FROM base AS dev
+COPY webapp ./
+
+# build target: runs the production webpack bundle on top of dev.
+FROM dev AS build
 # These get replaced by the entrypoint script for production builds.
 # Set the real values in `.env` files or an external docker-compose.
 ENV NODE_ENV=production
@@ -28,7 +34,6 @@ ARG VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT=magic-generate-id-setting
 ARG VUE_APP_GIT_VERSION=0.0.0+ci
 ENV VUE_APP_GIT_VERSION=${VUE_APP_GIT_VERSION}
 
-COPY webapp ./
 RUN /node_modules/.bin/vue-cli-service build
 
 FROM node:22.22-bullseye-slim AS production
