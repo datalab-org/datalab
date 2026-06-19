@@ -215,8 +215,9 @@ my_plugin/
 Then collect the panels into the webapp and rebuild it:
 
 ```bash
-datalab-collect-plugin-panels   # copies webapp/*.vue from installed item_types plugins
-                                # into webapp/src/plugins/ and regenerates the registry
+# copies webapp/*.vue from installed item_types plugins into
+# webapp/src/plugins/ and regenerates the registry
+uv run invoke dev.collect-plugin-panels
 ```
 
 The panel receives two props, `item_id` and `itemType`, and reads/writes the item through the
@@ -242,7 +243,7 @@ custom type, copies its parameters with a "Populate from …" button, and draws 
 
 !!! warning "Custom panels are trusted, compiled code"
     Panel `.vue` files are compiled into the webapp bundle and run in every user's browser, so
-    installing a UI plugin means rebuilding the webapp (run `datalab-collect-plugin-panels`
+    installing a UI plugin means rebuilding the webapp (run `uv run invoke dev.collect-plugin-panels`
     before `vue-cli-service build`). Only install panels from sources you trust.
 
 
