@@ -157,8 +157,16 @@ def read_jeol_jdf_1d(
         nscans: The number of scans as read from the dictionaries
 
     """
-    nmrglue_version = tuple(int(x) for x in importlib.metadata.version("nmrglue").split("."))
-    nmrglue_has_no_jeol_jdf_support = nmrglue_version[0] == 0 and nmrglue_version[1] <= 11
+    try:
+        nmrglue_version = tuple(x for x in importlib.metadata.version("nmrglue").split("."))
+        nmrglue_has_no_jeol_jdf_support = (
+            int(nmrglue_version[0]) == 0 and int(nmrglue_version[1]) <= 11
+        )
+    except Exception:
+        warnings.warn(
+            f"Could not detect nmrglue version ({nmrglue_version}) disabling JEOL support."
+        )
+        nmrglue_has_no_jeol_jdf_support = True
 
     if nmrglue_has_no_jeol_jdf_support:
         raise RuntimeError(
