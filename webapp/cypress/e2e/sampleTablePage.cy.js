@@ -23,7 +23,7 @@ let sample_ids = [
   "sdlkfjs",
   "w343t",
   "dfow4_112",
-  "122.rwre",
+  "122-rwre",
   "56oer09gser9sdfd0s9dr333e",
   "7",
   "XX",
@@ -63,7 +63,7 @@ describe("Sample table page", () => {
     cy.findByText("About").should("exist");
     cy.findByText("Samples").should("exist");
     cy.findByText("Add an item").should("exist");
-    cy.findByText("# of blocks").should("exist");
+    cy.get('[data-testid="sample-table"] [data-icon="cubes"]').should("exist");
 
     cy.contains("Server Error. Sample list could not be retreived.").should("not.exist");
     expect(consoleSpy).not.to.be.called;
@@ -77,6 +77,7 @@ describe("Sample table page", () => {
   it("Navigates to the edit page when clicking on a row body", () => {
     // Click on the sample's name cell (not the item_id badge, which has its
     // own click handler) to confirm the table-level @row-click navigation works.
+    cy.get('[data-testid="search-input"]').type("12345678910");
     cy.contains("tr", "12345678910").findByText("This is a sample name").click();
     cy.url().should("include", "/edit/12345678910");
     cy.go("back");
@@ -89,7 +90,7 @@ describe("Sample table page", () => {
         expect(body).to.have.property("item_id", "12345678910");
         expect(body.item_data).to.have.property("item_id", "12345678910");
         expect(body.item_data).to.have.property("name", "This is a sample name");
-        expect(body.item_data).to.have.property("date", "1990-01-07T00:00:00");
+        expect(body.item_data).to.have.property("date", "1990-01-07T00:00:00+00:00");
       });
   });
 
@@ -122,7 +123,7 @@ describe("Sample table page", () => {
     cy.get('[data-testid="sample-table"]')
       .contains(name)
       .parents("tr")
-      .find("td.table-item-id .formatted-item-name")
+      .find(".formatted-item-name")
       .invoke("text")
       .as("createdId");
 
@@ -169,7 +170,7 @@ describe("Sample table page", () => {
       "sdlkfjs",
       "w343t",
       "dfow4_112",
-      "122.rwre",
+      "122-rwre",
       "56oer09gser9sdfd0s9dr333e",
       "7",
       "XX",
@@ -179,7 +180,7 @@ describe("Sample table page", () => {
     more_ids.map((id) => cy.verifySample(id));
 
     // check one of the pages to make sure it is generating properly
-    cy.findByText("122.rwre").click();
+    cy.findByText("122-rwre").click();
     cy.wait(1000);
     cy.go("back");
 
@@ -194,7 +195,7 @@ describe("Sample table page", () => {
     cy.contains("test3").should("not.exist");
 
     // make sure one of the pages is really deleted
-    cy.request({ url: `${API_URL}/get-item-data/_122rwre`, failOnStatusCode: false }).then(
+    cy.request({ url: `${API_URL}/get-item-data/122-rwre`, failOnStatusCode: false }).then(
       (resp) => {
         expect(resp.status).to.be.gte(400).lt(500);
       },
@@ -202,7 +203,7 @@ describe("Sample table page", () => {
   });
 });
 
-describe.only("Advanced sample creation features", () => {
+describe("Advanced sample creation features", () => {
   beforeEach(() => {
     cy.loginViaTestMagicLink("test-user@example.com", "user");
     cy.visit("/");
