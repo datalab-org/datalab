@@ -7,7 +7,12 @@
       </div>
       <div v-if="molarMass" class="substance-small-row">
         <span class="small-label">Mass</span>
-        <span class="small-value">{{ molarMass }} g/mol</span>
+        <span class="small-value"
+          >{{
+            Number.isFinite(Number(molarMass)) ? Number(molarMass).toFixed(2) : molarMass
+          }}
+          g/mol</span
+        >
       </div>
       <div v-if="ghsCodes && hasPictograms" class="substance-small-row">
         <span class="small-label">Hazards</span>
