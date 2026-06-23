@@ -8,8 +8,8 @@
   "scripts": {
     "serve": "VUE_APP_GIT_VERSION=$(node scripts/get-version.js) vue-cli-service serve",
     "build": "VUE_APP_GIT_VERSION=$(node scripts/get-version.js) vue-cli-service build",
-    "test:unit": "vue-cli-service test:unit",
-    "test:e2e": "vue-cli-service test:e2e --mode test_e2e",
+    "test:component": "cypress run --component",
+    "test:e2e": "vue-cli-service test:e2e",
     "lint": "vue-cli-service lint"
   },
   "resolutions": {
