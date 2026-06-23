@@ -28,8 +28,9 @@ def generate_js_callback_single_float_parameter(
 
     """
 
-    cb_prop: str = "value_throttled" if throttled else "value"
-    event_target: str = f"(cb_obj.{cb_prop} ?? cb_obj.text)"
+    event_target: str = (
+        "(cb_obj.value_throttled ?? cb_obj.value ?? cb_obj.text)" if throttled else "(cb_obj.value ?? cb_obj.text)"
+    )
 
     code = (
         r"""
