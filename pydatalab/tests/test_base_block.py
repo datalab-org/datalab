@@ -21,7 +21,7 @@ def test_callback():
     detail: {
         block_id: 'test',
         event_name: 'set_wavelength',
-        wavelength: event.target.value,
+        wavelength: (cb_obj.value ?? cb_obj.text),
     }, bubbles: true
 });
 document.dispatchEvent(block_event);"""
