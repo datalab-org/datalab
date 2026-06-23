@@ -509,6 +509,32 @@ def test_xrd_block_lifecycle(admin_client, client, user_id, default_sample_dict,
     assert "peak_data" in block["computed"]
     assert block["wavelength"] == 2.0
 
+    # Now check that an event can also change the wavelength
+    response = admin_client.post(
+        "/update-block/",
+        json={
+            "block_data": {"block_id": block_id, "item_id": sample_id, "blocktype": "xrd"},
+            "event_data": {
+                "block_id": block_id,
+                "event_name": "set_wavelength",
+                "wavelength": "1.5",
+            },
+        },
+    )
+    assert response.status_code == 200
+
+    # But they should still be in the database
+    response = admin_client.get(f"/get-item-data/{sample_id}")
+    assert response.status_code == 200
+
+    item_data = response.json["item_data"]
+    assert response.json["status"] == "success"
+    assert "blocks_obj" in item_data
+    block = item_data["blocks_obj"][block_id]
+    assert "computed" in block
+    assert "peak_data" in block["computed"]
+    assert block["wavelength"] == 1.5
+
 
 def test_comment_block_manipulation(admin_client, default_sample_dict, database):
     """Create a test sample with a comment block and test it for
