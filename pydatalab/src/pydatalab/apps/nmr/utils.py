@@ -1,3 +1,4 @@
+import importlib.metadata
 import itertools
 import re
 import tempfile
@@ -156,6 +157,14 @@ def read_jeol_jdf_1d(
         nscans: The number of scans as read from the dictionaries
 
     """
+    nmrglue_version = tuple(int(x) for x in importlib.metadata.version("nmrglue").split("."))
+    nmrglue_has_no_jeol_jdf_support = nmrglue_version[0] == 0 and nmrglue_version[1] <= 11
+
+    if nmrglue_has_no_jeol_jdf_support:
+        raise RuntimeError(
+            "This version of nmrglue does not support reading JEOL .jdf files. "
+            "Please upgrade to nmrglue >= 0.12.0 (or git version if not yet released)."
+        )
 
     dic, data = ng.fileio.jeol.read(filename)
     udic = ng.jeol.guess_udic(dic, data)
