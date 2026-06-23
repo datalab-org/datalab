@@ -56,8 +56,8 @@ yarn build
 # Run linting
 yarn lint
 
-# Run unit tests
-yarn test:unit
+# Run component tests
+yarn test:component
 
 # Run e2e tests (requires backend at localhost:5001)
 yarn test:e2e

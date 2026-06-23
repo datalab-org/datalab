@@ -17,12 +17,12 @@ yarn serve
 yarn build
 ```
 
-### Run your unit tests
+### Run component tests
 ```
-yarn test:unit
+yarn test:component
 ```
 
-### Run your end-to-end tests
+### Run end-to-end tests
 ```
 yarn test:e2e
 ```
@@ -33,4 +33,5 @@ yarn lint
 ```
 
 ### Customize configuration
+
 See [Configuration Reference](https://cli.vuejs.org/config/).
