@@ -386,6 +386,8 @@ Cypress.Commands.add("logout", () => {
 });
 
 Cypress.Commands.add("deleteSample", (item_id) => {
+  cy.get('[data-testid="search-input"]').clear();
+  cy.get('[data-testid="search-input"]').type(item_id);
   cy.selectItemCheckbox("sample", item_id);
   cy.get('[data-testid="selected-dropdown"]').click();
   cy.get('[data-testid="delete-selected-button"]').click();
@@ -394,6 +396,7 @@ Cypress.Commands.add("deleteSample", (item_id) => {
   cy.get("[data-testid=sample-table]")
     .contains(new RegExp("^" + item_id + "$", "g"))
     .should("not.exist");
+  cy.get('[data-testid="search-input"]').clear();
 });
 
 /**
