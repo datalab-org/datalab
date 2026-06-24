@@ -24,11 +24,11 @@ export default createStore({
     saved_status_collections: {},
     updating: {},
     updatingDelayed: {},
-    remoteDirectoryTree: {},
-    remoteDirectoryTreeSecondsSinceLastUpdate: null,
+    remoteFilesystems: [],
+    remoteDirectories: {},
     itemGraphData: null,
     itemGraphIsLoading: false,
-    remoteDirectoryTreeIsLoading: false,
+    remoteFilesystemsIsLoading: false,
     fileSelectModalIsOpen: false,
     currentUserDisplayName: null,
     currentUserID: null,
@@ -237,11 +237,29 @@ export default createStore({
         files.splice(index, 1);
       }
     },
-    setRemoteDirectoryTree(state, remoteDirectoryTree) {
-      state.remoteDirectoryTree = remoteDirectoryTree.data;
+    setRemoteFilesystems(state, remotes) {
+      state.remoteFilesystems = remotes;
     },
-    setRemoteDirectoryTreeSecondsSinceLastUpdate(state, secondsSinceLastUpdate) {
-      state.remoteDirectoryTreeSecondsSinceLastUpdate = secondsSinceLastUpdate;
+    setRemoteDirectoryLoading(state, { name, isLoading }) {
+      const existing = state.remoteDirectories[name] || {};
+      state.remoteDirectories = {
+        ...state.remoteDirectories,
+        [name]: { ...existing, isLoading },
+      };
+    },
+    setRemoteDirectoryData(state, { name, data, lastUpdated }) {
+      const existing = state.remoteDirectories[name] || {};
+      state.remoteDirectories = {
+        ...state.remoteDirectories,
+        [name]: { ...existing, data, lastUpdated, error: null, isLoading: false },
+      };
+    },
+    setRemoteDirectoryError(state, { name, error }) {
+      const existing = state.remoteDirectories[name] || {};
+      state.remoteDirectories = {
+        ...state.remoteDirectories,
+        [name]: { ...existing, error, isLoading: false },
+      };
     },
     addABlock(state, { item_id, new_block_obj, new_block_insert_index }) {
       // payload: item_id, new_block_obj, new_display_order
@@ -370,8 +388,8 @@ export default createStore({
     setFileSelectModalOpenStatus(state, isOpen) {
       state.fileSelectModalIsOpen = isOpen;
     },
-    setRemoteDirectoryTreeIsLoading(state, isLoading) {
-      state.remoteDirectoryTreeIsLoading = isLoading;
+    setRemoteFilesystemsIsLoading(state, isLoading) {
+      state.remoteFilesystemsIsLoading = isLoading;
     },
     setItemGraph(state, payload) {
       state.itemGraphData = payload;
