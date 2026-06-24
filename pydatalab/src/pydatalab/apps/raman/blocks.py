@@ -10,7 +10,7 @@ from pybaselines import Baseline
 from renishawWiRE import WDFReader
 from scipy.signal import medfilt
 
-from pydatalab.blocks.base import DataBlock
+from pydatalab.blocks.base import ComparisonData, DataBlock
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 
@@ -26,7 +26,7 @@ class RamanBlock(DataBlock):
         return (self.generate_raman_plot,)
 
     @classmethod
-    def load(self, location: str | Path) -> tuple[pd.DataFrame, dict, list[str]]:
+    def load(cls, location: str | Path) -> tuple[pd.DataFrame, dict, list[str]]:
         if not isinstance(location, str):
             location = str(location)
         ext = os.path.splitext(location)[-1].lower()
@@ -74,7 +74,7 @@ class RamanBlock(DataBlock):
                 pass
         elif ext == ".wdf":
             vendor = "renishaw"
-            df, metadata = self.make_wdf_df(location)
+            df, metadata = cls.make_wdf_df(location)
         if not vendor:
             raise Exception(
                 "Could not detect Raman data vendor -- this file type is not supported by this block."
@@ -94,7 +94,7 @@ class RamanBlock(DataBlock):
             for warning_type, message in warnings_to_ignore:
                 warnings.filterwarnings("ignore", category=warning_type, message=message)
 
-            y_option_df = self._calc_baselines_and_normalize(df["wavenumber"], df["intensity"])
+            y_option_df = cls._calc_baselines_and_normalize(df["wavenumber"], df["intensity"])
 
         df = pd.concat([df, y_option_df], axis=1)
         df.index.name = location.split("/")[-1]
@@ -246,3 +246,25 @@ class RamanBlock(DataBlock):
             )
 
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=DATALAB_BOKEH_THEME)
+
+    def get_comparison_data(self) -> ComparisonData | None:
+        """Expose the Raman spectrum for cross-sample overlay comparison."""
+        if "file_id" not in self.data:
+            return None
+
+        file_info = get_file_info_by_id(self.data["file_id"], update_if_live=False)
+        df, metadata, y_options = self.load(file_info["location"])
+
+        wavenumber_unit = metadata.get("wavenumber_unit", "Unknown unit")
+        if wavenumber_unit.startswith("1/"):
+            wavenumber_unit = wavenumber_unit[2:] + "⁻¹"
+        x_label = f"wavenumber ({wavenumber_unit})"
+        df[x_label] = df["wavenumber"]
+
+        return ComparisonData(
+            series=[(None, df)],
+            x_options=[x_label],
+            x_default=x_label,
+            y_default="normalized intensity",
+            y_options=y_options,
+        )

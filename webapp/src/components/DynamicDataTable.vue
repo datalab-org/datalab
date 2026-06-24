@@ -57,6 +57,7 @@
           @open-add-to-collection-modal="addToCollectionModalIsOpen = true"
           @open-batch-share-modal="batchShareModalIsOpen = true"
           @delete-selected-items="deleteSelectedItems"
+          @compare-selected-items="compareSelectedItems"
           @remove-selected-items-from-collection="removeSelectedItemsFromCollection"
           @reset-table="handleResetTable"
           @users-data-changed="$emit('users-data-changed')"
@@ -1514,6 +1515,13 @@ export default {
     },
     deleteSelectedItems() {
       this.itemsSelected = [];
+    },
+    compareSelectedItems() {
+      const ids = this.itemsSelected.map((item) => item.item_id).filter((id) => id != null);
+      if (ids.length < 2) {
+        return;
+      }
+      this.$router.push({ name: "compare", query: { ids: ids.join(",") } });
     },
     removeSelectedItemsFromCollection() {
       this.itemsSelected = [];
