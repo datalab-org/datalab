@@ -134,7 +134,7 @@ def _do_export(
     def add_stage(message: str, level: str = "info"):
         stage = TaskStage(timestamp=datetime.now(tz=timezone.utc), message=message, level=level)
         flask_mongo.db.tasks.update_one(
-            {"task_id": task_id}, {"$push": {"spec.stages": stage.dict()}}
+            {"task_id": task_id}, {"$push": {"spec.stages": stage.model_dump()}}
         )
 
     try:
@@ -221,7 +221,7 @@ def start_collection_export(collection_id: str):
         ),
     )
 
-    flask_mongo.db.tasks.insert_one(export_task.dict(exclude_none=False))
+    flask_mongo.db.tasks.insert_one(export_task.model_dump(exclude_none=False))
 
     task_scheduler.add_job(
         func=_generate_export_in_background,
@@ -390,7 +390,7 @@ def start_item_export(item_id: str):
         ),
     )
 
-    flask_mongo.db.tasks.insert_one(export_task.dict(exclude_none=False))
+    flask_mongo.db.tasks.insert_one(export_task.model_dump(exclude_none=False))
 
     task_scheduler.add_job(
         func=_generate_export_in_background,
