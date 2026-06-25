@@ -688,7 +688,7 @@ def _create_sample(
     # the `Entry` model.
     try:
         result = flask_mongo.db.items.insert_one(
-            data_model.model_dump(exclude={"creators", "collections", "groups"}, exclude_none=True)
+            data_model.model_dump(exclude={"creators", "collections", "groups"})
         )
     except DuplicateKeyError as error:
         raise Conflict(f"Duplicate key error: {str(error)}.")
@@ -1450,10 +1450,11 @@ def restore_version(refcode):
         )
         raise BadRequest(f"Restored version data validation failed: {exc}")
 
-    # Insert validated data
-    flask_mongo.db.item_versions.insert_one(
-        validated_restored_version.model_dump(exclude_none=True)
-    )
+    # Insert validated data, restoring original restored_data into 'data' so None-valued
+    # fields are not stripped by model_dump(exclude_none=True) recursing into the dict.
+    restored_version_doc = validated_restored_version.model_dump(exclude_none=True)
+    restored_version_doc["data"] = restored_data
+    flask_mongo.db.item_versions.insert_one(restored_version_doc)
 
     return jsonify(
         {
