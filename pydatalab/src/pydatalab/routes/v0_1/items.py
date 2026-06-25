@@ -1670,7 +1670,6 @@ def save_item():
     try:
         item = entry_reference_lookup(item)
         item = ITEM_MODELS[item_type](**item).model_dump(
-            exclude_none=True,
             exclude_unset=True,
             exclude={"collections", "creators", "immutable_id"},
         )
