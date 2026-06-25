@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 from pydantic import ConfigDict, Field, model_validator
 
@@ -55,6 +56,19 @@ class ItemVersion(BaseModel):
 
     user_agent: str | None = None
     """User agent string of the client that triggered this version. Will only be stored if it matches a known value from the datalab ecosystem."""
+
+    def to_mongo_doc(self) -> dict[str, Any]:
+        """Serialise for insertion into MongoDB, preserving None values in `data`.
+
+        Pydantic v2 model_dump(exclude_none=True) recurses into nested dicts and
+        would strip None-valued fields from the item snapshot in `data`. Those keys
+        must be present so that a $set restore can explicitly clear fields that were
+        None in the snapshot. All other top-level None fields (user_id, creator, etc.)
+        are still excluded since they are optional metadata.
+        """
+        d = self.model_dump(exclude_none=True)
+        d["data"] = self.data
+        return d
 
     @model_validator(mode="after")
     def validate_restored_from_version(self):
