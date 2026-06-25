@@ -4,6 +4,7 @@
       :model-value="modelValue"
       :disable-submit="Boolean(isValidEntryID) || !Boolean(collection_id)"
       @update:model-value="$emit('update:modelValue', $event)"
+      @submit="submitForm"
     >
       <template #header> Create new collection </template>
 
