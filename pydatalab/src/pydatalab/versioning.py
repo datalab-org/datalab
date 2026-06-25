@@ -191,8 +191,11 @@ def save_version_snapshot(
             400,
         )
 
-    # Insert validated data (convert to dict and exclude None values)
-    flask_mongo.db.item_versions.insert_one(validated_version.model_dump(exclude_none=True))
+    # Insert validated data, but restore the original item dict into 'data' so that
+    # None-valued fields are not stripped by model_dump(exclude_none=True) recursing into it.
+    version_doc = validated_version.model_dump(exclude_none=True)
+    version_doc["data"] = item
+    flask_mongo.db.item_versions.insert_one(version_doc)
     return (
         {"status": "success", "message": "Version saved.", "version": next_version_number},
         200,
