@@ -1,7 +1,8 @@
 import hashlib
 import warnings
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import bokeh
 import pandas as pd
@@ -78,6 +79,30 @@ class CycleBlock(DataBlock):
         "win_size_1": 1001,
         "derivative_mode": None,
     }
+
+    post_plot_hooks: ClassVar[
+        list[Callable[["CycleBlock", pd.DataFrame, pd.DataFrame | None], None]]
+    ] = []
+    """Hooks called after plot_cycle completes, receiving (block, unfiltered_df, cycle_summary_df).
+
+    Plugins can append callables here to extract derived metrics into ``block.data["computed"]``
+    without monkey-patching. Each hook is called once per plot update with the primary
+    (non-comparison) DataFrames.
+
+    ``unfiltered_df`` is the full navani DataFrame re-parsed directly from the source file,
+    bypassing the BDF cache, so instrument-specific columns (e.g. ``unknown_colID_249``) that
+    are not part of the BDF schema are available. Note this incurs an extra file parse when
+    hooks are registered.
+
+    Example::
+
+        from pydatalab.apps.echem import CycleBlock
+
+        def my_hook(block, unfiltered_df, cycle_summary_df):
+            block.data["computed"] = {"my_metric": unfiltered_df["unknown_colID_249"].max()}
+
+        CycleBlock.post_plot_hooks.append(my_hook)
+    """
 
     def _get_characteristic_mass_g(self):
         doc = flask_mongo.db.items.find_one(
@@ -434,6 +459,8 @@ class CycleBlock(DataBlock):
 
         raw_dfs = {}
         cycle_summary_dfs = {}
+        raw_df = None
+        cycle_summary_df = None
 
         if self.data.get("mode") is None:
             self.data["mode"] = "single"
@@ -539,6 +566,27 @@ class CycleBlock(DataBlock):
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(
                 layout, theme=bokeh_plots.DATALAB_BOKEH_THEME
             )
+
+        if raw_df is not None and self.post_plot_hooks:
+            # Re-parse from source to get the full unfiltered DataFrame, since the BDF cache
+            # only preserves BDF-schema columns and drops instrument-specific ones.
+            file_infos = [get_file_info_by_id(fid, update_if_live=False) for fid in file_ids]
+            locations = [Path(info["location"]) for info in file_infos]
+            try:
+                unfiltered_df = self._parse_echem_files(
+                    locations[0], locations if len(locations) > 1 else None
+                )
+            except Exception as exc:
+                warnings.warn(f"post_plot_hook source re-parse failed, hooks will not run: {exc}")
+                unfiltered_df = None
+
+            if unfiltered_df is not None:
+                for hook in self.post_plot_hooks:
+                    try:
+                        hook(self, unfiltered_df, cycle_summary_df)
+                    except Exception as exc:
+                        warnings.warn(f"post_plot_hook {hook!r} failed: {exc}")
+
         return
 
     @property
