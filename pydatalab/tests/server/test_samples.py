@@ -1209,6 +1209,40 @@ def test_save_item_with_malformed_constituent_returns_400(client, default_sample
     assert response.json["status"] == "error"
 
 
+def test_clearing_field_via_save_item_persists_to_db(client):
+    """Setting a field then clearing it (setting to None) via save-item must
+    actually clear it in MongoDB. Fails if exclude_none=True strips the None
+    from the $set payload, leaving the old value untouched."""
+    item_id = "clear_field_test"
+    response = client.post(
+        "/new-sample/",
+        json={"name": "Clear field test", "item_id": item_id, "type": "samples"},
+    )
+    assert response.status_code == 201, response.json
+
+    # Set molar_mass and save.
+    item_data = client.get(f"/get-item-data/{item_id}").json["item_data"]
+    item_data["molar_mass"] = 123.45
+    assert (
+        client.post("/save-item/", json={"item_id": item_id, "data": item_data}).status_code == 200
+    )
+
+    assert client.get(f"/get-item-data/{item_id}").json["item_data"]["molar_mass"] == 123.45
+
+    # Now clear molar_mass and save again.
+    item_data = client.get(f"/get-item-data/{item_id}").json["item_data"]
+    item_data["molar_mass"] = None
+    assert (
+        client.post("/save-item/", json={"item_id": item_id, "data": item_data}).status_code == 200
+    )
+
+    result = client.get(f"/get-item-data/{item_id}").json["item_data"].get("molar_mass")
+    assert result is None, (
+        f"molar_mass should be None after being cleared but got {result!r}; "
+        "exclude_none=True in save_item is stripping the None from the $set payload"
+    )
+
+
 def test_get_item_with_malformed_stored_constituent_returns_500(client, database, user_id):
     """If an item with a malformed constituent ended up in the database (e.g.
     from an older write path), GET should surface it as a server-side
