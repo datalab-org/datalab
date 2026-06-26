@@ -1,24 +1,50 @@
 // Resources for the application
-import DataBlockBase from "@/components/datablocks/DataBlockBase";
-import MediaBlock from "@/components/datablocks/MediaBlock";
-import XRDBlock from "@/components/datablocks/XRDBlock";
-import XRDInsituBlock from "@/components/datablocks/XRDInsituBlock";
-import ChatBlock from "@/components/datablocks/ChatBlock";
-import CycleBlock from "@/components/datablocks/CycleBlock";
-import NMRBlock from "@/components/datablocks/NMRBlock";
-import NMRInsituBlock from "@/components/datablocks/NMRInsituBlock";
-import UVVisInsituBlock from "@/components/datablocks/UVVisInsituBlock.vue";
-import UVVisBlock from "@/components/datablocks/UVVisBlock";
+//
+// The block / item-information / create-modal components below are imported
+// lazily via `defineAsyncComponent`. resources.js is a hub imported by ~40
+// modules (mostly for pure data like `itemTypes` colours and constants), and
+// many of those modules are themselves reachable from these components. Eager
+// imports created circular dependencies that webpack tolerated but Vite's
+// stricter ESM evaluation surfaces as "Cannot access 'X' before initialization"
+// errors. Deferring them keeps the cycle out of the synchronous module graph;
+// they are only ever used as `<component :is="...">`, which accepts async
+// components transparently.
+import { defineAsyncComponent } from "vue";
 
-import SampleInformation from "@/components/SampleInformation";
-import StartingMaterialInformation from "@/components/StartingMaterialInformation";
-import CellInformation from "@/components/CellInformation";
-import CollectionInformation from "@/components/CollectionInformation";
-import EquipmentInformation from "@/components/EquipmentInformation";
+const DataBlockBase = defineAsyncComponent(() => import("@/components/datablocks/DataBlockBase"));
+const MediaBlock = defineAsyncComponent(() => import("@/components/datablocks/MediaBlock"));
+const XRDBlock = defineAsyncComponent(() => import("@/components/datablocks/XRDBlock"));
+const XRDInsituBlock = defineAsyncComponent(() => import("@/components/datablocks/XRDInsituBlock"));
+const ChatBlock = defineAsyncComponent(() => import("@/components/datablocks/ChatBlock"));
+const CycleBlock = defineAsyncComponent(() => import("@/components/datablocks/CycleBlock"));
+const NMRBlock = defineAsyncComponent(() => import("@/components/datablocks/NMRBlock"));
+const NMRInsituBlock = defineAsyncComponent(() => import("@/components/datablocks/NMRInsituBlock"));
+const UVVisInsituBlock = defineAsyncComponent(
+  () => import("@/components/datablocks/UVVisInsituBlock.vue"),
+);
+const UVVisBlock = defineAsyncComponent(() => import("@/components/datablocks/UVVisBlock"));
 
-import SampleCreateModalAddon from "@/components/itemCreateModalAddons/SampleCreateModalAddon";
-import CellCreateModalAddon from "@/components/itemCreateModalAddons/CellCreateModalAddon";
-import StartingMaterialCreateModalAddon from "./components/itemCreateModalAddons/StartingMaterialCreateModalAddon.vue";
+const SampleInformation = defineAsyncComponent(() => import("@/components/SampleInformation"));
+const StartingMaterialInformation = defineAsyncComponent(
+  () => import("@/components/StartingMaterialInformation"),
+);
+const CellInformation = defineAsyncComponent(() => import("@/components/CellInformation"));
+const CollectionInformation = defineAsyncComponent(
+  () => import("@/components/CollectionInformation"),
+);
+const EquipmentInformation = defineAsyncComponent(
+  () => import("@/components/EquipmentInformation"),
+);
+
+const SampleCreateModalAddon = defineAsyncComponent(
+  () => import("@/components/itemCreateModalAddons/SampleCreateModalAddon"),
+);
+const CellCreateModalAddon = defineAsyncComponent(
+  () => import("@/components/itemCreateModalAddons/CellCreateModalAddon"),
+);
+const StartingMaterialCreateModalAddon = defineAsyncComponent(
+  () => import("./components/itemCreateModalAddons/StartingMaterialCreateModalAddon.vue"),
+);
 
 // Look for values set in .env file. Use defaults if `null` is not explicitly handled elsewhere in the code.
 export const API_URL =

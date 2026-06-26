@@ -6,11 +6,13 @@ export default defineConfig({
     baseUrl: "http://localhost:8080",
     apiUrl: "http://localhost:5001",
     defaultCommandTimeout: 10000,
+    specPattern: "cypress/e2e/**/*.cy.{js,jsx,ts,tsx}",
   },
   component: {
     devServer: {
-      framework: "vue-cli",
-      bundler: "webpack",
+      framework: "vue",
+      bundler: "vite",
     },
+    specPattern: "cypress/component/**/*.cy.{js,jsx,ts,tsx}",
   },
 });

@@ -29,7 +29,7 @@ ARG VUE_APP_GIT_VERSION=0.0.0+ci
 ENV VUE_APP_GIT_VERSION=${VUE_APP_GIT_VERSION}
 
 COPY webapp ./
-RUN /node_modules/.bin/vue-cli-service build
+RUN /node_modules/.bin/vite build
 
 FROM node:22.22-bullseye-slim AS production
 
