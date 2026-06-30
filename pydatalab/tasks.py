@@ -96,6 +96,7 @@ def update_file(filename: str, sub_line: tuple[str, str], strip: str | None = No
 def generate_schemas(_):
     """This task generates JSONSchemas for all item models used in the project."""
     from pydatalab.models import ITEM_MODELS
+    from pydatalab.models.schema_hints import DatalabFieldExtra, DatalabModelExtra
 
     schemas_path = pathlib.Path(__file__).parent / "schemas"
 
@@ -103,6 +104,14 @@ def generate_schemas(_):
         schema = model.model_json_schema(by_alias=False)
         with open(schemas_path / f"{model.__name__.lower()}.json", "w") as f:
             json.dump(schema, f, indent=2)
+
+    # The datalab_* json_schema_extra hint vocabulary, as a checked-in schema.
+    for name, hint_model in (
+        ("datalab_field_extra", DatalabFieldExtra),
+        ("datalab_model_extra", DatalabModelExtra),
+    ):
+        with open(schemas_path / f"{name}.json", "w") as f:
+            json.dump(hint_model.model_json_schema(by_alias=False), f, indent=2)
 
     with open(schemas_path / "plugin_config.json", "w") as f:
         json.dump(load_plugin_schema().schema(), f, indent=2)
@@ -122,7 +131,7 @@ def collect_plugin_panels(_):
     ``webapp/src/plugins/panels.generated.js`` is regenerated automatically
     (the committed ``plugins/index.js`` shim loads it when present).
 
-    Convention: the model class ``HeatTreatment`` → ``HeatTreatmentPanel.vue``
+    Convention: the model class ``MixedSolution`` → ``MixedSolutionPanel.vue``
     (class name + "Panel").
 
     Run this after ``dev.install`` whenever plugins are installed or updated,
@@ -132,7 +141,7 @@ def collect_plugin_panels(_):
     from importlib.metadata import entry_points
 
     def _panel_name(ep_value: str) -> str:
-        """``my_plugin.models:HeatTreatment`` → ``HeatTreatmentPanel``"""
+        """``my_plugin.models:MixedSolution`` → ``MixedSolutionPanel``"""
         class_name = ep_value.split(":")[-1]
         return f"{class_name}Panel"
 

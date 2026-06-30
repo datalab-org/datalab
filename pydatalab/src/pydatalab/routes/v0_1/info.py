@@ -21,6 +21,7 @@ from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.feature_flags import FEATURE_FLAGS, FeatureFlags
 from pydatalab.models import BUILTIN_ITEM_TYPES, ITEM_MODELS, ITEM_SCHEMAS, Person
+from pydatalab.models.schema_hints import DatalabModelExtra
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only
 
@@ -203,15 +204,17 @@ def _get_model_schema_extra(item_type: str) -> dict:
 
 def _type_attributes(item_type: str, schema: dict) -> dict:
     """Build the attributes dict for a single item type in the /info/types response."""
-    extra = _get_model_schema_extra(item_type)
+    extra = DatalabModelExtra(
+        **{k: v for k, v in _get_model_schema_extra(item_type).items() if k.startswith("datalab_")}
+    )
     return {
         "version": __version__,
         "api_version": __api_version__,
         "schema": schema,
         "title": schema.get("title"),
         "base_type": _get_base_type(item_type),
-        "hidden_fields": extra.get("datalab_ui_hidden_fields", []),
-        "ui_color": extra.get("datalab_ui_color"),
+        "hidden_fields": extra.datalab_ui_hidden_fields or [],
+        "ui_color": extra.datalab_ui_color,
     }
 
 
