@@ -192,8 +192,8 @@ function resolveField(name, rawSchema) {
     multiline: extra.datalab_multiline === true,
     // Number+unit compound widget
     unitField: extra.datalab_unit_field || null,
-    unitOptions: extra.units || null,
-    defaultUnit: extra.default_unit || null,
+    unitOptions: extra.datalab_units || null,
+    defaultUnit: extra.datalab_default_unit || null,
   };
 }
 

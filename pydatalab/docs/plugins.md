@@ -139,7 +139,7 @@ annotations on the field:
 | `datalab_include_field_in_summary` | also show the field as a column in list / summary views |
 | `datalab_hidden` | store the field but don't render it (e.g. a companion unit field) |
 | `datalab_unit_field` | name of a companion field holding the unit; renders a value box + unit dropdown |
-| `units` / `default_unit` | unit options, and the default, for that dropdown |
+| `datalab_units` / `datalab_default_unit` | unit options, and the default, for that dropdown |
 | `datalab_ref_types` | render as an item-search selector restricted to these item types — i.e. a link to another item (built-in *or* custom) |
 | `datalab_section` | group this field into its own titled card |
 | `datalab_multiline` | render a string as a multi-line text area |
@@ -164,33 +164,35 @@ from pydatalab.models.samples import Sample
 from pydatalab.models.utils import EntryReference
 
 
-class AnnealingProtocol(Sample):
+class Solution(Sample):
     model_config = ConfigDict(
-        title="Annealing Protocol",
+        title="Solution",
         json_schema_extra={
-            "datalab_ui_hidden_fields": ["synthesis_information", "substance_information"],
-            "datalab_section_title": "Annealing Schedule",
-            "datalab_ui_color": "#b5651d",
+            "datalab_ui_hidden_fields": ["synthesis_information"],
+            "datalab_section_title": "Solution",
+            "datalab_ui_color": "#3a7ca5",
         },
     )
-    type: Literal["annealing_protocols"] = "annealing_protocols"
+    type: Literal["solutions"] = "solutions"
 
-    peak_temperature: float | None = Field(
-        None, ge=0, title="Peak temperature",
+    # Fields linking to a built-in `starting_materials` or another `samples` item:
+    solute: EntryReference | None = Field(
+        None, json_schema_extra={"datalab_ref_types": ["starting_materials", "samples"]}
+    )
+    solvent: EntryReference | None = Field(
+        None, json_schema_extra={"datalab_ref_types": ["starting_materials", "samples"]}
+    )
+
+    concentration: float | None = Field(
+        None,
         json_schema_extra={
-            "units": ["°C", "K"], "default_unit": "°C",
-            "datalab_unit_field": "peak_temperature_unit",
+            "datalab_units": ["mol/L", "mmol/L"], "datalab_default_unit": "mol/L",
+            "datalab_unit_field": "concentration_unit",
             "datalab_include_field_in_summary": True,
         },
     )
-    peak_temperature_unit: Literal["°C", "K"] = Field(
-        "°C", json_schema_extra={"datalab_hidden": True}
-    )
-
-    # A field grouped into its own "Equipment" card, linking to an `equipment` item:
-    furnace: EntryReference | None = Field(
-        None,
-        json_schema_extra={"datalab_ref_types": ["equipment"], "datalab_section": "Equipment"},
+    concentration_unit: Literal["mol/L", "mmol/L"] = Field(
+        "mol/L", json_schema_extra={"datalab_hidden": True}
     )
 ```
 
@@ -201,7 +203,7 @@ actions that pull data from a linked item), a plugin can ship its own Vue compon
 over rendering of the custom area entirely (the base item component is still shown above it).
 
 Place a `<ClassName>Panel.vue` in a `webapp/` directory beside the models, where `<ClassName>` is
-the model's class name (`HeatTreatment` → `HeatTreatmentPanel.vue`):
+the model's class name (`MixedSolution` → `MixedSolutionPanel.vue`):
 
 ```
 my_plugin/
@@ -209,7 +211,7 @@ my_plugin/
 └── my_plugin/
     ├── models.py
     └── webapp/
-        └── HeatTreatmentPanel.vue
+        └── MixedSolutionPanel.vue
 ```
 
 Then collect the panels into the webapp and rebuild it:
@@ -238,8 +240,10 @@ methods: {
 
 Reuse datalab's building blocks rather than rebuilding them, imported via the `@/components/…`
 alias: `ItemSelect` (item search), `FormattedItemName` (the type-coloured item badge + link),
-`TooltipIcon`, and so on. datalab ships a worked example plugin whose panel links to another
-custom type, copies its parameters with a "Populate from …" button, and draws a live plot.
+`TooltipIcon`, and so on. datalab ships a worked example plugin (`example_item_plugin`) whose
+`MixedSolutionPanel.vue` references one or more `solutions` items (a list of cross-references),
+pulls their concentrations via `getItemData`, and computes the resulting mixture live — none of
+which the core panel can do on its own.
 
 !!! warning "Custom panels are trusted, compiled code"
     Panel `.vue` files are compiled into the webapp bundle and run in every user's browser, so

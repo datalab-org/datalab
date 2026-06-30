@@ -11,11 +11,10 @@ requires-python = ">=3.10"
 # This is the mechanism under test: datalab's `load_item_plugins()` enumerates
 # this entry-point group at startup and registers each as a custom item type.
 [project.entry-points."pydatalab.item_types"]
-example_samples = "example_item_plugin.models:ExampleSample"
-# Annotation-rendered (no .vue): schedule rendered by core CustomFieldsPanel.
-annealing_protocols = "example_item_plugin.models:AnnealingProtocol"
-# Custom panel: HeatTreatmentPanel.vue; references annealing_protocols.
-heat_treatments = "example_item_plugin.models:HeatTreatment"
+# Annotation-rendered (no .vue): fields rendered by the core CustomFieldsPanel.
+solutions = "example_item_plugin.models:Solution"
+# Custom panel: MixedSolutionPanel.vue; references solutions.
+mixed_solutions = "example_item_plugin.models:MixedSolution"
 
 [tool.setuptools]
 packages = ["example_item_plugin"]

@@ -674,3 +674,46 @@ def test_bad_email(contact_email):
 
     with pytest.raises(ValueError):
         TestModel(email=contact_email)
+
+
+def test_builtin_models_have_valid_schema_hints():
+    """Every built-in item model's datalab schema hints validate against the
+    DatalabFieldExtra/DatalabModelExtra vocabulary."""
+    from pydatalab.models.schema_hints import validate_schema_hints
+
+    for model in ITEM_MODELS.values():
+        validate_schema_hints(model)
+
+
+def test_datalab_field_extra_rejects_unknown_and_mistyped_hints():
+    from pydatalab.models.schema_hints import DatalabFieldExtra
+
+    # Unknown datalab_ key.
+    with pytest.raises(pydantic.ValidationError):
+        DatalabFieldExtra(datalab_include_in_summary=True)
+
+    # Wrong type for a known key.
+    with pytest.raises(pydantic.ValidationError):
+        DatalabFieldExtra(datalab_ref_types="equipment")
+
+    # A valid set of hints passes.
+    DatalabFieldExtra(
+        datalab_include_field_in_summary=True,
+        datalab_ref_types=["equipment"],
+        datalab_units=["mV", "V"],
+        datalab_default_unit="V",
+    )
+
+
+def test_validate_schema_hints_raises_for_bad_field_hint():
+    from pydantic import Field
+
+    from pydatalab.models.schema_hints import validate_schema_hints
+    from pydatalab.models.utils import BaseModel
+
+    class _BadHints(BaseModel):
+        # `datalab_multlinee` is a typo of `datalab_multiline`.
+        widget: str | None = Field(None, json_schema_extra={"datalab_multlinee": True})
+
+    with pytest.raises(ValueError, match="widget"):
+        validate_schema_hints(_BadHints)
