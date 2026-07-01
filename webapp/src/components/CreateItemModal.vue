@@ -174,7 +174,7 @@ export default {
       // The passed allowedTypes plus any dynamically-registered (custom/plugin)
       // creatable types whose base type fits this modal's context, so e.g. a
       // samples modal offers sample-derived custom types but not equipment-derived ones.
-      const dynamic = Object.keys(this.$store.state.schemas).filter(
+      const dynamic = Object.keys(this.$store.state.schemas || {}).filter(
         (type) =>
           itemTypes[type]?.isDynamic &&
           itemTypes[type]?.isCreateable &&
