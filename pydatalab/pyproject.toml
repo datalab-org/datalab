@@ -58,7 +58,7 @@ server = [
     "python-dotenv ~= 1.0",
     "pillow>=11,<13",
     "pyjwt ~= 2.9",
-    "invoke ~= 2.2",
+    "invoke>=2.2,<4.0",
 ]
 apps = [
     # General
