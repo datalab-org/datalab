@@ -7,6 +7,18 @@ site/
 docker-compose.override.yml
 plugins.toml
 plugins/
+# ... but track the in-repo example item-type plugin so it ships with the repo / PR
+# (any other plugins under pydatalab/plugins/, e.g. deployment-specific ones, stay local):
+!/pydatalab/plugins/
+/pydatalab/plugins/*
+!/pydatalab/plugins/example_item_plugin/
+/pydatalab/plugins/example_item_plugin/**/__pycache__/
+/pydatalab/plugins/example_item_plugin/**/*.egg-info/
+# ... but keep the webapp plugin-panel shim tracked (its generated
+# companions — panels.generated.js and copied .vue dirs — stay ignored)
+!/webapp/src/plugins/
+/webapp/src/plugins/*
+!/webapp/src/plugins/index.js
 
 # App testing files
 webapp/cypress/screenshots

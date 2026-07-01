@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "example-item-plugin"
+version = "0.0.1"
+description = "Example plugin demonstrating the pydatalab.item_types entry-point registration path."
+requires-python = ">=3.10"
+
+# This is the mechanism under test: datalab's `load_item_plugins()` enumerates
+# this entry-point group at startup and registers each as a custom item type.
+[project.entry-points."pydatalab.item_types"]
+# Annotation-rendered (no .vue): fields rendered by the core CustomFieldsPanel.
+solutions = "example_item_plugin.models:Solution"
+# Custom panel: MixedSolutionPanel.vue; references solutions.
+mixed_solutions = "example_item_plugin.models:MixedSolution"
+
+[tool.setuptools]
+packages = ["example_item_plugin"]

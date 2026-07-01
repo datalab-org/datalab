@@ -8,6 +8,7 @@ from pydatalab.models.files import File
 from pydatalab.models.items import Item
 from pydatalab.models.people import Person
 from pydatalab.models.samples import Sample
+from pydatalab.models.schema_hints import validate_schema_hints
 from pydatalab.models.starting_materials import StartingMaterial
 from pydatalab.models.versions import ItemVersion
 
@@ -106,6 +107,8 @@ def register_item_model(model: type[Item]) -> None:
             f"Item type {item_type!r} is already registered to {existing.__name__!r}; "
             f"cannot register {model.__name__!r}."
         )
+
+    validate_schema_hints(model)
 
     ITEM_MODELS[item_type] = model
     ITEM_SCHEMAS[item_type] = model.model_json_schema(by_alias=False)

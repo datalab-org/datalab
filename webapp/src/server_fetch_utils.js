@@ -7,6 +7,8 @@ import {
   SAMPLE_TABLE_TYPES,
   INVENTORY_TABLE_TYPES,
   EQUIPMENT_TABLE_TYPES,
+  registerDynamicItemType,
+  itemTypes,
 } from "@/resources.js";
 
 import { DialogService } from "@/services/DialogService";
@@ -288,7 +290,11 @@ export function createNewItem(
         getEquipmentList();
       }
     }
-    return "success";
+    // Custom/plugin types are surfaced in the samples table for now.
+    if (itemTypes[response_json.sample_list_entry.type]?.isDynamic) {
+      store.commit("prependToSampleList", response_json.sample_list_entry);
+    }
+    return response_json.sample_list_entry.item_id;
   });
 }
 
@@ -1342,6 +1348,16 @@ export async function loadItemSchemas() {
   // in the Vuex store.
   try {
     const supportedTypes = await getSupportedSchemasList();
+    // Register any server-side types not hardcoded in the frontend registry
+    // (custom/plugin types) so they are recognised across the app.
+    supportedTypes.forEach((typeInfo) =>
+      registerDynamicItemType(typeInfo.id, {
+        title: typeInfo.attributes?.title,
+        base_type: typeInfo.attributes?.base_type,
+        hidden_fields: typeInfo.attributes?.hidden_fields,
+        ui_color: typeInfo.attributes?.ui_color,
+      }),
+    );
     await Promise.all(supportedTypes.map((typeInfo) => ensureItemSchema(typeInfo.id)));
   } catch (error) {
     console.error("Failed to get supported schemas list:", error);

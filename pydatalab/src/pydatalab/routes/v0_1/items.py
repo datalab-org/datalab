@@ -16,7 +16,12 @@ from werkzeug.exceptions import BadRequest, Conflict, InternalServerError, NotFo
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
-from pydatalab.models import ITEM_MODELS, ItemVersion, flagged_summary_fields
+from pydatalab.models import (
+    BUILTIN_ITEM_TYPES,
+    ITEM_MODELS,
+    ItemVersion,
+    flagged_summary_fields,
+)
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import InlineSubstance, generate_unique_refcode
@@ -283,7 +288,10 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
     if not match:
         match = {}
     match.update(get_default_permissions(user_only=False, inherit_from_collections=False))
-    match["type"] = {"$in": ["samples", "cells"]}
+    # Custom/plugin item types are surfaced in the samples listing for now (a
+    # `base_type`-aware split into samples/equipment/inventory can refine this later).
+    custom_item_types = [t for t in ITEM_MODELS if t not in BUILTIN_ITEM_TYPES]
+    match["type"] = {"$in": ["samples", "cells", *custom_item_types]}
 
     _project = {
         "_id": 0,
@@ -325,9 +333,9 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
         "status": 1,
     }
 
-    # Include any fields on samples/cells (including custom subclasses) that opt
-    # into summaries via `datalab_include_field_in_summary`.
-    for field in flagged_summary_fields(("samples", "cells")):
+    # Include any fields on samples/cells/custom types that opt into summaries
+    # via `datalab_include_field_in_summary`.
+    for field in flagged_summary_fields(ITEM_MODELS):
         _project.setdefault(field, 1)
 
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
@@ -1737,10 +1745,19 @@ def save_item():
     item.pop("immutable_id", None)
     item.pop("files", None)
 
+    # Fields explicitly set to null in the incoming update must be cleared in the DB.
+    # model_dump(exclude_none=True) silently drops them from `item`, so we $unset separately.
+    # Skip any field still present in `item` (e.g. re-filled by a model validator):
+    # the same path in both $set and $unset is a MongoDB conflict error.
+    fields_to_unset = {k for k, v in updated_data.items() if v is None and k not in item}
+
     # Update the item FIRST (transaction safety: item update before version save)
+    mongo_update: dict = {"$set": item}
+    if fields_to_unset:
+        mongo_update["$unset"] = {f: "" for f in fields_to_unset}
     result = flask_mongo.db.items.update_one(
         {"item_id": item_id, **get_default_permissions(user_only=True)},
-        {"$set": item},
+        mongo_update,
     )
 
     if result.matched_count != 1:

@@ -121,11 +121,135 @@ Custom types must use a `type` value that does not collide with a built-in type.
 Fields tagged with `json_schema_extra={"datalab_include_field_in_summary": True}` are additionally included in item list/summary responses.
 A worked example of both a `Sample` subclass and a standalone `Item` subclass lives at `pydatalab/src/pydatalab/models/_example_custom.py`.
 
-Eventually, such item types will allow for rich descriptions of unitful quantites, semantic annotations and URIs for fields, and cross-linking between items via custom relationships.
+### Rendering a custom type in the web UI
 
-!!! warning "Backend-only for now"
-    Custom item type support is currently backend-only: the web UI does not yet
-    render bespoke fields or provide tailored create/edit forms for custom types.
+The web UI renders a custom type's extra fields automatically. On startup the frontend reads `/info/types`, registers every custom type,
+and on the edit page shows:
+
+- the **base item component** — the same name / refcode / relationships block used by the
+  built-in type the model inherits from; and
+- a **custom-fields panel** that diffs the type's schema against its base type and renders only
+  the fields the model *adds*.
+
+Each added field is rendered from its JSON-Schema type plus a small set of `json_schema_extra`
+annotations on the field:
+
+| `Field(json_schema_extra=…)` key | Effect in the UI |
+|---|---|
+| `datalab_include_field_in_summary` | also show the field as a column in list / summary views |
+| `datalab_hidden` | store the field but don't render it (e.g. a companion unit field) |
+| `datalab_unit_field` | name of a companion field holding the unit; renders a value box + unit dropdown |
+| `datalab_units` / `datalab_default_unit` | unit options, and the default, for that dropdown |
+| `datalab_ref_types` | render as an item-search selector restricted to these item types — i.e. a link to another item (built-in *or* custom) |
+| `datalab_section` | group this field into its own titled card |
+| `datalab_multiline` | render a string as a multi-line text area |
+
+A few keys on the model's `model_config` control the type as a whole:
+
+| `ConfigDict(json_schema_extra=…)` / config key | Effect in the UI |
+|---|---|
+| `title` | display name of the type (navbar, create dialog) |
+| `datalab_ui_color` | accent colour for the navbar, field labels and the item's reference badge |
+| `datalab_ui_hidden_fields` | base-component sections to hide (`status`, `collections`, `description`, `substance_information`, `synthesis_information`) |
+| `datalab_section_title` | title of the default custom-fields card |
+
+Only **scalar-like** fields are rendered automatically: strings, numbers, enums, booleans, unit
+quantities, and single item references. Lists, nested objects, computed values or charts need a
+custom panel (see below).
+
+```python
+from typing import Literal
+from pydantic import ConfigDict, Field
+from pydatalab.models.samples import Sample
+from pydatalab.models.utils import EntryReference
+
+
+class Solution(Sample):
+    model_config = ConfigDict(
+        title="Solution",
+        json_schema_extra={
+            "datalab_ui_hidden_fields": ["synthesis_information"],
+            "datalab_section_title": "Solution",
+            "datalab_ui_color": "#3a7ca5",
+        },
+    )
+    type: Literal["solutions"] = "solutions"
+
+    # Fields linking to a built-in `starting_materials` or another `samples` item:
+    solute: EntryReference | None = Field(
+        None, json_schema_extra={"datalab_ref_types": ["starting_materials", "samples"]}
+    )
+    solvent: EntryReference | None = Field(
+        None, json_schema_extra={"datalab_ref_types": ["starting_materials", "samples"]}
+    )
+
+    concentration: float | None = Field(
+        None,
+        json_schema_extra={
+            "datalab_units": ["mol/L", "mmol/L"], "datalab_default_unit": "mol/L",
+            "datalab_unit_field": "concentration_unit",
+            "datalab_include_field_in_summary": True,
+        },
+    )
+    concentration_unit: Literal["mol/L", "mmol/L"] = Field(
+        "mol/L", json_schema_extra={"datalab_hidden": True}
+    )
+```
+
+### Custom panels (full control)
+
+When annotations aren't enough (structured tables, values computed in the browser, plots, or
+actions that pull data from a linked item), a plugin can ship its own Vue component, which takes
+over rendering of the custom area entirely (the base item component is still shown above it).
+
+Place a `<ClassName>Panel.vue` in a `webapp/` directory beside the models, where `<ClassName>` is
+the model's class name (`MixedSolution` → `MixedSolutionPanel.vue`):
+
+```
+my_plugin/
+├── pyproject.toml
+└── my_plugin/
+    ├── models.py
+    └── webapp/
+        └── MixedSolutionPanel.vue
+```
+
+Then collect the panels into the webapp and rebuild it:
+
+```bash
+# copies webapp/*.vue from installed item_types plugins into
+# webapp/src/plugins/ and regenerates the registry
+uv run invoke dev.collect-plugin-panels
+```
+
+The panel receives two props, `item_id` and `itemType`, and reads/writes the item through the
+Vuex store — exactly like the built-in information components:
+
+```js
+computed: {
+  itemData() {
+    return this.$store.state.all_item_data[this.item_id] || {};
+  },
+},
+methods: {
+  updateField(name, value) {
+    this.$store.commit("updateItemData", { item_id: this.item_id, item_data: { [name]: value } });
+  },
+},
+```
+
+Reuse datalab's building blocks rather than rebuilding them, imported via the `@/components/…`
+alias: `ItemSelect` (item search), `FormattedItemName` (the type-coloured item badge + link),
+`TooltipIcon`, and so on. datalab ships a worked example plugin (`example_item_plugin`) whose
+`MixedSolutionPanel.vue` references one or more `solutions` items (a list of cross-references),
+pulls their concentrations via `getItemData`, and computes the resulting mixture live — none of
+which the core panel can do on its own.
+
+!!! warning "Custom panels are trusted, compiled code"
+    Panel `.vue` files are compiled into the webapp bundle and run in every user's browser, so
+    installing a UI plugin means rebuilding the webapp (run `uv run invoke dev.collect-plugin-panels`
+    before `vue-cli-service build`). Only install panels from sources you trust.
+
 
 ## Plugin installation
 

@@ -1,0 +1,63 @@
+{
+  "additionalProperties": false,
+  "description": "Datalab hints attached to a model via ``model_config['json_schema_extra']``.",
+  "properties": {
+    "datalab_ui_hidden_fields": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Inherited field names to hide from the UI for this item type.",
+      "title": "Datalab Ui Hidden Fields"
+    },
+    "datalab_ui_color": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Accent colour (CSS hex) used for this item type in the UI.",
+      "title": "Datalab Ui Color"
+    },
+    "datalab_section_title": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Title of the default custom-fields card.",
+      "title": "Datalab Section Title"
+    },
+    "datalab_base_type": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Built-in type this derives from, when not inferable from the class hierarchy.",
+      "title": "Datalab Base Type"
+    }
+  },
+  "title": "DatalabModelExtra",
+  "type": "object"
+}
