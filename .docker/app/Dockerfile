@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:22.22-bullseye-slim AS build
+FROM node:26.4-bullseye-slim AS build
 SHELL ["/bin/bash", "--login", "-c"]
 
 WORKDIR /app
@@ -31,7 +31,7 @@ ENV VUE_APP_GIT_VERSION=${VUE_APP_GIT_VERSION}
 COPY webapp ./
 RUN /node_modules/.bin/vue-cli-service build
 
-FROM node:22.22-bullseye-slim AS production
+FROM node:26.4-bullseye-slim AS production
 
 ENV PATH=$PATH:/node_modules/.bin
 COPY ./.docker/app_entrypoint.sh /app/
