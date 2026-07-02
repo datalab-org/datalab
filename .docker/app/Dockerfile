@@ -25,11 +25,11 @@ ARG VUE_APP_QR_CODE_RESOLVER_URL=magic-qr-code-resolver-url
 ARG VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT=magic-generate-id-setting
 # Version source for scripts/get-version.js. Provided as a build arg so the
 # build layer doesn't depend on `.git` (which would invalidate cache every commit).
-ARG VUE_APP_GIT_VERSION=0.0.0+ci
+ARG VUE_APP_GIT_VERSION=0.0.0-git
 ENV VUE_APP_GIT_VERSION=${VUE_APP_GIT_VERSION}
 
 COPY webapp ./
-RUN /node_modules/.bin/vue-cli-service build
+RUN /node_modules/.bin/vite build
 
 FROM node:22.22-bullseye-slim AS production
 

@@ -40,7 +40,7 @@ echo "  AUTOMATICALLY_GENERATE_ID_DEFAULT: ${VUE_APP_AUTOMATICALLY_GENERATE_ID_D
 echo ""
 echo "Patching..."
 
-for file in $ROOT_DIR/js/app.*.js* $ROOT_DIR/*html; do
+for file in $ROOT_DIR/assets/*.js* $ROOT_DIR/*html; do
     echo "$file"
     sed -i "s|0.0.0-git|${VUE_APP_GIT_VERSION}|g" $file
     sed -i "s|magic-api-url|${VUE_APP_API_URL}|g" $file
