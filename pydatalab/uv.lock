@@ -762,7 +762,7 @@ provides-extras = ["server", "apps", "app-plugins-git", "chat", "deploy", "all"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "docstring-inheritance", specifier = "~=2.2" },
+    { name = "docstring-inheritance", specifier = ">=2.2,<4.0" },
     { name = "griffe-inherited-docstrings", specifier = "~=1.1" },
     { name = "markdown-callouts", specifier = "~=0.4" },
     { name = "mkdocs", specifier = "~=1.6" },
@@ -835,11 +835,14 @@ wheels = [
 
 [[package]]
 name = "docstring-inheritance"
-version = "2.2.2"
+version = "3.0.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/16/f4/988a96d45e7db09e1c43dbb8ab0ef0e093e82869fb38e30d41647571a024/docstring_inheritance-2.2.2.tar.gz", hash = "sha256:224eeaee1aeea6503341f9d39eea075d50760f9f2ad9c73dbe8ae61af785d3c0", size = 28341, upload-time = "2025-06-19T08:34:23.571Z" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/73/64/d3c77997ddfa19281445c8ae8316d27b50b91fd250b09c6c87e18dfbc9b0/docstring_inheritance-3.0.0.tar.gz", hash = "sha256:3ee19b35549279a7a03e184d66e4d5b25e859ae67785e2e5373e224e1f874934", size = 30686, upload-time = "2025-12-11T06:43:08.599Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/df/c4/a098fe2006371014eddf84244751352c6160c2dc7d2d033aee732f4b2065/docstring_inheritance-2.2.2-py3-none-any.whl", hash = "sha256:090d7a6e098bbea8914839391d56cc38e32d37d471d99a3397ef9d94fa84b5e9", size = 24201, upload-time = "2024-11-30T19:55:33.477Z" },
+    { url = "https://files.pythonhosted.org/packages/28/76/b42a11e16de9a8cecd950cbf8a92da20dcaf54648aa08b97f15233709f28/docstring_inheritance-3.0.0-py3-none-any.whl", hash = "sha256:1fbd9b1c8570b63e6670880504adb9c63fc1c8376725a312cf62b5d07728664d", size = 26498, upload-time = "2025-12-11T06:43:09.513Z" },
 ]
 
 [[package]]
