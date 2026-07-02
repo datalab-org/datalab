@@ -5,6 +5,7 @@ from pathlib import Path
 import bokeh
 import numpy as np
 import pandas as pd
+from bokeh.models import PanTool
 from scipy.signal import medfilt
 
 from pydatalab.blocks.base import DataBlock, event, generate_js_callback_single_float_parameter
@@ -336,6 +337,10 @@ class XRDBlock(DataBlock):
             if len(pattern_dfs) > 1
             else "normalized intensity",
             y_options=y_options,
+            # Mouse wheel multiplicatively scales the intensities about their
+            # baselines so peaks grow (and can overlap), rather than zooming
+            scale_y_on_wheel=True,
+            tools=[PanTool()],
             plot_line=True,
             plot_points=True,
             point_size=3,

@@ -5,9 +5,10 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from bokeh.events import DoubleTap
+from bokeh.events import DoubleTap, MouseWheel
 from bokeh.layouts import column, gridplot
 from bokeh.models import (
+    BoxZoomTool,
     Button,
     ColorBar,
     ColorMapper,
@@ -19,7 +20,9 @@ from bokeh.models import (
     Legend,
     LegendItem,
     LinearColorMapper,
+    Range1d,
     TableColumn,
+    WheelZoomTool,
 )
 from bokeh.models.widgets import Dropdown, Select
 from bokeh.models.widgets.inputs import TextInput
@@ -48,6 +51,57 @@ SELECTABLE_CALLBACK_y = """
   if (line1) {line1.glyph.y.field = column;}
   source.change.emit();
   yaxis.axis_label = column;
+"""
+SCALE_Y_ON_WHEEL_CALLBACK = """
+  // Only scale while the toggle is enabled (Bokeh 2.4 does not expose runtime
+  // tool selection to CustomJS, so we drive this with our own toggle button).
+  if (!state.data['enabled'][0]) { return; }
+
+  // Multiplicatively scale every y-column about its per-series baseline (its
+  // minimum) so peaks grow/shrink from the baseline on scroll. Each tick is
+  // multiplicative, so a flurry of scrolls compounds (1.1^N) for a logarithmic
+  // feel. The (cheap) target update happens on every event, while the (more
+  // expensive) rewrite of the source arrays is debounced so rapid scrolls
+  // collapse into a single update once scrolling pauses.
+  const factor = (cb_obj.delta > 0) ? 1.1 : 1.0 / 1.1;
+  if (state._target === undefined) { state._target = state.data['scale'][0]; }
+  state._target *= factor;
+  if (state._target < 1e-6) { state._target = 1e-6; }
+
+  if (state._timeout) { clearTimeout(state._timeout); }
+  state._timeout = setTimeout(() => {
+    const scale = state._target;
+    state.data['scale'][0] = scale;
+    for (const src of sources) {
+      // Cache the unscaled values (and per-series baseline) once, so repeated
+      // scrolls compose from the original data rather than accumulating drift
+      if (src._scale_orig === undefined) {
+        src._scale_orig = {};
+        src._scale_base = {};
+        for (const col of columns) {
+          if (src.data[col] === undefined) { continue; }
+          const arr = Array.from(src.data[col]);
+          let mn = Infinity;
+          for (let i = 0; i < arr.length; i++) {
+            if (arr[i] < mn) { mn = arr[i]; }
+          }
+          src._scale_orig[col] = arr;
+          src._scale_base[col] = mn;
+        }
+      }
+      for (const col of columns) {
+        const orig = src._scale_orig[col];
+        if (orig === undefined) { continue; }
+        const base = src._scale_base[col];
+        const out = new Float64Array(orig.length);
+        for (let i = 0; i < orig.length; i++) {
+          out[i] = base + scale * (orig[i] - base);
+        }
+        src.data[col] = out;
+      }
+      src.change.emit();
+    }
+  }, 50);
 """
 GENERATE_CSV_CALLBACK = """
   let columns = Object.keys(source.data);
@@ -228,6 +282,7 @@ def selectable_axes_plot(
     show_table: bool = False,
     use_unique_labels: bool = True,
     parameters: dict | None = None,
+    scale_y_on_wheel: bool = False,
     **kwargs,
 ):
     """
@@ -360,6 +415,7 @@ def selectable_axes_plot(
 
     callbacks_x = []
     callbacks_y = []
+    plot_sources = []
     source = ColumnDataSource(_df)
 
     # Mode B setup: ensure a mapper exists for per-point coloring
@@ -424,6 +480,7 @@ def selectable_axes_plot(
                     df_[attr] = df_.attrs[attr]
 
         source = ColumnDataSource(df_)
+        plot_sources.append(source)
 
         if series_colors is not None:
             # Mode C: fixed color per series sampled from Viridis256 by numeric value
@@ -622,6 +679,64 @@ def selectable_axes_plot(
         controls_layout = row(show_points_btn, sizing_mode="scale_width", margin=(10, 0, 10, 0))
 
         plot_columns.append(controls_layout)
+
+    if scale_y_on_wheel and plot_sources and not skip_plot:
+        # Scale only the numeric y-columns (never the shared x-axis columns)
+        scalable_columns = [c for c in y_options if c in numeric_columns]
+
+        # Fix the y-range to the default trace's extent; otherwise the auto-ranging
+        # would grow with the data and the peaks would appear not to scale at all
+        frames = list(df.values()) if isinstance(df, dict) else df
+        default_col = y_default if isinstance(y_default, str) else y_options[0]
+        y_values = np.concatenate(
+            [f[default_col].to_numpy() for f in frames if default_col in f.columns]
+        )
+        y_min = float(np.nanmin(y_values))
+        y_max = float(np.nanmax(y_values))
+        pad = 0.05 * ((y_max - y_min) or 1.0)
+        p.y_range = Range1d(start=y_min - pad, end=y_max + pad)
+
+        # Bokeh only fires MouseWheel events (and calls preventDefault to stop the
+        # page scrolling) when a scroll tool is active. A zero-speed WheelZoomTool
+        # captures the wheel without zooming itself, so the callback below is the
+        # only thing that acts on the scroll.
+        capture_wheel = WheelZoomTool(speed=0, description="Scroll to scale intensities")
+        p.add_tools(capture_wheel)
+        p.toolbar.active_scroll = capture_wheel
+
+        # The y-axis is controlled by wheel-scaling (with a fixed range), so replace
+        # the default 2D box zoom with an x-only one to avoid fighting that
+        p.toolbar.tools = [t for t in p.toolbar.tools if not isinstance(t, BoxZoomTool)]
+        p.add_tools(BoxZoomTool(dimensions="width"))
+
+        scale_state = ColumnDataSource(data={"scale": [1.0], "enabled": [True]})
+        p.js_on_event(
+            MouseWheel,
+            CustomJS(
+                args=dict(sources=plot_sources, columns=scalable_columns, state=scale_state),
+                code=SCALE_Y_ON_WHEEL_CALLBACK,
+            ),
+        )
+
+        # A toggle (we control its state directly) to enable/disable scroll-scaling
+        scale_toggle = Button(
+            label="✓ Scale intensity on scroll",
+            button_type="primary",
+            width_policy="min",
+            margin=(2, 5, 2, 5),
+        )
+        scale_toggle.js_on_click(
+            CustomJS(
+                args=dict(btn=scale_toggle, state=scale_state),
+                code="""
+                const enabled = !state.data['enabled'][0];
+                state.data['enabled'][0] = enabled;
+                btn.label = (enabled ? '✓' : '✗') + ' Scale intensity on scroll';
+                btn.button_type = enabled ? 'primary' : 'default';
+                """,
+            )
+        )
+        plot_columns.append(row(scale_toggle, sizing_mode="scale_width", margin=(10, 0, 10, 0)))
 
     layout = column(*plot_columns, sizing_mode="scale_width")
 
