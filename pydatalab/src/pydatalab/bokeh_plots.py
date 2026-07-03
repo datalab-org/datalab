@@ -39,6 +39,11 @@ SELECTABLE_CALLBACK_x = """
   var column = cb_obj.value;
   if (circle1) {circle1.glyph.x.field = column;}
   if (line1) {line1.glyph.x.field = column;}
+  if (aux_lines) {
+    for (let i = 0; i < aux_lines.length; i++) {
+      aux_lines[i].glyph.x.field = column;
+    }
+  }
   source.change.emit();
   xaxis.axis_label = column;
 """
@@ -480,9 +485,10 @@ def selectable_axes_plot(
             else None  # Mode B
         )
 
-        if y_aux:
+        aux_line_renderers = []
+        if y_aux and plot_line:
             for y in y_aux:
-                aux_lines = (  # noqa
+                aux_line_renderers.append(
                     p.line(
                         x=x_default,
                         y=y,
@@ -490,13 +496,17 @@ def selectable_axes_plot(
                         color=line_color,
                         alpha=0.3,
                     )
-                    if plot_line
-                    else None
                 )
 
         callbacks_x.append(
             CustomJS(
-                args=dict(circle1=circles, line1=lines, source=source, xaxis=p.xaxis[0]),
+                args=dict(
+                    circle1=circles,
+                    line1=lines,
+                    aux_lines=aux_line_renderers,
+                    source=source,
+                    xaxis=p.xaxis[0],
+                ),
                 code=SELECTABLE_CALLBACK_x,
             )
         )
