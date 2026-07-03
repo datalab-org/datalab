@@ -50,7 +50,6 @@ def parse_mt_mass_spec_ascii(path: Path) -> dict[str, pd.DataFrame | dict]:
             if "time" in key.lower():
                 header[key] = dateutil.parser.parse(header[key])  # type: ignore
 
-        reads = 0
         max_species_lines = 10
         for reads in range(max_species_lines):
             line = f.readline().strip()
@@ -64,7 +63,7 @@ def parse_mt_mass_spec_ascii(path: Path) -> dict[str, pd.DataFrame | dict]:
 
         # Read data with duplicated keys: will have (column number % number of data keys) appended to them
         # MT software also writes "---" if the value is missing, so parse these as NaNs to remove later
-        df = pd.read_csv(f, sep="\t", header=0, parse_dates=False, na_values=["---"])
+        df = pd.read_csv(f, sep=r"\t", header=0, parse_dates=False, na_values=["---"])
         ms_results: dict[str, pd.DataFrame | dict] = {}
         ms_results["meta"] = header
         ms_results["data"] = {}
@@ -124,10 +123,8 @@ def parse_mt_mass_spec_txt(path: Path) -> dict[str, pd.DataFrame | dict]:
                 f"Could not find all header keys in first {max_header_lines} lines of file."
             )
 
-        print(f"header = {header_end}")
-
         header["Performed"] = dateutil.parser.parse(header["Performed"])  # type: ignore
-        max_names_lines = 10
+        max_names_lines = 20
         expected_data_keys = ("t[s]", "Ts[°C]", "Tr[°C]", "Value[mg]")
         line = f.readline()
         for reads in range(max_names_lines):
@@ -171,6 +168,7 @@ def parse_mt_mass_spec_txt(path: Path) -> dict[str, pd.DataFrame | dict]:
             names=column_headers,
             na_values="---",
             index_col="Index",
+            engine="python",
         )
 
         ms_results: dict[str, pd.DataFrame | dict] = {}
