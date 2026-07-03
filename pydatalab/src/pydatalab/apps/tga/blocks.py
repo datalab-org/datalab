@@ -5,7 +5,7 @@ import bokeh
 from bokeh.layouts import gridplot
 from scipy.signal import savgol_filter
 
-from pydatalab.apps.tga.parsers import parse_mt_mass_spec_ascii
+from pydatalab.apps.tga.parsers import parse_mt_mass_spec_ascii, parse_mt_mass_spec_txt
 from pydatalab.blocks.base import DataBlock
 from pydatalab.bokeh_plots import DATALAB_BOKEH_GRID_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
@@ -40,10 +40,14 @@ class MassSpecBlock(DataBlock):
                     ext,
                 )
                 return
-
-            ms_data = parse_mt_mass_spec_ascii(Path(file_info["location"]))
-            if ms_data:
-                self.data["bokeh_plot_data"] = self._plot_ms_data(ms_data)
+            if ext == ".asc":
+                ms_data = parse_mt_mass_spec_ascii(Path(file_info["location"]))
+                if ms_data:
+                    self.data["bokeh_plot_data"] = self._plot_ms_data(ms_data)
+            elif ext == ".txt":
+                ms_data = parse_mt_mass_spec_txt(Path(file_info["location"]))
+                if ms_data:
+                    self.data["bokeh_plot_data"] = self._plot_ms_txt_data(ms_data)
 
     @classmethod
     def _plot_ms_data(cls, ms_data):
@@ -101,3 +105,17 @@ class MassSpecBlock(DataBlock):
         p = gridplot(grid, sizing_mode="scale_width", toolbar_location="below")
 
         return bokeh.embed.json_item(p, theme=DATALAB_BOKEH_GRID_THEME)
+
+    @classmethod
+    def _plot_ms_txt_data(cls, ms_data):
+        x_options = ["Ts[°C]"]
+        y_options = ["Value[mg]"]
+        plot = selectable_axes_plot(
+            ms_data["data"]["tga"],
+            x_options=x_options,
+            y_options=y_options,
+            plot_line=True,
+            plot_points=False,
+            plot_title="Differential Thermal Analysis (DTA)",
+        )
+        return bokeh.embed.json_item(plot, theme=DATALAB_BOKEH_GRID_THEME)
