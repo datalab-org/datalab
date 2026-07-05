@@ -151,8 +151,10 @@ The technical roadmap for a *datalab* v1.0 release includes:
 
 # AI usage disclosure
 
-While initial development of *datalab* was done without the use of AI, recent development has made use of AI code assistants (e.g., OpenAI's Codex, Anthropic's Claude Code) in various parts of *datalab* and related development, mostly code generation for prototyping new features and interfaces.
-Every pull request is still thoroughly reviewed by a human and we maintain an extensive test suite that runs on each pull request to catch regressions across the project.
+While the initial development of *datalab* (architecture, proof-of-concept) was performed without the use of AI, recent development (approximately v0.6.3 onwards) has made use of LLM-based AI coding harnesses (e.g., OpenAI's Codex, Anthropic's Claude Code) in various parts of *datalab* and related development, including: code generation for prototyping new features and interfaces, refactoring, code review (usually initial reviews for PRs from external authors) and generation of test cases.
+Models used include OpenAI's GPT-5.x series, Anthropic's Claude Sonnet and Opus series from versions 3.7 and above, and open weights models such as Qwen3.7.
+
+Every pull request is still thoroughly reviewed by a human and we maintain an extensive test suite that runs on each pull request to catch regressions across the project; the human authors and reviewers are ultimately responsible for the code that is merged.
 
 AI tools were used in a limited way in the preparation of this manuscript, for proofreading and formatting only.
 
