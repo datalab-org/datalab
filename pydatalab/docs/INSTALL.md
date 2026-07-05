@@ -133,10 +133,10 @@ This can be controlled with the `--reload` flag to the `flask run` command.
 
 ### Web app
 
-1. If you do not already have it, install `node.js` v20 or above and the Node Package Manager (`npm`).
-It is recommended not to install node using the official installer, since it is difficult to manage or uninstall, and permissions issues may arise.
+1. If you do not already have it, install `node.js` and the Node Package Manager (`npm`).
+It is recommended not to install node using the official installer, since it is difficult to manage multiple versions or uninstall, and permissions issues may arise.
 Instead, it is recommended to install and manage versions using the [node version manager (nvm)](https://github.com/nvm-sh/nvm#installing-and-updating): `nvm install --lts`.
-This will install the current recommended version of node and nvm.
+You will need a version compatible with the `node` version listed in the `engines` section of `webapp/package.json`.
 
 2. Once installed, use it to install the `yarn` package manager: `npm install --global yarn`
 From this point on, the `npm` command is not needed - all package and script management for the webapp is handled using `yarn`.
