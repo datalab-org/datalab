@@ -62,7 +62,7 @@ The recent growth in data-driven research and artificial intelligence (AI) for c
 # State of the field
 
 Currently, there are several open-source electronic lab notebooks (ELNs) or Laboratory Information Management Systems (LIMSs) aimed at performing FAIR research data management in the experimental chemical and materials sciences. Each package draws a different boundary around which types of data and aspects of the data lifecycle they intend to cover. Importantly, these frameworks are often relied on not just for data recording, but also robust backed-up file storage, syncing from remote scientific instruments, data sharing and collaboration, and data analysis and visualization [@Higgins2022].
-Exemplary open source frameworks include: [NOMAD](https://nomad-lab.eu/nomad-lab) [@Scheidgen2023; @Ghiringhelli2023], [openBIS](https://openbis.ch) [@Barillari2016; @Lam2025], [eLabFTW](https://www.elabftw.net), [Chemmotion](https://chemotion.net) [@Tremouilhac2017a; @Herrmann2025], [Kadi4Mat](https://kadi.iam.kit.edu) [@Brandt2021; @Schlabach2024] and [SampleDB](https://scientific-it-systems.iffgit.fz-juelich.de/SampleDB) [@Rhiem2021].
+Exemplary open source frameworks include: [NOMAD](https://nomad-lab.eu/nomad-lab) [@Scheidgen2023; @Ghiringhelli2023], [openBIS](https://openbis.ch) [@Barillari2016; @Lam2025], [eLabFTW](https://www.elabftw.net), [Chemotion](https://chemotion.net) [@Tremouilhac2017a; @Herrmann2025], [Kadi4Mat](https://kadi.iam.kit.edu) [@Brandt2021; @Schlabach2024] and [SampleDB](https://scientific-it-systems.iffgit.fz-juelich.de/SampleDB) [@Rhiem2021].
 
 One dividing line between the various existing approaches is the balance between extensibility and ease-of-use, with some platforms being highly customizable at the expense of requiring substantial technical expertise. Another differentiator is in the manner in which raw data makes its way into the platform, i.e., whether the user must pre-process data into a generic format or if the platform can directly ingest data from instruments.
 
@@ -129,7 +129,7 @@ To combat this, *datalab* is accompanied by a series of automated deployment rul
 ## Research impact statement
 
 *datalab* is in use in a variety of academic research labs, consortia, and companies across the world.
-There exists an opt-in federation, where each individual deployment is encouraged to register a (mutable) canonical URL and a prefix [datalab-org/federation](https://github.com/datalab-org/federation) in order to ensure item IDs are globally unique and to provide persistent URLs for physical labelling and data sharing via the resolver service at [purl.datalab-org.io](https://purl.datalab-org.io).
+There exists an opt-in federation, where each individual deployment is encouraged to register a (mutable) canonical URL and a prefix [datalab-org/datalab-federation](https://github.com/datalab-org/datalab-federation) in order to ensure item IDs are globally unique and to provide persistent URLs for physical labelling and data sharing via the resolver service at [purl.datalab-org.io](https://purl.datalab-org.io).
 At the time of writing, there are 12 registered *datalab* instances with at least 3 others that remain unregistered, accounting for around 250 users.
 Levels of engagement vary among the users, but many are using *datalab* on a near-daily basis to manage all of the data associated with their research projects.
 Across the federation, we estimate that *datalab* is being used to track over ten thousand physical research objects.
