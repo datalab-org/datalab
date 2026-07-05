@@ -44,17 +44,18 @@ This requires a MongoDB server to be running on your desired host machine.
 #### Python setup
 
 The next step is to set up a Python environment that contains all of the required dependencies with the correct versions.
-You will need Python 3.10 or higher to run *datalab*; we recommend using a tool to manage Python versions on your machine, to avoid breakages based on your OS's Python versioning (e.g., [`pyenv`](https://github.com/pyenv/pyenv) or [`uv`](https://github.com/astral-sh/uv)).
+The currently supported versions are 3.10 and 3.11; you can find the full list of supported versions in the `pyproject.toml` file.
+We strongly recommend using a tool to manage Python versions on your machine, to avoid breakages based on your OS's Python versioning (e.g., [`uv`](https://github.com/astral-sh/uv)).
 
 ##### Installation with `uv` or `venv`
 
-We recommend using [`uv`](https://github.com/astral-sh/uv) (see the linked repository or https://docs.astral.sh/uv for installation instructions) for managing your *datalab* installation.
+We recommend using [`uv`](https://github.com/astral-sh/uv) (see the linked repository or the [uv documentation](https://docs.astral.sh/uv) for installation instructions) for managing your *datalab* installation.
 
 You could also use the standard library `venv` module, but this will not allow you to install pinned dependencies as easily, and is significantly slower than `uv`.
 
 1. Create a virtual environment for *datalab*, ideally inside the `pydatalab` directory.
-    - For `uv`, you can run `uv venv` (when installing using `uv sync`, this will be done automatically on installation).
-    - For `venv`, this can be done with `python -m venv .venv`.
+    - For `uv`, you can run `uv sync` to automatically install a compatible Python version and the relevant dependencies into a virtual environment.
+    - For `venv`, this can be done with `python -m venv .venv` for a pre-installed appropriate Python version.
     - Either way, you will be left with a folder called `.venv` in your `pydatalab` directory that bundles an entire Python environment.
 2. Activate the virtual environment (again, optional for `uv`) and install dependencies. One can either use the loosely pinned dependencies in `pyproject.toml`, or the locked versions in `uv.lock`.
 
