@@ -21,6 +21,10 @@ This repository consists of two components:
 
 To run *datalab*, you will need to install the environments for each component.
 
+As is typical of server applications, *datalab* is primarily tested on Linux.
+While unsupported, the instructions should also work on Windows (via [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/install)) or macOS.
+For unsupported operating systems, we recommend the Docker-based installation instructions in [deployment.md](deployment.md).
+
 Firstly, from the desired folder, clone this repository from GitHub to your local machine with `git clone https://github.com/datalab-org/datalab`.
 If you are not familiar with `git` or GitHub, you can do worse than reading through the [GitHub getting started documentation](https://docs.github.com/en/get-started/start-your-journey/about-github-and-git).
 
@@ -35,11 +39,11 @@ The instructions in this section will leave you with a running *datalab* server 
 *datalab* uses MongoDB as its database backend.
 This requires a MongoDB server to be running on your desired host machine.
 
-1. Install the free MongoDB community edition (see the full instructions for your OS on the [MongoDB website](https://docs.mongodb.com/manual/installation/)).
-    * For MacOS users, MongoDB is available via [HomeBrew](https://github.com/mongodb/homebrew-brew).
-    * You can alternatively run the MongoDB via Docker using the config in this package with `docker compose up database` (see [deployment instructions](deployment.md)).
+1. Install the free MongoDB community edition (v8 is the currently supported version) -- see the full instructions for your OS on the [MongoDB website](https://docs.mongodb.com/manual/installation/).
+    * You can alternatively run the MongoDB via Docker using the config in this package with `docker compose up database`; if you run into platform-dependent permissions issues you can use a [`docker-compose.override.yml`](https://docs.docker.com/compose/how-tos/multiple-compose-files/merge/) file to adjust things for your system (see [deployment instructions](deployment.md) for more details of the Dockerised installation process).
+    * For MacOS users, MongoDB is also available via [HomeBrew](https://github.com/mongodb/homebrew-brew).
+    * You will need to ensure that MongoDB is running (rather than just installed) -- either run manually each time you run the `pydatalab` server set up MongoDB to run as a service on your computer.
     * If you wish to view the database directly, MongoDB has several GUIs, e.g. [MongoDB Compass](https://www.mongodb.com/products/compass) or [Studio 3T](https://robomongo.org/).
-    * For persistence, you will need to set up MongoDB to run as a service on your computer (or run manually each time you run the `pydatalab` server).
 
 #### Python setup
 
