@@ -21,6 +21,10 @@ This repository consists of two components:
 
 To run *datalab*, you will need to install the environments for each component.
 
+As is typical of server applications, *datalab* is primarily tested on Linux.
+While unsupported, the instructions should also work on Windows (via [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/install)) or macOS.
+For unsupported operating systems, we recommend the Docker-based installation instructions in [deployment.md](deployment.md).
+
 Firstly, from the desired folder, clone this repository from GitHub to your local machine with `git clone https://github.com/datalab-org/datalab`.
 If you are not familiar with `git` or GitHub, you can do worse than reading through the [GitHub getting started documentation](https://docs.github.com/en/get-started/start-your-journey/about-github-and-git).
 
@@ -35,26 +39,27 @@ The instructions in this section will leave you with a running *datalab* server 
 *datalab* uses MongoDB as its database backend.
 This requires a MongoDB server to be running on your desired host machine.
 
-1. Install the free MongoDB community edition (see the full instructions for your OS on the [MongoDB website](https://docs.mongodb.com/manual/installation/)).
-    * For MacOS users, MongoDB is available via [HomeBrew](https://github.com/mongodb/homebrew-brew).
-    * You can alternatively run the MongoDB via Docker using the config in this package with `docker compose up database` (see [deployment instructions](deployment.md)).
+1. Install the free MongoDB community edition (v8 is the currently supported version) -- see the full instructions for your OS on the [MongoDB website](https://docs.mongodb.com/manual/installation/).
+    * You can alternatively run the MongoDB via Docker using the config in this package with `docker compose up database`; if you run into platform-dependent permissions issues you can use a [`docker-compose.override.yml`](https://docs.docker.com/compose/how-tos/multiple-compose-files/merge/) file to adjust things for your system (see [deployment instructions](deployment.md) for more details of the Dockerised installation process).
+    * For MacOS users, MongoDB is also available via [HomeBrew](https://github.com/mongodb/homebrew-brew).
+    * You will need to ensure that MongoDB is running (rather than just installed) -- either run manually each time you run the `pydatalab` server set up MongoDB to run as a service on your computer.
     * If you wish to view the database directly, MongoDB has several GUIs, e.g. [MongoDB Compass](https://www.mongodb.com/products/compass) or [Studio 3T](https://robomongo.org/).
-    * For persistence, you will need to set up MongoDB to run as a service on your computer (or run manually each time you run the `pydatalab` server).
 
 #### Python setup
 
 The next step is to set up a Python environment that contains all of the required dependencies with the correct versions.
-You will need Python 3.10 or higher to run *datalab*; we recommend using a tool to manage Python versions on your machine, to avoid breakages based on your OS's Python versioning (e.g., [`pyenv`](https://github.com/pyenv/pyenv) or [`uv`](https://github.com/astral-sh/uv)).
+The currently supported versions are 3.10 and 3.11; you can find the full list of supported versions in the `pyproject.toml` file.
+We strongly recommend using a tool to manage Python versions on your machine, to avoid breakages based on your OS's Python versioning (e.g., [`uv`](https://github.com/astral-sh/uv)).
 
 ##### Installation with `uv` or `venv`
 
-We recommend using [`uv`](https://github.com/astral-sh/uv) (see the linked repository or https://docs.astral.sh/uv for installation instructions) for managing your *datalab* installation.
+We recommend using [`uv`](https://github.com/astral-sh/uv) (see the linked repository or the [uv documentation](https://docs.astral.sh/uv) for installation instructions) for managing your *datalab* installation.
 
 You could also use the standard library `venv` module, but this will not allow you to install pinned dependencies as easily, and is significantly slower than `uv`.
 
 1. Create a virtual environment for *datalab*, ideally inside the `pydatalab` directory.
-    - For `uv`, you can run `uv venv` (when installing using `uv sync`, this will be done automatically on installation).
-    - For `venv`, this can be done with `python -m venv .venv`.
+    - For `uv`, you can run `uv sync` to automatically install a compatible Python version and the relevant dependencies into a virtual environment.
+    - For `venv`, this can be done with `python -m venv .venv` for a pre-installed appropriate Python version.
     - Either way, you will be left with a folder called `.venv` in your `pydatalab` directory that bundles an entire Python environment.
 2. Activate the virtual environment (again, optional for `uv`) and install dependencies. One can either use the loosely pinned dependencies in `pyproject.toml`, or the locked versions in `uv.lock`.
 
@@ -133,10 +138,10 @@ This can be controlled with the `--reload` flag to the `flask run` command.
 
 ### Web app
 
-1. If you do not already have it, install `node.js` v20 or above and the Node Package Manager (`npm`).
-It is recommended not to install node using the official installer, since it is difficult to manage or uninstall, and permissions issues may arise.
+1. If you do not already have it, install `node.js` and the Node Package Manager (`npm`).
+It is recommended not to install node using the official installer, since it is difficult to manage multiple versions or uninstall, and permissions issues may arise.
 Instead, it is recommended to install and manage versions using the [node version manager (nvm)](https://github.com/nvm-sh/nvm#installing-and-updating): `nvm install --lts`.
-This will install the current recommended version of node and nvm.
+You will need a version compatible with the `node` version listed in the `engines` section of `webapp/package.json`.
 
 2. Once installed, use it to install the `yarn` package manager: `npm install --global yarn`
 From this point on, the `npm` command is not needed - all package and script management for the webapp is handled using `yarn`.

@@ -93,11 +93,11 @@ class MassSpecBlock(DataBlock):
 
             plots[-1].children[0].xaxis[0].ticker.desired_num_ticks = 2
 
-            # construct MxN grid of all species
-            M = 3
-            grid = []
-            for i in range(0, len(plots), M):
-                grid.append(plots[i : i + M])
-            p = gridplot(grid, sizing_mode="scale_width", toolbar_location="below")
+        # construct MxN grid of all species
+        M = 3
+        grid = []
+        for i in range(0, len(plots), M):
+            grid.append(plots[i : i + M])
+        p = gridplot(grid, sizing_mode="scale_width", toolbar_location="below")
 
-            return bokeh.embed.json_item(p, theme=DATALAB_BOKEH_GRID_THEME)
+        return bokeh.embed.json_item(p, theme=DATALAB_BOKEH_GRID_THEME)
