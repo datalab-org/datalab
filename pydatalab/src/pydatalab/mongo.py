@@ -370,6 +370,38 @@ def create_default_indices(
         "refcode", unique=True, name="unique refcode counter", background=background
     )
 
+    from pydatalab.config import CONFIG
+
+    if CONFIG.ENABLE_NOTIFICATIONS:
+        ret += db.notifications.create_index(
+            [("recipient_id", pymongo.ASCENDING), ("created_at", pymongo.DESCENDING)],
+            name="notification recipient and created",
+            background=background,
+        )
+        ret += db.notifications.create_index(
+            [("recipient_id", pymongo.ASCENDING), ("read_at", pymongo.ASCENDING)],
+            name="notification recipient and read",
+            background=background,
+        )
+        ret += db.notifications.create_index(
+            [("recipient_id", pymongo.ASCENDING), ("archived_at", pymongo.ASCENDING)],
+            name="notification recipient and archived",
+            background=background,
+        )
+        ret += db.notifications.create_index(
+            [
+                ("recipient_id", pymongo.ASCENDING),
+                ("grouping.key", pymongo.ASCENDING),
+                ("grouping.policy", pymongo.ASCENDING),
+                ("grouping.window_seconds", pymongo.ASCENDING),
+                ("grouping.max_occurrences", pymongo.ASCENDING),
+                ("occurrence_count", pymongo.ASCENDING),
+                ("last_occurred_at", pymongo.DESCENDING),
+            ],
+            name="notification grouping lookup",
+            background=background,
+        )
+
     return ret
 
 

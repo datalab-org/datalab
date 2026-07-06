@@ -113,6 +113,44 @@ def admin_only(func):
     return wrapped_route
 
 
+def with_notification_permissions(func):
+    """Decorator to inject the notification permission filter for the current user."""
+
+    @wraps(func)
+    def wrapped_route(*args, **kwargs):
+        if current_user.is_authenticated and current_user.person is not None:
+            kwargs["notification_permissions"] = {"recipient_id": current_user.person.immutable_id}
+        else:
+            kwargs["notification_permissions"] = {"_id": -1}
+        return func(*args, **kwargs)
+
+    return wrapped_route
+
+
+def notification_recipient_only(func):
+    """Decorator to load a notification only if it belongs to the current user."""
+
+    @wraps(func)
+    def wrapped_route(*args, **kwargs):
+        # notifications_permissions are injected by the with_notification_permissions decorator(see below)
+        notification_permissions = kwargs["notification_permissions"]
+        try:
+            notification_object_id = ObjectId(kwargs["notification_id"])
+        except Exception:
+            return {"error": f"Invalid notification_id {kwargs.get('notification_id')!r}."}, 400
+
+        notification = flask_mongo.db.notifications.find_one(
+            {"_id": notification_object_id, **notification_permissions}
+        )
+        if notification is None:
+            return {"error": "Notification not found."}, 404
+
+        kwargs["notification"] = notification
+        return func(*args, **kwargs)
+
+    return with_notification_permissions(wrapped_route)
+
+
 def check_access_token(refcode: str, token: str | None = None) -> bool:
     """Check whether the provided access token exists in the get_database
     and corresponds to the relevant refcode.

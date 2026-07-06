@@ -19,6 +19,7 @@ def test_info_endpoint(client, url_prefix, app):
         and app.config.get("ORCID_OAUTH_CLIENT_SECRET", None)
     )
     assert auth["email"] is bool(app.config.get("MAIL_PASSWORD", None))
+    assert features["notifications"] == {"enabled": True}
 
 
 def test_landing_page(unauthenticated_client, client):

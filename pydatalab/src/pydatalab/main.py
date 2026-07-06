@@ -226,6 +226,10 @@ def register_endpoints(app: Flask):
     versions = ["", f"v{major}", f"v{major}.{minor}", f"v{major}.{minor}.{patch}"]
 
     for bp in BLUEPRINTS:
+        if bp.name == "notifications" and not CONFIG.ENABLE_NOTIFICATIONS:
+            LOGGER.info("Skipping notification routes because notifications are disabled.")
+            continue
+
         for ver in versions:
             app.register_blueprint(
                 bp, url_prefix=f"{CONFIG.ROOT_PATH}{ver}", name=f"{ver}/{bp.name}"
