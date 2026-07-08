@@ -63,7 +63,7 @@ def parse_mt_mass_spec_ascii(path: Path) -> dict[str, pd.DataFrame | dict]:
 
         # Read data with duplicated keys: will have (column number % number of data keys) appended to them
         # MT software also writes "---" if the value is missing, so parse these as NaNs to remove later
-        df = pd.read_csv(f, sep=r"\t", header=0, parse_dates=False, na_values=["---"])
+        df = pd.read_csv(f, sep="\t", header=0, parse_dates=False, na_values=["---"])
         ms_results: dict[str, pd.DataFrame | dict] = {}
         ms_results["meta"] = header
         ms_results["data"] = {}
