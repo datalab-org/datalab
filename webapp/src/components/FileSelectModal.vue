@@ -48,6 +48,7 @@ import Modal from "@/components/Modal";
 import SelectableFileTree from "@/components/SelectableFileTree";
 
 import { fetchRemoteTree, addRemoteFileToSample } from "@/server_fetch_utils";
+import { parseUTCDate } from "@/field_utils.js";
 
 export default {
   components: {
@@ -105,7 +106,7 @@ export default {
       var seconds_since_oldest_update = null;
       if ("meta" in response_json) {
         if ("oldest_cache_update" in response_json.meta) {
-          oldest_cache_update = new Date(response_json.meta.oldest_cache_update + "Z");
+          oldest_cache_update = parseUTCDate(response_json.meta.oldest_cache_update);
           seconds_since_oldest_update = (new Date() - oldest_cache_update) / 1000;
           console.log(
             `loadCachedTree received, oldest dir update was ${seconds_since_oldest_update} s ago`,
