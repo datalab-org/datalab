@@ -23,6 +23,7 @@ __all__ = (
     "ITEMS_FTS_FIELDS",
     "USERS_FTS_FIELDS",
     "COLLECTIONS_FTS_FIELDS",
+    "GROUPS_FTS_FIELDS",
     "generate_heuristic_regex_search",
     "build_search_pipeline",
 )
