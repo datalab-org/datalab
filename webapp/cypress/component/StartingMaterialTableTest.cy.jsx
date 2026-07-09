@@ -89,6 +89,7 @@ describe("StartingMaterialTable Component Tests", () => {
       "Location",
       "", // nblocks
       "", //nfiles
+      "", // last_modified
     ];
 
     cy.get(".p-datatable-column-header-content").should("have.length", headers.length);

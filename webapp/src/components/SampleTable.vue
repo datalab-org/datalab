@@ -18,6 +18,7 @@
 <script>
 import DynamicDataTable from "@/components/DynamicDataTable";
 import { getSampleList } from "@/server_fetch_utils.js";
+import { formatRelativeDate } from "@/field_utils.js";
 
 import FormattedItemName from "@/components/FormattedItemName";
 import FormattedItemStatus from "@/components/FormattedItemStatus";
@@ -216,6 +217,13 @@ export default {
             component: FilesIconCounter,
             props: (row) => ({ count: row.nfiles }),
           },
+        },
+        {
+          field: "last_modified",
+          header: "",
+          label: "Last modified",
+          icon: ["fa", "clock"],
+          getValue: (row) => formatRelativeDate(row.last_modified),
         },
       ],
     };

@@ -579,3 +579,10 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.last-modified-cell {
+  font-size: 0.85em;
+  font-style: italic;
+}
+</style>

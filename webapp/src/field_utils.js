@@ -1,5 +1,42 @@
 import store from "@/store/index.js";
 import { DATETIME_FIELDS } from "@/resources.js";
+import { formatDistanceToNow } from "date-fns";
+
+/**
+ * Parses a server-provided timestamp as UTC.
+ *
+ * Timestamps are stored server-side in UTC. If an ISO string carries no timezone
+ * designator (e.g. legacy data), `new Date(...)` would interpret it in the viewer's
+ * local timezone; this appends a "Z" in that case so it is read as UTC. Strings that
+ * already have an offset (e.g. "+00:00"/"Z") or non-ISO forms (e.g. RFC 1123 "...GMT")
+ * are passed through untouched.
+ *
+ * @param {string} value - A server timestamp string.
+ * @returns {Date} A Date parsed as UTC.
+ */
+export function parseUTCDate(value) {
+  if (
+    typeof value === "string" &&
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value) &&
+    !/(Z|[+-]\d{2}:?\d{2})$/.test(value)
+  ) {
+    value += "Z";
+  }
+  return new Date(value);
+}
+
+/**
+ * Formats a server-provided timestamp as a human-readable relative date, e.g. "2 months ago".
+ *
+ * @param {string} isodatetime - A server timestamp string.
+ * @returns {string} The relative date, or the original falsy value if none was given.
+ */
+export function formatRelativeDate(isodatetime) {
+  if (!isodatetime) {
+    return isodatetime;
+  }
+  return formatDistanceToNow(parseUTCDate(isodatetime), { addSuffix: true });
+}
 
 /**
  * Converts a datetime-local input value to an ISO format string with timezone offset.
