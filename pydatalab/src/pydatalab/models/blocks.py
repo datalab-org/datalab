@@ -52,10 +52,16 @@ class DataBlockResponse(BaseModel):
     """A JSON-encoded string containing the Bokeh plot data, if any."""
 
     computed: dict | None = Field(default=None, datalab_exclude_from_load=True)
-    """Any processed or computed data associated with the block, small enough to store and filter directly in the database,
-    i.e., strings or a few hundred numbers not exceeding 16KB in size.
-    Examples could include peak positions, and widths, but not the full spectrum.
+    """Any processed or computed data associated with the block, small enough to
+    store and filter directly in the database, i.e., strings or a few hundred numbers
+    not exceeding 16KB in size. Examples could include peak positions, and widths,
+    but not the full spectrum.
     """
+
+    processed: dict | None = Field(
+        default=None, datalab_exclude_from_load=True, datalab_exclude_from_db=True
+    )
+    """Any processed data associated with the block, for example, a processed spectrum."""
 
     metadata: dict | None = Field(default=None, datalab_exclude_from_load=True)
     """Any structured metadata associated with the block, for example,
