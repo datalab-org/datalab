@@ -1278,7 +1278,7 @@ export default {
       });
     },
     goToEditPage(event) {
-      if (this.dataType === "users") {
+      if (this.dataType === "users" || this.dataType === "groups") {
         return;
       }
       const row = event.data;
