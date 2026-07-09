@@ -121,6 +121,11 @@
             @group-deleted="$emit('group-deleted')"
           />
         </template>
+        <template v-else-if="column.field === 'last_modified'" #body="slotProps">
+          <span class="last-modified-cell">{{
+            formatRelativeDate(slotProps.data[column.field])
+          }}</span>
+        </template>
         <template
           v-else-if="column.field === 'date' || column.field === 'created_at'"
           #body="slotProps"
@@ -607,6 +612,8 @@ import GroupIdCell from "@/components/GroupIdCell.vue";
 import GroupMembersCell from "@/components/GroupMembersCell.vue";
 import GroupActionsCell from "@/components/GroupActionsCell.vue";
 
+import { formatDistanceToNow } from "date-fns";
+import { parseUTCDate } from "@/field_utils.js";
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
 import MultiSelect from "primevue/multiselect";
@@ -1227,6 +1234,14 @@ export default {
     });
   },
   methods: {
+    formatRelativeDate(isodatetime) {
+      if (!isodatetime) {
+        return isodatetime;
+      }
+      // Timestamps are stored server-side in UTC; parse them as such so the relative
+      // age is correct regardless of the viewer's local timezone.
+      return formatDistanceToNow(parseUTCDate(isodatetime), { addSuffix: true });
+    },
     getColumnMinWidth(column) {
       const COLUMN_BASE_PADDING = 2.5;
       const CHAR_WIDTH_ESTIMATE = 0.75;
@@ -1622,3 +1637,10 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.last-modified-cell {
+  font-size: 0.85em;
+  font-style: italic;
+}
+</style>

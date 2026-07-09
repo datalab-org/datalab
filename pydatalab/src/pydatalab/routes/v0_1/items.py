@@ -113,6 +113,7 @@ def get_starting_materials():
                         "nblocks": {"$size": "$display_order"},
                         "nfiles": {"$size": "$file_ObjectIds"},
                         "date": 1,
+                        "last_modified": 1,
                         "chemform": 1,
                         "smiles": 1,
                         "inchi_key": 1,
@@ -192,6 +193,7 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
         "characteristic_chemical_formula": 1,
         "type": 1,
         "date": 1,
+        "last_modified": 1,
         "refcode": 1,
         "status": 1,
     }
@@ -268,6 +270,7 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
         "characteristic_chemical_formula": 1,
         "type": 1,
         "date": 1,
+        "last_modified": 1,
         "refcode": 1,
         "status": 1,
     }
@@ -1647,11 +1650,10 @@ def save_item():
         "group_ids",
         "item_id",
         "relationships",
+        "last_modified",
     ):
         if k in updated_data:
             del updated_data[k]
-
-    updated_data["last_modified"] = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
 
     for block_id, block_data in updated_data.get("blocks_obj", {}).items():
         blocktype = block_data["blocktype"]
@@ -1774,6 +1776,12 @@ def save_item():
     item.pop("collections")
     item.pop("creators")
 
+    # `last_modified` is controlled by the versioning branch below: only bump it when a
+    # snapshot is actually saved, so re-submitting identical data leaves it untouched.
+    existing_last_modified = item.pop("last_modified", None)
+    if isinstance(existing_last_modified, datetime.datetime):
+        existing_last_modified = existing_last_modified.isoformat()
+
     # Update the item FIRST (transaction safety: item update before version save)
     result = flask_mongo.db.items.update_one(
         {"item_id": item_id, **get_default_permissions(user_only=True)},
@@ -1791,8 +1799,10 @@ def save_item():
         )
 
     # Now save a version AFTER successful item update.
-    # Only increment item.version when content actually changed (i.e., a snapshot was minted).
-    # If this fails, we log but don't fail the request since item was already saved.
+    # Only increment item.version and bump last_modified when content actually changed
+    # (i.e., a snapshot was minted). If this fails, we log but don't fail the request
+    # since the item was already saved.
+    new_last_modified = None
     try:
         save_version_resp_dict, save_version_status = save_version_snapshot(
             refcode,
@@ -1804,9 +1814,15 @@ def save_item():
                 save_version_resp_dict,
             )
         elif "version" in save_version_resp_dict:
+            new_last_modified = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
             flask_mongo.db.items.update_one(
                 {"item_id": item_id},
-                {"$set": {"version": save_version_resp_dict["version"]}},
+                {
+                    "$set": {
+                        "version": save_version_resp_dict["version"],
+                        "last_modified": new_last_modified,
+                    }
+                },
             )
     except Exception as e:
         LOGGER.error(
@@ -1815,7 +1831,9 @@ def save_item():
             str(e),
         )
 
-    return jsonify(status="success", last_modified=updated_data["last_modified"]), 200
+    # Return the freshly-minted timestamp when content changed, otherwise fall back to the
+    # item's existing value (None for an item that has never been modified).
+    return jsonify(status="success", last_modified=new_last_modified or existing_last_modified), 200
 
 
 @ITEMS.route("/items/<refcode>/access-token-info", methods=["GET"])
