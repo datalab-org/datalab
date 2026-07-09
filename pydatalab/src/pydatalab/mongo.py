@@ -56,6 +56,7 @@ COLLECTIONS_FTS_FIELDS: set[str] = {"collection_id", "title", "description"}
 """Fields to search for collections."""
 
 GROUPS_FTS_FIELDS: set[str] = {"group_id", "display_name", "description"}
+"""Fields to search for groups."""
 
 
 def generate_heuristic_regex_search(
