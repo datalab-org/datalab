@@ -12,7 +12,7 @@ import Admin from "@/views/Admin.vue";
 import Login from "../views/Login.vue";
 import Login2 from "../views/Login2.vue";
 import Login3 from "../views/Login3.vue";
-import { API_URL } from "@/resources.js";
+import { API_URL, ENABLE_LOGIN_PAGE } from "@/resources.js";
 
 const routes = [
   {
@@ -118,7 +118,30 @@ router.beforeEach(async (to, from, next) => {
     return;
   }
 
-  if (to.path === "/" || (to.name === "samples" && from.path === "/")) {
+  if (ENABLE_LOGIN_PAGE) {
+    const { getUserInfo } = await import("@/server_fetch_utils.js");
+    const user = await getUserInfo();
+
+    if (!user && to.name !== "login") {
+      next({ name: "login", query: { next: to.fullPath } });
+      return;
+    }
+
+    if (user && to.name === "login") {
+      const redirectPath = Array.isArray(to.query.next) ? to.query.next[0] : to.query.next;
+      if (
+        typeof redirectPath === "string" &&
+        redirectPath.startsWith("/") &&
+        !redirectPath.startsWith("//") &&
+        !redirectPath.startsWith("/next/login")
+      ) {
+        next(redirectPath);
+      } else {
+        next("/samples");
+      }
+      return;
+    }
+  } else if (to.path === "/" || (to.name === "samples" && from.path === "/")) {
     const { getUserInfo } = await import("@/server_fetch_utils.js");
     const user = await getUserInfo();
 
