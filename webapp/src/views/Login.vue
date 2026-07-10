@@ -33,7 +33,6 @@
         <img v-else class="logo-banner" :src="logo_url" />
       </div>
 
-      <!-- <pre style="white-space: pre-wrap">{{ ASCII }}</pre> -->
       <div class="login-button">
         <a
           type="button"
@@ -55,6 +54,24 @@
         </a>
         <a
           type="button"
+          :class="{ disabled: !showGoogle }"
+          class="btn btn-default btn-login p-3"
+          aria-label="Login via Google"
+          :href="apiUrl + '/login/google'"
+        >
+          <font-awesome-icon :icon="['fab', 'google']" /> Login via Google
+        </a>
+        <a
+          type="button"
+          :class="{ disabled: !showMicrosoft }"
+          class="btn btn-default btn-login p-3"
+          aria-label="Login via Microsoft"
+          :href="apiUrl + '/login/microsoft'"
+        >
+          <font-awesome-icon :icon="['fab', 'microsoft']" /> Login via Microsoft
+        </a>
+        <a
+          type="button"
           :class="{ disabled: !showEmail }"
           class="btn btn-default btn-login p-3"
           aria-label="Login via email"
@@ -70,7 +87,7 @@
 
 <script>
 import GetEmailModal from "@/components/GetEmailModal.vue";
-import { getInfo } from "@/server_fetch_utils.js";
+import { getAuthMechanisms } from "@/server_fetch_utils.js";
 import { API_URL, LOGO_URL, HOMEPAGE_URL } from "@/resources.js";
 
 export default {
@@ -83,28 +100,32 @@ export default {
       apiUrl: API_URL,
       logo_url: LOGO_URL,
       homepage_url: HOMEPAGE_URL,
-      ASCII: `
-              oooo              o8              o888             oooo
-           ooooo888    ooooooo o888oo  ooooooo    888   ooooooo    888ooooo
-         888    888    ooooo888 888    ooooo888   888   ooooo888   888    888
-         888    888  888    888 888  888    888   888 888    888   888    888
-           88ooo888o  88ooo88 8o 888o 88ooo88 8o o888o 88ooo88 8o o888ooo88
-      `,
+      authMechanisms: null,
     };
   },
   computed: {
     showGitHub() {
-      return this.$store.state.serverInfo?.features?.auth_mechanisms?.github ?? false;
+      return this.authMechanisms?.github ?? false;
     },
     showORCID() {
-      return this.$store.state.serverInfo?.features?.auth_mechanisms?.orcid ?? false;
+      return this.authMechanisms?.orcid ?? false;
+    },
+    showGoogle() {
+      return this.authMechanisms?.google ?? false;
+    },
+    showMicrosoft() {
+      return this.authMechanisms?.microsoft ?? false;
     },
     showEmail() {
-      return this.$store.state.serverInfo?.features?.auth_mechanisms?.email ?? false;
+      return this.authMechanisms?.email ?? false;
     },
   },
   async mounted() {
-    getInfo();
+    try {
+      this.authMechanisms = await getAuthMechanisms();
+    } catch {
+      this.authMechanisms = {};
+    }
   },
 };
 </script>

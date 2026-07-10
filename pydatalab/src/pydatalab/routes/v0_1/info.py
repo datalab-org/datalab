@@ -111,6 +111,31 @@ def get_info():
     )
 
 
+@INFO.route("/info/auth-mechanisms", methods=["GET"])
+def get_auth_mechanisms():
+    """Returns only the authentication mechanisms enabled on this server."""
+    auth_mechanisms = FEATURE_FLAGS.auth_mechanisms
+
+    return (
+        jsonify(
+            {
+                "data": {
+                    "id": "/info/auth-mechanisms",
+                    "type": "auth_mechanisms",
+                    "attributes": {
+                        "github": auth_mechanisms.github,
+                        "orcid": auth_mechanisms.orcid,
+                        "email": auth_mechanisms.email,
+                        "google": auth_mechanisms.google,
+                        "microsoft": auth_mechanisms.microsoft,
+                    },
+                }
+            }
+        ),
+        200,
+    )
+
+
 @INFO.route("/info/stats", methods=["GET"])
 @active_users_or_get_only
 def get_stats():
