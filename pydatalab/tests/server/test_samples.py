@@ -146,15 +146,19 @@ def test_save_item_last_modified(client, default_sample_dict):
     assert response.status_code == 200, response.json
     first_last_modified = response.json["last_modified"]
     assert first_last_modified is not None
+    # A genuine change is not flagged as a no-op
+    assert not response.json.get("unchanged")
 
     after_change = get_item()
     assert after_change["last_modified"] == first_last_modified
     assert after_change["last_modified"] != before.get("last_modified")
     assert after_change.get("version") != version_before
 
-    # 2. Re-submitting identical data is a no-op: no version, no `last_modified` bump
+    # 2. Re-submitting identical data is a no-op: flagged `unchanged`, no version, no bump
     response = client.post("/save-item/", json={"item_id": item_id, "data": changed})
     assert response.status_code == 200, response.json
+    assert response.json["status"] == "success"
+    assert response.json["unchanged"] is True
     assert response.json["last_modified"] == first_last_modified
 
     after_noop = get_item()
