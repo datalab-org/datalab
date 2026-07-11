@@ -58,6 +58,7 @@
         'blocks',
         'chemform',
         'characteristic_chemical_formula',
+        'creatorsList',
       ]"
       :show-buttons="true"
       :collection-id="collection_id"
@@ -66,7 +67,7 @@
 </template>
 
 <script>
-import { createComputedSetterForCollectionField } from "@/field_utils.js";
+import { createComputedSetterForCollectionField, formatRelativeDate } from "@/field_utils.js";
 import TiptapInline from "@/components/TiptapInline";
 import Creators from "@/components/Creators";
 import CollectionRelationshipVisualization from "@/components/CollectionRelationshipVisualization";
@@ -168,7 +169,7 @@ export default {
             noOperator: true,
           },
         },
-        { field: "name", header: "Sample name", label: "Sample Name" },
+        { field: "name", header: "Name", label: "Sample name" },
         {
           field: "chemform",
           header: "Formula",
@@ -192,15 +193,22 @@ export default {
           getValue: (row) => (row.date ? row.date.substring(0, 10) : row.date),
         },
         {
-          field: "creators",
+          field: "creatorsAndGroups",
           header: "Creators",
           label: "Creators",
           body: {
             component: Creators,
             props: (row) => ({
-              creators: row.creators || [],
-              groups: row.groups || [],
-              showNames: (row.creators || []).length === 1,
+              creators: row.creatorsAndGroups
+                ? row.creatorsAndGroups.filter((item) => item.type === "creator")
+                : row.creators || [],
+              groups: row.creatorsAndGroups
+                ? row.creatorsAndGroups.filter((item) => item.type === "group")
+                : row.groups || [],
+              showNames:
+                (row.creatorsAndGroups || row.creators || []).filter(
+                  (item) => !item.type || item.type === "creator",
+                ).length === 1,
               showBubble: true,
             }),
           },
@@ -225,6 +233,13 @@ export default {
             props: (row) => ({ count: row.nfiles }),
           },
         },
+        {
+          field: "last_modified",
+          header: "",
+          label: "Last modified",
+          icon: ["fa", "clock"],
+          getValue: (row) => formatRelativeDate(row.last_modified),
+        },
       ],
     };
   },
@@ -236,7 +251,18 @@ export default {
     CollectionCreators: createComputedSetterForCollectionField("creators"),
     CollectionGroups: createComputedSetterForCollectionField("groups"),
     children() {
-      return this.$store.state.all_collection_children[this.collection_id] || [];
+      const children = this.$store.state.all_collection_children[this.collection_id];
+      if (!children) {
+        return [];
+      }
+      return children.map((child) => ({
+        ...child,
+        creatorsAndGroups: [
+          ...(child.creators || []).map((c) => ({ ...c, type: "creator" })),
+          ...(child.groups || []).map((g) => ({ ...g, type: "group" })),
+        ],
+        creatorsList: (child.creators || []).map((creator) => creator.display_name).join(", "),
+      }));
     },
     collectionRefcode() {
       const collection = this.$store.state.all_collection_data[this.collection_id];
