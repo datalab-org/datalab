@@ -1831,9 +1831,12 @@ def save_item():
             str(e),
         )
 
-    # Return the freshly-minted timestamp when content changed, otherwise fall back to the
-    # item's existing value (None for an item that has never been modified).
-    return jsonify(status="success", last_modified=new_last_modified or existing_last_modified), 200
+    # Report the freshly-minted timestamp when content changed. If no version was minted
+    # the item was unchanged, so flag it as a no-op and echo back the existing timestamp
+    if new_last_modified:
+        return jsonify(status="success", last_modified=new_last_modified), 200
+
+    return jsonify(status="success", unchanged=True, last_modified=existing_last_modified), 200
 
 
 @ITEMS.route("/items/<refcode>/access-token-info", methods=["GET"])
