@@ -1563,6 +1563,9 @@ export default {
       const customState = {
         columnWidths: state.columnWidths,
         visibleColumns: this.selectedColumns.map((col) => col.field),
+        // Record every column that existed when this selection was saved, so that on
+        // restore we can tell a genuinely new column apart from one the user deselected.
+        knownColumns: this.availableColumns.map((col) => col.field),
         first: state.first,
         rows: state.rows,
       };
@@ -1588,9 +1591,31 @@ export default {
           }
 
           if (customState.visibleColumns && Array.isArray(customState.visibleColumns)) {
-            this.selectedColumns = this.availableColumns.filter((col) =>
-              customState.visibleColumns.includes(col.field),
-            );
+            const savedVisible = customState.visibleColumns;
+            const knownColumns = Array.isArray(customState.knownColumns)
+              ? customState.knownColumns
+              : null;
+
+            // Whether the user previously had every *other* selectable column selected,
+            // i.e. they had "select all". Legacy states (saved before knownColumns was
+            // tracked) have no knownColumns, so we fall back to this check alone.
+            const hadAllOthersSelected = (field) =>
+              this.availableColumns
+                .filter((col) => col.field !== field && !col.hidden)
+                .every((col) => savedVisible.includes(col.field));
+
+            this.selectedColumns = this.availableColumns.filter((col) => {
+              // Keep whatever the user previously had selected.
+              if (savedVisible.includes(col.field)) return true;
+              // Never auto-show columns that are hidden by default.
+              if (col.hidden) return false;
+              // Otherwise the column wasn't in the saved selection: default it to visible
+              // only if it is new since the selection was saved AND the user had selected
+              // all other columns, so existing "select all" users keep seeing every column
+              // while users who curated their columns keep their choices.
+              const isNewColumn = knownColumns ? !knownColumns.includes(col.field) : true;
+              return isNewColumn && hadAllOthersSelected(col.field);
+            });
 
             if (this.selectedColumns.length === 0) {
               this.selectedColumns = this.availableColumns.filter((col) => !col.hidden);
