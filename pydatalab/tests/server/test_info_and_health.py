@@ -21,6 +21,22 @@ def test_info_endpoint(client, url_prefix, app):
     assert auth["email"] is bool(app.config.get("MAIL_PASSWORD", None))
 
 
+@pytest.mark.parametrize("url_prefix", ["", "/v0", "/v0.1", "/v0.1.0"])
+def test_auth_mechanisms_endpoint_only_exposes_auth_flags(unauthenticated_client, url_prefix):
+    response = unauthenticated_client.get(f"{url_prefix}/info/auth-mechanisms")
+    assert response.status_code == 200
+    assert set(response.json) == {"data"}
+
+    data = response.json["data"]
+    assert set(data) == {"id", "type", "attributes"}
+    assert data["id"] == "/info/auth-mechanisms"
+    assert data["type"] == "auth_mechanisms"
+
+    auth = data["attributes"]
+    assert set(auth) == {"github", "orcid", "email", "google", "microsoft"}
+    assert all(isinstance(enabled, bool) for enabled in auth.values())
+
+
 def test_landing_page(unauthenticated_client, client):
     """Check that the rudimentary landing page renders without error for both
     unauthenticated and authenticated users."""

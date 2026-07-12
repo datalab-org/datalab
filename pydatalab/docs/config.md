@@ -176,6 +176,42 @@ Place a `CustomAbout.vue` file in `public/custom/components/` and it will automa
 The component can contain any valid Vue template, script and scoped styles.
 No special configuration or flags are needed — if the file exists, it will be used.
 
+### Custom login page content (`public/custom/components/CustomLoginInfo.vue`)
+
+Deployments can provide a custom Vue component for the left-hand content of the login page.
+Place a `CustomLoginInfo.vue` file in `public/custom/components/` and it will automatically replace the default empty custom-login skeleton at build time.
+If no custom component is provided, the built-in login welcome content is used.
+
+Authentication buttons and login behaviour remain managed by *datalab*.
+The custom component should only provide branding, text, links, images, and styling for the welcome panel.
+
+For example:
+
+```vue
+<template>
+  <img src="/custom/logos/mylogo.png" alt="My lab" class="login-logo" />
+  <h1>My lab datalab</h1>
+  <p>Research data management for our group.</p>
+</template>
+
+<script>
+export default {
+  name: "CustomLoginInfo",
+};
+</script>
+```
+
+Login colours can also be tuned from `public/custom/override.css` without providing a custom component:
+
+```css
+:root {
+  --login-welcome-background: #123456;
+  --login-welcome-color: white;
+  --login-options-background: white;
+  --login-options-color: #222;
+}
+```
+
 ### Directory structure
 
 A typical deployment customisation directory looks like:
@@ -189,7 +225,8 @@ public/custom/
 ├── logos/
 │   └── mylogo.png
 └── components/
-    └── CustomAbout.vue
+    ├── CustomAbout.vue
+    └── CustomLoginInfo.vue
 ```
 
 
