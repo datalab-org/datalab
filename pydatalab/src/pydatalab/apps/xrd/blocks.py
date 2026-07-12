@@ -219,19 +219,16 @@ class XRDBlock(DataBlock):
     def generate_xrd_plot(self, filenames: list[str | Path] | None = None) -> None:
         """Generate a Bokeh plot potentially containing multiple XRD patterns.
 
-        This function will first check whether a `file_id` is set in the block data.
-        If not, it will interpret this as the "all compatible files" option, and will
-        look into the item data to find all attached files, and attempt to read them as
-        XRD patterns.
-
-        Otherwise, the `file_id` will be used to load a single file.
+        If no `filenames` are passed directly, the files to plot are taken from
+        the `file_ids` set in the block data, falling back to the legacy
+        single `file_id` if present.
 
         """
         pattern_dfs: list[pd.DataFrame] = []
         all_files: list[dict] = []
 
         if not filenames:
-            file_ids = self.data.get("file_ids", [])
+            file_ids = self.data.get("file_ids") or []
             if not file_ids and self.data.get("file_id"):
                 file_ids = [self.data.get("file_id")]
 
