@@ -1,19 +1,8 @@
 <template>
   <div class="login-container">
     <div class="welcome-section">
-      <h1 style="font-size: 4rem">Welcome to Datalab</h1>
-      <p>datalab is a place to store experimental data and the connections between them.</p>
-      <p>
-        datalab is open source (MIT license) and development occurs on GitHub at
-        <a href="https://github.com/datalab-org/datalab"
-          ><font-awesome-icon :icon="['fab', 'github']" />&nbsp;datalab-org/datalab</a
-        >
-        with documentation available on
-        <a href="https://the-datalab.readthedocs.io"
-          ><font-awesome-icon icon="book" />&nbsp;ReadTheDocs</a
-        >.
-      </p>
-      <router-link to="/about" class="btn btn-default">Learn More</router-link>
+      <CustomLoginInfo v-if="customLoginInfoHasContent" />
+      <LoginInfo v-else />
     </div>
 
     <div class="login-options">
@@ -86,12 +75,16 @@
 </template>
 
 <script>
+import CustomLoginInfo from "@/components/CustomLoginInfo.vue";
+import LoginInfo from "@/components/LoginInfo.vue";
 import GetEmailModal from "@/components/GetEmailModal.vue";
 import { getAuthMechanisms } from "@/server_fetch_utils.js";
 import { API_URL, LOGO_URL, HOMEPAGE_URL } from "@/resources.js";
 
 export default {
   components: {
+    CustomLoginInfo,
+    LoginInfo,
     GetEmailModal,
   },
   data() {
@@ -104,6 +97,9 @@ export default {
     };
   },
   computed: {
+    customLoginInfoHasContent() {
+      return CustomLoginInfo.hasContent !== false;
+    },
     showGitHub() {
       return this.authMechanisms?.github ?? false;
     },
@@ -146,7 +142,8 @@ export default {
   justify-content: center;
   text-align: center;
   align-items: center;
-  background-color: lightblue;
+  background-color: var(--login-welcome-background, lightblue);
+  color: var(--login-welcome-color, inherit);
 }
 
 .login-options {
@@ -157,6 +154,8 @@ export default {
   justify-content: center;
   gap: 1rem;
   padding: 2rem;
+  background-color: var(--login-options-background, transparent);
+  color: var(--login-options-color, inherit);
 }
 
 .login-button {
