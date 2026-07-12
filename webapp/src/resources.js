@@ -38,6 +38,9 @@ export const GRAVATAR_STYLE = "identicon";
 const enable_login_page = process.env.VUE_APP_ENABLE_LOGIN_PAGE || "false";
 export const ENABLE_LOGIN_PAGE = enable_login_page.toLowerCase() == "true";
 
+const login_hide_unavailable_auth = process.env.VUE_APP_LOGIN_HIDE_UNAVAILABLE_AUTH || "false";
+export const LOGIN_HIDE_UNAVAILABLE_AUTH = login_hide_unavailable_auth.toLowerCase() == "true";
+
 // determine whether inventory should be readonly (except blocks). Note: environment
 // variables can only be strings, not bools.
 const editable_inventory = process.env.VUE_APP_EDITABLE_INVENTORY || "false";

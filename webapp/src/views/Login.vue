@@ -24,6 +24,7 @@
 
       <div class="login-button">
         <a
+          v-if="showUnavailableAuthMechanisms || showGitHub"
           type="button"
           :class="{ disabled: !showGitHub }"
           class="btn btn-default btn-login p-3"
@@ -33,6 +34,7 @@
           <font-awesome-icon :icon="['fab', 'github']" /> Login via GitHub
         </a>
         <a
+          v-if="showUnavailableAuthMechanisms || showORCID"
           type="button"
           :class="{ disabled: !showORCID }"
           class="btn btn-default btn-login p-3"
@@ -42,6 +44,7 @@
           <font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Login via ORCID
         </a>
         <a
+          v-if="showUnavailableAuthMechanisms || showGoogle"
           type="button"
           :class="{ disabled: !showGoogle }"
           class="btn btn-default btn-login p-3"
@@ -51,6 +54,7 @@
           <font-awesome-icon :icon="['fab', 'google']" /> Login via Google
         </a>
         <a
+          v-if="showUnavailableAuthMechanisms || showMicrosoft"
           type="button"
           :class="{ disabled: !showMicrosoft }"
           class="btn btn-default btn-login p-3"
@@ -60,6 +64,7 @@
           <font-awesome-icon :icon="['fab', 'microsoft']" /> Login via Microsoft
         </a>
         <a
+          v-if="showUnavailableAuthMechanisms || showEmail"
           type="button"
           :class="{ disabled: !showEmail }"
           class="btn btn-default btn-login p-3"
@@ -68,6 +73,9 @@
         >
           <font-awesome-icon :icon="['fa', 'envelope']" /> Login via email
         </a>
+        <div v-if="noAuthMechanismsAvailable" class="text-muted text-center">
+          No login methods are currently available. Please contact the admin of this datalab server.
+        </div>
       </div>
     </div>
   </div>
@@ -79,7 +87,7 @@ import CustomLoginInfo from "@/components/CustomLoginInfo.vue";
 import LoginInfo from "@/components/LoginInfo.vue";
 import GetEmailModal from "@/components/GetEmailModal.vue";
 import { getAuthMechanisms } from "@/server_fetch_utils.js";
-import { API_URL, LOGO_URL, HOMEPAGE_URL } from "@/resources.js";
+import { API_URL, LOGO_URL, HOMEPAGE_URL, LOGIN_HIDE_UNAVAILABLE_AUTH } from "@/resources.js";
 
 export default {
   components: {
@@ -100,6 +108,9 @@ export default {
     customLoginInfoHasContent() {
       return CustomLoginInfo.hasContent !== false;
     },
+    showUnavailableAuthMechanisms() {
+      return !LOGIN_HIDE_UNAVAILABLE_AUTH;
+    },
     showGitHub() {
       return this.authMechanisms?.github ?? false;
     },
@@ -114,6 +125,9 @@ export default {
     },
     showEmail() {
       return this.authMechanisms?.email ?? false;
+    },
+    noAuthMechanismsAvailable() {
+      return this.authMechanisms != null && !Object.values(this.authMechanisms).some(Boolean);
     },
   },
   async mounted() {
