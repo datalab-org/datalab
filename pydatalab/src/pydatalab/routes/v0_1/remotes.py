@@ -70,17 +70,24 @@ def list_remote_directories():
             400,
         )
 
+    meta_only = request.args.get("meta_only") in ("1", "true")
+
+    response: dict[str, Any] = {}
+    response["meta"] = {}
+    response["meta"]["remotes"] = [json.loads(d.json()) for d in CONFIG.REMOTE_FILESYSTEMS]
+
+    if meta_only:
+        return jsonify(response), 200
+
     all_directory_structures = get_directory_structures(
         CONFIG.REMOTE_FILESYSTEMS, invalidate_cache=invalidate_cache
     )
 
-    response = {}
-    response["meta"] = {}
-    response["meta"]["remotes"] = [json.loads(d.json()) for d in CONFIG.REMOTE_FILESYSTEMS]
     if all_directory_structures:
         oldest_update = min(d["last_updated"] for d in all_directory_structures)
         response["meta"]["oldest_cache_update"] = oldest_update.isoformat()
         response["data"] = all_directory_structures
+
     return jsonify(response), 200
 
 

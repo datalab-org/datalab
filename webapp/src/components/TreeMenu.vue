@@ -1,10 +1,33 @@
 <template>
   <div class="tree-menu">
-    <div v-if="entry.type == 'toplevel'" class="my-2" @click="toggleChildren">
-      <span :class="{ expanded: showChildren }" class="directory-arrow">&#9656;</span>
-      <font-awesome-icon :icon="['fas', 'hdd']" class="toplevel-icon" />
-      <span class="toplevel-name" :class="{ 'search-match': searchMatched }">
-        {{ entry.name }}
+    <div v-if="entry.type == 'toplevel'" class="my-2 toplevel-row">
+      <span class="toplevel-click" @click="toggleToplevel">
+        <span :class="{ expanded: showChildren }" class="directory-arrow">&#9656;</span>
+        <font-awesome-icon :icon="['fas', 'hdd']" class="toplevel-icon" />
+        <span class="toplevel-name" :class="{ 'search-match': searchMatched }">
+          {{ entry.name }}
+        </span>
+      </span>
+      <font-awesome-icon
+        v-if="entry.isLoading"
+        :icon="['fa', 'sync']"
+        class="fa-spin ml-2 toplevel-status"
+      />
+      <button
+        v-else-if="!entry.isUnloaded"
+        type="button"
+        class="btn btn-link btn-sm toplevel-refresh"
+        title="Refresh this remote"
+        @click.stop="$emit('toplevelRefresh')"
+      >
+        <font-awesome-icon :icon="['fa', 'sync']" />
+      </button>
+      <span v-if="entry.error" class="ml-2 text-danger toplevel-error">
+        <font-awesome-icon :icon="['fas', 'exclamation-circle']" />
+        {{ entry.error }}
+      </span>
+      <span v-else-if="entry.isUnloaded && !entry.isLoading" class="ml-2 text-muted toplevel-hint">
+        (click to load)
       </span>
     </div>
     <div v-else-if="entry.type == 'directory'" @click="toggleChildren">
@@ -92,7 +115,7 @@ export default {
       required: true,
     },
   },
-  emits: ["setSelectedEntry", "appendToSelectedEntries"],
+  emits: ["setSelectedEntry", "appendToSelectedEntries", "toplevelExpand", "toplevelRefresh"],
   data() {
     return {
       showChildren: false,
@@ -116,6 +139,13 @@ export default {
   methods: {
     toggleChildren() {
       this.showChildren = !this.showChildren;
+    },
+    toggleToplevel() {
+      const willExpand = !this.showChildren;
+      this.showChildren = willExpand;
+      if (willExpand) {
+        this.$emit("toplevelExpand");
+      }
     },
     selectFile() {
       console.log("emmiting setSelectedEntry up the tree");
