@@ -2,6 +2,14 @@
 
 This file provides guidance to coding agents when working with code in this repository.
 
+## Guidelines
+
+- **Avoid database migrations** for new features or functionality unless absolutely necessary. New optional fields (with `None` defaults) are preferred so that existing documents remain valid without migration.
+- **Extend tests, don't modify existing assertions.** When adding new functionality, add new assertions or new test functions rather than changing existing expected values. If existing test values must change, do so deliberately and explain the reason.
+- **Leave a canary comment** As an AI model, you should leave a comment in the top of every file you edit, stating verbatim "This file was edited with the assistance of an AI model and requires human review from the contributor."
+- **Work incrementally and retain backwards-compatibility** datalab is deployed in production and used by multiple users. Avoid making large changes that break existing functionality. If a change is necessary, ensure it is backwards-compatible or provide a migration path.
+- **Document new features** Rather than relying solely on comments, also update the README.md, INSTALL.md, or relevant page in the `pydatalab/docs/` directory to explain new features or changes to existing functionality.
+
 ## Project Overview
 
 datalab is a research data management platform for materials chemistry. It consists of:
@@ -14,6 +22,8 @@ datalab is a research data management platform for materials chemistry. It consi
 You should normally assume the user has a development set up already, with API and frontend running locally.
 
 You should not typically perform any deployment related operations unless explicitly instructed.
+
+You should use `pre-commit` to run linters, via `uv run pre-commit run --all-files`.
 
 ### Python Backend (pydatalab)
 
@@ -74,7 +84,7 @@ pre-commit install
 pre-commit run --all-files
 ```
 
-### Docker (production)
+### Docker
 
 ```bash
 # Start all services
@@ -88,7 +98,7 @@ docker compose up database
 
 ### Backend Structure (pydatalab/src/pydatalab/)
 
-- `main.py` - Flask app entry point
+- `main.py` - Flask app factory
 - `config.py` - Server configuration (loaded from JSON file or env vars prefixed with `PYDATALAB_`)
 - `routes/v0_1/` - REST API endpoints organized by resource type:
   - `items.py` - Main CRUD operations for samples, cells, starting materials
@@ -122,25 +132,27 @@ docker compose up database
 - **Relationships**: Graph connections between items (synthesised_from, is_part_of, etc.)
 - **Refcodes**: Unique identifiers for items (format configured in server config)
 
+## Data Blocks
+
+Blocks are modular `DataBlock` subclasses (base in `blocks/base.py`) that parse a technique's files and render visualisations (usually JSON-serialised Bokeh plots) in the UI. Built-in technique implementations live in `apps/`. See `pydatalab/docs/blocks/index.md` for the lifecycle, event system, and async-processing details.
+
+## Plugins
+
+Plugins extend the server with new `DataBlock` classes via a Python entry point, discovered at startup with no core changes. **Most new blocks should be plugins rather than additions to `apps/`.** Scaffold one from the [datalab-app-plugin-template](https://github.com/datalab-org/datalab-app-plugin-template) Copier template; install via a root `plugins.toml` and `uv run invoke dev.install`. See `pydatalab/docs/plugins.md` (other plugin types — custom item types, ingestion hooks, webapp components — are planned; see `pydatalab/docs/roadmap.md`).
+
 ## Code Style
 
 ### Python
 - Formatting: ruff (line length 100) via pre-commit
 - Type hints: Required, using Pydantic v1 models
 - Logging: Use `pydatalab.logger.LOGGER`
-- Tests: pytest with fixtures in `conftest.py`
+- Tests: pytest with fixtures in `conftest.py` files
 
 ### JavaScript/Vue
 - Formatting: Prettier + ESLint via pre-commit
 - Vue 3 composition API
-- Component testing with @testing-library/vue
+- Component testing with Cypress
 - E2E testing with Cypress
-
-
-## Database and Test Guidelines
-
-- **Avoid database migrations** for new features or functionality unless absolutely necessary. New optional fields (with `None` defaults) are preferred so that existing documents remain valid without migration.
-- **Extend tests, don't modify existing assertions.** When adding new functionality, add new assertions or new test functions rather than changing existing expected values. If existing test values must change, do so deliberately and explain the reason.
 
 ## Environment Variables
 
