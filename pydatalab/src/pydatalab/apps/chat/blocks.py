@@ -56,8 +56,6 @@ class ChatBlock(DataBlock):
     name = "Whinchat assistant"
     accepted_file_extensions = None
 
-    __supports_collections = True
-
     defaults: dict = {
         "system_prompt": """You are whinchat (lowercase w), a virtual data managment assistant that helps materials chemists manage their experimental data and plan experiments. You are deployed in the group of Professor Clare Grey in the Department of Chemistry at the University of Cambridge.
 You are embedded within the program datalab, where you have access to JSON describing an ‘item’, or a collection of items, with connections to other items. These items may include experimental samples, starting materials, and devices (e.g. battery cells made out of experimental samples and starting materials).
