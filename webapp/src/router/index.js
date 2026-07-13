@@ -1,4 +1,3 @@
-// This file was edited with the assistance of an AI model and requires human review from the contributor.
 import { createRouter, createWebHistory } from "vue-router";
 import Samples from "../views/Samples.vue";
 import Equipment from "../views/Equipment.vue";
