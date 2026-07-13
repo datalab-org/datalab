@@ -124,8 +124,11 @@
             :current-match-mode="filterModel.matchMode"
             :options="filterOptionsCache[column.field] || []"
             v-bind="column.filter.componentProps || {}"
-            @update:model-value="onFilterValueChange(column.field, $event)"
-            @update:match-mode="onFilterMatchModeChange(column.field, $event)"
+            @update:model-value="filterModel.value = $event"
+            @update:match-mode="
+              filterModel.matchMode = $event;
+              filterModel.value = null;
+            "
           />
         </template>
       </Column>
@@ -335,28 +338,6 @@ export default {
       return Object.fromEntries(
         column.body.events.map((event) => [event, (...args) => this.$emit(event, ...args)]),
       );
-    },
-    onFilterValueChange(field, value) {
-      const currentConstraint = this.filters[field]?.constraints?.[0];
-      if (!currentConstraint) return;
-      this.filters = {
-        ...this.filters,
-        [field]: {
-          ...this.filters[field],
-          constraints: [{ ...currentConstraint, value }],
-        },
-      };
-    },
-    onFilterMatchModeChange(field, matchMode) {
-      const currentConstraint = this.filters[field]?.constraints?.[0];
-      if (!currentConstraint) return;
-      this.filters = {
-        ...this.filters,
-        [field]: {
-          ...this.filters[field],
-          constraints: [{ ...currentConstraint, matchMode, value: null }],
-        },
-      };
     },
     getColumnMinWidth(column) {
       const COLUMN_BASE_PADDING = 2.5;
