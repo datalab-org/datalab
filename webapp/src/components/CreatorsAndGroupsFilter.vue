@@ -57,10 +57,11 @@ export default {
     modelValue: { type: Array, default: null },
     options: { type: Array, default: () => [] },
   },
-  emits: ["update:modelValue"],
+  emits: ["update:modelValue", "apply"],
   methods: {
     onValueChange(value) {
       this.$emit("update:modelValue", value);
+      this.$emit("apply");
       this.$nextTick(() => this.$refs.multiselect?.hide?.());
     },
   },

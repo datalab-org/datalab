@@ -124,10 +124,8 @@
             :current-match-mode="filterModel.matchMode"
             :options="filterOptionsCache[column.field] || []"
             v-bind="column.filter.componentProps || {}"
-            @update:model-value="
-              filterModel.value = $event;
-              filterCallback();
-            "
+            @update:model-value="filterModel.value = $event"
+            @apply="filterCallback()"
             @update:match-mode="
               filterModel.matchMode = $event;
               filterModel.value = null;

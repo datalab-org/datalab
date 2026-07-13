@@ -64,10 +64,11 @@ export default {
     valueProps: { type: Function, default: null },
     showOptionLabel: { type: Boolean, default: false },
   },
-  emits: ["update:modelValue"],
+  emits: ["update:modelValue", "apply"],
   methods: {
     onValueChange(value) {
       this.$emit("update:modelValue", value);
+      this.$emit("apply");
       this.$nextTick(() => this.$refs.multiselect?.hide?.());
     },
     resolveProps(propsFn, item) {
