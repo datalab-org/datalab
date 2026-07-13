@@ -1,3 +1,4 @@
+// This file was edited with the assistance of an AI model and requires human review from the contributor.
 import { createRouter, createWebHistory } from "vue-router";
 import Samples from "../views/Samples.vue";
 import Equipment from "../views/Equipment.vue";
@@ -30,9 +31,9 @@ const routes = [
     component: Samples,
   },
   {
-    path: "/next/login",
+    path: "/login",
     name: "login",
-    alias: "/",
+    alias: "/next/login",
     component: Login,
   },
   {
@@ -124,21 +125,6 @@ router.beforeEach(async (to, from, next) => {
 
     if (!user && to.name !== "login") {
       next({ name: "login", query: { next: to.fullPath } });
-      return;
-    }
-
-    if (user && to.name === "login") {
-      const redirectPath = Array.isArray(to.query.next) ? to.query.next[0] : to.query.next;
-      if (
-        typeof redirectPath === "string" &&
-        redirectPath.startsWith("/") &&
-        !redirectPath.startsWith("//") &&
-        !redirectPath.startsWith("/next/login")
-      ) {
-        next(redirectPath);
-      } else {
-        next("/samples");
-      }
       return;
     }
   } else if (to.path === "/" || (to.name === "samples" && from.path === "/")) {

@@ -1,3 +1,4 @@
+<!-- This file was edited with the assistance of an AI model and requires human review from the contributor. -->
 <template>
   <div class="login-container">
     <div class="welcome-section">
@@ -22,7 +23,26 @@
         <img v-else class="logo-banner" :src="logo_url" />
       </div>
 
-      <div class="login-button">
+      <div v-if="!userInfoLoaded" class="text-muted text-center">
+        <font-awesome-icon icon="spinner" spin /> Loading...
+      </div>
+
+      <div v-else-if="currentUser != null" class="login-button logged-in-options text-center">
+        <div>
+          <h2 class="logged-in-title">You are already logged in</h2>
+          <p class="text-muted mb-0">
+            Signed in as <strong>{{ currentUserDisplayName }}</strong>
+          </p>
+        </div>
+        <button type="button" class="btn btn-default btn-login p-3" @click="goToApp">
+          <font-awesome-icon icon="home" /> Go to app
+        </button>
+        <a type="button" class="btn btn-default btn-login p-3" :href="apiUrl + '/logout'">
+          <font-awesome-icon icon="sign-out-alt" /> Logout
+        </a>
+      </div>
+
+      <div v-else class="login-button">
         <a
           v-if="showUnavailableAuthMechanisms || showGitHub"
           type="button"
@@ -86,7 +106,7 @@
 import CustomLoginInfo from "@/components/CustomLoginInfo.vue";
 import LoginInfo from "@/components/LoginInfo.vue";
 import GetEmailModal from "@/components/GetEmailModal.vue";
-import { getAuthMechanisms } from "@/server_fetch_utils.js";
+import { getAuthMechanisms, getUserInfo } from "@/server_fetch_utils.js";
 import { API_URL, LOGO_URL, HOMEPAGE_URL, LOGIN_HIDE_UNAVAILABLE_AUTH } from "@/resources.js";
 
 export default {
@@ -102,6 +122,8 @@ export default {
       logo_url: LOGO_URL,
       homepage_url: HOMEPAGE_URL,
       authMechanisms: null,
+      currentUser: null,
+      userInfoLoaded: false,
     };
   },
   computed: {
@@ -129,13 +151,32 @@ export default {
     noAuthMechanismsAvailable() {
       return this.authMechanisms != null && !Object.values(this.authMechanisms).some(Boolean);
     },
+    currentUserDisplayName() {
+      return (
+        this.currentUser?.display_name ||
+        this.currentUser?.name ||
+        this.currentUser?.email ||
+        "this account"
+      );
+    },
   },
   async mounted() {
+    try {
+      this.currentUser = await getUserInfo();
+    } finally {
+      this.userInfoLoaded = true;
+    }
+
     try {
       this.authMechanisms = await getAuthMechanisms();
     } catch {
       this.authMechanisms = {};
     }
+  },
+  methods: {
+    goToApp() {
+      window.location.href = "/samples";
+    },
   },
 };
 </script>
@@ -177,6 +218,15 @@ export default {
   flex-direction: column;
   width: 50%;
   gap: 2em;
+}
+
+.logged-in-options {
+  gap: 1.25rem;
+}
+
+.logged-in-title {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .logo-container {
