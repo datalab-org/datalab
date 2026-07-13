@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 import gridfs
 from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_user
-from werkzeug.exceptions import BadRequest, NotImplemented
+from werkzeug.exceptions import BadRequest, NotFound, NotImplemented
 
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.blocks.base import DataBlock
@@ -391,6 +391,15 @@ def update_block():
         raise NotImplemented(  # noqa: F901
             f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
         )
+
+    item_id = block_data.get("item_id")
+    if not item_id:
+        raise BadRequest(f"Invalid or missing item_id: {item_id}")
+
+    if not flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=True)}
+    ):
+        raise NotFound(f"Item with item_id {item_id} not found or not accessible")
 
     block = BLOCK_TYPES[block_type].from_web(block_data)
 
