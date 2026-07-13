@@ -117,14 +117,17 @@
           {{ slotProps.data[column.field] }}
         </template>
 
-        <template v-if="column.filter" #filter="{ filterModel }">
+        <template v-if="column.filter" #filter="{ filterModel, filterCallback }">
           <component
             :is="column.filter.component"
             :model-value="filterModel.value"
             :current-match-mode="filterModel.matchMode"
             :options="filterOptionsCache[column.field] || []"
             v-bind="column.filter.componentProps || {}"
-            @update:model-value="filterModel.value = $event"
+            @update:model-value="
+              filterModel.value = $event;
+              filterCallback();
+            "
             @update:match-mode="
               filterModel.matchMode = $event;
               filterModel.value = null;

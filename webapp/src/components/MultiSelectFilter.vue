@@ -1,5 +1,6 @@
 <template>
   <MultiSelect
+    ref="multiselect"
     :model-value="modelValue"
     :options="options"
     :option-label="optionLabel"
@@ -7,7 +8,7 @@
     class="d-flex w-full"
     :filter="true"
     v-bind="$attrs"
-    @update:model-value="$emit('update:modelValue', $event)"
+    @update:model-value="onValueChange"
     @click.stop
   >
     <template v-if="optionComponent" #option="slotProps">
@@ -65,6 +66,10 @@ export default {
   },
   emits: ["update:modelValue"],
   methods: {
+    onValueChange(value) {
+      this.$emit("update:modelValue", value);
+      this.$nextTick(() => this.$refs.multiselect?.hide?.());
+    },
     resolveProps(propsFn, item) {
       if (!propsFn) return {};
       return typeof propsFn === "function" ? propsFn(item) : propsFn;

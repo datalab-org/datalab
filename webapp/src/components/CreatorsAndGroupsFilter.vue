@@ -1,12 +1,13 @@
 <template>
   <MultiSelect
+    ref="multiselect"
     :model-value="modelValue"
     :options="options"
     option-label="display_name"
     placeholder="Any"
     class="d-flex w-full"
     :filter="true"
-    @update:model-value="$emit('update:modelValue', $event)"
+    @update:model-value="onValueChange"
     @click.stop
   >
     <template #option="slotProps">
@@ -57,5 +58,11 @@ export default {
     options: { type: Array, default: () => [] },
   },
   emits: ["update:modelValue"],
+  methods: {
+    onValueChange(value) {
+      this.$emit("update:modelValue", value);
+      this.$nextTick(() => this.$refs.multiselect?.hide?.());
+    },
+  },
 };
 </script>
