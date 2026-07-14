@@ -11,7 +11,14 @@
       ><font-awesome-icon icon="book" />&nbsp;ReadTheDocs</a
     >.
   </p>
-  <router-link to="/about" class="btn btn-default">Learn More</router-link>
+  <a
+    href="https://docs.datalab-org.io/en/stable/"
+    class="btn btn-default"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Learn More
+  </a>
 </template>
 
 <script>
