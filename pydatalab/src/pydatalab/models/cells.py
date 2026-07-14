@@ -57,6 +57,19 @@ class Cell(Item):
     status: CellStatus = Field(default=CellStatus.ACTIVE)
     """The status of the cells, indicating its current state."""
 
+    theoretical_capacity: float | None
+    """The theoretical specific capacity of the active material."""
+
+    theoretical_capacity_unit: str = Field("mAh/g", pattern="^(mAh/g|mAh/kg)$")
+    """The unit that `theoretical_capacity` is given in."""
+
+    nominal_capacity_unit: str = Field("mAh", pattern="^(mAh|Ah)$")
+    """The unit that `nominal_capacity` is given in."""
+
+    nominal_capacity: float | None
+    """The nominal capacity of the cell, computed as
+    `theoretical_capacity * characteristic_mass`. See `set_nominal_capacity`."""
+
     @validator("characteristic_molar_mass", always=True, pre=True)
     def set_molar_mass(cls, v, values):
         from periodictable import formula
@@ -71,6 +84,28 @@ class Cell(Item):
                     return None
 
         return v
+
+    @validator("nominal_capacity", always=True, pre=True)
+    def set_nominal_capacity(cls, v, values):
+        # Conversion factor to the base unit of each quantity (mAh/g and mAh respectively).
+        theoretical_capacity_to_mah_per_g = {"mAh/g": 1, "mAh/kg": 1e-3}
+        nominal_capacity_to_mah = {"mAh": 1, "Ah": 1e3}
+
+        theoretical_capacity = values.get("theoretical_capacity")
+        characteristic_mass = values.get("characteristic_mass")
+
+        if theoretical_capacity is None or characteristic_mass is None:
+            return v
+
+        theoretical_capacity_unit = values.get("theoretical_capacity_unit") or "mAh/g"
+        nominal_capacity_unit = values.get("nominal_capacity_unit") or "mAh"
+
+        theoretical_capacity_mah_per_g = (
+            theoretical_capacity * theoretical_capacity_to_mah_per_g[theoretical_capacity_unit]
+        )
+        # characteristic_mass is in mg; divide by 1000 to get grams.
+        nominal_capacity_mah = theoretical_capacity_mah_per_g * characteristic_mass / 1000
+        return nominal_capacity_mah / nominal_capacity_to_mah[nominal_capacity_unit]
 
     @root_validator
     def add_missing_electrode_relationships(cls, values):
