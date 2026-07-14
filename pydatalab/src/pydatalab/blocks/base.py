@@ -130,9 +130,6 @@ class DataBlock:
     plot_functions: Sequence[Callable[[], None]] | None = None
     """A list of methods that will generate plots for this block."""
 
-    _supports_collections: bool = False
-    """Whether this datablock can operate on collection data, or just individual items"""
-
     multi_file: bool = False
     """Whether this block can accept multiple files as input."""
 
@@ -142,15 +139,13 @@ class DataBlock:
     def __init__(
         self,
         item_id: str | None = None,
-        collection_id: str | None = None,
         init_data: dict | None = None,
         unique_id: str | None = None,
     ):
-        """Create a data block object for the given `item_id` or `collection_id`.
+        """Create a data block object for the given `item_id`.
 
         Parameters:
-            item_id: The item to which the block is attached, or
-            collection_id: The collection to which the block is attached.
+            item_id: The item to which the block is attached.
             init_data: A dictionary of data to initialise the block with.
             unique_id: A unique id for the block, used in the DOM and database.
 
@@ -158,16 +153,8 @@ class DataBlock:
         if init_data is None:
             init_data = {}
 
-        if item_id is None and not self._supports_collections:
+        if item_id is None:
             raise RuntimeError(f"Must supply `item_id` to make {self.__class__.__name__}.")
-
-        if collection_id is not None and not self._supports_collections:
-            raise RuntimeError(
-                f"This block ({self.__class__.__name__}) does not support collections."
-            )
-
-        if item_id is not None and collection_id is not None:
-            raise RuntimeError("Must provide only one of `item_id` and `collection_id`.")
 
         LOGGER.debug(
             "Creating new block '%s' associated with item_id '%s'",
@@ -179,7 +166,6 @@ class DataBlock:
         )  # this is supposed to be a unique id for use in html and the database.
         self.data = {
             "item_id": item_id,
-            "collection_id": collection_id,
             "blocktype": self.blocktype,
             "block_id": self.block_id,
             **self.defaults,
@@ -195,10 +181,9 @@ class DataBlock:
             init_data
         )  # this could overwrite blocktype and block_id. I think that's reasonable... maybe
         LOGGER.debug(
-            "Initialised block %s for item ID %s or collection ID %s.",
+            "Initialised block %s for item ID %s",
             self.__class__.__name__,
             item_id,
-            collection_id,
         )
 
     def to_db(self) -> dict:
@@ -326,7 +311,7 @@ class DataBlock:
     @classmethod
     def from_web(cls, data: dict):
         """Initialise the block state from data passed via web request
-        with a given item, collection and block ID.
+        with a given item and block ID.
 
         Parameters:
             data: The block data to initialiaze the block with.
@@ -334,7 +319,6 @@ class DataBlock:
         """
         block = cls(
             item_id=data.get("item_id"),
-            collection_id=data.get("collection_id"),
             unique_id=data["block_id"],
         )
         block.update_from_web(data)
