@@ -1,3 +1,4 @@
+<!-- This file was edited with the assistance of an AI model and requires human review from the contributor. -->
 <template>
   <div class="role-cell-wrapper">
     <vSelect
@@ -80,7 +81,12 @@ export default {
       }
     },
     async handleRoleChange(newRole) {
-      const originalRole = this.localRole;
+      const originalRole = this.user?.role || "user";
+
+      if (newRole === originalRole) {
+        this.localRole = originalRole;
+        return;
+      }
 
       if (originalRole === "admin" && newRole !== "admin") {
         const confirmed = await DialogService.confirm({
