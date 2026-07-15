@@ -1803,32 +1803,25 @@ def save_item():
     # (i.e., a snapshot was minted). If this fails, we log but don't fail the request
     # since the item was already saved.
     new_last_modified = None
-    try:
-        save_version_resp_dict, save_version_status = save_version_snapshot(
-            refcode,
-        )
-        if save_version_status != 200:
-            LOGGER.error(
-                "Failed to save version for item %s after successful update: %s",
-                item_id,
-                save_version_resp_dict,
-            )
-        elif "version" in save_version_resp_dict:
-            new_last_modified = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
-            flask_mongo.db.items.update_one(
-                {"item_id": item_id},
-                {
-                    "$set": {
-                        "version": save_version_resp_dict["version"],
-                        "last_modified": new_last_modified,
-                    }
-                },
-            )
-    except Exception as e:
+
+    save_version_resp_dict, save_version_status = save_version_snapshot(refcode)
+
+    if save_version_status != 200:
         LOGGER.error(
-            "Exception while saving version for item %s after successful update: %s",
+            "Failed to save version for item %s after successful update: %s",
             item_id,
-            str(e),
+            save_version_resp_dict,
+        )
+    elif "version" in save_version_resp_dict:
+        new_last_modified = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
+        flask_mongo.db.items.update_one(
+            {"item_id": item_id},
+            {
+                "$set": {
+                    "version": save_version_resp_dict["version"],
+                    "last_modified": new_last_modified,
+                }
+            },
         )
 
     # Report the freshly-minted timestamp when content changed. If no version was minted
