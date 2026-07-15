@@ -630,6 +630,9 @@ def find_create_or_modify_user(
 
 
 def _validate_magic_link_request(email: str, referrer: str) -> None:
+    if CONFIG.DISABLE_MAGIC_LINK_AUTH:
+        raise Forbidden("Magic-link authentication is disabled for this datalab instance.")
+
     if not email:
         raise BadRequest("No email provided")
 
@@ -808,6 +811,9 @@ def email_logged_in():
     - Authenticate the user for this session.
 
     """
+    if CONFIG.DISABLE_MAGIC_LINK_AUTH:
+        raise Forbidden("Magic-link authentication is disabled for this datalab instance.")
+
     args = request.args
     token = args.get("token")
     if not token:

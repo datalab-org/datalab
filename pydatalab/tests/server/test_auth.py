@@ -62,6 +62,34 @@ def test_magic_links_expected_failures(unauthenticated_client, app):
         assert len(outbox) == 0
 
 
+def test_magic_link_auth_can_be_disabled(unauthenticated_client, app, database, monkeypatch):
+    from pydatalab import config
+
+    monkeypatch.setattr(config.CONFIG, "DISABLE_MAGIC_LINK_AUTH", True)
+    database.magic_links.delete_many({})
+
+    with app.extensions["mail"].record_messages() as outbox:
+        response = unauthenticated_client.post(
+            "/login/magic-link",
+            json={"email": "test@ml-evs.science", "referrer": "datalab.example.org"},
+        )
+        assert response.status_code == 403
+        assert (
+            response.json["message"]
+            == "Magic-link authentication is disabled for this datalab instance."
+        )
+        assert len(outbox) == 0
+        assert database.magic_links.count_documents({}) == 0
+
+        response = unauthenticated_client.get("/login/email?token=unused")
+        assert response.status_code == 403
+        assert (
+            response.json["message"]
+            == "Magic-link authentication is disabled for this datalab instance."
+        )
+        assert len(outbox) == 0
+
+
 # ──────────────────────────────────────────────
 # GitHub OAuth tests
 # ──────────────────────────────────────────────
