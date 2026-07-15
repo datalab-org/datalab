@@ -232,6 +232,11 @@ class ServerConfig(BaseSettings):
         description="A dictionary containing SMTP settings for sending emails for account registration.",
     )
 
+    DISABLE_MAGIC_LINK_AUTH: bool = Field(
+        False,
+        description="Whether to disable magic-link email authentication while retaining SMTP-backed notification emails.",
+    )
+
     ENABLE_NOTIFICATIONS: bool = Field(
         False,
         description="Whether to enable in-app notifications and their API endpoints.",

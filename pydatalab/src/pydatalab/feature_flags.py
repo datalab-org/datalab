@@ -88,7 +88,12 @@ def check_feature_flags(app):
             )
             FEATURE_FLAGS.email_notifications = False
 
-        if (
+        if CONFIG.DISABLE_MAGIC_LINK_AUTH:
+            FEATURE_FLAGS.auth_mechanisms.email = False
+            LOGGER.warning(
+                "`CONFIG.DISABLE_MAGIC_LINK_AUTH` is set; email magic-link authentication will not be enabled."
+            )
+        elif (
             CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None or CONFIG.EMAIL_DOMAIN_ALLOW_LIST
         ) and FEATURE_FLAGS.email_notifications:
             FEATURE_FLAGS.auth_mechanisms.email = True
