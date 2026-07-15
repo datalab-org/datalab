@@ -53,9 +53,6 @@ def create_notifications():
         str(request_json["summary"]).strip() if request_json.get("summary") is not None else None
     )
 
-    if not title:
-        raise BadRequest("Notification title is required.")
-
     send_all_users = request_json.get("send_all_users", False) is True
     if send_all_users:
         recipient_ids = [
@@ -162,7 +159,7 @@ def list_notifications(notification_permissions: dict):
     include_archived = request.args.get("include_archived") == "1"
     unread_only = request.args.get("unread_only") == "1"
     limit = request.args.get("limit", default=50, type=int)
-    limit = max(1, min(limit, 100))
+    limit = max(1, limit)
 
     query = dict(notification_permissions)
     if not include_archived:
