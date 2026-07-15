@@ -101,23 +101,43 @@ def create_notifications():
     else:
         grouping = None
 
-    notification_results = []
-    for recipient_id in recipient_ids:
-        try:
-            notification_result = create_notification_with_result(
-                recipient_id=recipient_id,
-                title=title,
-                summary=summary,
-                message=message,
-                level=request_json.get("level", "normal"),
-                created_by=current_user.person.immutable_id,
-                grouping=grouping,
-            )
-        except (ValidationError, ValueError) as exc:
-            raise BadRequest(str(exc)) from exc
+    level = request_json.get("level", "normal")
+    created_by = current_user.person.immutable_id
 
-        if notification_result is not None:
-            notification_results.append(notification_result)
+    def create_for_recipients(session=None):
+        notification_results = []
+        for recipient_id in recipient_ids:
+            try:
+                notification_result = create_notification_with_result(
+                    recipient_id=recipient_id,
+                    title=title,
+                    summary=summary,
+                    message=message,
+                    level=level,
+                    created_by=created_by,
+                    grouping=grouping,
+                    session=session,
+                )
+            except (ValidationError, ValueError) as exc:
+                raise BadRequest(str(exc)) from exc
+
+            if notification_result is not None:
+                notification_results.append(notification_result)
+
+        return notification_results
+
+    try:
+        hello = flask_mongo.cx.admin.command("hello")
+        supports_transactions = hello.get("msg") == "isdbgrid" or "setName" in hello
+    except Exception:
+        supports_transactions = False
+
+    if supports_transactions:
+        with flask_mongo.cx.start_session() as session:
+            with session.start_transaction():
+                notification_results = create_for_recipients(session=session)
+    else:
+        notification_results = create_for_recipients()
 
     created_count = sum(created for _, created in notification_results)
     grouped_count = len(notification_results) - created_count

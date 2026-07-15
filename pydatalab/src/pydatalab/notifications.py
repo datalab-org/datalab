@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from bson import ObjectId
 from pymongo import ReturnDocument
@@ -36,6 +37,7 @@ def _find_grouped_notification(
     title: str,
     grouping: NotificationGrouping,
     now: datetime,
+    session: Any | None = None,
 ) -> dict | None:
     query: dict[str, object] = {
         "recipient_id": recipient_id,
@@ -54,12 +56,14 @@ def _find_grouped_notification(
     return flask_mongo.db.notifications.find_one(
         query,
         sort=[("last_occurred_at", -1), ("created_at", -1)],
+        session=session,
     )
 
 
-def _insert_notification(notification: Notification) -> Notification:
+def _insert_notification(notification: Notification, *, session: Any | None = None) -> Notification:
     result = flask_mongo.db.notifications.insert_one(
-        notification.dict(by_alias=True, exclude_none=True)
+        notification.dict(by_alias=True, exclude_none=True),
+        session=session,
     )
     notification.immutable_id = result.inserted_id
     return notification
@@ -74,6 +78,7 @@ def create_notification_with_result(
     level: NotificationLevel | str = NotificationLevel.NORMAL,
     created_by: str | ObjectId | PyObjectId | None = None,
     grouping: NotificationGrouping | dict[str, object] | None = None,
+    session: Any | None = None,
 ) -> tuple[Notification, bool] | None:
     """Create or group an in-app notification if the feature is enabled.
 
@@ -102,7 +107,7 @@ def create_notification_with_result(
             occurrence_count=1,
             last_occurred_at=now,
         )
-        return _insert_notification(notification), True
+        return _insert_notification(notification, session=session), True
 
     if isinstance(grouping, dict):
         grouping = NotificationGrouping(**grouping)
@@ -119,6 +124,7 @@ def create_notification_with_result(
         title=title,
         grouping=grouping,
         now=now,
+        session=session,
     )
 
     if grouped_notification is not None:
@@ -137,6 +143,7 @@ def create_notification_with_result(
             {"_id": grouped_notification["_id"]},
             mongo_update,
             return_document=ReturnDocument.AFTER,
+            session=session,
         )
         return Notification(**updated_notification), False
 
@@ -153,7 +160,7 @@ def create_notification_with_result(
         occurrences=[occurrence],
     )
 
-    return _insert_notification(notification), True
+    return _insert_notification(notification, session=session), True
 
 
 def create_notification(
