@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from bson import ObjectId
+from pymongo import ReturnDocument
 
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
@@ -132,12 +133,10 @@ def create_notification_with_result(
             "$push": {"occurrences": occurrence.dict(exclude_none=True)},
             "$unset": {"read_at": ""},
         }
-        flask_mongo.db.notifications.update_one(
+        updated_notification = flask_mongo.db.notifications.find_one_and_update(
             {"_id": grouped_notification["_id"]},
             mongo_update,
-        )
-        updated_notification = flask_mongo.db.notifications.find_one(
-            {"_id": grouped_notification["_id"]}
+            return_document=ReturnDocument.AFTER,
         )
         return Notification(**updated_notification), False
 

@@ -2,12 +2,13 @@ from datetime import datetime, timezone
 from typing import Any
 
 from bson import ObjectId
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, abort, jsonify, request
 from flask_login import current_user
 from pydantic import ValidationError
 from pymongo import ReturnDocument
 from werkzeug.exceptions import BadRequest, NotFound
 
+from pydatalab.feature_flags import FEATURE_FLAGS
 from pydatalab.models.notifications import Notification
 from pydatalab.models.people import AccountStatus
 from pydatalab.mongo import flask_mongo
@@ -20,6 +21,13 @@ from pydatalab.permissions import (
 )
 
 NOTIFICATIONS = Blueprint("notifications", __name__)
+
+
+@NOTIFICATIONS.before_request
+def _require_notifications_feature():
+    """Gate the whole blueprint behind the `notifications` feature flag."""
+    if not FEATURE_FLAGS.notifications.enabled:
+        abort(404)
 
 
 @NOTIFICATIONS.before_request
@@ -88,7 +96,7 @@ def create_notifications():
     grouping = request_json.get("grouping")
     if grouping is not None and grouping != {}:
         if not isinstance(grouping, dict):
-            raise BadRequest("grouping must be an object.")
+            raise BadRequest("grouping must be a dict.")
         grouping = dict(grouping)
     else:
         grouping = None
