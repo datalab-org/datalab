@@ -161,35 +161,3 @@ def create_notification_with_result(
     )
 
     return _insert_notification(notification, session=session), True
-
-
-def create_notification(
-    *,
-    recipient_id: str | ObjectId | PyObjectId,
-    title: str,
-    message: str | None = None,
-    summary: str | None = None,
-    level: NotificationLevel | str = NotificationLevel.NORMAL,
-    created_by: str | ObjectId | PyObjectId | None = None,
-    grouping: NotificationGrouping | dict[str, object] | None = None,
-) -> Notification | None:
-    """Create an in-app notification if the feature is enabled.
-
-    This helper is safe for future ingestion/admin callers: when notifications
-    are disabled it returns ``None`` without touching MongoDB.
-    """
-
-    result = create_notification_with_result(
-        recipient_id=recipient_id,
-        title=title,
-        summary=summary,
-        message=message,
-        level=level,
-        created_by=created_by,
-        grouping=grouping,
-    )
-    if result is None:
-        return None
-
-    notification, _ = result
-    return notification
