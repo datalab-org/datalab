@@ -551,7 +551,9 @@ def search_items():
 
 
 def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
-    copied_doc = flask_mongo.db.items.find_one({"item_id": copy_from_item_id})
+    copied_doc = flask_mongo.db.items.find_one(
+        {"item_id": copy_from_item_id, **get_default_permissions(user_only=False)}
+    )
 
     LOGGER.debug("Copying from pre-existing item %s with data:\n%s", copy_from_item_id, copied_doc)
     if not copied_doc:
