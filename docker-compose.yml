@@ -57,6 +57,82 @@ services:
     networks:
       - backend
 
+  # ---------------------------------------------------------------------------
+  # Development services (`docker compose --profile dev up`).
+  #
+  # These give a hot-reloading, source-mounted environment for local
+  # development.
+  # ---------------------------------------------------------------------------
+  database-dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      dockerfile: .docker/mongo/Dockerfile
+    volumes:
+      - datalab-dev-dbdata:/data/db
+    ports:
+      # Published on host port 27018 to avoid clashing with a
+      # developer's native MongoDB.
+      - "27018:27017"
+    networks:
+      - backend
+
+  api-dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      dockerfile: .docker/server/Dockerfile
+      target: api
+    command: ["/opt/.venv/bin/invoke", "dev.serve", "--host", "0.0.0.0", "--port", "5001"]
+    depends_on:
+      - database-dev
+    volumes:
+      - ./pydatalab:/app
+      - datalab-dev-files:/app/files
+    ports:
+      - "5001:5001"
+    networks:
+      - backend
+    environment:
+      - PYDATALAB_MONGO_URI=mongodb://database-dev:27017/${DATALAB_DB_NAME:-datalabvue}
+      - PYDATALAB_FILE_DIRECTORY=/app/files
+
+  app-dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      dockerfile: .docker/app/Dockerfile
+      target: dev
+    command:
+      ["/node_modules/.bin/vue-cli-service", "serve", "--host", "0.0.0.0", "--port", "8081"]
+    volumes:
+      - ./webapp:/app
+    ports:
+      - "8081:8081"
+    environment:
+      - NODE_ENV=development
+      - VUE_APP_API_URL=${VUE_APP_API_URL:-http://localhost:5001}
+      - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING:-true}
+    healthcheck:
+      # The dev image has no HEALTHCHECK (that lives in the production stage);
+      # this lets `docker compose up --wait` (used in CI) block until the
+      # webpack dev server has compiled and is serving.
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:8081').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 180s
+
 networks:
   backend:
     driver: bridge
+
+volumes:
+  datalab-dev-dbdata:
+  datalab-dev-files:
