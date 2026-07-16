@@ -64,6 +64,9 @@ Third-party options with a free tier include [resend](https://resend.com/), whic
 
 The email addresses that are allowed to sign up can be restricted by domain/subdomain using the [`EMAIL_DOMAIN_ALLOW_LIST`][pydatalab.config.ServerConfig.EMAIL_DOMAIN_ALLOW_LIST] setting.
 
+If SMTP settings are required for notification emails but email magic-link sign-in should be disabled, set [`DISABLE_MAGIC_LINK_AUTH`][pydatalab.config.ServerConfig.DISABLE_MAGIC_LINK_AUTH] to `true`.
+This hides email authentication from the advertised authentication mechanisms and rejects direct requests to generate or consume magic links.
+
 ### OAuth2
 
 OAuth2 allows users to log in using their existing accounts with third-party providers, without the need for a password.
