@@ -196,6 +196,30 @@
       "title": "Active Ion Charge",
       "default": 1,
       "type": "number"
+    },
+    "theoretical_capacity": {
+      "title": "Theoretical Capacity",
+      "type": "number"
+    },
+    "theoretical_capacity_unit": {
+      "title": "Theoretical Capacity Unit",
+      "default": "mAh/g",
+      "pattern": "^(mAh/g|mAh/kg)$",
+      "type": "string"
+    },
+    "nominal_capacity_unit": {
+      "title": "Nominal Capacity Unit",
+      "default": "mAh",
+      "pattern": "^(mAh|Ah)$",
+      "type": "string"
+    },
+    "nominal_capacity": {
+      "title": "Nominal Capacity",
+      "type": "number"
+    },
+    "nominal_capacity_mah": {
+      "title": "Nominal Capacity Mah",
+      "type": "number"
     }
   },
   "required": [
