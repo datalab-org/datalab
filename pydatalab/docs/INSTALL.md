@@ -43,6 +43,12 @@ This starts the web app at [http://localhost:8081](http://localhost:8081), the A
 `mongodb://localhost:27018`. Changes under `pydatalab/` and `webapp/` are
 bind-mounted into the containers and trigger the respective development servers to reload.
 
+After connection, you can make yourself admin with the command
+```shell
+docker compose exec api-dev /opt/.venv/bin/invoke admin.change-user-role \
+  --display-name "Your Name" --role admin
+```
+
 The development database and uploaded files are stored in separate Docker volumes. To use
 a different database name, set `DATALAB_DB_NAME` when starting the stack, for example:
 
