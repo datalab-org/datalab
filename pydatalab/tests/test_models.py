@@ -472,6 +472,59 @@ def test_cell_relationship_deduplication():
     assert parthood[0].item_id == "test_cathode"
 
 
+def test_cell_nominal_capacity():
+    """`nominal_capacity` (and its mAh-normalized counterpart `nominal_capacity_mah`)
+    are derived from `theoretical_capacity` (mAh/g) * `characteristic_mass` (mg),
+    unit-aware with respect to `nominal_capacity_unit`."""
+    from pydatalab.models.cells import Cell
+
+    # Neither input supplied: no capacity can be computed.
+    cell = Cell(item_id="abcd-1-2-3")
+    assert cell.nominal_capacity is None
+    assert cell.nominal_capacity_mah is None
+
+    # Only one of the two inputs supplied: still no capacity can be computed.
+    cell = Cell(item_id="abcd-1-2-3", theoretical_capacity=200.0)
+    assert cell.nominal_capacity is None
+    assert cell.nominal_capacity_mah is None
+
+    cell = Cell(item_id="abcd-1-2-3", characteristic_mass=5.0)
+    assert cell.nominal_capacity is None
+    assert cell.nominal_capacity_mah is None
+
+    # Default unit (mAh): 200 mAh/g * 5 mg = 1 mAh.
+    cell = Cell(item_id="abcd-1-2-3", characteristic_mass=5.0, theoretical_capacity=200.0)
+    assert cell.nominal_capacity_unit == "mAh"
+    assert cell.nominal_capacity == pytest.approx(1.0)
+    assert cell.nominal_capacity_mah == pytest.approx(1.0)
+
+    # Requesting the result in Ah: same underlying quantity, different display unit.
+    cell = Cell(
+        item_id="abcd-1-2-3",
+        characteristic_mass=5.0,
+        theoretical_capacity=200.0,
+        nominal_capacity_unit="Ah",
+    )
+    assert cell.nominal_capacity == pytest.approx(0.001)
+    # nominal_capacity_mah is unit-independent and always mAh.
+    assert cell.nominal_capacity_mah == pytest.approx(1.0)
+
+    # A client-supplied nominal_capacity is not trusted: it is always recomputed
+    # from theoretical_capacity * characteristic_mass.
+    cell = Cell(
+        item_id="abcd-1-2-3",
+        characteristic_mass=5.0,
+        theoretical_capacity=200.0,
+        nominal_capacity=999,
+    )
+    assert cell.nominal_capacity == pytest.approx(1.0)
+
+    # Round-tripping through JSON (as happens on save/load) preserves the computed values.
+    cell = Cell(**json.loads(cell.model_dump_json()))
+    assert cell.nominal_capacity == pytest.approx(1.0)
+    assert cell.nominal_capacity_mah == pytest.approx(1.0)
+
+
 def test_sample_synthesis_relationship_deduplication():
     """Regression test for duplicated parent relationships on synthesis constituents.
 
