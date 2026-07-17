@@ -1559,6 +1559,55 @@
       "default": 1,
       "title": "Active Ion Charge",
       "type": "number"
+    },
+    "theoretical_capacity": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The theoretical specific capacity of the active material, in mAh/g.",
+      "title": "Theoretical Capacity"
+    },
+    "nominal_capacity_unit": {
+      "default": "mAh",
+      "description": "The unit that `nominal_capacity` is given in.",
+      "enum": [
+        "mAh",
+        "Ah"
+      ],
+      "title": "Nominal Capacity Unit",
+      "type": "string"
+    },
+    "nominal_capacity": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The nominal capacity of the cell, computed as\n`theoretical_capacity * characteristic_mass`. See `set_nominal_capacity`.",
+      "title": "Nominal Capacity"
+    },
+    "nominal_capacity_mah": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "`nominal_capacity` normalized to mAh, regardless of the unit currently selected\non this item (`nominal_capacity_unit`). Read-only/derived: always recomputed on\nsave (see `set_nominal_capacity`). Prefer this field over `nominal_capacity`\nwhenever comparing or aggregating across cells, since `nominal_capacity_unit` can\ndiffer from item to item.",
+      "title": "Nominal Capacity Mah"
     }
   },
   "required": [
