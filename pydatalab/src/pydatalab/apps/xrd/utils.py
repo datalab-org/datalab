@@ -209,7 +209,7 @@ def compute_cif_pxrd(filename: str, wavelength: float) -> tuple[pd.DataFrame, di
     if not success:
         raise RuntimeError(f"Failed to parse required information from CIF file {filename}.")
 
-    pxrd = PXRD(structure, wavelength=wavelength, two_theta_bounds=(5, 60))
+    pxrd = PXRD(structure, wavelength=wavelength, two_theta_bounds=(5, 90))
 
     df = pd.DataFrame({"intensity": pxrd.pattern, "twotheta": pxrd.two_thetas})
     peak_data = {
