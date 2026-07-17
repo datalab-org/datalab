@@ -112,7 +112,7 @@ services:
     environment:
       - NODE_ENV=development
       - VUE_APP_API_URL=${VUE_APP_API_URL:-http://localhost:5001}
-      - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING:-true}
+      - CHOKIDAR_USEPOLLING=true
     healthcheck:
       # The dev image has no HEALTHCHECK (that lives in the production stage);
       # this lets `docker compose up --wait` (used in CI) block until the

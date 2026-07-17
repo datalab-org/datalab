@@ -31,7 +31,6 @@ RUN apt update \
         xauth \
         xvfb \
     && rm -rf /var/lib/apt/lists/*
-COPY webapp ./
 
 # build target: runs the production webpack bundle. Derives from `base` rather
 # than `dev` so production builds don't pull in the Cypress system libraries.
