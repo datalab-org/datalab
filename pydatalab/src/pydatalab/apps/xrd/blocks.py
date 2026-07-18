@@ -7,7 +7,12 @@ import numpy as np
 import pandas as pd
 from scipy.signal import medfilt
 
-from pydatalab.blocks.base import DataBlock, event, generate_js_callback_single_float_parameter
+from pydatalab.blocks.base import (
+    ComparisonData,
+    DataBlock,
+    event,
+    generate_js_callback_single_float_parameter,
+)
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
@@ -348,4 +353,54 @@ class XRDBlock(DataBlock):
                     ),
                 }
             },
+        )
+
+    def _comparison_file_locations(self) -> list[tuple[str | None, str]]:
+        """Resolve the file(s) this block plots, as ``(sublabel, location)``.
+
+        Mirrors :meth:`generate_xrd_plot`: an explicit ``file_id`` gives a single
+        file (``sublabel=None``); otherwise all compatible files attached to the
+        parent item are used (``sublabel`` is the filename, unless there is only one).
+        """
+        file_id = self.data.get("file_id")
+        if file_id:
+            file_info = get_file_info_by_id(file_id, update_if_live=False)
+            return [(None, file_info["location"])]
+
+        item = flask_mongo.db.items.find_one(
+            {"item_id": self.data.get("item_id")}, projection={"file_ObjectIds": 1}
+        )
+        locations: list[tuple[str | None, str]] = []
+        for f in (item or {}).get("file_ObjectIds", []):
+            try:
+                info = get_file_info_by_id(f, update_if_live=False)
+            except OSError:
+                continue
+            if any(info["name"].lower().endswith(ext) for ext in self.accepted_file_extensions):
+                locations.append((info["name"], info["location"]))
+
+        # With a single discovered file, use the sample label rather than the filename.
+        if len(locations) == 1:
+            locations = [(None, locations[0][1])]
+        return locations
+
+    def get_comparison_data(self) -> ComparisonData | None:
+        """Expose XRD pattern(s) for cross-sample overlay comparison."""
+        locations = self._comparison_file_locations()
+        if not locations:
+            return None
+
+        wavelength = float(self.data.get("wavelength") or self.defaults["wavelength"])
+        series: list[tuple[str | None, pd.DataFrame]] = []
+        y_options: list[str] = []
+        for sublabel, location in locations:
+            df, y_options, _ = self.load_pattern(location, wavelength=wavelength)
+            series.append((sublabel, df))
+
+        return ComparisonData(
+            series=series,
+            x_options=["2θ (°)", "Q (Å⁻¹)", "d (Å)"],
+            x_default="2θ (°)",
+            y_default="normalized intensity",
+            y_options=y_options,
         )

@@ -4,13 +4,51 @@ import random
 import traceback
 import warnings
 from collections.abc import Callable, Sequence
-from typing import Any
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
 
 from pydatalab import __version__
 from pydatalab.logger import LOGGER
 from pydatalab.models.blocks import DataBlockResponse
 
-__all__ = ("generate_random_id", "DataBlock", "generate_js_callback_single_float_parameter")
+if TYPE_CHECKING:
+    import pandas as pd
+
+__all__ = (
+    "generate_random_id",
+    "DataBlock",
+    "ComparisonData",
+    "generate_js_callback_single_float_parameter",
+)
+
+
+@dataclass
+class ComparisonData:
+    """The data a block exposes for cross-sample overlay comparison.
+
+    A block returns one of these from :meth:`DataBlock.get_comparison_data` to opt
+    into overlay comparison. The comparison endpoint merges the ``series`` from
+    several blocks into a single :func:`~pydatalab.bokeh_plots.selectable_axes_plot`,
+    colouring one series per sample. Blocks should return a comparable 1D *reduction*
+    of their data (shared, selectable axes), not their full native plot.
+    """
+
+    series: list[tuple[str | None, "pd.DataFrame"]]
+    """The curves to plot, as ``(sublabel, dataframe)`` pairs. ``sublabel`` is
+    ``None`` for a single series (the sample name is used as the label) and a short
+    per-series label (e.g. a filename) when one block contributes several series."""
+
+    x_options: list[str]
+    """Column names selectable as the x-axis."""
+
+    x_default: str
+    """Default x-axis column."""
+
+    y_default: str
+    """Default y-axis column."""
+
+    y_options: list[str] | None = None
+    """Column names selectable as the y-axis (defaults to ``selectable_axes_plot``'s inference)."""
 
 
 def generate_js_callback_single_float_parameter(
@@ -345,3 +383,19 @@ class DataBlock:
         [data.pop(f, None) for f in exclude_fields]
         self.data.update(self.block_db_model(**data).dict())
         return self
+
+    def get_comparison_data(self) -> "ComparisonData | None":
+        """Return this block's data for cross-sample overlay comparison.
+
+        Override in a block subclass (reusing the block's own file-loading logic) to
+        opt into overlay comparison; return a :class:`ComparisonData` describing the
+        comparable 1D reduction. The default returns ``None``, meaning the block is
+        not overlay-able and will only ever be shown side-by-side.
+        """
+        return None
+
+    @classmethod
+    def supports_comparison(cls) -> bool:
+        """Whether this block type implements overlay comparison (i.e. overrides
+        :meth:`get_comparison_data`)."""
+        return cls.get_comparison_data is not DataBlock.get_comparison_data
