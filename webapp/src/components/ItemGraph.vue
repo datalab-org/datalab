@@ -150,6 +150,8 @@ const layoutOptions = {
     animationDuration: 300,
     elk: {
       algorithm: "stress",
+      // ELK has no way to cap layout time (maxSimulationTime), so bound the run with an iteration limit
+      "elk.stress.iterationLimit": 1000,
     },
   },
   cola: {
@@ -157,12 +159,14 @@ const layoutOptions = {
     animate: "end",
     animationDuration: 300,
     centerGraph: false,
+    maxSimulationTime: 4000,
   },
   euler: {
     name: "euler",
     animate: "end",
     animationDuration: 300,
     pull: 0.002,
+    maxSimulationTime: 4000,
   },
   fcose: {
     name: "fcose",
