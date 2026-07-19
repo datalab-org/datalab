@@ -15,6 +15,7 @@ from werkzeug.exceptions import BadRequest, Conflict, InternalServerError, NotFo
 
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
+from pydatalab.feature_flags import FEATURE_FLAGS
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS, ItemVersion
 from pydatalab.models.items import Item
@@ -32,6 +33,7 @@ from pydatalab.mongo import (
     flask_mongo,
     get_items_fts_fields,
     groups_lookup,
+    resolve_tags_for_docs,
 )
 from pydatalab.permissions import (
     PUBLIC_USER_ID,
@@ -288,6 +290,8 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
         "refcode": 1,
         "status": 1,
     }
+    if FEATURE_FLAGS.tags:
+        _project["tags"] = 1
 
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
     if project:
@@ -297,7 +301,7 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
             else:
                 _project[key] = 1
 
-    return list(
+    samples = list(
         flask_mongo.db.items.aggregate(
             [
                 {"$match": match},
@@ -309,6 +313,10 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
             ]
         )
     )
+    if FEATURE_FLAGS.tags:
+        resolve_tags_for_docs(samples)
+
+    return samples
 
 
 def entry_reference_lookup(item_doc: dict) -> dict:
@@ -602,6 +610,24 @@ def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
     return sample_dict
 
 
+def _strip_tag_display_fields(item: dict) -> None:
+    """Reduce tag references in ``item['tags']`` to the minimal
+    ``{type, immutable_id}`` link before storage, in place.
+
+    The display fields (name/description/color) are inlined by the client and
+    re-resolved on every read (`resolve_tags_for_docs`), so persisting them would
+    be redundant denormalisation.
+    """
+    tags = item.get("tags")
+    if not isinstance(tags, list):
+        return
+    item["tags"] = [
+        {"type": "tags", "immutable_id": tag["immutable_id"]}
+        for tag in tags
+        if isinstance(tag, dict) and tag.get("immutable_id") is not None
+    ]
+
+
 def _create_sample(
     sample_dict: dict,
     copy_from_item_id: str | None = None,
@@ -700,9 +726,9 @@ def _create_sample(
     # TODO: encode this at the model level, via custom schema properties or hard-coded `.store()` methods
     # the `Entry` model.
     try:
-        result = flask_mongo.db.items.insert_one(
-            data_model.model_dump(exclude={"creators", "collections", "groups"})
-        )
+        to_store = data_model.model_dump(exclude={"creators", "collections", "groups"})
+        _strip_tag_display_fields(to_store)
+        result = flask_mongo.db.items.insert_one(to_store)
     except DuplicateKeyError as error:
         raise Conflict(f"Duplicate key error: {str(error)}.")
 
@@ -1133,6 +1159,9 @@ def get_item_data(
 
     try:
         doc = entry_reference_lookup(doc)
+        # Resolve tag references for display only (a read-time concern): inline
+        # current tag names and drop references to deleted tags.
+        resolve_tags_for_docs([doc])
         doc = ItemModel(**doc)
     except ValidationError as error:
         # The stored document doesn't validate against its declared schema.
@@ -1689,6 +1718,9 @@ def save_item():
     existing_last_modified = item.pop("last_modified", None)
     if isinstance(existing_last_modified, datetime.datetime):
         existing_last_modified = existing_last_modified.isoformat()
+
+    # Store tag references minimally; see `_strip_tag_display_fields`.
+    _strip_tag_display_fields(item)
 
     # Update the item FIRST (transaction safety: item update before version save)
     result = flask_mongo.db.items.update_one(
