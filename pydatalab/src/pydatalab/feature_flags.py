@@ -27,6 +27,7 @@ class FeatureFlags(BaseModel):
     auth_mechanisms: AuthMechanisms = AuthMechanisms()
     ai_integrations: AIIntegrations = AIIntegrations()
     email_notifications: bool = False
+    tags: bool = False
 
 
 FEATURE_FLAGS: FeatureFlags = FeatureFlags()
@@ -58,6 +59,8 @@ def check_feature_flags(app):
     object reported by the API for use in UIs.
 
     """
+
+    FEATURE_FLAGS.tags = CONFIG.ENABLE_TAGS
 
     if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is None:
         LOGGER.warning(

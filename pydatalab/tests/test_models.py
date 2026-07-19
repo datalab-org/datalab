@@ -184,6 +184,70 @@ def test_file():
     assert sample.files[1].type == "files"
 
 
+def test_tag_model():
+    from pydatalab.models.tags import Tag
+
+    tag = Tag(name="test_tag", description="This is an example", color="#f1c40f")
+    assert tag.type == "tags"
+    assert tag.name == "test_tag"
+    assert tag.description == "This is an example"
+    assert tag.color == "#f1c40f"
+
+    # Tags carry no ownership/scope in this stage.
+    assert not hasattr(tag, "creator_ids")
+    assert not hasattr(tag, "group_ids")
+
+    oid = ObjectId("0123456789ab0123456789ab")
+    doc = {"_id": oid, "type": "tags", "name": "glovebox"}
+    stored_tag = Tag(**doc)
+    assert stored_tag.immutable_id == oid
+    assert stored_tag.description is None
+    assert stored_tag.color is None
+    assert stored_tag.model_dump()["immutable_id"] == oid
+
+    # A name is required.
+    with pytest.raises(pydantic.ValidationError):
+        Tag(description="missing a name")
+
+
+def test_item_tags_coercion():
+    """The `HasTags` mixin coerces references and de-duplicates tags on items."""
+    from pydatalab.models.samples import Sample
+    from pydatalab.models.utils import EntryReference
+
+    oid = ObjectId("0123456789ab0123456789ab")
+
+    sample = Sample(
+        item_id="tagged",
+        tags=[
+            {"type": "tags", "immutable_id": str(oid), "name": "Curated"},
+            {"type": "tags", "immutable_id": str(oid)},  # same reference by id -> dropped
+        ],
+    )
+
+    assert len(sample.tags) == 1
+    ref = sample.tags[0]
+    assert isinstance(ref, EntryReference)
+    assert ref.type == "tags"
+    assert ref.immutable_id == oid
+    assert ref.name == "Curated"
+
+    # Default is an empty list, so existing tag-less documents stay valid.
+    assert Sample(item_id="untagged").tags == []
+
+    # A reference to a (possibly deleted) tag still validates.
+    dangling = Sample(item_id="dangling", tags=[{"type": "tags", "immutable_id": str(ObjectId())}])
+    assert len(dangling.tags) == 1
+
+    # Bare string tags are not allowed: only references to tags entries.
+    with pytest.raises(pydantic.ValidationError):
+        Sample(item_id="string-tag", tags=["custom"])
+
+    # Re-validating a dumped item round-trips the reference tags list.
+    roundtrip = Sample(**json.loads(sample.model_dump_json()))
+    assert [type(t).__name__ for t in roundtrip.tags] == ["EntryReference"]
+
+
 def test_custom_and_inherited_items():
     class TestItem(Item):
         type: str = "items_custom"
