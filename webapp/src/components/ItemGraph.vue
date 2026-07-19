@@ -196,6 +196,13 @@ export default {
       type: Boolean,
       default: false,
     },
+    // When false, block nodes are stripped from the graph data before the
+    // cytoscape instance is created, so they cost nothing during layout
+    // (unlike defaultShowBlocks, which only hides them)
+    includeBlocks: {
+      type: Boolean,
+      default: true,
+    },
   },
   data() {
     return {
@@ -288,13 +295,19 @@ export default {
         console.warn("Cytoscape container not ready");
         return;
       }
-      const nodeIds = new Set((this.graphData.nodes || []).map((n) => n.data.id));
+      // Filter nodes based on whether blocks are requested
+      let nodes = this.graphData.nodes || [];
+      if (!this.includeBlocks) {
+        nodes = nodes.filter((n) => n.data.type !== "blocks");
+      }
+      const nodeIds = new Set(nodes.map((n) => n.data.id));
+      // also drops any edges to filtered-out block nodes
       const validEdges = (this.graphData.edges || []).filter(
         (e) => nodeIds.has(e.data.source) && nodeIds.has(e.data.target),
       );
       this.cy = cytoscape({
         container: this.$refs.cyContainer,
-        elements: { nodes: this.graphData.nodes || [], edges: validEdges },
+        elements: { nodes: nodes, edges: validEdges },
         userPanningEnabled: true,
         minZoom: 0.05,
         maxZoom: 1,
