@@ -34,8 +34,6 @@
       @page="onPageChange"
       @sort="onSort"
     >
-      <!-- v-model:expandedRows="expandedRows" -->
-
       <template #header>
         <DynamicDataTableButtons
           :data-type="dataType"
@@ -46,7 +44,7 @@
           :available-columns="availableColumns"
           :selected-columns="selectedColumns"
           :collection-id="collectionId"
-          :all-users="allUsersForBulk"
+          :all-users="allUsers"
           @update:filters="updateFilters"
           @update:selected-columns="onToggleColumns"
           @open-create-item-modal="createItemModalIsOpen = true"
@@ -86,22 +84,14 @@
         :style="{ minWidth: '3.5ch' }"
       ></Column>
 
-      <!-- <Column expander style="width: 5rem" /> -->
       <Column
         v-for="column in selectedColumns"
         :key="column.field"
         :field="column.field"
-        sortable
+        :sortable="column.sortable !== false"
         :class="{ 'filter-active': isFilterActive(column.field) }"
         :style="{ minWidth: getColumnMinWidth(column) }"
-        :filter-menu-class="
-          column.field === 'type' ||
-          column.field === 'status' ||
-          column.field === 'date' ||
-          column.field === 'created_at'
-            ? 'no-operator'
-            : ''
-        "
+        :filter-menu-class="column.filter && column.filter.noOperator ? 'no-operator' : ''"
       >
         <template #header>
           <div v-if="column.icon" class="header-with-icon">
@@ -115,435 +105,34 @@
 
         <template v-if="column.body" #body="slotProps">
           <component
-            :is="column.body"
-            v-bind="getComponentProps(column.body, slotProps.data)"
-            @edit-group="$emit('edit-group', $event)"
-            @group-deleted="$emit('group-deleted')"
+            :is="column.body.component"
+            v-bind="column.body.props(slotProps.data)"
+            v-on="resolveBodyEvents(column)"
           />
         </template>
-        <template
-          v-else-if="column.field === 'date' || column.field === 'created_at'"
-          #body="slotProps"
-        >
-          {{ $filters.IsoDatetimeToDate(slotProps.data[column.field]) }}
+        <template v-else-if="column.getValue" #body="slotProps">
+          {{ column.getValue(slotProps.data) }}
         </template>
         <template v-else #body="slotProps">
           {{ slotProps.data[column.field] }}
         </template>
-        <template v-if="column.filter && column.field === 'creatorsAndGroups'" #filter>
-          <MultiSelect
-            v-model="filters[column.field].constraints[0].value"
-            :options="uniqueCreatorsAndGroups"
-            option-label="display_name"
-            placeholder="Any"
-            class="d-flex w-full"
-            :filter="true"
-            @click.stop
-          >
-            <template #option="slotProps">
-              <div class="flex items-center">
-                <UserBubble
-                  v-if="slotProps.option.type === 'creator'"
-                  :creator="slotProps.option"
-                  :size="24"
-                />
-                <FormattedGroupName
-                  v-if="slotProps.option.type === 'group'"
-                  :group="slotProps.option"
-                  :size="24"
-                />
-                <span v-if="slotProps.option.type === 'creator'" class="ml-1">{{
-                  slotProps.option.display_name
-                }}</span>
-              </div>
-            </template>
-            <template #value="slotProps">
-              <div class="flex flex-wrap gap-2 items-center">
-                <template v-if="slotProps.value && slotProps.value.length">
-                  <span
-                    v-for="(option, index) in slotProps.value"
-                    :key="index"
-                    class="inline-flex items-center mr-2"
-                  >
-                    <UserBubble v-if="option.type === 'creator'" :creator="option" :size="20" />
-                    <FormattedGroupName v-if="option.type === 'group'" :group="option" :size="20" />
-                    <span v-if="option.type === 'creator'" class="ml-1">{{
-                      option.display_name
-                    }}</span>
-                  </span>
-                </template>
-                <span v-else class="text-gray-400">Any</span>
-              </div>
-            </template>
-          </MultiSelect>
-        </template>
 
-        <template v-else-if="column.filter && column.field === 'collections'" #filter="">
-          <MultiSelect
-            v-model="filters[column.field].constraints[0].value"
-            :options="uniqueCollections"
-            option-label="collection_id"
-            placeholder="Any"
-            class="d-flex w-full"
-            :filter="true"
-            @click.stop
-          >
-            <template #option="slotProps">
-              <div class="flex items-center">
-                <FormattedCollectionName
-                  :collection_id="slotProps.option.collection_id"
-                  :size="24"
-                />
-              </div>
-            </template>
-            <template #value="slotProps">
-              <div class="flex flex-wrap gap-1 items-center">
-                <template v-if="slotProps.value && slotProps.value.length">
-                  <span
-                    v-for="option in slotProps.value"
-                    :key="option.collection_id"
-                    class="inline-flex items-center"
-                  >
-                    <FormattedCollectionName :collection_id="option.collection_id" :size="20" />
-                  </span>
-                </template>
-                <span v-else class="text-gray-400">Any</span>
-              </div>
-            </template>
-          </MultiSelect>
-        </template>
-
-        <template v-else-if="column.filter && column.field === 'type'" #filter="">
-          <MultiSelect
-            v-model="filters[column.field].constraints[0].value"
-            :options="knownTypes"
-            option-label="type"
-            placeholder="Select item types"
-            class="d-flex w-full"
-            :filter="true"
-            @click.stop
-          >
-          </MultiSelect>
-        </template>
-
-        <template v-else-if="column.filter && column.body === 'BlocksIconCounter'" #filter>
-          <MultiSelect
-            v-model="filters[column.field].constraints[0].value"
-            :options="uniqueBlockTypes"
-            option-label="label"
-            placeholder="Select block types"
-            class="d-flex w-full"
-            :filter="true"
-            @click.stop
-          >
-            <template #option="slotProps">
-              <div class="flex items-center">
-                <span>{{ slotProps.option.label || slotProps.option.blocktype }}</span>
-              </div>
-            </template>
-            <template #value="slotProps">
-              <div class="flex flex-wrap gap-2 items-center">
-                <template v-if="slotProps.value && slotProps.value.length">
-                  <span
-                    v-for="(option, index) in slotProps.value"
-                    :key="index"
-                    class="inline-flex items-center mr-2"
-                  >
-                    {{ option.label || option.blocktype }}
-                  </span>
-                </template>
-                <span v-else class="text-gray-400">Any</span>
-              </div>
-            </template>
-          </MultiSelect>
-        </template>
-
-        <template v-else-if="column.filter && column.field === 'status'" #filter="">
-          <MultiSelect
-            v-model="filters[column.field].constraints[0].value"
-            :options="uniqueStatus"
-            option-label="status"
-            placeholder="Select status"
-            class="d-flex w-full"
-            :filter="true"
-            @click.stop
-          >
-            <template #option="slotProps">
-              <div class="flex items-center">
-                <FormattedItemStatus :status="slotProps.option.status" :dot-only="false" />
-              </div>
-            </template>
-            <template #value="slotProps">
-              <div class="flex flex-wrap gap-2 items-center">
-                <template v-if="slotProps.value && slotProps.value.length">
-                  <span
-                    v-for="(option, index) in slotProps.value"
-                    :key="index"
-                    class="inline-flex items-center mr-2"
-                  >
-                    <FormattedItemStatus :status="option.status" :dot-only="false" />
-                  </span>
-                </template>
-                <span v-else class="text-gray-400">Any</span>
-              </div>
-            </template>
-          </MultiSelect>
-        </template>
-
-        <template
-          v-else-if="column.filter && ['location', 'supplier'].includes(column.field)"
-          #filter=""
-        >
-          <MultiSelect
-            v-model="filters[column.field].constraints[0].value"
-            :options="uniqueStringValues[column.field]"
-            placeholder="Any"
-            class="d-flex w-full"
-            :filter="true"
-            @click.stop
-          >
-            <template #value="slotProps">
-              <div class="flex flex-wrap gap-1 items-center">
-                <template v-if="slotProps.value && slotProps.value.length">
-                  <span
-                    v-for="(option, index) in slotProps.value"
-                    :key="index"
-                    class="inline-flex items-center mr-2"
-                    >{{ option }}</span
-                  >
-                </template>
-                <span v-else class="text-gray-400">Any</span>
-              </div>
-            </template>
-          </MultiSelect>
-        </template>
-
-        <template v-else-if="column.filter && column.field === 'date'" #filter="{ filterModel }">
-          <div style="display: flex; flex-direction: column; gap: 0.5rem" @click.stop>
-            <Select
-              v-model="dateFilterMode"
-              :options="dateFilterOptions"
-              option-label="label"
-              option-value="value"
-              placeholder="Select filter type"
-              class="w-full"
-              @change="handleDateFilterModeChange(column.field)"
-            />
-
-            <DatePicker
-              v-if="dateFilterMode === 'range'"
-              v-model="filterModel.value"
-              selection-mode="range"
-              date-format="yy-mm-dd"
-              placeholder="Select date range"
-              :show-button-bar="true"
-              :manual-input="false"
-              :hide-on-range-selection="true"
-              style="width: 100%"
-            />
-
-            <DatePicker
-              v-else
-              v-model="filterModel.value"
-              date-format="yy-mm-dd"
-              :placeholder="dateFilterMode === 'before' ? 'Before date' : 'After date'"
-              :show-button-bar="true"
-              :manual-input="false"
-              style="width: 100%"
-            />
-          </div>
-        </template>
-
-        <template
-          v-else-if="dataType === 'users' && column.filter && column.field === 'account_status'"
-          #filter
-        >
-          <Select
-            v-model="filters[column.field].constraints[0].value"
-            :options="uniqueStatuses"
-            placeholder="Any"
-            class="p-column-filter"
-            show-clear
-          >
-            <template #option="slotProps">
-              <UserStatusCell :status="slotProps.option" />
-            </template>
-            <template #value="slotProps">
-              <UserStatusCell v-if="slotProps.value" :status="slotProps.value" />
-              <span v-else>Any</span>
-            </template>
-          </Select>
-        </template>
-
-        <template
-          v-else-if="dataType === 'users' && column.filter && column.field === 'role'"
-          #filter
-        >
-          <Select
-            v-model="filters[column.field].constraints[0].value"
-            :options="uniqueRoles"
-            placeholder="Any"
-            class="p-column-filter"
-            show-clear
-          >
-            <template #option="slotProps">
-              <RoleBadge :role="slotProps.option" />
-            </template>
-            <template #value="slotProps">
-              <RoleBadge v-if="slotProps.value" :role="slotProps.value" />
-              <span v-else>Any</span>
-            </template>
-          </Select>
-        </template>
-
-        <template
-          v-else-if="dataType === 'users' && column.filter && column.field === 'groups'"
-          #filter
-        >
-          <MultiSelect
-            v-model="filters[column.field].constraints[0].value"
-            :options="uniqueUserGroups"
-            option-label="display_name"
-            placeholder="Any"
-            class="p-column-filter"
-            :max-selected-labels="1"
-            :filter="true"
-          >
-            <template #option="slotProps">
-              <div class="flex items-center">
-                <Creators :groups="[slotProps.option]" :creators="[]" :show-names="true" />
-              </div>
-            </template>
-            <template #value="slotProps">
-              <div v-if="slotProps.value && slotProps.value.length" class="flex flex-wrap gap-1">
-                <Creators
-                  v-for="group in slotProps.value"
-                  :key="group.immutable_id"
-                  :groups="[group]"
-                  :creators="[]"
-                  :show-names="false"
-                />
-              </div>
-              <span v-else>Any</span>
-            </template>
-          </MultiSelect>
-        </template>
-
-        <template
-          v-else-if="dataType === 'tokens' && column.filter && column.field === 'active'"
-          #filter
-        >
-          <Select
-            v-model="filters[column.field].constraints[0].value"
-            :options="uniqueTokenStatuses"
-            option-value="active"
-            placeholder="Any"
-            class="p-column-filter"
-            show-clear
-          >
-            <template #option="slotProps">
-              <TokenStatusCell :active="slotProps.option.active" />
-            </template>
-            <template #value="slotProps">
-              <TokenStatusCell
-                v-if="slotProps.value !== null && slotProps.value !== undefined"
-                :active="slotProps.value"
-              />
-              <span v-else>Any</span>
-            </template>
-          </Select>
-        </template>
-
-        <template
-          v-else-if="dataType === 'tokens' && column.filter && column.field === 'item_type'"
-          #filter
-        >
-          <MultiSelect
-            v-model="filters[column.field].constraints[0].value"
-            :options="uniqueItemTypes"
-            option-label="item_type"
-            placeholder="Select item types"
-            class="d-flex w-full"
-            :filter="true"
-            @click.stop
-          >
-          </MultiSelect>
-        </template>
-
-        <template v-else-if="column.filter && column.field === 'created_at'" #filter>
-          <div class="date-filter-container">
-            <Select
-              v-model="dateFilterMode"
-              :options="dateFilterOptions"
-              option-label="label"
-              option-value="value"
-              class="mb-2 w-full"
-              @change="handleDateFilterModeChange('created_at')"
-            />
-            <DatePicker
-              v-model="filters['created_at'].constraints[0].value"
-              :selection-mode="dateFilterMode === 'range' ? 'range' : 'single'"
-              :manual-input="false"
-              date-format="yy-mm-dd"
-              placeholder="Select date"
-              class="w-full"
-              show-button-bar
-              @date-select="onDateRangeSelect"
-            />
-          </div>
-        </template>
-
-        <template
-          v-else-if="dataType === 'tokens' && column.filter && column.field === 'created_by_info'"
-          #filter
-        >
-          <MultiSelect
-            v-model="filters[column.field].constraints[0].value"
-            :options="uniqueTokenCreators"
-            option-label="display_name"
-            placeholder="Any"
-            class="d-flex w-full"
-            :filter="true"
-            @click.stop
-          >
-            <template #option="slotProps">
-              <div class="d-flex align-items-center">
-                <UserBubble :creator="slotProps.option" :size="24" />
-                <span class="ml-2">{{ slotProps.option.display_name }}</span>
-              </div>
-            </template>
-            <template #value="slotProps">
-              <div class="flex flex-wrap gap-2 items-center">
-                <template v-if="slotProps.value && slotProps.value.length">
-                  <span
-                    v-for="(option, index) in slotProps.value"
-                    :key="index"
-                    class="inline-flex items-center mr-2"
-                  >
-                    <UserBubble :creator="option" :size="20" />
-                    <span class="ml-1">{{ option.display_name }}</span>
-                  </span>
-                </template>
-                <span v-else class="text-gray-400">Any</span>
-              </div>
-            </template>
-          </MultiSelect>
-        </template>
-
-        <template v-else-if="column.filter" #filter="{ filterModel }">
-          <InputText
-            v-model="filterModel.value"
-            type="text"
-            :placeholder="'Search by ' + column.header"
+        <template v-if="column.filter" #filter="{ filterModel, filterCallback }">
+          <component
+            :is="column.filter.component"
+            :model-value="filterModel.value"
+            :current-match-mode="filterModel.matchMode"
+            :options="filterOptionsCache[column.field] || []"
+            v-bind="column.filter.componentProps || {}"
+            @update:model-value="filterModel.value = $event"
+            @apply="filterCallback()"
+            @update:match-mode="
+              filterModel.matchMode = $event;
+              filterModel.value = null;
+            "
           />
         </template>
       </Column>
-
-      <!-- <template #expansion="slotProps">
-        <div class="p-4">
-          <h5>Test Expandable {{ slotProps.data.item_id }}</h5>
-        </div>
-      </template> -->
     </DataTable>
   </div>
   <CreateItemModal
@@ -578,84 +167,22 @@ import BatchShareModal from "@/components/BatchShareModal";
 
 import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY } from "@/resources.js";
 
-import FormattedItemName from "@/components/FormattedItemName";
-import BlocksIconCounter from "@/components/BlocksIconCounter";
-import FilesIconCounter from "@/components/FilesIconCounter";
-import FormattedCollectionName from "@/components/FormattedCollectionName";
-import ChemicalFormula from "@/components/ChemicalFormula";
-import CollectionList from "@/components/CollectionList";
-import Creators from "@/components/Creators";
-import UserBubble from "@/components/UserBubble.vue";
-import FormattedItemStatus from "@/components/FormattedItemStatus.vue";
-import FormattedBarcode from "@/components/FormattedBarcode.vue";
-import FormattedRefcode from "@/components/FormattedRefcode.vue";
-import FormattedGroupName from "./FormattedGroupName.vue";
-import GroupsIconCounter from "@/components/GroupsIconCounter";
-
-import UserStatusCell from "@/components/UserStatusCell.vue";
-import UserRoleCell from "@/components/UserRoleCell.vue";
-import UserGroupsCell from "@/components/UserGroupsCell.vue";
-import UserManagersCell from "@/components/UserManagersCell.vue";
-import UserActionsCell from "@/components/UserActionsCell.vue";
-import RoleBadge from "@/components/RoleBadge.vue";
-
-import TokenStatusCell from "@/components/TokenStatusCell.vue";
-import TokenActionsCell from "@/components/TokenActionsCell.vue";
-import TokenCreatedByCell from "@/components/TokenCreatedByCell.vue";
-
-import GroupIdCell from "@/components/GroupIdCell.vue";
-import GroupMembersCell from "@/components/GroupMembersCell.vue";
-import GroupActionsCell from "@/components/GroupActionsCell.vue";
-
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
-import MultiSelect from "primevue/multiselect";
 import Column from "primevue/column";
-import InputText from "primevue/inputtext";
-import DatePicker from "primevue/datepicker";
-import Select from "primevue/select";
 
 export default {
   components: {
     DynamicDataTableButtons,
     CreateItemModal,
-    BlocksIconCounter,
-    FilesIconCounter,
     BatchCreateItemModal,
     QRScannerModal,
-    FormattedBarcode,
-    FormattedRefcode,
     CreateCollectionModal,
     CreateEquipmentModal,
     AddToCollectionModal,
     BatchShareModal,
     DataTable,
-    MultiSelect,
     Column,
-    InputText,
-    FormattedItemName,
-    FormattedCollectionName,
-    FormattedItemStatus,
-    FormattedGroupName,
-    ChemicalFormula,
-    CollectionList,
-    Creators,
-    UserBubble,
-    GroupsIconCounter,
-    DatePicker,
-    Select,
-    UserStatusCell,
-    UserRoleCell,
-    UserGroupsCell,
-    UserManagersCell,
-    UserActionsCell,
-    RoleBadge,
-    TokenStatusCell,
-    TokenActionsCell,
-    TokenCreatedByCell,
-    GroupIdCell,
-    GroupMembersCell,
-    GroupActionsCell,
   },
   props: {
     columns: {
@@ -689,14 +216,13 @@ export default {
       required: false,
       default: null,
     },
+    allUsers: {
+      type: Array,
+      required: false,
+      default: () => [],
+    },
   },
-  emits: [
-    "remove-selected-items-from-collection",
-    "users-data-changed",
-    "edit-group",
-    "group-deleted",
-    "groups-data-changed",
-  ],
+  emits: ["remove-selected-items-from-collection", "users-data-changed", "groups-data-changed"],
   data() {
     return {
       createItemModalIsOpen: false,
@@ -709,106 +235,11 @@ export default {
       isSampleFetchError: false,
       itemsSelected: [],
       allSelected: false,
-      filters: {
-        global: { value: null },
-        item_id: {
-          operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
-        },
-        collection_id: {
-          operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
-        },
-        type: {
-          operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: "exactTypeMatch" }],
-        },
-        location: {
-          operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: "exactLocationMatch" }],
-        },
-        supplier: {
-          operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: "exactSupplierMatch" }],
-        },
-        collections: {
-          operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: "exactCollectionMatch" }],
-        },
-        creators: {
-          operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: "exactCreatorMatch" }],
-        },
-        creatorsAndGroups: {
-          operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: "exactCreatorAndGroupMatch" }],
-        },
-        blocks: {
-          operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: "exactBlockMatch" }],
-        },
-        status: {
-          operator: FilterOperator.OR,
-          constraints: [{ value: null, matchMode: "exactStatusMatch" }],
-        },
-        date: {
-          operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: "dateRange" }],
-        },
-        display_name: {
-          operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
-        },
-        account_status: {
-          operator: FilterOperator.OR,
-          constraints: [{ value: null, matchMode: "exactAccountStatusMatch" }],
-        },
-        role: {
-          operator: FilterOperator.OR,
-          constraints: [{ value: null, matchMode: "exactRoleMatch" }],
-        },
-        groups: {
-          operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: "exactGroupMatch" }],
-        },
-        active: {
-          operator: FilterOperator.OR,
-          constraints: [{ value: null, matchMode: "exactActiveMatch" }],
-        },
-        refcode: {
-          operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
-        },
-        item_type: {
-          operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: "exactItemTypeMatch" }],
-        },
-        created_at: {
-          operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: "dateRange" }],
-        },
-        created_by_info: {
-          operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: "exactCreatedByMatch" }],
-        },
-        group_id: {
-          operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
-        },
-        description: {
-          operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
-        },
-      },
+      filters: {},
       filteredData: [],
       allowedTypes: INVENTORY_TABLE_TYPES,
+      editable_inventory: EDITABLE_INVENTORY,
       selectedColumns: [],
-      dateFilterMode: "range",
-      dateFilterOptions: [
-        { label: "Date range", value: "range" },
-        { label: "Created before", value: "before" },
-        { label: "Created after", value: "after" },
-      ],
     };
   },
 
@@ -822,136 +253,6 @@ export default {
     adminSuperUserMode() {
       return this.$store.getters.isAdminSuperUserModeActive;
     },
-    uniqueCreators() {
-      return Array.from(
-        new Map(
-          this.data
-            .flatMap((item) => item.creators || [])
-            .map((creator) => [JSON.stringify(creator), creator]),
-        ).values(),
-      );
-    },
-    uniqueGroups() {
-      if (!this.data) return [];
-      const allGroups = this.data.flatMap((item) => item.groups || []);
-      const uniqueGroupsMap = new Map();
-      allGroups.forEach((group) => {
-        if (group && group.group_id) {
-          uniqueGroupsMap.set(group.group_id, { ...group });
-        }
-      });
-      return Array.from(uniqueGroupsMap.values());
-    },
-    uniqueCreatorsAndGroups() {
-      const hasVirtualField = this.data && this.data[0] && this.data[0].creatorsAndGroups;
-
-      if (hasVirtualField) {
-        const allItems = this.data.flatMap((item) => item.creatorsAndGroups || []);
-        const uniqueMap = new Map();
-        allItems.forEach((item) => {
-          const key = `${item.type}-${item.display_name}`;
-          if (!uniqueMap.has(key)) {
-            uniqueMap.set(key, { ...item });
-          }
-        });
-        return Array.from(uniqueMap.values());
-      } else {
-        const creators = this.uniqueCreators.map((c) => ({ ...c, type: "creator" }));
-        return creators;
-      }
-    },
-    uniqueCollections() {
-      return Array.from(
-        new Map(
-          this.data
-            .flatMap((item) => item.collections || [])
-            .map((collection) => [JSON.stringify(collection.collection_id), collection]),
-        ).values(),
-      );
-    },
-    uniqueBlockTypes() {
-      const itemsWithBlocks = this.data.filter((item) => item.blocks && item.blocks.length > 0);
-      const blocksInfos = this.$store.state.blocksInfos || {};
-
-      const blockTypesMap = new Map(
-        itemsWithBlocks
-          .flatMap((item) => item.blocks)
-          .map((block) => [
-            block.blocktype,
-            {
-              blocktype: block.blocktype,
-              label: blocksInfos[block.blocktype]?.attributes?.name || block.blocktype,
-            },
-          ]),
-      );
-
-      blockTypesMap.set("__no_blocks__", { blocktype: "__no_blocks__", label: "No blocks" });
-
-      return Array.from(blockTypesMap.values());
-    },
-    uniqueStringValues() {
-      const fields = ["location", "supplier"];
-      return Object.fromEntries(
-        fields.map((field) => [
-          field,
-          Array.from(
-            new Set(this.data.filter((item) => item[field]).map((item) => item[field])),
-          ).sort(),
-        ]),
-      );
-    },
-    uniqueStatus() {
-      return Array.from(
-        new Set(this.data.filter((item) => item.status).map((item) => item.status)),
-      ).map((status) => ({ status }));
-    },
-    uniqueStatuses() {
-      if (this.dataType !== "users" || !this.data) return [];
-      return ["active", "unverified", "deactivated"];
-    },
-    uniqueRoles() {
-      if (this.dataType !== "users" || !this.data) return [];
-      return ["user", "admin", "manager"];
-    },
-    uniqueUserGroups() {
-      if (this.dataType !== "users" || !this.data) return [];
-      const allGroups = this.data.flatMap((user) => user.groups || []);
-      const uniqueGroupsMap = new Map();
-      allGroups.forEach((group) => {
-        if (group && group.immutable_id) {
-          uniqueGroupsMap.set(group.immutable_id, { ...group });
-        }
-      });
-      return Array.from(uniqueGroupsMap.values());
-    },
-    uniqueTokenStatuses() {
-      if (this.dataType !== "tokens" || !this.data) return [];
-      return [
-        { active: true, label: "Active" },
-        { active: false, label: "Invalidated" },
-      ];
-    },
-    uniqueItemTypes() {
-      if (this.dataType !== "tokens" || !this.data) return [];
-      return Array.from(new Set(this.data.map((token) => token.item_type).filter(Boolean))).map(
-        (type) => ({ item_type: type }),
-      );
-    },
-    uniqueTokenCreators() {
-      if (this.dataType !== "tokens" || !this.data) return [];
-      return Array.from(
-        new Map(
-          this.data
-            .map((token) => token.created_by_info)
-            .filter(Boolean)
-            .map((creator) => [creator.immutable_id, creator]),
-        ).values(),
-      );
-    },
-    knownTypes() {
-      // Grab the set of types stored under the item type key
-      return Array.from(new Set(this.data.map((item) => item.type))).map((type) => ({ type }));
-    },
     computedDataTestId() {
       const dataTestIdMap = {
         samples: "sample-table",
@@ -961,23 +262,20 @@ export default {
       };
       return dataTestIdMap[this.dataType] || "default-table";
     },
-    isAllSelected() {
-      return this.itemsSelected.length === this.data.length;
+    filterOptionsCache() {
+      return Object.fromEntries(
+        this.columns
+          .filter((col) => col.filter?.options && this.data)
+          .map((col) => [
+            col.field,
+            typeof col.filter.options === "function"
+              ? col.filter.options(this.data, this.$store.state)
+              : col.filter.options,
+          ]),
+      );
     },
     availableColumns() {
       return this.columns.map((col) => ({ ...col }));
-    },
-    allUsersForBulk() {
-      if (this.dataType !== "users" || !this.data || this.data.length === 0) {
-        return [];
-      }
-      return this.data[0]?.allUsers || [];
-    },
-    availableGroupsForBulk() {
-      if (this.dataType !== "users") {
-        return [];
-      }
-      return this.$store.state.groups_list || [];
     },
   },
   created() {
@@ -989,170 +287,7 @@ export default {
       parsed.first = 0;
       localStorage.setItem(`datatable-state-${this.dataType}`, JSON.stringify(parsed));
     }
-    this.editable_inventory = EDITABLE_INVENTORY;
     this.selectedColumns = this.availableColumns.filter((col) => !col.hidden);
-
-    FilterService.register("exactCollectionMatch", (value, filterValue) => {
-      if (!filterValue || !value) return true;
-
-      const filter = this.filters.collections;
-      const isAnd = filter.operator === FilterOperator.AND;
-
-      if (Array.isArray(filterValue)) {
-        if (isAnd) {
-          return filterValue.every((f) =>
-            value.some((collection) => collection.collection_id === f.collection_id),
-          );
-        } else {
-          return filterValue.some((f) =>
-            value.some((collection) => collection.collection_id === f.collection_id),
-          );
-        }
-      }
-
-      return value.some((collection) => collection.collection_id === filterValue.collection_id);
-    });
-    FilterService.register("exactCreatorMatch", (value, filterValue) => {
-      if (!filterValue || !value) return true;
-
-      const filter = this.filters.creators;
-      const isAnd = filter.operator === FilterOperator.AND;
-
-      const currentItem = this.data.find((item) => {
-        if (item.creatorsAndGroups) {
-          return JSON.stringify(item.creators) === JSON.stringify(value);
-        } else {
-          return JSON.stringify(item.creators) === JSON.stringify(value);
-        }
-      });
-
-      if (!currentItem) return false;
-
-      const itemsToFilter =
-        currentItem.creatorsAndGroups ||
-        (currentItem.creators || []).map((c) => ({ ...c, type: "creator" }));
-
-      if (Array.isArray(filterValue)) {
-        if (isAnd) {
-          return filterValue.every((filter) =>
-            itemsToFilter.some(
-              (item) => item.display_name === filter.display_name && item.type === filter.type,
-            ),
-          );
-        } else {
-          return filterValue.some((filter) =>
-            itemsToFilter.some(
-              (item) => item.display_name === filter.display_name && item.type === filter.type,
-            ),
-          );
-        }
-      }
-
-      return itemsToFilter.some(
-        (item) => item.display_name === filterValue.display_name && item.type === filterValue.type,
-      );
-    });
-    FilterService.register("exactCreatorAndGroupMatch", (value, filterValue) => {
-      if (!filterValue || !value) return true;
-
-      const filter = this.filters.creatorsAndGroups;
-      const isAnd = filter.operator === FilterOperator.AND;
-
-      if (Array.isArray(filterValue)) {
-        if (isAnd) {
-          return filterValue.every((filter) =>
-            value.some(
-              (item) => item.display_name === filter.display_name && item.type === filter.type,
-            ),
-          );
-        } else {
-          return filterValue.some((filter) =>
-            value.some(
-              (item) => item.display_name === filter.display_name && item.type === filter.type,
-            ),
-          );
-        }
-      }
-
-      return value.some(
-        (item) => item.display_name === filterValue.display_name && item.type === filterValue.type,
-      );
-    });
-    FilterService.register("exactTypeMatch", (value, filterValue) => {
-      if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) {
-        return true;
-      }
-
-      if (Array.isArray(filterValue)) {
-        return filterValue.some((f) => f.type === value);
-      }
-
-      return filterValue.type === value;
-    });
-    FilterService.register("exactBlockMatch", (value, filterValue) => {
-      if (
-        filterValue === null ||
-        filterValue === undefined ||
-        (Array.isArray(filterValue) && filterValue.length === 0)
-      ) {
-        return true;
-      }
-
-      if (
-        Array.isArray(filterValue) &&
-        filterValue.some((filter) => filter.blocktype === "__no_blocks__")
-      ) {
-        if (!value || !Array.isArray(value) || value.length === 0) {
-          return true;
-        }
-      }
-
-      if (!value || !Array.isArray(value)) {
-        return false;
-      }
-
-      const filter = this.filters.blocks;
-      const isAnd = filter && filter.operator === FilterOperator.AND;
-
-      if (Array.isArray(filterValue)) {
-        if (isAnd) {
-          return filterValue.every((filterBlock) =>
-            filterBlock.blocktype === "__no_blocks__"
-              ? !value || value.length === 0
-              : value.some((itemBlock) => itemBlock.blocktype === filterBlock.blocktype),
-          );
-        } else {
-          return filterValue.some((filterBlock) =>
-            filterBlock.blocktype === "__no_blocks__"
-              ? !value || value.length === 0
-              : value.some((itemBlock) => itemBlock.blocktype === filterBlock.blocktype),
-          );
-        }
-      }
-
-      return value.some((itemBlock) => itemBlock.blocktype === filterValue.blocktype);
-    });
-
-    const exactStringMatch = (value, filterValue) => {
-      if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) {
-        return true;
-      }
-      return Array.isArray(filterValue) ? filterValue.includes(value) : filterValue === value;
-    };
-    FilterService.register("exactLocationMatch", exactStringMatch);
-    FilterService.register("exactSupplierMatch", exactStringMatch);
-
-    FilterService.register("exactStatusMatch", (value, filterValue) => {
-      if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) {
-        return true;
-      }
-
-      if (Array.isArray(filterValue)) {
-        return filterValue.some((f) => f.status === value);
-      }
-
-      return filterValue.status === value;
-    });
 
     FilterService.register("dateBefore", (value, filterValue) => {
       if (!filterValue || !value) return true;
@@ -1160,14 +295,12 @@ export default {
       const filterDate = new Date(filterValue).setHours(0, 0, 0, 0);
       return itemDate <= filterDate;
     });
-
     FilterService.register("dateAfter", (value, filterValue) => {
       if (!filterValue || !value) return true;
       const itemDate = new Date(value).setHours(0, 0, 0, 0);
       const filterDate = new Date(filterValue).setHours(0, 0, 0, 0);
       return itemDate >= filterDate;
     });
-
     FilterService.register("dateRange", (value, filterValue) => {
       if (!filterValue || !value || !Array.isArray(filterValue) || filterValue.length !== 2)
         return true;
@@ -1176,57 +309,37 @@ export default {
       const endDate = new Date(filterValue[1]).setHours(0, 0, 0, 0);
       return itemDate >= startDate && itemDate <= endDate;
     });
-    FilterService.register("exactAccountStatusMatch", (value, filterValue) => {
-      if (!filterValue) return true;
-      return value === filterValue;
-    });
 
-    FilterService.register("exactRoleMatch", (value, filterValue) => {
-      if (!filterValue) return true;
-      return value === filterValue;
-    });
-    FilterService.register("exactGroupMatch", (value, filterValue) => {
-      if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) return true;
-      if (!value || !Array.isArray(value)) return false;
+    const filters = { global: { value: null } };
+    for (const col of this.columns) {
+      if (!col.filter) continue;
 
-      if (Array.isArray(filterValue)) {
-        return filterValue.some((f) =>
-          value.some((group) => String(group.immutable_id) === String(f.immutable_id)),
-        );
+      let matchModeName;
+      if (typeof col.filter.match === "function") {
+        matchModeName = `${this.dataType}_${col.field}`;
+        const matchFn = col.filter.match;
+        FilterService.register(matchModeName, (value, filterValue) => {
+          const operator = this.filters[col.field]?.operator;
+          return matchFn(value, filterValue, operator);
+        });
+      } else {
+        matchModeName = col.filter.matchMode || FilterMatchMode.CONTAINS;
       }
 
-      return value.some((group) => String(group.immutable_id) === String(filterValue.immutable_id));
-    });
-    FilterService.register("exactActiveMatch", (value, filterValue) => {
-      if (filterValue === null || filterValue === undefined) return true;
-      return value === filterValue;
-    });
-    FilterService.register("exactItemTypeMatch", (value, filterValue) => {
-      if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) {
-        return true;
-      }
-
-      if (Array.isArray(filterValue)) {
-        return filterValue.some((f) => f.item_type === value);
-      }
-
-      return filterValue.item_type === value;
-    });
-    FilterService.register("exactCreatedByMatch", (value, filterValue) => {
-      if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) {
-        return true;
-      }
-
-      if (!value) return false;
-
-      if (Array.isArray(filterValue)) {
-        return filterValue.some((f) => f.immutable_id === value.immutable_id);
-      }
-
-      return filterValue.immutable_id === value.immutable_id;
-    });
+      filters[col.field] = {
+        operator: col.filter.operator || FilterOperator.AND,
+        constraints: [{ value: null, matchMode: matchModeName }],
+      };
+    }
+    this.filters = filters;
   },
   methods: {
+    resolveBodyEvents(column) {
+      if (!column.body?.events?.length) return {};
+      return Object.fromEntries(
+        column.body.events.map((event) => [event, (...args) => this.$emit(event, ...args)]),
+      );
+    },
     getColumnMinWidth(column) {
       const COLUMN_BASE_PADDING = 2.5;
       const CHAR_WIDTH_ESTIMATE = 0.75;
@@ -1272,11 +385,6 @@ export default {
         this.allSelected = this.checkAllSelected();
       });
     },
-    updateFilter(field, value) {
-      this.$nextTick(() => {
-        this.filters[field].constraints[0].value = value;
-      });
-    },
     goToEditPage(event) {
       if (this.dataType === "users" || this.dataType === "groups") {
         return;
@@ -1287,7 +395,6 @@ export default {
       event.originalEvent.stopPropagation();
       event.originalEvent.preventDefault();
 
-      // Check if the row has an item ID, otherwise default to collection ID
       if (!row.item_id && row.collection_id) {
         row_id = row.collection_id;
       } else {
@@ -1300,9 +407,9 @@ export default {
         const selectedIndex = this.itemsSelected.findIndex((item) => item.item_id === row.item_id);
 
         if (selectedIndex === -1) {
-          this.itemsSelected.push(row);
+          this.itemsSelected = [...this.itemsSelected, row];
         } else {
-          this.itemsSelected.splice(selectedIndex, 1);
+          this.itemsSelected = this.itemsSelected.filter((_, i) => i !== selectedIndex);
         }
         return null;
       }
@@ -1322,134 +429,6 @@ export default {
           this.$router.push(`/${this.editPageRoutePrefix}/${row_id}`);
         }
       }
-    },
-    getComponentProps(componentName, data) {
-      const propsConfig = {
-        FormattedItemName: {
-          item_id: "item_id",
-          itemType: "type",
-          enableClick: true,
-          enableModifiedClick: true,
-        },
-        FormattedRefcode: {
-          enableQRCode: false,
-          refcode: "refcode",
-        },
-        FormattedBarcode: {
-          enableBarcode: false,
-          enableModifiedClick: false,
-          barcode: "barcode",
-        },
-        FormattedCollectionName: {
-          collection_id: "collection_id",
-          enableClick: true,
-          enableModifiedClick: true,
-        },
-        ChemicalFormula: {
-          formula: "chemform",
-          smiles: "smiles",
-          inchiKey: "inchi_key",
-          ghsCodes: "GHS_codes",
-          molarMass: "molar_mass",
-          cas: "CAS",
-        },
-        CollectionList: {
-          collections: "collections",
-        },
-        Creators: {
-          showNames:
-            data.creators?.length === 1 ||
-            data.creatorsAndGroups?.filter((item) => item.type === "creator").length === 1,
-          showBubble: true,
-        },
-        FormattedItemStatus: {
-          status: "status",
-        },
-        BlocksIconCounter: {
-          count: "nblocks",
-          blockInfo: "blocks",
-        },
-        FilesIconCounter: {
-          count: "nfiles",
-        },
-        UserStatusCell: {
-          status: "account_status",
-        },
-        UserRoleCell: {
-          user: data,
-          allUsers: data.allUsers || [],
-        },
-        UserGroupsCell: {
-          user: data,
-          allGroups: data.allGroups || [],
-        },
-        UserManagersCell: {
-          user: data,
-          allUsers: data.allUsers || [],
-        },
-        UserActionsCell: {
-          user: data,
-          allUsers: data.allUsers || [],
-        },
-        TokenStatusCell: {
-          active: "active",
-        },
-        TokenActionsCell: {
-          token: data,
-          allTokens: data.allTokens || [],
-        },
-        TokenCreatedByCell: {
-          creator: "created_by_info",
-        },
-        GroupIdCell: {
-          groupId: "group_id",
-        },
-        GroupMembersCell: {
-          members: "members",
-        },
-        GroupActionsCell: {
-          group: data,
-          allGroups: data.allGroups || [],
-        },
-      };
-
-      const config = propsConfig[componentName] || {};
-
-      const props = Object.entries(config).reduce((acc, [prop, setting]) => {
-        if (typeof setting === "object" && setting !== null && "value" in setting) {
-          acc[prop] = setting.value;
-        } else if (typeof setting === "boolean") {
-          acc[prop] = setting;
-        } else if (typeof setting === "string") {
-          if (prop === "itemType") {
-            acc[prop] = data.type !== undefined ? data.type : "starting_materials";
-          } else if (data[setting] !== undefined) {
-            acc[prop] = data[setting];
-          }
-        } else {
-          acc[prop] = setting;
-        }
-        return acc;
-      }, {});
-
-      Object.keys(config).forEach((prop) => {
-        if (config[prop] === true) {
-          props[prop] = true;
-        }
-      });
-
-      if (componentName === "Creators") {
-        if (data.creatorsAndGroups) {
-          props.creators = data.creatorsAndGroups.filter((item) => item.type === "creator");
-          props.groups = data.creatorsAndGroups.filter((item) => item.type === "group");
-        } else {
-          props.creators = data.creators || [];
-          props.groups = data.groups || [];
-        }
-        props.showBubble = props.showBubble !== undefined ? props.showBubble : true;
-      }
-
-      return props;
     },
     isFilterActive(field) {
       const filter = this.filters[field];
@@ -1495,18 +474,14 @@ export default {
         const selectedIds = new Set(
           this.itemsSelected.map((item) => item.item_id || item.collection_id),
         );
-
-        itemsToSelect.forEach((item) => {
-          const itemId = item.item_id || item.collection_id;
-          if (!selectedIds.has(itemId)) {
-            this.itemsSelected.push(item);
-          }
-        });
+        const newItems = itemsToSelect.filter(
+          (item) => !selectedIds.has(item.item_id || item.collection_id),
+        );
+        this.itemsSelected = [...this.itemsSelected, ...newItems];
       } else {
         const idsToRemove = new Set(
           itemsToSelect.map((item) => item.item_id || item.collection_id),
         );
-
         this.itemsSelected = this.itemsSelected.filter(
           (item) => !idsToRemove.has(item.item_id || item.collection_id),
         );
@@ -1591,33 +566,15 @@ export default {
         return false;
       }
     },
+    updateFilters(newFilters) {
+      this.filters = { ...newFilters };
+    },
     handleResetTable() {
       localStorage.removeItem(`datatable-state-${this.dataType}`);
 
       this.$nextTick(() => {
         location.reload();
       });
-    },
-    handleDateFilterModeChange(field) {
-      this.filters[field].constraints[0].value = null;
-
-      if (this.dateFilterMode === "range") {
-        this.filters[field].constraints[0].matchMode = "dateRange";
-      } else if (this.dateFilterMode === "before") {
-        this.filters[field].constraints[0].matchMode = "dateBefore";
-      } else if (this.dateFilterMode === "after") {
-        this.filters[field].constraints[0].matchMode = "dateAfter";
-      }
-    },
-    onDateRangeSelect(value) {
-      if (
-        this.dateFilterMode === "range" &&
-        Array.isArray(value) &&
-        value.length === 2 &&
-        value[1] !== null
-      ) {
-        return;
-      }
     },
   },
 };
