@@ -263,6 +263,12 @@ export default {
       this.generateCyNetworkPlot();
     }
   },
+  beforeUnmount() {
+    this.stopLayout();
+    if (this.cy) {
+      this.cy.destroy();
+    }
+  },
   methods: {
     removeItemFromGraph(event) {
       const itemToIgnore = event[event.length - 1];
@@ -281,10 +287,14 @@ export default {
       }
     },
     updateAndRunLayout() {
-      this.layout && this.layout.stop();
+      this.stopLayout();
       this.layoutIsRunning = true;
       this.layout = this.cy.layout(layoutOptions[this.graphStyle]);
       this.layout.run();
+    },
+    stopLayout() {
+      this.layout && this.layout.stop();
+      this.layout = null;
     },
     generateCyNetworkPlot() {
       if (!this.graphData) {
@@ -295,6 +305,13 @@ export default {
         console.warn("Cytoscape container not ready");
         return;
       }
+      // Destroy any previous instance so its (possibly still-running) layout
+      // does not keep going headlessly after losing the container.
+      if (this.cy) {
+        this.stopLayout();
+        this.cy.destroy();
+      }
+
       // Filter nodes based on whether blocks are requested
       let nodes = this.graphData.nodes || [];
       if (!this.includeBlocks) {
