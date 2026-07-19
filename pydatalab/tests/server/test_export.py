@@ -78,7 +78,7 @@ def test_get_export_status_pending(client, user_id, database):
             export_type="collection",
         ),
     )
-    database.tasks.insert_one(task.dict())
+    database.tasks.insert_one(task.model_dump())
 
     response = client.get(f"/exports/{task_id}/status")
     assert response.status_code == 200
@@ -107,7 +107,7 @@ def test_get_export_status_ready(client, user_id, database, tmp_path):
             file_path=str(file_path),
         ),
     )
-    database.tasks.insert_one(task.dict())
+    database.tasks.insert_one(task.model_dump())
 
     response = client.get(f"/exports/{task_id}/status")
     assert response.status_code == 200
@@ -136,7 +136,7 @@ def test_get_export_status_error(client, user_id, database):
             export_type="collection",
         ),
     )
-    database.tasks.insert_one(task.dict())
+    database.tasks.insert_one(task.model_dump())
 
     response = client.get(f"/exports/{task_id}/status")
     assert response.status_code == 200
@@ -180,7 +180,7 @@ def test_download_export_success(client, user_id, database, tmp_path, monkeypatc
             file_path=str(file_path),
         ),
     )
-    database.tasks.insert_one(task.dict())
+    database.tasks.insert_one(task.model_dump())
 
     response = client.get(f"/exports/{task_id}/download")
     assert response.status_code == 200
@@ -203,7 +203,7 @@ def test_not_users_export_download(client, user_id, another_client, database):
             export_type="collection",
         ),
     )
-    database.tasks.insert_one(task.dict())
+    database.tasks.insert_one(task.model_dump())
 
     response = another_client.get(f"/exports/{task_id}/download")
     assert response.status_code == 404
@@ -223,7 +223,7 @@ def test_download_export_not_ready(client, user_id, database):
             export_type="collection",
         ),
     )
-    database.tasks.insert_one(task.dict())
+    database.tasks.insert_one(task.model_dump())
 
     response = client.get(f"/exports/{task_id}/download")
     assert response.status_code == 400
@@ -248,7 +248,7 @@ def test_download_export_file_missing(client, user_id, database):
             file_path="/nonexistent/path.eln",
         ),
     )
-    database.tasks.insert_one(task.dict())
+    database.tasks.insert_one(task.model_dump())
 
     response = client.get(f"/exports/{task_id}/download")
     assert response.status_code == 404
@@ -275,7 +275,7 @@ def test_do_export_success(database, sample_collection, insert_default_sample, u
             export_type="collection",
         ),
     )
-    database.tasks.insert_one(task.dict())
+    database.tasks.insert_one(task.model_dump())
 
     _do_export(task_id, collection_id=collection_id, export_type="collection")
 
@@ -299,7 +299,7 @@ def test_do_export_success(database, sample_collection, insert_default_sample, u
             export_type="item",
         ),
     )
-    database.tasks.insert_one(task.dict())
+    database.tasks.insert_one(task.model_dump())
 
     _do_export(task_id, item_id=item_id, export_type="item")
 
@@ -326,7 +326,7 @@ def test_do_export_error_handling(database, user_id):
             export_type="collection",
         ),
     )
-    database.tasks.insert_one(task.dict())
+    database.tasks.insert_one(task.model_dump())
 
     _do_export(task_id, collection_id="nonexistent_collection", export_type="collection")
 
@@ -367,7 +367,7 @@ def test_cleanup_old_exports(database, user_id, tmp_path, monkeypatch):
             file_path=str(old_file),
         ),
     )
-    database.tasks.insert_one(old_task.dict())
+    database.tasks.insert_one(old_task.model_dump())
 
     # A recent export: created within the window, must be retained.
     recent_task_id = "recent-export-to-keep"
@@ -385,7 +385,7 @@ def test_cleanup_old_exports(database, user_id, tmp_path, monkeypatch):
             file_path=str(recent_file),
         ),
     )
-    database.tasks.insert_one(recent_task.dict())
+    database.tasks.insert_one(recent_task.model_dump())
 
     try:
         _cleanup_old_exports()
@@ -422,7 +422,7 @@ def test_cleanup_old_exports_missing_file(database, user_id):
             file_path="/nonexistent/already-deleted.eln",
         ),
     )
-    database.tasks.insert_one(task.dict())
+    database.tasks.insert_one(task.model_dump())
 
     try:
         _cleanup_old_exports()
@@ -447,7 +447,7 @@ def test_do_export_status_transitions(database, sample_collection, user_id):
             export_type="collection",
         ),
     )
-    database.tasks.insert_one(task.dict())
+    database.tasks.insert_one(task.model_dump())
 
     status_during_export = []
 
