@@ -186,7 +186,7 @@ export default {
       return this.$store.state.schemas[this.item?.type];
     },
     possibleItemStatuses() {
-      return this.schema?.attributes?.schema?.definitions?.StartingMaterialsStatus?.enum;
+      return this.schema?.attributes?.schema?.["$defs"]?.StartingMaterialsStatus?.enum;
     },
     Barcode: createComputedSetterForItemField("barcode"),
     uniqueSuppliers() {

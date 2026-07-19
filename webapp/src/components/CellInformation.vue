@@ -93,6 +93,37 @@
             />
           </div>
         </div>
+        <div class="form-row py-4">
+          <div class="form-group col-lg-4 col-md-4 pr-3">
+            <label for="cell-theoretical-capacity">Theoretical capacity (mAh/g)</label>
+            <input
+              id="cell-theoretical-capacity"
+              v-model="TheoreticalCapacity"
+              class="form-control"
+              type="text"
+              :class="{ 'red-border': isNaN(TheoreticalCapacity) }"
+            />
+          </div>
+          <div class="form-group col-lg-4 col-md-4">
+            <label
+              for="cell-nominal-capacity"
+              title="Computed live as theoretical capacity × active mass."
+            >
+              Nominal capacity
+            </label>
+            <div class="input-group">
+              <div id="cell-nominal-capacity" class="form-control">
+                {{ NominalCapacityDisplay }}
+              </div>
+              <div class="input-group-append">
+                <select v-model="NominalCapacityUnit" class="form-control">
+                  <option value="mAh">mAh</option>
+                  <option value="Ah">Ah</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="row">
           <div class="col">
             <label id="cell-description-label">Description</label>
@@ -175,11 +206,45 @@ export default {
     CharacteristicMass: createComputedSetterForItemField("characteristic_mass"),
     Collections: createComputedSetterForItemField("collections"),
     Status: createComputedSetterForItemField("status"),
+    TheoreticalCapacity: createComputedSetterForItemField("theoretical_capacity"),
+    NominalCapacityUnit: createComputedSetterForItemField("nominal_capacity_unit"),
     schema() {
       return this.$store.state.schemas[this.item?.type];
     },
     possibleItemStatuses() {
-      return this.schema?.attributes?.schema?.definitions?.CellStatus?.enum;
+      return this.schema?.attributes?.schema?.["$defs"]?.CellStatus?.enum;
+    },
+    // Recomputed live from the store on every render — no save round-trip needed.
+    NominalCapacity() {
+      const nominalCapacityToMah = { mAh: 1, Ah: 1e3 };
+
+      // theoretical_capacity is always mAh/g.
+      const theoreticalCapacity = Number(this.TheoreticalCapacity);
+      const characteristicMass = Number(this.CharacteristicMass);
+      if (!Number.isFinite(theoreticalCapacity) || !Number.isFinite(characteristicMass)) {
+        return null;
+      }
+
+      const nominalCapacityUnit = this.NominalCapacityUnit || "mAh";
+
+      // characteristic_mass is stored in mg; divide by 1000 to get grams.
+      const mAh = (theoreticalCapacity * characteristicMass) / 1000;
+      return mAh / nominalCapacityToMah[nominalCapacityUnit];
+    },
+    NominalCapacityDisplay() {
+      return this.NominalCapacity === null ? "—" : this.NominalCapacity.toFixed(4);
+    },
+  },
+  watch: {
+    // Persist the live-computed value too, so it's saved without relying on a
+    // server round-trip (the backend validator recomputes it again on save).
+    NominalCapacity(value) {
+      if (value !== null && value !== this.item?.nominal_capacity) {
+        this.$store.commit("updateItemData", {
+          item_id: this.item_id,
+          item_data: { nominal_capacity: value },
+        });
+      }
     },
   },
 };
