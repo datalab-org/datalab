@@ -45,6 +45,10 @@ ITEMS = Blueprint("items", __name__)
 # item types that should be accessed by anyone with an account
 ACCESSIBLE_TYPES = ("equipment", "starting_materials")
 
+# Legacy items predate `last_modified` being set on creation, so fall back to the
+# creation time embedded in their ObjectId.
+LAST_MODIFIED_PROJECTION = {"$ifNull": ["$last_modified", {"$toDate": "$_id"}]}
+
 
 @ITEMS.before_request
 @active_users_or_get_only
@@ -59,6 +63,7 @@ def get_equipment_summary():
         "name": 1,
         "type": 1,
         "date": 1,
+        "last_modified": LAST_MODIFIED_PROJECTION,
         "refcode": 1,
         "location": 1,
         "status": 1,
@@ -113,7 +118,7 @@ def get_starting_materials():
                         "nblocks": {"$size": "$display_order"},
                         "nfiles": {"$size": "$file_ObjectIds"},
                         "date": 1,
-                        "last_modified": 1,
+                        "last_modified": LAST_MODIFIED_PROJECTION,
                         "chemform": 1,
                         "smiles": 1,
                         "inchi_key": 1,
@@ -193,7 +198,7 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
         "characteristic_chemical_formula": 1,
         "type": 1,
         "date": 1,
-        "last_modified": 1,
+        "last_modified": LAST_MODIFIED_PROJECTION,
         "refcode": 1,
         "status": 1,
     }
@@ -270,7 +275,7 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
         "characteristic_chemical_formula": 1,
         "type": 1,
         "date": 1,
-        "last_modified": 1,
+        "last_modified": LAST_MODIFIED_PROJECTION,
         "refcode": 1,
         "status": 1,
     }
@@ -703,6 +708,9 @@ def _create_sample(
 
     # Set creation timestamp to now if not provided
     new_sample["date"] = new_sample.get("date", datetime.datetime.now(tz=datetime.timezone.utc))
+
+    # Always stamp the real creation time; `date` may be backdated or copied
+    new_sample["last_modified"] = datetime.datetime.now(tz=datetime.timezone.utc)
 
     # Try to deserialize the item data into the appropriate model
     try:
@@ -1166,6 +1174,10 @@ def get_item_data(
             ),
             404,
         )
+
+    # See LAST_MODIFIED_PROJECTION: same backfill, applied outside an aggregation
+    if not doc.get("last_modified") and isinstance(doc.get("_id"), ObjectId):
+        doc["last_modified"] = doc["_id"].generation_time
 
     # determine the item type and validate according to the appropriate schema
     try:

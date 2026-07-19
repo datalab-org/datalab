@@ -135,8 +135,9 @@ def test_save_item_last_modified(client, default_sample_dict):
         return resp.json["item_data"]
 
     before = get_item()
-    # A freshly created item has never been modified
-    assert before.get("last_modified") is None
+    # Creation stamps `last_modified`, independently of the (backdated) `date` field
+    assert before.get("last_modified") is not None
+    assert before["last_modified"] != before["date"]
     version_before = before.get("version")
 
     # 1. A genuine metadata change bumps `last_modified` and mints a new version
@@ -164,6 +165,38 @@ def test_save_item_last_modified(client, default_sample_dict):
     after_noop = get_item()
     assert after_noop["last_modified"] == first_last_modified
     assert after_noop.get("version") == after_change.get("version")
+
+
+@pytest.mark.dependency(depends=["test_new_sample"])
+def test_last_modified_backfilled_from_object_id(client, database, default_sample_dict):
+    """Legacy items stored without a `last_modified` should have it derived from the
+    creation timestamp embedded in their MongoDB ObjectId.
+    """
+    sample = copy.deepcopy(default_sample_dict)
+    sample["item_id"] = "last_modified_backfill_test"
+    item_id = sample["item_id"]
+
+    response = client.put("/new-sample/", json=sample)
+    assert response.status_code == 201, response.json
+
+    # Simulate a legacy document that predates `last_modified` being set on creation
+    result = database.items.update_one({"item_id": item_id}, {"$unset": {"last_modified": ""}})
+    assert result.modified_count == 1
+
+    stored = database.items.find_one({"item_id": item_id}, {"_id": 1})
+    expected = stored["_id"].generation_time
+
+    response = client.get(f"/get-item-data/{item_id}")
+    assert response.status_code == 200, response.json
+    last_modified = response.json["item_data"]["last_modified"]
+    assert last_modified is not None
+    assert datetime.datetime.fromisoformat(last_modified) == expected
+
+    # The summary endpoint backing the item tables should backfill it too
+    response = client.get("/samples/")
+    assert response.status_code == 200, response.json
+    summary = next(d for d in response.json["samples"] if d["item_id"] == item_id)
+    assert summary["last_modified"] is not None
 
 
 @pytest.mark.dependency(depends=["test_new_sample"])
