@@ -5,13 +5,9 @@ import re
 import shutil
 import subprocess
 import time
-import typing
 
 import tomlkit
 from invoke import Collection, task
-
-if typing.TYPE_CHECKING:
-    from pydatalab.models.utils import UserRole
 
 ns = Collection()
 dev = Collection("dev")
@@ -33,7 +29,7 @@ def load_plugin_schema():
     need them. A JSON Schema generated from the returned model is emitted to
     `pydatalab/schemas/plugin_config.json` by `invoke dev.generate-schemas`.
     """
-    from pydantic import BaseModel, root_validator
+    from pydantic import BaseModel, model_validator
 
     class UvSource(BaseModel):
         """A single entry under `[tool.uv.sources]` in plugins.toml."""
@@ -45,10 +41,8 @@ def load_plugin_schema():
         path: str | None = None
         editable: bool | None = None
 
-        class Config:
-            extra = "forbid"
-
-        @root_validator
+        @model_validator(mode="before")
+        @classmethod
         def _exactly_one_source(cls, values):
             has_git = values.get("git") is not None
             has_path = values.get("path") is not None
@@ -61,14 +55,8 @@ def load_plugin_schema():
     class UvSection(BaseModel):
         sources: dict[str, UvSource] = {}
 
-        class Config:
-            extra = "forbid"
-
     class ToolSection(BaseModel):
         uv: UvSection = UvSection()
-
-        class Config:
-            extra = "forbid"
 
     class PluginConfigModel(BaseModel):
         """The schema for the top-level plugins.toml file."""
@@ -76,19 +64,16 @@ def load_plugin_schema():
         dependencies: list[str] = []
         tool: ToolSection = ToolSection()
 
-        class Config:
-            extra = "forbid"
-
-        @root_validator
-        def _sources_must_match_dependencies(cls, values):
-            deps = {d.split("[")[0].strip() for d in values.get("dependencies", [])}
-            sources = values.get("tool", ToolSection()).uv.sources
+        @model_validator(mode="after")
+        def _sources_must_match_dependencies(self):
+            deps = {d.split("[")[0].strip() for d in self.dependencies}
+            sources = self.tool.uv.sources
             orphans = sorted(set(sources) - deps)
             if orphans:
                 raise ValueError(
                     f"[tool.uv.sources] entries have no matching dependency: {orphans}"
                 )
-            return values
+            return self
 
     return PluginConfigModel
 
@@ -115,7 +100,7 @@ def generate_schemas(_):
     schemas_path = pathlib.Path(__file__).parent / "schemas"
 
     for model in ITEM_MODELS.values():
-        schema = model.schema(by_alias=False)
+        schema = model.model_json_schema(by_alias=False)
         with open(schemas_path / f"{model.__name__.lower()}.json", "w") as f:
             json.dump(schema, f, indent=2)
 
@@ -275,12 +260,14 @@ admin.add_task(create_mongo_indices)
 
 
 @task
-def change_user_role(_, display_name: str, role: "UserRole"):
+def change_user_role(_, display_name: str, role: str):
     """This task takes a user's name and gives them the desired role."""
     from bson import ObjectId
 
     from pydatalab.models.utils import UserRole
     from pydatalab.mongo import _get_active_mongo_client
+
+    role = UserRole(role.upper())
 
     try:
         role = getattr(UserRole, role.upper())
@@ -416,10 +403,11 @@ migration.add_task(add_missing_refcodes)
 
 
 def _check_id(id=None, base_url=None, api_key=None):
-    from pydatalab.logger import setup_log
-
     """Checks the given item ID served at the base URL and logs the result."""
+
     import requests
+
+    from pydatalab.logger import setup_log
 
     log = setup_log("check_item_validity")
     response = requests.get(
