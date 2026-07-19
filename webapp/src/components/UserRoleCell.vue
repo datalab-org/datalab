@@ -80,7 +80,12 @@ export default {
       }
     },
     async handleRoleChange(newRole) {
-      const originalRole = this.localRole;
+      const originalRole = this.user?.role || "user";
+
+      if (newRole === originalRole) {
+        this.localRole = originalRole;
+        return;
+      }
 
       if (originalRole === "admin" && newRole !== "admin") {
         const confirmed = await DialogService.confirm({
