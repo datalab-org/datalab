@@ -3,15 +3,7 @@
     :columns="sampleColumns"
     :data="samples"
     :data-type="'samples'"
-    :global-filter-fields="[
-      'item_id',
-      'name',
-      'refcode',
-      'chemform',
-      'creatorsList',
-      'blocks',
-      'characteristic_chemical_formula',
-    ]"
+    :global-filter-fields="sampleGlobalFilterFields"
   />
 </template>
 
@@ -23,7 +15,7 @@ export default {
   components: { DynamicDataTable },
   data() {
     return {
-      sampleColumns: [
+      baseSampleColumns: [
         {
           field: "item_id",
           header: "ID",
@@ -74,6 +66,39 @@ export default {
     };
   },
   computed: {
+    enableTags() {
+      // Tag column only if enabled globally.
+      return this.$store.state.serverInfo?.features?.tags ?? false;
+    },
+    sampleColumns() {
+      const columns = [...this.baseSampleColumns];
+      if (this.enableTags) {
+        const insertBeforeBlocks = columns.findIndex((column) => column.field === "blocks");
+        columns.splice(insertBeforeBlocks, 0, {
+          field: "tags",
+          header: "Tags",
+          body: "TagList",
+          filter: true,
+          label: "Tags",
+        });
+      }
+      return columns;
+    },
+    sampleGlobalFilterFields() {
+      const fields = [
+        "item_id",
+        "name",
+        "refcode",
+        "chemform",
+        "creatorsList",
+        "blocks",
+        "characteristic_chemical_formula",
+      ];
+      if (this.enableTags) {
+        fields.push("tagsList");
+      }
+      return fields;
+    },
     samples() {
       if (!this.$store.state.sample_list) {
         return null;
@@ -89,6 +114,10 @@ export default {
             .map((collection) => collection.collection_id)
             .join(", "),
           creatorsList: sample.creators.map((creator) => creator.display_name).join(", "),
+          tagsList: (sample.tags || [])
+            .map((tag) => tag.name)
+            .filter(Boolean)
+            .join(", "),
         };
       });
     },

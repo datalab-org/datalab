@@ -228,6 +228,9 @@ jobs:
           cp webapp/.env.test_e2e .env
           echo "PYDATALAB_TESTING=true" >> .env
           echo "PYDATALAB_TESTING=true" >> pydatalab/.env
+          # Enable the tags feature for the e2e backend (frontend flag is in .env.test_e2e).
+          echo "PYDATALAB_ENABLE_TAGS=true" >> .env
+          echo "PYDATALAB_ENABLE_TAGS=true" >> pydatalab/.env
 
       - name: Build Docker images
         uses: docker/bake-action@v7

@@ -248,6 +248,11 @@ its importance when deploying a datalab instance.""",
         description="Maximum number of items that can be created in a single batch operation.",
     )
 
+    ENABLE_TAGS: bool = Field(
+        False,
+        description="Whether to enable the (experimental) item tags feature and its `/tags` API routes.",
+    )
+
     ASYNC_BLOCK_TYPES: list[str] = Field(
         [],
         description="A list of block type slugs (e.g. ['cycle', 'xrd']) that should be processed asynchronously via the task queue. Defaults to no blocks.",

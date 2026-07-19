@@ -242,6 +242,88 @@
       "title": "DataBlockResponse",
       "type": "object"
     },
+    "EntryReference": {
+      "additionalProperties": true,
+      "description": "A reference to a database entry by ID and type.\n\nCan include additional arbitarary metadata useful for\ninlining the item data.",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "immutable_id": {
+          "anyOf": [
+            {
+              "format": "objectid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Immutable Id"
+        },
+        "item_id": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "minLength": 1,
+              "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Item Id"
+        },
+        "refcode": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "minLength": 1,
+              "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Refcode"
+        },
+        "chemform": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Chemform"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "EntryReference",
+      "type": "object"
+    },
     "EquipmentStatus": {
       "description": "An enumeration of the status of equipments",
       "enum": [
@@ -1039,6 +1121,14 @@
   },
   "description": "A model for representing an experimental sample.",
   "properties": {
+    "tags": {
+      "description": "Tags applied to this entry: references to `tags` entries (by\n`immutable_id`).",
+      "items": {
+        "$ref": "#/$defs/EntryReference"
+      },
+      "title": "Tags",
+      "type": "array"
+    },
     "blocks_obj": {
       "additionalProperties": {
         "$ref": "#/$defs/DataBlockResponse"

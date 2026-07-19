@@ -54,6 +54,7 @@
           @open-qr-scanner-modal="qrScannerModalIsOpen = true"
           @open-create-collection-modal="createCollectionModalIsOpen = true"
           @open-create-equipment-modal="createEquipmentModalIsOpen = true"
+          @open-create-tag-modal="$emit('open-create-tag-modal')"
           @open-add-to-collection-modal="addToCollectionModalIsOpen = true"
           @open-batch-share-modal="batchShareModalIsOpen = true"
           @delete-selected-items="deleteSelectedItems"
@@ -119,6 +120,7 @@
             v-bind="getComponentProps(column.body, slotProps.data)"
             @edit-group="$emit('edit-group', $event)"
             @group-deleted="$emit('group-deleted')"
+            @edit-tag="$emit('edit-tag', $event)"
           />
         </template>
         <template
@@ -208,6 +210,41 @@
                   </span>
                 </template>
                 <span v-else class="text-gray-400">Any</span>
+              </div>
+            </template>
+          </MultiSelect>
+        </template>
+
+        <template v-else-if="column.filter && column.field === 'tags'" #filter="">
+          <MultiSelect
+            v-model="filters[column.field].constraints[0].value"
+            :options="tagFilterOptions"
+            option-label="name"
+            placeholder="Any"
+            class="d-flex w-100"
+            :filter="true"
+            filter-placeholder="Search all tags"
+            :reset-filter-on-hide="true"
+            :virtual-scroller-options="{ itemSize: 38 }"
+            @click.stop
+          >
+            <template #option="slotProps">
+              <div class="d-flex align-items-center">
+                <TagBadge :tag="slotProps.option.value" />
+              </div>
+            </template>
+            <template #value="slotProps">
+              <div class="d-flex flex-wrap align-items-center">
+                <template v-if="slotProps.value && slotProps.value.length">
+                  <span
+                    v-for="option in slotProps.value"
+                    :key="option.key"
+                    class="d-inline-flex align-items-center mr-1"
+                  >
+                    <TagBadge :tag="option.value" />
+                  </span>
+                </template>
+                <span v-else class="text-muted">Any</span>
               </div>
             </template>
           </MultiSelect>
@@ -607,6 +644,11 @@ import GroupIdCell from "@/components/GroupIdCell.vue";
 import GroupMembersCell from "@/components/GroupMembersCell.vue";
 import GroupActionsCell from "@/components/GroupActionsCell.vue";
 
+import TagBadge from "@/components/TagBadge.vue";
+import TagActionsCell from "@/components/TagActionsCell.vue";
+import TagList from "@/components/TagList.vue";
+import { getTags } from "@/server_fetch_utils.js";
+
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
 import MultiSelect from "primevue/multiselect";
@@ -656,6 +698,9 @@ export default {
     GroupIdCell,
     GroupMembersCell,
     GroupActionsCell,
+    TagBadge,
+    TagActionsCell,
+    TagList,
   },
   props: {
     columns: {
@@ -696,6 +741,8 @@ export default {
     "edit-group",
     "group-deleted",
     "groups-data-changed",
+    "open-create-tag-modal",
+    "edit-tag",
   ],
   data() {
     return {
@@ -747,6 +794,10 @@ export default {
           operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: "exactBlockMatch" }],
         },
+        tags: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: "exactTagMatch" }],
+        },
         status: {
           operator: FilterOperator.OR,
           constraints: [{ value: null, matchMode: "exactStatusMatch" }],
@@ -796,6 +847,10 @@ export default {
           constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
         },
         description: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+        },
+        name: {
           operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
         },
@@ -889,6 +944,21 @@ export default {
 
       return Array.from(blockTypesMap.values());
     },
+    tagFilterOptions() {
+      // The full set of tags.
+      return (this.$store.state.tag_list || [])
+        .map((tag) => ({
+          key: this.tagFilterKey(tag),
+          name: tag.name,
+          value: tag,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    },
+    hasTagFilterColumn() {
+      // Whether this table offers a tags filter column. Used to trigger
+      // the fetch of that list.
+      return (this.columns || []).some((column) => column.field === "tags" && column.filter);
+    },
     uniqueStringValues() {
       const fields = ["location", "supplier"];
       return Object.fromEntries(
@@ -958,6 +1028,7 @@ export default {
         collections: "collection-table",
         startingMaterials: "starting_materials-table",
         equipment: "equipment-table",
+        tags: "tags-table",
       };
       return dataTestIdMap[this.dataType] || "default-table";
     },
@@ -978,6 +1049,16 @@ export default {
         return [];
       }
       return this.$store.state.groups_list || [];
+    },
+  },
+  watch: {
+    hasTagFilterColumn: {
+      // Fetch the global tag list as soon as a tags filter column becomes available.
+      // To cover the case where the column is enabled after the page is loaded.
+      immediate: true,
+      handler() {
+        this.fetchTagsForFilter();
+      },
     },
   },
   created() {
@@ -1132,6 +1213,27 @@ export default {
 
       return value.some((itemBlock) => itemBlock.blocktype === filterValue.blocktype);
     });
+    FilterService.register("exactTagMatch", (value, filterValue) => {
+      if (
+        filterValue === null ||
+        filterValue === undefined ||
+        (Array.isArray(filterValue) && filterValue.length === 0)
+      ) {
+        return true;
+      }
+
+      if (!value || !Array.isArray(value)) {
+        return false;
+      }
+
+      const selectedTags = Array.isArray(filterValue) ? filterValue : [filterValue];
+      const filter = this.filters.tags;
+      const isAnd = filter && filter.operator === FilterOperator.AND;
+      const matchesSelectedTag = (selectedTag) =>
+        value.some((itemTag) => this.tagsMatch(itemTag, selectedTag.value || selectedTag));
+
+      return isAnd ? selectedTags.every(matchesSelectedTag) : selectedTags.some(matchesSelectedTag);
+    });
 
     const exactStringMatch = (value, filterValue) => {
       if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) {
@@ -1278,7 +1380,7 @@ export default {
       });
     },
     goToEditPage(event) {
-      if (this.dataType === "users" || this.dataType === "groups") {
+      if (this.dataType === "users" || this.dataType === "groups" || this.dataType === "tags") {
         return;
       }
       const row = event.data;
@@ -1411,6 +1513,16 @@ export default {
           group: data,
           allGroups: data.allGroups || [],
         },
+        TagBadge: {
+          tag: data,
+        },
+        TagActionsCell: {
+          tag: data,
+        },
+        TagList: {
+          tags: "tags",
+          maxVisible: { value: 2 },
+        },
       };
 
       const config = propsConfig[componentName] || {};
@@ -1450,6 +1562,33 @@ export default {
       }
 
       return props;
+    },
+    tagFilterKey(tag) {
+      if (tag?.immutable_id) {
+        return `tag-${tag.immutable_id}`;
+      }
+      if (tag?.name) {
+        return `tag-name-${tag.name}`;
+      }
+      return null;
+    },
+    tagFilterLabel(tag) {
+      return tag?.name || "";
+    },
+    tagsMatch(itemTag, selectedTag) {
+      const itemKey = this.tagFilterKey(itemTag);
+      const selectedKey = this.tagFilterKey(selectedTag);
+      if (itemKey && selectedKey) {
+        return itemKey === selectedKey;
+      }
+      return this.tagFilterLabel(itemTag) === this.tagFilterLabel(selectedTag);
+    },
+    fetchTagsForFilter() {
+      // Populate the global tag list (the tag filter's options) once, if this table has a
+      // tags filter column. Called from the `hasTagFilterColumn` watcher.
+      if (this.hasTagFilterColumn && this.$store.state.tag_list === null) {
+        getTags();
+      }
     },
     isFilterActive(field) {
       const filter = this.filters[field];
@@ -1548,6 +1687,7 @@ export default {
       const customState = {
         columnWidths: state.columnWidths,
         visibleColumns: this.selectedColumns.map((col) => col.field),
+        availableColumnFields: this.availableColumns.map((col) => col.field),
         first: state.first,
         rows: state.rows,
       };
@@ -1573,8 +1713,12 @@ export default {
           }
 
           if (customState.visibleColumns && Array.isArray(customState.visibleColumns)) {
-            this.selectedColumns = this.availableColumns.filter((col) =>
-              customState.visibleColumns.includes(col.field),
+            const visibleColumnFields = new Set(customState.visibleColumns);
+            const savedAvailableFields = new Set(customState.availableColumnFields || []);
+            this.selectedColumns = this.availableColumns.filter(
+              (col) =>
+                visibleColumnFields.has(col.field) ||
+                (col.field === "tags" && !col.hidden && !savedAvailableFields.has(col.field)),
             );
 
             if (this.selectedColumns.length === 0) {

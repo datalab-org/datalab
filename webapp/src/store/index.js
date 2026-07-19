@@ -18,6 +18,7 @@ export default createStore({
     equipment_list: null,
     starting_material_list: null,
     collection_list: null,
+    tag_list: null,
     groups_list: null,
     saved_status_items: {},
     saved_status_blocks: {},
@@ -74,6 +75,10 @@ export default createStore({
         page: 0,
         rows: 10,
       },
+      tags: {
+        page: 0,
+        rows: 20,
+      },
     },
     block_errors: {},
     block_infos: {},
@@ -99,6 +104,20 @@ export default createStore({
     setCollectionList(state, collectionSummaries) {
       // collectionSummaries is an array of json objects summarizing the available collections
       state.collection_list = collectionSummaries || [];
+    },
+    setTagList(state, tags) {
+      // tags is an array of tag objects
+      state.tag_list = tags || [];
+    },
+    deleteFromTagList(state, tagId) {
+      if (state.tag_list === null) return;
+
+      const index = state.tag_list.map((t) => t.immutable_id).indexOf(tagId);
+      if (index > -1) {
+        state.tag_list.splice(index, 1);
+      } else {
+        console.warn(`deleteFromTagList couldn't find the tag with id ${tagId}`);
+      }
     },
     setGroupsList(state, groups) {
       state.groups_list = groups;
