@@ -114,7 +114,7 @@
       </div>
     </div>
   </div>
-  <div id="cy" ref="cyContainer" v-bind="$attrs" />
+  <div id="cy" ref="cyContainer" v-bind="$attrs" :data-layout-running="layoutIsRunning" />
 </template>
 
 <script>
@@ -375,7 +375,10 @@ export default {
             },
           },
         ],
-        layout: layoutOptions[this.graphStyle],
+        // The real layout is run further down, once the layout event handlers
+        // are attached; synchronous layouts (e.g. random) would otherwise
+        // finish before the handlers exist, leaving layoutIsRunning stuck
+        layout: { name: "preset" },
       });
 
       // set colors of each of the nodes by type
@@ -409,6 +412,8 @@ export default {
         // box (with a little padding) so nothing overflows the visible area.
         this.cy.fit(undefined, 20);
       });
+
+      this.updateAndRunLayout();
 
       // tapdragover and tapdragout are mouseover and mouseout events
       // that also work with touch screens
