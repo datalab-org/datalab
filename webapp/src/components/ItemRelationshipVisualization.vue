@@ -24,6 +24,7 @@
       :default-graph-style="'elk-stress'"
       :show-options="false"
       :default-show-blocks="false"
+      :include-blocks="false"
     />
   </div>
 </template>
