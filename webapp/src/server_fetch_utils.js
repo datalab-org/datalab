@@ -1202,6 +1202,9 @@ export async function getItemGraph({
   const accessToken = urlParams.get("at");
 
   if (updateStore) {
+    // Clear any previously loaded graph so components do not lay out
+    // stale data from another item/collection while this fetch is in flight
+    store.commit("setItemGraph", null);
     store.commit("setItemGraphIsLoading", true);
   }
 
