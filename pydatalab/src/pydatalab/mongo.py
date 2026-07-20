@@ -99,7 +99,7 @@ def resolve_tags_for_docs(docs: list[dict]) -> None:
         tag_doc["_id"]: tag_doc
         for tag_doc in flask_mongo.db.tags.find(
             {"_id": {"$in": list(tag_ids)}},
-            projection={"_id": 1, "name": 1, "description": 1, "color": 1},
+            projection={"_id": 1, "name": 1, "description": 1, "color": 1, "scope": 1},
         )
     }
 
@@ -121,6 +121,8 @@ def resolve_tags_for_docs(docs: list[dict]) -> None:
                         "name": match.get("name"),
                         "description": match.get("description"),
                         "color": match.get("color"),
+                        # `scope` lets the UI mark personal tags distinctly.
+                        "scope": match.get("scope"),
                     }
                 )
         doc["tags"] = resolved_tags

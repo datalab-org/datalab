@@ -11,7 +11,7 @@ from flask import Blueprint, jsonify, redirect, request
 from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
-from werkzeug.exceptions import BadRequest, Conflict, InternalServerError, NotFound
+from werkzeug.exceptions import BadRequest, Conflict, Forbidden, InternalServerError, NotFound
 
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.blocks import store as block_store
@@ -22,6 +22,7 @@ from pydatalab.models import ITEM_MODELS, ItemVersion, flagged_summary_fields
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import (
+    AccessScope,
     InlineSubstance,
     construct_location_hierarchy,
     generate_unique_refcode,
@@ -659,6 +660,40 @@ def _strip_tag_display_fields(item: dict) -> None:
     ]
 
 
+def _tag_immutable_ids(tags) -> set[str]:
+    """Collect the string `immutable_id`s of the tag references in a `tags` list."""
+    if not isinstance(tags, list):
+        return set()
+    return {
+        str(tag["immutable_id"])
+        for tag in tags
+        if isinstance(tag, dict) and tag.get("immutable_id") is not None
+    }
+
+
+def _authorize_added_tags(tags, existing_tag_ids: set[str]) -> None:
+    """Reject any newly added personal tag not owned by the current user.
+
+    A user may add global tags and their own personal tags.
+    """
+    # In testing an unauthenticated "public" user can write.
+    if CONFIG.TESTING and not current_user.is_authenticated:
+        return
+
+    user_id = current_user.person.immutable_id
+
+    added_ids = _tag_immutable_ids(tags) - existing_tag_ids
+    if not added_ids:
+        return
+
+    for tag_doc in flask_mongo.db.tags.find(
+        {"_id": {"$in": [ObjectId(i) for i in added_ids]}},
+        projection={"_id": 1, "scope": 1, "owner": 1},
+    ):
+        if tag_doc.get("scope") == AccessScope.USER.value and tag_doc.get("owner") != user_id:
+            raise Forbidden("You cannot add a tag that is owned by another user.")
+
+
 def _create_sample(
     sample_dict: dict,
     copy_from_item_id: str | None = None,
@@ -758,6 +793,7 @@ def _create_sample(
     # the `Entry` model.
     try:
         to_store = data_model.model_dump(exclude={"creators", "collections", "groups"})
+        _authorize_added_tags(to_store.get("tags"), set())
         _strip_tag_display_fields(to_store)
         result = flask_mongo.db.items.insert_one(to_store)
     except DuplicateKeyError as error:
@@ -1860,6 +1896,10 @@ def save_item():
     preserve_relationships = "collections" not in updated_data
     original_relationships = item.get("relationships", []) if preserve_relationships else None
 
+    # Snapshot the tags already on the item so we only authorize newly added
+    # tags below.
+    existing_tag_ids = _tag_immutable_ids(item.get("tags"))
+
     item.update(updated_data)
 
     try:
@@ -1887,6 +1927,9 @@ def save_item():
     if isinstance(existing_last_modified, datetime.datetime):
         existing_last_modified = existing_last_modified.isoformat()
 
+    # A user may not add another user's personal tag.
+    _authorize_added_tags(item.get("tags"), existing_tag_ids)
+
     # Now that the item payload has passed validation, apply the deferred block
     # document writes and swap `{"immutable_id": ...}` references back into the
     # document in place of the full payloads of referenced blocks.
@@ -1901,6 +1944,7 @@ def save_item():
     if block_reference_map:
         item.setdefault("blocks_obj", {})
         item["blocks_obj"].update(block_reference_map)
+
     # Store tag references minimally; see `_strip_tag_display_fields`.
     _strip_tag_display_fields(item)
 
