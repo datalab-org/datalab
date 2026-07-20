@@ -94,7 +94,7 @@ services:
     networks:
       - backend
     environment:
-      - PYDATALAB_MONGO_URI=mongodb://database-dev:27017/${DATALAB_DB_NAME:-datalabvue}
+      - PYDATALAB_MONGO_URI=mongodb://database-dev:27017/datalabvue
       - PYDATALAB_FILE_DIRECTORY=/app/files
 
   app-dev:
