@@ -348,7 +348,9 @@ class PipelineDataBlock(metaclass=MetaPipelineDataBlock):
                     )
                 else:
                     if result is not None:
-                        parser_output_df.append(result)
+                        if type(result) is not list:
+                            result = [result]
+                        parser_output_df.extend(result)
                         parser_checksums.append(parser_checksum)
                         break
             else:
@@ -393,6 +395,7 @@ class PipelineDataBlock(metaclass=MetaPipelineDataBlock):
                     process_checksum, result = processor.perform_with_cache(
                         processor_checksums[i], file_folder, processor_input[i], **self.data
                     )
+                    LOGGER.info(result)
                     if result:
                         if type(result) is not list:
                             result = [result]
