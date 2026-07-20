@@ -1,10 +1,15 @@
 # Base block import has to go first to avoid circular deps
 from pydatalab.blocks.base import DataBlock
-from pydatalab.blocks.common import CommentBlock, MediaBlock, NotSupportedBlock, TabularDataBlock
+from pydatalab.blocks.common import (
+    CommentBlock,
+    LegacyMediaBlock,
+    NotSupportedBlock,
+    TabularDataBlock,
+)
 
 COMMON_BLOCKS: list[type[DataBlock]] = [
     CommentBlock,
-    MediaBlock,
+    LegacyMediaBlock,
     NotSupportedBlock,
     TabularDataBlock,
 ]
