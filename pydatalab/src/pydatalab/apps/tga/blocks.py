@@ -31,13 +31,14 @@ class MassSpecBlock(DataBlock):
         - .txt Differential Thermal Analysis data
         No other files are accepted.
         """
-        if self.data["file_ids"]:
+        if self.data.get("file_ids", False):
             file_ids = self.data["file_ids"]
         elif self.data["file_id"]:
             file_ids = [self.data["file_id"]]
         else:
             LOGGER.warning("No file set in the DataBlock")
             return
+
         if not file_ids:
             return
         if len(file_ids) == 1:
@@ -45,7 +46,8 @@ class MassSpecBlock(DataBlock):
         elif len(file_ids) > 2:
             LOGGER.warning("This datablock does not currently support more than two files")
             return
-        self.data["bokeh_plot_data"] = self._plot_data_for_two_files(file_ids[0], file_ids[1])
+        else:
+            self.data["bokeh_plot_data"] = self._plot_data_for_two_files(file_ids[0], file_ids[1])
 
     def _get_and_check_ext(self, file_info):
         ext = os.path.splitext(file_info["location"].split("/")[-1])[-1].lower()
