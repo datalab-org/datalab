@@ -63,3 +63,33 @@ def test_ms_parse_no_validation(filename):
         )
         assert "Time Relative [s]" in ms["data"][species]
         assert "Time" not in ms["data"][species]
+
+
+def test_ms_parse_txt_with_validation():
+    filename = (
+        Path(__file__).parent.parent.parent / "example_data" / "TGA-MS" / "mp2028_281122_LNO+C.txt"
+    )
+    from pydatalab.apps.tga.parsers import parse_mt_mass_spec_txt
+
+    ms = parse_mt_mass_spec_txt(filename)
+    # check that the results exist
+    assert ms
+
+    assert "Performed" in ms["meta"]
+    assert "t[s]" in ms["data"]["tga"]
+    assert "Value[mg]" in ms["data"]["tga"]
+    assert "Ts[°C]" in ms["data"]["tga"]
+    assert "Tr[°C]" in ms["data"]["tga"]
+
+    # regression test to check if means and standard deviations remain the same in the future
+    assert pytest.approx(ms["data"]["tga"]["t[s]"].mean(), rel=1e-3) == 2025
+    assert pytest.approx(ms["data"]["tga"]["t[s]"].std(), rel=1e-3) == 1169.57
+
+    assert pytest.approx(ms["data"]["tga"]["Ts[°C]"].mean(), rel=1e-3) == 352.45
+    assert pytest.approx(ms["data"]["tga"]["Ts[°C]"].std(), rel=1e-3) == 196.34
+
+    assert pytest.approx(ms["data"]["tga"]["Tr[°C]"].mean(), rel=1e-3) == 362.45
+    assert pytest.approx(ms["data"]["tga"]["Tr[°C]"].std(), rel=1e-3) == 194.93
+
+    assert pytest.approx(ms["data"]["tga"]["Value[mg]"].mean(), rel=1e-3) == 4.16899
+    assert pytest.approx(ms["data"]["tga"]["Value[mg]"].std(), rel=1e-3) == 0.004453
