@@ -296,12 +296,12 @@ class PipelineDataBlock(metaclass=MetaPipelineDataBlock):
 
         file_ids: list[str] = []
 
-        # Case one: single file
-        if "file_id" in self.data:
-            file_ids = [self.data["file_id"]]
-        # Case two: multiple files
-        elif "file_ids" in self.data:
+        # Case one: multiple files
+        if "file_ids" in self.data:
             file_ids = self.data["file_ids"]
+        # Case two: single file
+        elif "file_id" in self.data:
+            file_ids = [self.data["file_id"]]
 
         if len(file_ids) == 0:
             return
