@@ -1,11 +1,15 @@
+import hashlib
 import inspect
+import json
 import pathlib
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from enum import Enum
+from io import BytesIO
 from typing import Any
 
 import pandas as pd
+import pyarrow
 
 from pydatalab.logger import LOGGER
 
@@ -18,6 +22,26 @@ class Stage(Enum):
     PLOTTER = "plotter"
     EVENT = "event"
     DEFAULT = "default"
+
+
+def _load_from_cache(file_name) -> list[Any]:
+    """
+    This functions loads the file from a parquet cache into a pandas dataframe with associated metadata.
+    parameters:
+    file_name: str the filename of the parquet file
+    """
+    LOGGER.info("Loading %s from cache.", file_name)
+    cached_dfs = pd.read_parquet(file_name)
+    returned_dfs = []
+    order = []
+    for index, row in cached_dfs.iterrows():
+        reader = pyarrow.BufferReader(row["Payloads"])
+        df = pd.read_feather(reader)
+        df.attrs = json.loads(row["Metadata"])
+        returned_dfs.append(df)
+        order.append(row["Index"])
+    returned_dfs = [x for _, x in sorted(zip(order, returned_dfs), key=lambda p: p[0])]
+    return returned_dfs
 
 
 class BlockStage(ABC):
@@ -45,6 +69,69 @@ class BlockStage(ABC):
     def get_arg_data(self, input_args: dict[str, Any]) -> dict[str, Any]:
         common_args = set(self.accepted_data) & set(input_args.keys())
         return {arg: input_args[arg] for arg in common_args}
+
+    def _create_and_save_to_cache(
+        self, file_name, function_input, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ) -> Any:
+        """
+        Creates the df by performing the block_stage operations and then caches the file.
+        """
+        LOGGER.info("Loading and saving the output to cache.")
+        # result is not cached, needs to be computed and cached
+        original_result = self.perform(function_input, *args, **kwargs)
+
+        results = original_result.copy()
+
+        if type(results) is not list:
+            results = [results]
+        indices = []
+        attrs = []
+        payloads = []
+        for index, result in enumerate(results):
+            indices.append(index)
+            attrs.append(json.dumps(result.attrs))
+            with BytesIO() as buf:
+                result.to_feather(buf)
+                payloads.append(buf.getvalue())
+        cacheable_result = pd.DataFrame()
+        cacheable_result["Index"] = indices
+        cacheable_result["Metadata"] = attrs
+        cacheable_result["Payloads"] = payloads
+        cacheable_result.to_parquet(file_name)
+        return original_result
+
+    @abstractmethod
+    def validate_input(self, function_input: Any) -> bool:
+        pass
+
+    def perform_with_cache(
+        self, upstream_cache_key, folder, function_input: Any, *args: Any, **kwargs: Any
+    ) -> "tuple[str, pd.DataFrame | list[pd.DataFrame]]| tuple[None, None]":
+        if not self.validate_input(function_input):
+            LOGGER.info("This input is not valid for this %s stage", self.stage)
+            return None, None
+        LOGGER.info("Performing %s stage with cache.", self.stage)
+        if self.stage == Stage.PLOTTER:
+            raise ValueError("Plotter Stage is not cached")
+        elif self.stage == Stage.EVENT:
+            raise ValueError("Event Stage is not cached")
+        arg_data = self.get_arg_data(kwargs)
+
+        cache_key_components = [upstream_cache_key, self.stage]
+        cache_key_components.extend(arg_data.values())
+
+        cache_key = hashlib.md5(  # noqa: S324
+            "|".join(sorted(str(component) for component in cache_key_components)).encode()
+        ).hexdigest()[:10]
+
+        file_name = folder / f"{cache_key}.parquet"
+
+        if file_name.exists():
+            return cache_key, _load_from_cache(file_name)
+        else:
+            return cache_key, self._create_and_save_to_cache(
+                file_name, function_input, args, kwargs
+            )
 
     def __init__(
         self,
@@ -116,6 +203,13 @@ class ProcessorStage(BlockStage):
     function: "Callable[..., pd.DataFrame|list[pd.DataFrame]]"
     """The processor stage function type"""
 
+    def validate_input(self, function_input: Any) -> bool:
+        # TODO allow user to have their own validation function or list of columns that it must be.
+        return function_input and (
+            (type(function_input) is pd.DataFrame and (not function_input.empty))
+            or (type(function_input) is list and self.list_df_input)
+        )
+
     def __init__(
         self,
         function: "Callable[[list[pd.DataFrame]|pd.DataFrame, dict], pd.DataFrame|list[pd.DataFrame]]",
@@ -146,6 +240,10 @@ class PlotterStage(BlockStage):
     function: "Callable[..., Any]"
     """The plotter stage"""
 
+    def validate_input(self, function_input: Any) -> bool:
+        # TODO validate input
+        return True
+
     def __init__(
         self,
         function: "Callable[[pd.DataFrame|list[pd.DataFrame]], Any]|Callable[[pd.DataFrame|list[pd.DataFrame], dict], Any]",
@@ -175,6 +273,9 @@ class EventStage(BlockStage):
 
     function: "Callable[..., None]"
     """The event stage function, takes the data dictionary and any amount of **args"""
+
+    def validate_input(self, function_input: Any) -> bool:
+        return True
 
     def __init__(self, function: "Callable[..., None]"):
         """

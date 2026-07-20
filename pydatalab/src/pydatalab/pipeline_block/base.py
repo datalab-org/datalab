@@ -8,6 +8,7 @@ import bokeh.embed
 import pandas as pd
 
 from pydatalab import __version__
+from pydatalab.config import CONFIG
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 from pydatalab.models.blocks import DataBlockResponse
@@ -307,6 +308,8 @@ class PipelineDataBlock(metaclass=MetaPipelineDataBlock):
             return
 
         files: list[Path] = []
+        checksums: list[str] = []
+
         # Check extension and append the Path object into a list
         for file_id in file_ids:
             try:
@@ -323,16 +326,22 @@ class PipelineDataBlock(metaclass=MetaPipelineDataBlock):
                     )
                     return
                 files.append(Path(file_info["location"]))
+                checksums.append(file_info["checksums"])
 
         # Second step - pass through parser(s)
+        file_folder = CONFIG.FILE_DIRECTORY
         parser_output_df: "list[pd.DataFrame]" = []
-        for file in files:
+        parser_checksums: list[str] = []
+
+        for index, file in enumerate(files):
             # TODO Need to refactor in case we want to parse two .txt(/any other extension) files that are the same..
             # TODO logic could also do with refining, depending on use case.
             for parser in self.parser_functions:
                 LOGGER.info("Processing file %s", file)
                 try:
-                    result = parser.perform(file)
+                    parser_checksum, result = parser.perform_with_cache(
+                        checksums[index], file_folder, file
+                    )
                 except Exception as exc:
                     warnings.warn(
                         f"Could not parse file {file} as {self.blocktype} data. Error: {exc}"
@@ -340,6 +349,7 @@ class PipelineDataBlock(metaclass=MetaPipelineDataBlock):
                 else:
                     if result is not None:
                         parser_output_df.append(result)
+                        parser_checksums.append(parser_checksum)
                         break
             else:
                 LOGGER.warning(
@@ -349,9 +359,11 @@ class PipelineDataBlock(metaclass=MetaPipelineDataBlock):
         processor_input_name: str = "files"
         processor_input: list[pd.DataFrame] = parser_output_df
         processor_output: list[pd.DataFrame] = []
+        processor_checksums: list[str] = parser_checksums
 
         for ind, processor_group in enumerate(self.processor_functions):
             processor_output = []
+            output_checksums: list[str] = []
             # Check the length of input compared to the number of processors available
             if len(processor_input) != len(processor_group):
                 LOGGER.info(
@@ -362,10 +374,14 @@ class PipelineDataBlock(metaclass=MetaPipelineDataBlock):
                     len(processor_group),
                 )
                 for processor in processor_group:
-                    result = processor.perform(processor_input, **self.data)
-                    if type(result) is not list:
-                        result = [result]
-                    processor_output.extend(result)
+                    process_checksum, result = processor.perform_with_cache(
+                        "".join(processor_checksums), file_folder, processor_input, **self.data
+                    )
+                    if result:
+                        if type(result) is not list:
+                            result = [result]
+                        processor_output.extend(result)
+                        output_checksums.extend([process_checksum] * len(result))
             else:
                 LOGGER.info(
                     "Exact match between processors and %s, "
@@ -374,13 +390,18 @@ class PipelineDataBlock(metaclass=MetaPipelineDataBlock):
                 )
                 for i, processor in enumerate(processor_group):
                     LOGGER.info(processor)
-                    result = processor.perform(processor_input[i], **self.data)
-                    if type(result) is not list:
-                        result = [result]
-                    processor_output.extend(result)
+                    process_checksum, result = processor.perform_with_cache(
+                        processor_checksums[i], file_folder, processor_input[i], **self.data
+                    )
+                    if result:
+                        if type(result) is not list:
+                            result = [result]
+                        processor_output.extend(result)
+                        output_checksums.extend([process_checksum] * len(result))
             # Reset variables for next iteration
             processor_input_name = f"output from layer {ind}"
             processor_input = processor_output
+            processor_checksums = output_checksums
 
         # Fourth step - plot
         if len(processor_output) == 0:
