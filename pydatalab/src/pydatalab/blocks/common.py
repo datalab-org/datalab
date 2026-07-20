@@ -29,9 +29,9 @@ class CommentBlock(DataBlock):
     _supports_collections = True
 
 
-class MediaBlock(DataBlock):
-    name = "Media"
-    blocktype = "media"
+class LegacyMediaBlock(DataBlock):
+    name = "Legacy media block"
+    blocktype = "legacy media"
     description = "Display an image or a video of a supported format."
     accepted_file_extensions = (
         ".png",

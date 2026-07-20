@@ -1,4 +1,5 @@
 import os
+import pathlib
 import re
 import tempfile
 import warnings
@@ -194,13 +195,56 @@ def parse_rasx_zip(filename: str) -> pd.DataFrame:
     )
 
 
+def parse_cif_pxrd(filename: "str|pathlib.Path") -> "pd.DataFrame":
+    """Parses a CIF file and returns a pandas DataFrame with columns
+    twotheta and intensity.
+
+    Parameters:
+        filename: The file to parse.
+    """
+    from matador.scrapers.cif_scraper import cif2dict
+
+    structure, success = cif2dict(str(filename))
+    if not success:
+        raise RuntimeError(f"Failed to parse required information from CIF file {filename}.")
+    df = pd.DataFrame()
+    df.attrs["cif_structure"] = structure
+    return df
+
+
+def compute_cif_pxrd_from_structure(
+    df: "pd.DataFrame", wavelength: "float"
+) -> "tuple[pd.DataFrame, dict]":
+    """Given a dataframe with attrs CIF structure it returns a pandas DataFrame with columns
+    twotheta and intensity.
+    Parameters:
+        df: The dataframe containing the CIF structure.
+        wavelength: The wavelength to pass into the next parser.
+    """
+    from matador.fingerprints.pxrd import PXRD
+
+    structure = df.attrs["cif_structure"]
+    if not structure:
+        raise ValueError("Cif structure does not exist in this dataframe.")
+    pxrd = PXRD(structure, wavelength=wavelength, two_theta_bounds=(5, 60))
+    df = pd.DataFrame({"intensity": pxrd.pattern, "twotheta": pxrd.two_thetas})
+    peak_data = {
+        "positions": pxrd.peak_positions.tolist(),
+        "intensities": pxrd.peak_intensities.tolist(),
+        "widths": None,
+        "hkls": pxrd.hkls.tolist(),
+        "theoretical": True,
+    }
+    return df, peak_data
+
+
 def compute_cif_pxrd(filename: str, wavelength: float) -> tuple[pd.DataFrame, dict]:
     """Parses a CIF file and returns a pandas DataFrame with columns
     twotheta and intensity.
 
     Parameters:
         filename: The file to parse.
-
+        wavelength: The wavelength to pass into the next parser.
     """
     from matador.fingerprints.pxrd import PXRD
     from matador.scrapers.cif_scraper import cif2dict
