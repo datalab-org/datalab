@@ -155,6 +155,13 @@ class UserRole(str, Enum):
     MANAGER = "manager"
 
 
+class AccessScope(str, Enum):
+    """The scope that controls who can list, use and manage an entity (e.g. a tag)."""
+
+    GLOBAL = "global"
+    USER = "user"
+
+
 class PintType(str):
     """A WIP attempt to create a custom pydantic field type for Pint quantities.
     The idea would eventually be to use TypeAlias to create physical/dimensionful pydantic fields.

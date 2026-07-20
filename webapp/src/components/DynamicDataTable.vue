@@ -648,6 +648,7 @@ import GroupMembersCell from "@/components/GroupMembersCell.vue";
 import GroupActionsCell from "@/components/GroupActionsCell.vue";
 
 import TagBadge from "@/components/TagBadge.vue";
+import TagScopeBadge from "@/components/TagScopeBadge.vue";
 import TagActionsCell from "@/components/TagActionsCell.vue";
 import TagList from "@/components/TagList.vue";
 import { getTags } from "@/server_fetch_utils.js";
@@ -704,6 +705,7 @@ export default {
     GroupMembersCell,
     GroupActionsCell,
     TagBadge,
+    TagScopeBadge,
     TagActionsCell,
     TagList,
   },
@@ -1543,6 +1545,9 @@ export default {
           allGroups: data.allGroups || [],
         },
         TagBadge: {
+          tag: data,
+        },
+        TagScopeBadge: {
           tag: data,
         },
         TagActionsCell: {
