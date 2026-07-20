@@ -1,12 +1,17 @@
+// This file was edited with the assistance of an AI model and requires human review from the contributor.
 // E2e tests for the tag management page (/tags). Needs the dev server + API (:5001) running
 // with testing auth AND the tags feature enabled (PYDATALAB_ENABLE_TAGS).
-// Tags are global and admin-only; admin-user@example.com is an admin by the same
+//
+// Tags have two scopes: "global" (admin-managed, usable by everyone) and "user" (personal,
+// owned and managed by a single user). admin-user@example.com is an admin by the same
 // convention as authenticatedSampleTests.cy.js.
 
+// Role is determined server-side by the email (see authenticatedSampleTests.cy.js):
+// `admin-user@example.com` is an admin, `test-user@example.com` is a plain user.
 const adminEmail = "admin-user@example.com";
-const userEmail = "tag-owner@example.com"; // a non-admin user
+const userEmail = "test-user@example.com"; // a non-admin user
 
-describe("Tag management page (admin)", () => {
+describe("Tag management page (admin, global tags)", () => {
   // Names must not be substrings of each other: cy.contains matches substrings, so a
   // "not.exist" check on the original would still match the renamed badge otherwise.
   const tagName = "e2e-create-tag";
@@ -24,11 +29,12 @@ describe("Tag management page (admin)", () => {
     cy.deleteTagByNameViaAPI(renamedTag);
   });
 
-  it("creates, edits and deletes a tag", () => {
+  it("creates, edits and deletes a global tag", () => {
     cy.visit("/tags");
 
-    // Create
+    // Create (an admin picks the "global" scope).
     cy.get('[data-testid="add-tag-button"]').click();
+    cy.get('[data-testid="tag-scope-select"]').select("global");
     cy.get("#tag-name").type(tagName);
     cy.get("#tag-description").type("created in an e2e test");
     cy.get(".swatch").first().click();
@@ -37,6 +43,11 @@ describe("Tag management page (admin)", () => {
     // TagBadge preview in the DOM (Modal uses display:none), which a document-wide
     // `.badge` match would pick up and break the `not.exist` checks below.
     cy.get('[data-testid="tags-table"]').contains(".badge", tagName).should("exist");
+    // The row is marked as a global tag.
+    cy.get('[data-testid="tags-table"]')
+      .contains("tr", tagName)
+      .find('[data-testid="tag-scope-badge"]')
+      .should("contain.text", "Global");
 
     // Edit (rename)
     cy.contains("tr", tagName).find('button[title="Edit tag"]').click();
@@ -53,13 +64,58 @@ describe("Tag management page (admin)", () => {
   });
 });
 
+describe("Tag management page (user, personal tags)", () => {
+  const tagName = "e2e-personal-tag";
+  const renamedTag = "e2e-personal-renamed";
+
+  beforeEach(() => {
+    cy.loginViaTestMagicLink(userEmail);
+    cy.deleteTagByNameViaAPI(tagName);
+    cy.deleteTagByNameViaAPI(renamedTag);
+  });
+
+  after(() => {
+    cy.loginViaTestMagicLink(userEmail);
+    cy.deleteTagByNameViaAPI(tagName);
+    cy.deleteTagByNameViaAPI(renamedTag);
+  });
+
+  it("lets a non-admin create, edit and delete their own personal tag", () => {
+    cy.visit("/tags");
+
+    // Create. A non-admin has no scope choice; the tag is personal by default.
+    cy.get('[data-testid="add-tag-button"]').click();
+    cy.get('[data-testid="tag-scope-select"]').should("not.exist");
+    cy.get("#tag-name").type(tagName);
+    cy.get(".modal-footer input[type=submit]:visible").click();
+
+    cy.get('[data-testid="tags-table"]').contains(".badge", tagName).should("exist");
+    cy.get('[data-testid="tags-table"]')
+      .contains("tr", tagName)
+      .find('[data-testid="tag-scope-badge"]')
+      .should("contain.text", "Personal");
+
+    // The owner can edit and delete their own personal tag.
+    cy.contains("tr", tagName).find('button[title="Edit tag"]').click();
+    cy.get("#tag-name").clear();
+    cy.get("#tag-name").type(renamedTag);
+    cy.get(".modal-footer input[type=submit]:visible").click();
+    cy.get('[data-testid="tags-table"]').contains(".badge", renamedTag).should("exist");
+
+    cy.contains("tr", renamedTag).find('button[title="Delete tag"]').click();
+    cy.get('[data-testid="dialog-modal-confirm-button"]').click();
+    cy.get('[data-testid="tags-table"]').contains(".badge", renamedTag).should("not.exist");
+  });
+});
+
 describe("Tag management permissions", () => {
   const tagName = "e2e-perm-tag";
 
   before(() => {
     cy.loginViaTestMagicLink(adminEmail);
     cy.deleteTagByNameViaAPI(tagName);
-    cy.createTagViaAPI({ name: tagName });
+    // A global tag: everyone can see it, but only admins can edit/delete it.
+    cy.createTagViaAPI({ name: tagName, scope: "global" });
   });
 
   after(() => {
@@ -67,18 +123,20 @@ describe("Tag management permissions", () => {
     cy.deleteTagByNameViaAPI(tagName);
   });
 
-  it("hides create/edit/delete controls for a non-admin", () => {
+  it("lets a non-admin create tags but not manage a global tag", () => {
     cy.loginViaTestMagicLink(userEmail);
     cy.visit("/tags");
-    cy.contains("tr", tagName).should("exist"); // the table is visible to everyone
-    cy.get('[data-testid="add-tag-button"]').should("not.exist");
+    cy.contains("tr", tagName).should("exist"); // the global tag is visible to everyone
+    // A non-admin can now create their own (personal) tags.
+    cy.get('[data-testid="add-tag-button"]').should("exist");
+    // ... but cannot edit or delete a global tag.
     cy.contains("tr", tagName).within(() => {
       cy.get('button[title="Edit tag"]').should("not.exist");
       cy.get('button[title="Delete tag"]').should("not.exist");
     });
   });
 
-  it("shows create/edit/delete controls for an admin", () => {
+  it("shows edit/delete controls on a global tag for an admin", () => {
     cy.loginViaTestMagicLink(adminEmail);
     cy.visit("/tags");
     cy.get('[data-testid="add-tag-button"]').should("exist");
@@ -93,10 +151,10 @@ describe("Applying a tag to an item", () => {
   const sampleId = "e2e-tag-sample";
 
   before(() => {
-    // Only admins can create tags.
+    // A global tag so any user can apply it.
     cy.loginViaTestMagicLink(adminEmail);
     cy.deleteTagByNameViaAPI(intTag);
-    cy.createTagViaAPI({ name: intTag });
+    cy.createTagViaAPI({ name: intTag, scope: "global" });
   });
 
   beforeEach(() => {
