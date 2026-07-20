@@ -10,6 +10,9 @@ const TAGS = [
     name: "flammable",
     description: "burns",
     color: "#f1c40f",
+    // A personal tag owned by the current user ("self").
+    scope: "user",
+    owner: "self",
   },
   {
     immutable_id: "t2",
@@ -17,6 +20,8 @@ const TAGS = [
     name: "global-tag",
     description: null,
     color: null,
+    scope: "global",
+    owner: null,
   },
 ];
 
@@ -45,13 +50,27 @@ function mountTable(role) {
 }
 
 describe("TagManagementTable Component Tests", () => {
-  it("renders the expected (scope-free) columns", () => {
+  it("renders the expected columns (including Scope)", () => {
     mountTable("admin");
-    const headers = ["", "Tag", "Description", "Actions"];
+    const headers = ["", "Tag", "Description", "Scope", "Actions"];
     cy.get(".p-datatable-column-header-content").should("have.length", headers.length);
     cy.get(".p-datatable-column-header-content").each((header, index) => {
       cy.wrap(header).should("contain.text", headers[index]);
     });
+  });
+
+  it("shows a scope badge per tag", () => {
+    mountTable("admin");
+    cy.get(".p-datatable-tbody")
+      .find("tr")
+      .eq(0)
+      .find('[data-testid="tag-scope-badge"]')
+      .should("contain.text", "Personal");
+    cy.get(".p-datatable-tbody")
+      .find("tr")
+      .eq(1)
+      .find('[data-testid="tag-scope-badge"]')
+      .should("contain.text", "Global");
   });
 
   it("displays a badge per tag from the store", () => {
@@ -71,16 +90,28 @@ describe("TagManagementTable Component Tests", () => {
   });
 
   it("shows the create button and Edit/Delete on every tag for an admin", () => {
+    // An admin owns the personal tag ("self") and manages the global tag, so both rows.
     mountTable("admin");
     cy.get('[data-testid="add-tag-button"]').should("exist");
     cy.get('button[title="Edit tag"]').should("have.length", TAGS.length);
     cy.get('button[title="Delete tag"]').should("have.length", TAGS.length);
   });
 
-  it("hides create/edit/delete controls for a non-admin", () => {
+  it("lets a non-admin create tags and manage only their own personal tags", () => {
+    // A non-admin can create (personal) tags, and manage their own personal tag,
+    // but not the global tag (which only admins manage).
     mountTable("user");
-    cy.get('[data-testid="add-tag-button"]').should("not.exist");
-    cy.get('button[title="Edit tag"]').should("not.exist");
-    cy.get('button[title="Delete tag"]').should("not.exist");
+    cy.get('[data-testid="add-tag-button"]').should("exist");
+    cy.get('button[title="Edit tag"]').should("have.length", 1);
+    cy.get('button[title="Delete tag"]').should("have.length", 1);
+    // The controls sit on the personal (own) tag row, not the global one.
+    cy.get(".p-datatable-tbody")
+      .find("tr")
+      .eq(0)
+      .within(() => cy.get('button[title="Edit tag"]').should("exist"));
+    cy.get(".p-datatable-tbody")
+      .find("tr")
+      .eq(1)
+      .within(() => cy.get('button[title="Edit tag"]').should("not.exist"));
   });
 });
