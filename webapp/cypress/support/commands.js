@@ -1,4 +1,3 @@
-// This file was edited with the assistance of an AI model and requires human review from the contributor.
 // ***********************************************
 // This example commands.js shows you how to
 // create various custom commands and overwrite
