@@ -186,28 +186,63 @@ def test_file():
 
 def test_tag_model():
     from pydatalab.models.tags import Tag
+    from pydatalab.models.utils import AccessScope
 
-    tag = Tag(name="test_tag", description="This is an example", color="#f1c40f")
+    tag = Tag(name="test_tag", description="This is an example", color="#f1c40f", scope="global")
     assert tag.type == "tags"
     assert tag.name == "test_tag"
     assert tag.description == "This is an example"
     assert tag.color == "#f1c40f"
+    assert tag.scope == AccessScope.GLOBAL
+    assert tag.owner is None
 
-    # Tags carry no ownership/scope in this stage.
+    # Scope is modelled explicitly via `scope`/`owner` (not the `HasOwner` mixin).
     assert not hasattr(tag, "creator_ids")
     assert not hasattr(tag, "group_ids")
 
     oid = ObjectId("0123456789ab0123456789ab")
-    doc = {"_id": oid, "type": "tags", "name": "glovebox"}
+    doc = {"_id": oid, "type": "tags", "name": "glovebox", "scope": "global"}
     stored_tag = Tag(**doc)
     assert stored_tag.immutable_id == oid
     assert stored_tag.description is None
     assert stored_tag.color is None
     assert stored_tag.model_dump()["immutable_id"] == oid
+    assert stored_tag.scope == AccessScope.GLOBAL
 
-    # A name is required.
+    # Both `name` and `scope` are required.
     with pytest.raises(pydantic.ValidationError):
-        Tag(description="missing a name")
+        Tag(scope="global", description="missing a name")
+    with pytest.raises(pydantic.ValidationError):
+        Tag(name="missing-a-scope")
+
+
+def test_tag_scope_owner_consistency():
+    """A user-scoped tag must have an owner; a global tag must not."""
+    from pydatalab.models.tags import Tag
+    from pydatalab.models.utils import AccessScope
+
+    owner = ObjectId()
+
+    # A valid personal tag.
+    personal = Tag(name="mine", scope="user", owner=owner)
+    assert personal.scope == AccessScope.USER
+    assert personal.owner == owner
+    # `owner` is preserved as an ObjectId in the stored (python-mode) dump.
+    assert isinstance(personal.model_dump(exclude_none=True)["owner"], ObjectId)
+    # ... and stringified in the JSON dump sent to clients.
+    assert json.loads(personal.model_dump_json())["owner"] == str(owner)
+
+    # A valid global tag has no owner.
+    glob = Tag(name="shared", scope="global")
+    assert glob.owner is None
+
+    # A user-scoped tag without an owner is rejected.
+    with pytest.raises(pydantic.ValidationError):
+        Tag(name="bad", scope="user")
+
+    # A global tag with an owner is rejected.
+    with pytest.raises(pydantic.ValidationError):
+        Tag(name="bad", scope="global", owner=owner)
 
 
 def test_item_tags_coercion():
