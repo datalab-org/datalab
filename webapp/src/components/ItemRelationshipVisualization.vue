@@ -24,6 +24,7 @@
       :default-graph-style="'elk-stress'"
       :show-options="false"
       :default-show-blocks="false"
+      :include-blocks="false"
     />
   </div>
 </template>
@@ -49,7 +50,22 @@ export default {
     },
   },
   mounted() {
-    getItemGraph({ item_id: this.item_id });
+    // Defer the graph fetch (and subsequent layout) until the browser is
+    // idle, so it does not compete with the initial item and block loads
+    const load = () => getItemGraph({ item_id: this.item_id });
+    if (window.requestIdleCallback) {
+      this.idleCallbackId = window.requestIdleCallback(load, { timeout: 2000 });
+    } else {
+      this.idleTimeoutId = setTimeout(load, 200);
+    }
+  },
+  beforeUnmount() {
+    if (this.idleCallbackId && window.cancelIdleCallback) {
+      window.cancelIdleCallback(this.idleCallbackId);
+    }
+    if (this.idleTimeoutId) {
+      clearTimeout(this.idleTimeoutId);
+    }
   },
 };
 </script>

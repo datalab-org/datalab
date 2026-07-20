@@ -179,13 +179,23 @@ describe("ItemGraph", () => {
     });
   });
 
-  it("renders with different layout algorithms", () => {
+  describe("layout algorithms", () => {
     const layouts = ["euler", "cola", "fcose", "elk-stress", "elk-disco", "random"];
     layouts.forEach((layout) => {
-      mountGraph(twoConnectedNodes, { defaultGraphStyle: layout });
-      getCyInstance().then((cyInstance) => {
-        expect(cyInstance.nodes().length).to.equal(2);
-        expect(cyInstance.edges().length).to.equal(1);
+      it(`renders and settles with the ${layout} layout`, () => {
+        mountGraph(twoConnectedNodes, { defaultGraphStyle: layout });
+        // Wait for the layout run to finish before asserting (and before the
+        // teardown unmount, which must not happen mid-run)
+        cy.get('#cy[data-layout-running="false"]', { timeout: 10000 });
+        getCyInstance().then((cyInstance) => {
+          expect(cyInstance.nodes().length).to.equal(2);
+          expect(cyInstance.edges().length).to.equal(1);
+          cyInstance.nodes().forEach((node) => {
+            expect(Number.isFinite(node.position("x")), `${node.id()} x position`).to.equal(true);
+            expect(Number.isFinite(node.position("y")), `${node.id()} y position`).to.equal(true);
+          });
+          expect(cyInstance.nodes().boundingBox().w).to.be.greaterThan(0);
+        });
       });
     });
   });
