@@ -1,4 +1,3 @@
-// This file was edited with the assistance of an AI model and requires human review from the contributor.
 // E2e tests for the tag management page (/tags). Needs the dev server + API (:5001) running
 // with testing auth AND the tags feature enabled (PYDATALAB_ENABLE_TAGS).
 //
