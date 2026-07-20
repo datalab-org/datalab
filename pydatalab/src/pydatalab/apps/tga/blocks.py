@@ -71,6 +71,7 @@ class MassSpecBlock(DataBlock):
             ms_data = parse_mt_mass_spec_txt(Path(file_info["location"]))
             if ms_data:
                 return self._plot_ms_txt_data(ms_data)
+        return None
 
     def _plot_data_for_two_files(self, file_id0, file_id1):
         file_info_0 = get_file_info_by_id(file_id0, update_if_live=True)
