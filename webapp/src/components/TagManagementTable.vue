@@ -45,6 +45,13 @@ export default {
           filter: true,
         },
         {
+          field: "scope",
+          header: "Scope",
+          body: "TagScopeBadge",
+          bodyConfig: { tag: "tag" },
+          label: "Scope",
+        },
+        {
           field: "actions",
           header: "Actions",
           body: "TagActionsCell",

@@ -2,12 +2,15 @@
   <StyledTooltip>
     <template #anchor>
       <span class="badge badge-pill tag-badge" :style="tagStyle">
-        {{ tag.name }}
+        <font-awesome-icon v-if="isPersonal" :icon="['fas', 'user']" size="xs" class="mr-1" />{{
+          tag.name
+        }}
       </span>
     </template>
     <template #content>
       <!-- Prefer the tag's description; otherwise fall back to its name. -->
       {{ tag.description || tag.name }}
+      <span v-if="isPersonal" class="font-italic">(personal tag)</span>
     </template>
   </StyledTooltip>
 </template>
@@ -29,6 +32,10 @@ export default {
     },
   },
   computed: {
+    // A personal tag is marked with a small user icon to distinguish from a global tag.
+    isPersonal() {
+      return this.tag.scope === "user";
+    },
     tagStyle() {
       // When a tag has a color, use it as the badge background with a readable
       // text color; otherwise fall back to the `.tag-badge` default colors.

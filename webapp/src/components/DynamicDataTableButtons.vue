@@ -85,7 +85,7 @@
         Add an item
       </button>
       <button
-        v-if="dataType === 'tags' && isAdmin"
+        v-if="dataType === 'tags' && isLoggedIn"
         data-testid="add-tag-button"
         class="btn btn-default"
         @click="$emit('open-create-tag-modal')"
@@ -419,9 +419,6 @@ export default {
     },
     isLoggedIn() {
       return this.$store.state.currentUserID !== null;
-    },
-    isAdmin() {
-      return this.$store.state.currentUserRole === "admin";
     },
   },
   watch: {

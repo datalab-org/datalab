@@ -7,6 +7,7 @@ describe("TagSelect.vue", () => {
     name: "test-tag",
     description: "reacts with air",
     color: "#f1c40f",
+    scope: "user",
   };
 
   beforeEach(() => {
@@ -22,12 +23,13 @@ describe("TagSelect.vue", () => {
 
     cy.get(".vs__search").type("test-man");
     cy.wait("@searchTags");
-    // The option shows the tag name and a color swatch.
+    // The option shows the tag name, a color swatch and a scope pill.
     cy.get(".vs__dropdown-option").contains("test-tag").should("exist");
     cy.get(".vs__dropdown-option .color-swatch").should("exist");
+    cy.get('.vs__dropdown-option [data-testid="tag-scope-badge"]').should("contain", "personal");
     cy.get(".vs__dropdown-option").contains("test-tag").click();
 
-    // The reference preserves display fields (color/description).
+    // The reference preserves display fields (color/description/scope).
     cy.get("@update").should("have.been.calledWith", [
       {
         type: "tags",
@@ -35,6 +37,7 @@ describe("TagSelect.vue", () => {
         name: "test-tag",
         color: "#f1c40f",
         description: "reacts with air",
+        scope: "user",
       },
     ]);
   });

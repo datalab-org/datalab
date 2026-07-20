@@ -1,5 +1,5 @@
 <template>
-  <span v-if="isAdmin" class="mx-auto" style="text-align: center">
+  <span v-if="canManage" class="mx-auto" style="text-align: center">
     <button
       class="btn btn-outline-success tag-action-button mr-2"
       title="Edit tag"
@@ -38,9 +38,14 @@ export default {
     };
   },
   computed: {
-    // Only administrators can edit/delete tags in this stage.
-    isAdmin() {
-      return this.$store.state.currentUserRole === "admin";
+    // Global tags are managed by administrators; personal tags only
+    // by their owner.
+    canManage() {
+      const isAdmin = this.$store.state.currentUserRole === "admin";
+      if (this.tag.scope === "user") {
+        return this.tag.owner === this.$store.state.currentUserID;
+      }
+      return isAdmin;
     },
   },
   methods: {
