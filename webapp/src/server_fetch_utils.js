@@ -562,9 +562,9 @@ export function searchCollections(query, nresults = 100) {
 }
 
 export function createTag(data) {
-  // data: { name, description?, color? }. Tags are global and admin-only.
-  // The caller refreshes the list via getTags(). Rejects with the server message
-  // on error (e.g. 409 duplicate name).
+  // data: { name, description?, color?, scope? }. `scope` is "user" (personal,
+  // default) or "global" (admins only). The caller refreshes the list via
+  // getTags(). Rejects with the server message on error (e.g. 409 duplicate name).
   return fetch_put(`${API_URL}/tags`, { data }).then(function (response_json) {
     return response_json.data;
   });

@@ -15,7 +15,6 @@
         prefix="+"
       />
     </button>
-    <span v-if="!tags || tags.length === 0" class="text-muted small">No tags</span>
     <Popover
       v-if="hiddenTagCount"
       ref="tagPopover"

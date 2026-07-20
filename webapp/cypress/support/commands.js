@@ -1,3 +1,4 @@
+// This file was edited with the assistance of an AI model and requires human review from the contributor.
 // ***********************************************
 // This example commands.js shows you how to
 // create various custom commands and overwrite
@@ -116,8 +117,9 @@ Cypress.Commands.add("deleteSampleViaAPI", (item_id) => {
 });
 
 Cypress.Commands.add("createTagViaAPI", (data) => {
-  // data: { name, description?, color? }. Tags are admin-only, so log in as an admin
-  // before calling this. Returns the new tag's id.
+  // data: { name, description?, color?, scope? }. `scope` defaults to "user"
+  // (a personal tag owned by the logged-in user); pass scope: "global" (as an
+  // admin) for a tag every user can use. Returns the new tag's id.
   return cy
     .request({
       method: "PUT",

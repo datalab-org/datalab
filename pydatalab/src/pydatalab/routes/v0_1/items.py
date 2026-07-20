@@ -11,7 +11,7 @@ from flask import Blueprint, jsonify, redirect, request
 from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
-from werkzeug.exceptions import BadRequest, Conflict, InternalServerError, NotFound
+from werkzeug.exceptions import BadRequest, Conflict, Forbidden, InternalServerError, NotFound
 
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
@@ -20,7 +20,7 @@ from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS, ItemVersion
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
-from pydatalab.models.utils import InlineSubstance, generate_unique_refcode
+from pydatalab.models.utils import AccessScope, InlineSubstance, generate_unique_refcode
 from pydatalab.models.versions import (
     CompareVersionsQuery,
     RestoreVersionRequest,
@@ -616,6 +616,40 @@ def _strip_tag_display_fields(item: dict) -> None:
     ]
 
 
+def _tag_immutable_ids(tags) -> set[str]:
+    """Collect the string `immutable_id`s of the tag references in a `tags` list."""
+    if not isinstance(tags, list):
+        return set()
+    return {
+        str(tag["immutable_id"])
+        for tag in tags
+        if isinstance(tag, dict) and tag.get("immutable_id") is not None
+    }
+
+
+def _authorize_added_tags(tags, existing_tag_ids: set[str]) -> None:
+    """Reject any newly added personal tag not owned by the current user.
+
+    A user may add global tags and their own personal tags.
+    """
+    # In testing an unauthenticated "public" user can write.
+    if CONFIG.TESTING and not current_user.is_authenticated:
+        return
+
+    user_id = current_user.person.immutable_id
+
+    added_ids = _tag_immutable_ids(tags) - existing_tag_ids
+    if not added_ids:
+        return
+
+    for tag_doc in flask_mongo.db.tags.find(
+        {"_id": {"$in": [ObjectId(i) for i in added_ids]}},
+        projection={"_id": 1, "scope": 1, "owner": 1},
+    ):
+        if tag_doc.get("scope") == AccessScope.USER.value and tag_doc.get("owner") != user_id:
+            raise Forbidden("You cannot add a tag that is owned by another user.")
+
+
 def _create_sample(
     sample_dict: dict,
     copy_from_item_id: str | None = None,
@@ -712,6 +746,7 @@ def _create_sample(
     # the `Entry` model.
     try:
         to_store = data_model.model_dump(exclude={"creators", "collections", "groups"})
+        _authorize_added_tags(to_store.get("tags"), set())
         _strip_tag_display_fields(to_store)
         result = flask_mongo.db.items.insert_one(to_store)
     except DuplicateKeyError as error:
@@ -1692,6 +1727,10 @@ def save_item():
     preserve_relationships = "collections" not in updated_data
     original_relationships = item.get("relationships", []) if preserve_relationships else None
 
+    # Snapshot the tags already on the item so we only authorize newly added
+    # tags below.
+    existing_tag_ids = _tag_immutable_ids(item.get("tags"))
+
     item.update(updated_data)
 
     try:
@@ -1714,6 +1753,9 @@ def save_item():
     item.pop("creators", None)
     item.pop("immutable_id", None)
     item.pop("files", None)
+
+    # A user may not add another user's personal tag.
+    _authorize_added_tags(item.get("tags"), existing_tag_ids)
 
     # Store tag references minimally; see `_strip_tag_display_fields`.
     _strip_tag_display_fields(item)

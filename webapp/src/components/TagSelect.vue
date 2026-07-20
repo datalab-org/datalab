@@ -17,14 +17,29 @@
       <span v-else-if="searching"> No matching tags. </span>
       <span v-else class="empty-search"> Type to search for a tag... </span>
     </template>
-    <template #option="{ name, color, description }">
-      <span class="tag-option" :title="description || name">
+    <template #option="{ name, color, description, scope }">
+      <!-- d-flex fills the option row so the description tooltip triggers anywhere on it. -->
+      <span class="d-flex align-items-center" :title="description || name">
         <span v-if="color" class="color-swatch" :style="{ backgroundColor: color }"></span>
         <span>{{ name }}</span>
+        <span
+          class="badge badge-pill ml-auto"
+          :class="scope === 'user' ? 'badge-info' : 'badge-secondary'"
+          data-testid="tag-scope-badge"
+        >
+          <font-awesome-icon v-if="scope === 'user'" :icon="['fas', 'user']" class="mr-1" />
+          {{ scope === "user" ? "personal" : "global" }}
+        </span>
       </span>
     </template>
-    <template #selected-option="{ name, color, description }">
+    <template #selected-option="{ name, color, description, scope }">
       <span v-if="color" class="color-swatch" :style="{ backgroundColor: color }"></span>
+      <font-awesome-icon
+        v-if="scope === 'user'"
+        :icon="['fas', 'user']"
+        class="mr-1"
+        title="Personal tag"
+      />
       <span :title="description || name">{{ name }}</span>
     </template>
   </vSelect>
@@ -74,6 +89,8 @@ export default {
             type: "tags",
             color: tag.color ?? cached.color ?? null,
             description: tag.description ?? cached.description ?? null,
+            // `scope` is display-only.
+            scope: tag.scope ?? cached.scope ?? null,
           };
         });
       },
@@ -88,6 +105,12 @@ export default {
           }
           if (tag.description) {
             ref.description = tag.description;
+          }
+          // Keep `scope` so a just-added personal tag keeps its marker across the
+          // edit<->display toggle. Like color/description it is display-only and
+          // is stripped by the server on save (only {type, immutable_id} persists).
+          if (tag.scope) {
+            ref.scope = tag.scope;
           }
           return ref;
         });
@@ -140,10 +163,6 @@ export default {
 </script>
 
 <style scoped>
-.tag-option {
-  /* Fill the option row so the description tooltip triggers anywhere on the line. */
-  display: block;
-}
 .color-swatch {
   display: inline-block;
   width: 0.7em;

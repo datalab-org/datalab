@@ -76,6 +76,7 @@ import {
   faUserFriends,
   faCaretDown,
   faLock,
+  faUser,
 } from "@fortawesome/free-solid-svg-icons";
 import { faPlusSquare } from "@fortawesome/free-regular-svg-icons";
 import { faGithub, faOrcid, faGoogle, faMicrosoft } from "@fortawesome/free-brands-svg-icons";
@@ -152,6 +153,7 @@ library.add(
   faUserFriends,
   faCaretDown,
   faLock,
+  faUser,
 );
 
 // import "@uppy/vue"

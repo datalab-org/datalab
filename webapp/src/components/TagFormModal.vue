@@ -10,6 +10,32 @@
       <template #body>
         <div class="form-row">
           <div class="form-group col-md-12">
+            <label for="tag-scope">Scope:</label>
+            <select
+              v-if="canChooseScope"
+              id="tag-scope"
+              v-model="scope"
+              data-testid="tag-scope-select"
+              class="form-control"
+            >
+              <option value="user">Personal (only you can use it)</option>
+              <option value="global">Global (available to everyone)</option>
+            </select>
+            <input
+              v-else
+              id="tag-scope"
+              :value="scopeLabel"
+              type="text"
+              class="form-control"
+              disabled
+            />
+            <small v-if="!isEditing && !isAdmin" class="form-text text-muted">
+              Only administrators can create global tags.
+            </small>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-12">
             <label for="tag-name">Name:</label>
             <input id="tag-name" v-model="name" type="text" class="form-control" required />
           </div>
@@ -65,6 +91,8 @@ export default {
       name: "",
       description: "",
       color: DEFAULT_TAG_COLOR,
+      // New tags default to a personal tag.
+      scope: "user",
       errorMessage: null,
       submitting: false,
     };
@@ -72,6 +100,16 @@ export default {
   computed: {
     isEditing() {
       return Boolean(this.tag);
+    },
+    isAdmin() {
+      return this.$store.state.currentUserRole === "admin";
+    },
+    // Scope can only be chosen by an admin creating a new tag.
+    canChooseScope() {
+      return !this.isEditing && this.isAdmin;
+    },
+    scopeLabel() {
+      return this.scope === "global" ? "Global" : "Personal";
     },
     isFormValid() {
       return !this.submitting && Boolean(this.name.trim());
@@ -94,20 +132,28 @@ export default {
       this.name = this.tag.name || "";
       this.description = this.tag.description || "";
       this.color = this.tag.color || null;
+      // Scope is immutable on edit; show the existing scope.
+      this.scope = this.tag.scope || "global";
       this.errorMessage = null;
     },
     resetForm() {
       this.name = "";
       this.description = "";
       this.color = DEFAULT_TAG_COLOR;
+      this.scope = "user";
       this.errorMessage = null;
     },
     buildPayload() {
-      return {
+      const payload = {
         name: this.name.trim(),
         description: this.description || null,
         color: this.color || null,
       };
+      // Scope cannot be changed on edit.
+      if (!this.isEditing) {
+        payload.scope = this.scope;
+      }
+      return payload;
     },
     async submitForm() {
       if (!this.isFormValid) {
