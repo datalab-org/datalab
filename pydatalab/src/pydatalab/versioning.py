@@ -114,6 +114,7 @@ def save_version_snapshot(
         Tuple of (response_dict, status_code)
     """
     from pydatalab import __version__
+    from pydatalab.blocks.store import is_block_reference, snapshot_block_version
     from pydatalab.config import CONFIG
 
     if len(refcode.split(":")) != 2:
@@ -127,21 +128,6 @@ def save_version_snapshot(
     item = flask_mongo.db.items.find_one(query)
     if not item:
         raise NotFound(f"Item {refcode} not found.")
-
-    # Skip creating a new version if content is identical to the last snapshot.
-    # Excludes fields that change mechanically on every save and don't reflect real edits.
-    _MECHANICAL_FIELDS = {"last_modified", "version", "_id"}
-    last_version = flask_mongo.db.item_versions.find_one(
-        {"refcode": refcode}, sort=[("version", -1)]
-    )
-    if last_version:
-        current_data = {k: v for k, v in item.items() if k not in _MECHANICAL_FIELDS}
-        last_data = {k: v for k, v in last_version["data"].items() if k not in _MECHANICAL_FIELDS}
-        if current_data == last_data:
-            return {"status": "success", "message": "No changes detected, version not saved."}, 200
-
-    # Atomically get the next version number
-    next_version_number = get_next_version_number(refcode)
 
     # Extract user information for hybrid storage approach
     user_id = None
@@ -161,6 +147,54 @@ def save_version_snapshot(
         action = VersionAction.AGENT_SAVE
 
     action = VersionAction.MANUAL_SAVE if action is None else action
+
+    # Cut `block_versions` entries for any *referenced* blocks whose payload has
+    # changed since their last committed version, and pin each referenced
+    # `blocks_obj` entry to its now-current version number in this snapshot.
+    # Embedded blocks are captured verbatim in the item snapshot.
+    # This must happen before the de-duplication guard below so that a
+    # block content change is seen as an item change.
+    for block_id, entry in list((item.get("blocks_obj") or {}).items()):
+        if not is_block_reference(entry):
+            continue
+        block_version = snapshot_block_version(
+            entry["immutable_id"], action=action, user_id=user_id
+        )
+        if block_version is None:
+            # There is no live block document and no committed history for
+            # this reference (e.g. a dangling reference left by a crash), so
+            # there is no content anywhere to snapshot: record the block as
+            # absent rather than storing an unresolvable reference. Only this
+            # in-memory snapshot is altered — the live item is not modified.
+            LOGGER.warning(
+                "Dropping dangling block reference %r (%s) from version snapshot of %s",
+                block_id,
+                entry["immutable_id"],
+                refcode,
+            )
+            del item["blocks_obj"][block_id]
+            if isinstance(item.get("display_order"), list):
+                item["display_order"] = [b for b in item["display_order"] if b != block_id]
+            continue
+        item["blocks_obj"][block_id] = {
+            "immutable_id": entry["immutable_id"],
+            "version": block_version,
+        }
+
+    # Skip creating a new version if content is identical to the last snapshot.
+    # Excludes fields that change mechanically on every save and don't reflect real edits.
+    _MECHANICAL_FIELDS = {"last_modified", "version", "_id"}
+    last_version = flask_mongo.db.item_versions.find_one(
+        {"refcode": refcode}, sort=[("version", -1)]
+    )
+    if last_version:
+        current_data = {k: v for k, v in item.items() if k not in _MECHANICAL_FIELDS}
+        last_data = {k: v for k, v in last_version["data"].items() if k not in _MECHANICAL_FIELDS}
+        if current_data == last_data:
+            return {"status": "success", "message": "No changes detected, version not saved."}, 200
+
+    # Atomically get the next version number
+    next_version_number = get_next_version_number(refcode)
 
     version_entry = {
         "refcode": refcode,

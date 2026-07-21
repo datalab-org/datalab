@@ -322,14 +322,21 @@ export default createStore({
       // item_id, isSaved
       state.saved_status_collections[payload.collection_id] = payload.isSaved;
     },
-    removeBlockFromDisplay(state, payload) {
+    removeBlock(state, payload) {
       // requires the following fields in payload:
       // item_id, block_id
-      var display_order = state.all_item_data[payload.item_id].display_order;
-      const index = display_order.indexOf(payload.block_id);
+      // Remove the block from the display order, but also drop its data from
+      // blocks_obj so that the next save-item does not resurrect the deleted
+      // block in the database, and clear any stale saved status.
+      const item_data = state.all_item_data[payload.item_id];
+      const index = item_data.display_order.indexOf(payload.block_id);
       if (index > -1) {
-        display_order.splice(index, 1);
+        item_data.display_order.splice(index, 1);
       }
+      if (item_data.blocks_obj) {
+        delete item_data.blocks_obj[payload.block_id];
+      }
+      delete state.saved_status_blocks[payload.block_id];
     },
     addFile(state, payload) {
       // requires the following fileds in payload:

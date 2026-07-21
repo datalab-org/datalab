@@ -2,10 +2,10 @@ import abc
 
 from pydantic import Field, field_validator
 
+from pydatalab.models.blocks import HasBlocks
 from pydatalab.models.entries import Entry
 from pydatalab.models.files import File
 from pydatalab.models.traits import (
-    HasBlocks,
     HasOwner,
     HasRevisionControl,
     IsCollectable,

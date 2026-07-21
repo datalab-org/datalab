@@ -10,6 +10,7 @@ from flask_login import current_user, login_user
 from werkzeug.exceptions import BadRequest, NotImplemented
 
 from pydatalab.apps import BLOCK_TYPES
+from pydatalab.blocks import store
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
 from pydatalab.login import get_by_id
@@ -248,15 +249,34 @@ def add_data_block():
     else:
         display_order_update = block.block_id
 
+    # Check the item exists and the user has write access before creating the
+    # block document, to avoid orphaning it below.
+    if not flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=True)}, {"_id": 1}
+    ):
+        return (
+            jsonify(
+                status="error",
+                message=f"Update failed. {item_id=} is probably incorrect.",
+            ),
+            400,
+        )
+
+    # New blocks are born as separate documents in the `blocks` collection;
+    # the item only stores a reference to them. No version is committed until
+    # the next item version snapshot.
+    block_immutable_id = store.create_block_document(block)
+
     result = flask_mongo.db.items.update_one(
         {"item_id": item_id, **get_default_permissions(user_only=True)},
         {
             "$push": {"display_order": display_order_update},
-            "$set": {f"blocks_obj.{block.block_id}": block.to_db()},
+            "$set": {f"blocks_obj.{block.block_id}": {"immutable_id": block_immutable_id}},
         },
     )
 
     if result.modified_count < 1:
+        store.delete_block_document(block_immutable_id)
         return (
             jsonify(
                 status="error",
@@ -347,6 +367,12 @@ def _save_block_to_db(block: DataBlock):
     """Save data for a single block within an item to the database,
     overwriting previous data saved there.
 
+    For blocks attached to an item, the write is authorized against the parent
+    item and then branches on the block's stored form: a referenced block
+    updates its `blocks` document, while a legacy embedded block is written
+    back into the item's `blocks_obj` as before (a block never changes form).
+    At the moment collection blocks are always embedded.
+
     Parameters:
         block: The instance of DataBlock to save.
 
@@ -360,17 +386,32 @@ def _save_block_to_db(block: DataBlock):
             f"blocks_obj.{block.block_id}": {"$exists": True},
         }
         result = flask_mongo.db.collections.update_one(match, update)
-    else:
-        match = {
-            "item_id": block.data["item_id"],
-            f"blocks_obj.{block.block_id}": {"$exists": True},
-        }
-        result = flask_mongo.db.items.update_one(match, update)
 
-    if result.matched_count != 1:
-        raise BadRequest(
-            f"Failed to save block, likely because item_id ({block.data.get('item_id')}), collection_id ({block.data.get('collection_id')}) and/or block_id ({block.block_id}) wasn't found"
-        )
+        if result.matched_count != 1:
+            raise BadRequest(
+                f"Failed to save block, likely because collection_id ({block.data.get('collection_id')}) and/or block_id ({block.block_id}) wasn't found"
+            )
+    else:
+        stored_entry = store.authorize_and_get_form(block.data.get("item_id"), block.block_id)
+        if stored_entry is None:
+            raise BadRequest(
+                f"Failed to save block, likely because block_id ({block.block_id}) wasn't found on item ({block.data.get('item_id')})"
+            )
+
+        if store.is_block_reference(stored_entry):
+            store.update_block_document(stored_entry["immutable_id"], updated_block)
+        else:
+            match = {
+                "item_id": block.data["item_id"],
+                f"blocks_obj.{block.block_id}": {"$exists": True},
+                **get_default_permissions(user_only=True),
+            }
+            result = flask_mongo.db.items.update_one(match, update)
+
+            if result.matched_count != 1:
+                raise BadRequest(
+                    f"Failed to save block, likely because item_id ({block.data.get('item_id')}) and/or block_id ({block.block_id}) wasn't found"
+                )
 
 
 @BLOCKS.route("/update-block/", methods=["POST"])
@@ -478,7 +519,9 @@ def delete_block():
     item_id = request_json["item_id"]
     block_id = request_json["block_id"]
 
-    result = flask_mongo.db.items.update_one(
+    # Atomically remove the block from the item and read back its pre-deletion
+    # state.
+    doc_before = flask_mongo.db.items.find_one_and_update(
         {"item_id": item_id, **get_default_permissions(user_only=True)},
         {
             "$pull": {
@@ -487,9 +530,15 @@ def delete_block():
             },
             "$unset": {f"blocks_obj.{block_id}": ""},
         },
+        projection={f"blocks_obj.{block_id}": 1, "display_order": 1},
     )
 
-    if result.modified_count < 1:
+    stored_entry = (doc_before.get("blocks_obj") or {}).get(block_id) if doc_before else None
+
+    block_was_present = stored_entry is not None or (
+        doc_before is not None and block_id in (doc_before.get("display_order") or [])
+    )
+    if not block_was_present:
         return (
             jsonify(
                 {
@@ -499,6 +548,10 @@ def delete_block():
             ),
             400,
         )
+
+    if store.is_block_reference(stored_entry):
+        store.delete_block_document(stored_entry["immutable_id"])
+
     return (
         jsonify({"status": "success"}),
         200,

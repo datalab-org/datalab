@@ -1085,11 +1085,10 @@ export function deleteBlock(item_id, block_id) {
     // eslint-disable-next-line no-unused-vars
     .then(function (response_json) {
       // response_json should always just be {status: "success"}, so we don't actually use it
-      store.commit("removeBlockFromDisplay", {
+      store.commit("removeBlock", {
         item_id: item_id,
         block_id: block_id,
       });
-      // currently, we don't actually delete the block from the store, so it may get re-added to the db on the next save. Fix once new schemas are established
     })
     .catch((error) => {
       DialogService.error({

@@ -68,6 +68,54 @@ class ItemVersion(BaseModel):
         return self
 
 
+class BlockVersion(BaseModel):
+    """A snapshot of a data block's payload at a specific point in time.
+
+    This model represents a version entry in the `block_versions` collection.
+    Entries are created whenever an item version snapshot is cut and the
+    block's payload has changed since its last committed version (or by a
+    version restore).
+    """
+
+    block_immutable_id: PyObjectId
+    """The immutable ID (`_id`) of the `blocks` document this version belongs to"""
+
+    block_id: str
+    """The shorthand block ID, denormalised for lookups by block ID"""
+
+    version: int = Field(ge=1)
+    """Sequential version number (1-indexed), scoped to the block"""
+
+    timestamp: datetime
+    """When this version was created (ISO format with timezone)"""
+
+    action: VersionAction
+    """The action that triggered this version, matching the item snapshot that cut it"""
+
+    user_id: PyObjectId | None = None
+    """User's ObjectId for efficient querying and indexing"""
+
+    datalab_version: str
+    """Version of datalab-server that created this snapshot"""
+
+    data: dict
+    """Complete snapshot of the block payload at this version"""
+
+    restored_from_version: PyObjectId | None = None
+    """ObjectId of the `block_versions` entry that was restored from (only present if action='restored')"""
+
+    @model_validator(mode="after")
+    def validate_restored_from_version(self):
+        """Ensure restored_from_version is only present when action='restored'."""
+        if self.action == VersionAction.RESTORED and self.restored_from_version is None:
+            raise ValueError("restored_from_version must be provided when action='restored'")
+        if self.action != VersionAction.RESTORED and self.restored_from_version is not None:
+            raise ValueError(
+                f"restored_from_version should only be present when action='restored', got action='{self.action}'"
+            )
+        return self
+
+
 class VersionCounter(BaseModel):
     """Atomic counter for tracking version numbers per item.
 
