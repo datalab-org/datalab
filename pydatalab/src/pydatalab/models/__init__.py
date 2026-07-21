@@ -1,6 +1,7 @@
 import functools
 import inspect
 
+from pydatalab.models.blocks import Block
 from pydatalab.models.cells import Cell
 from pydatalab.models.collections import Collection
 from pydatalab.models.equipment import Equipment
@@ -9,7 +10,7 @@ from pydatalab.models.items import Item
 from pydatalab.models.people import Person
 from pydatalab.models.samples import Sample
 from pydatalab.models.starting_materials import StartingMaterial
-from pydatalab.models.versions import ItemVersion
+from pydatalab.models.versions import BlockVersion, ItemVersion
 
 
 def _item_type_for(model: type[Item]) -> str:
@@ -236,6 +237,8 @@ def load_custom_item_models(paths: list[str]) -> None:
 
 
 __all__ = (
+    "Block",
+    "BlockVersion",
     "File",
     "Sample",
     "StartingMaterial",
