@@ -24,6 +24,6 @@ def test_callback():
         event_name: 'set_wavelength',
         wavelength: (cb_obj.value ?? cb_obj.text),
     }, bubbles: true
-    });
+});
 document.dispatchEvent(block_event);"""
     )

@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from .base import PipelineDataBlock
-from .block_stage import ParserStage, PlotterStage, ProcessorStage
+from .block_stages import ParserStage, PlotterStage, ProcessorStage
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -148,7 +148,7 @@ def load_other(location: Path | str) -> "pd.DataFrame":
     return df
 
 
-blocktype = "tabular Pipeline"
+blocktype = "tabularPipeline"
 name = "Tabular Data Block Pipeline"
 description = "This block will load tabular data from common plain text files and Excel-like spreadsheets and allow you to create simple scatter plots of the columns within."
 

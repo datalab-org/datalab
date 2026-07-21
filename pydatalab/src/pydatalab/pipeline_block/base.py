@@ -12,7 +12,7 @@ from pydatalab.config import CONFIG
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 from pydatalab.models.blocks import DataBlockResponse
-from pydatalab.pipeline_block.block_stage import (
+from pydatalab.pipeline_block.block_stages import (
     EventStage,
     ParserStage,
     PlotterStage,
@@ -61,7 +61,7 @@ class MetaPipelineDataBlock(type):
     """ The event stage functions, used when calling an event for a partial parameter update """
 
     @staticmethod
-    def processor(df: pd.DataFrame, data: dict | None) -> pd.DataFrame:
+    def processor(df: pd.DataFrame) -> pd.DataFrame:
         return df
 
     @staticmethod
@@ -379,7 +379,7 @@ class PipelineDataBlock(metaclass=MetaPipelineDataBlock):
                     process_checksum, result = processor.perform_with_cache(
                         "".join(processor_checksums), file_folder, processor_input, **self.data
                     )
-                    if result:
+                    if result is not None:
                         if type(result) is not list:
                             result = [result]
                         processor_output.extend(result)
@@ -395,8 +395,7 @@ class PipelineDataBlock(metaclass=MetaPipelineDataBlock):
                     process_checksum, result = processor.perform_with_cache(
                         processor_checksums[i], file_folder, processor_input[i], **self.data
                     )
-                    LOGGER.info(result)
-                    if result:
+                    if result is not None:
                         if type(result) is not list:
                             result = [result]
                         processor_output.extend(result)

@@ -12,7 +12,7 @@ from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 
 from ...logger import LOGGER
 from ...pipeline_block import PipelineDataBlock
-from ...pipeline_block.block_stage import EventStage, ParserStage, PlotterStage, ProcessorStage
+from ...pipeline_block.block_stages import EventStage, ParserStage, PlotterStage, ProcessorStage
 from .models import PeakInformation
 from .utils import (
     compute_cif_pxrd_from_structure,

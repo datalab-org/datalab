@@ -62,7 +62,7 @@ class BlockStage(ABC):
 
     def check_args(self, input_args_names: list[str]):
         return (
-            self.accepted_data
+            not self.accepted_data
             or set(self.accepted_data) & set(input_args_names) == self.accepted_data
         )
 
@@ -117,7 +117,7 @@ class BlockStage(ABC):
             raise ValueError("Event Stage is not cached")
         arg_data = self.get_arg_data(kwargs)
 
-        cache_key_components = [upstream_cache_key, self.stage]
+        cache_key_components = [upstream_cache_key, self.stage, self.function.__name__]
         cache_key_components.extend(arg_data.values())
 
         cache_key = hashlib.md5(  # noqa: S324
@@ -161,7 +161,7 @@ class ParserStage(BlockStage):
 
     def __init__(
         self,
-        function: "Callable[[str|pathlib.Path], pd.DataFrame]",
+        function: "Callable[[str|pathlib.Path], pd.DataFrame]|Callable[[str], pd.DataFrame]",
         file_extension: list[str] | str,
     ):
         """
@@ -182,7 +182,7 @@ class ParserStage(BlockStage):
         and also has a wild card *, to show that a parser accepts all extensions
         :param path: The path to check
         """
-        return (
+        return path is not None and (
             "".join(path.suffixes) in self.file_extension
             or path.suffix in self.file_extension
             or "*" in self.file_extension
@@ -205,14 +205,14 @@ class ProcessorStage(BlockStage):
 
     def validate_input(self, function_input: Any) -> bool:
         # TODO allow user to have their own validation function or list of columns that it must be.
-        return function_input and (
+        return function_input is not None and (
             (type(function_input) is pd.DataFrame and (not function_input.empty))
             or (type(function_input) is list and self.list_df_input)
         )
 
     def __init__(
         self,
-        function: "Callable[[list[pd.DataFrame]|pd.DataFrame, dict], pd.DataFrame|list[pd.DataFrame]]",
+        function: "Callable[..., pd.DataFrame|list[pd.DataFrame]]",
         list_df_input: bool = False,
         accepted_data: list[str] | None = None,
     ):
@@ -246,7 +246,7 @@ class PlotterStage(BlockStage):
 
     def __init__(
         self,
-        function: "Callable[[pd.DataFrame|list[pd.DataFrame]], Any]|Callable[[pd.DataFrame|list[pd.DataFrame], dict], Any]",
+        function: "Callable[..., Any]",
         list_df_input: bool = False,
         accepted_data: list[str] | None = None,
     ):
