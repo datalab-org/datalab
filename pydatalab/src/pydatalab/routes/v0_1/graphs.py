@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 
+from pydatalab.blocks.store import is_block_reference
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 
@@ -47,12 +48,19 @@ def get_graph_cy_format(
             }
         else:
             query = {}
-        all_documents = flask_mongo.db.items.find(
-            {**query, **get_default_permissions(user_only=False)},
-            projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1, "blocks_obj": 1},
+        all_documents = list(
+            flask_mongo.db.items.find(
+                {**query, **get_default_permissions(user_only=False)},
+                projection={
+                    "item_id": 1,
+                    "name": 1,
+                    "type": 1,
+                    "relationships": 1,
+                    "blocks_obj": 1,
+                },
+            )
         )
         node_ids: set[str] = {document["item_id"] for document in all_documents}
-        all_documents.rewind()
 
     else:
         main_item = flask_mongo.db.items.find_one(
@@ -137,6 +145,22 @@ def get_graph_cy_format(
 
     nodes = []
     edges = []
+
+    # Resolve the blocktype of referenced blocks_obj entries in one batched query.
+    referenced_block_ids = {
+        entry["immutable_id"]
+        for document in all_documents
+        for entry in (document.get("blocks_obj") or {}).values()
+        if is_block_reference(entry)
+    }
+    referenced_blocktypes: dict = {}
+    if referenced_block_ids:
+        referenced_blocktypes = {
+            doc["_id"]: doc.get("blocktype", "unknown")
+            for doc in flask_mongo.db.blocks.find(
+                {"_id": {"$in": list(referenced_block_ids)}}, {"blocktype": 1}
+            )
+        }
 
     # Collect the elements that have already been added to the graph, to avoid duplication
     drawn_elements = set()
@@ -230,7 +254,10 @@ def get_graph_cy_format(
         for block_id, block_data in (document.get("blocks_obj") or {}).items():
             if block_id not in drawn_elements:
                 drawn_elements.add(block_id)
-                blocktype = block_data.get("blocktype", "unknown")
+                if is_block_reference(block_data):
+                    blocktype = referenced_blocktypes.get(block_data["immutable_id"], "unknown")
+                else:
+                    blocktype = block_data.get("blocktype", "unknown")
                 nodes.append(
                     {
                         "data": {
