@@ -2,14 +2,12 @@ from typing import Any
 
 from pydantic import AliasChoices, ConfigDict, Field, field_validator, model_validator
 
-from pydatalab.models.blocks import DataBlockResponse
 from pydatalab.models.people import Group, Person
 from pydatalab.models.utils import BaseModel, Constituent, InlineSubstance, PyObjectId
 
 __all__ = (
     "HasOwner",
     "HasRevisionControl",
-    "HasBlocks",
     "IsCollectable",
     "HasSynthesisInfo",
     "HasSubstanceInfo",
@@ -39,14 +37,6 @@ class HasRevisionControl(BaseModel):
 
     version: int = 1
     """The version number used by the version control system for tracking snapshots."""
-
-
-class HasBlocks(BaseModel):
-    blocks_obj: dict[str, DataBlockResponse] = Field({})
-    """A mapping from block ID to block data."""
-
-    display_order: list[str] = Field([])
-    """The order in which to display block data in the UI."""
 
 
 class CollectionReference(BaseModel):

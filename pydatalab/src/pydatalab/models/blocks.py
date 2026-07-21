@@ -1,5 +1,9 @@
+from typing import Any, Literal
+
 from pydantic import ConfigDict, Field
 
+from pydatalab.models.entries import Entry
+from pydatalab.models.traits import HasOwner, HasRevisionControl
 from pydatalab.models.utils import BaseModel, PyObjectId
 
 
@@ -72,3 +76,40 @@ class DataBlockResponse(BaseModel):
     )
     """Any structured metadata associated with the block, for example,
     experimental acquisition parameters."""
+
+
+# Here to avoid circular import
+class HasBlocks(BaseModel):
+    blocks_obj: dict[str, DataBlockResponse] = Field({})
+    """A mapping from block ID to block data."""
+
+    display_order: list[str] = Field([])
+    """The order in which to display block data in the UI."""
+
+
+class Block(Entry, HasOwner, HasRevisionControl):
+    """A model for a data block stored as its own document in the `blocks` collection.
+
+    This is the persistence envelope around a block's payload (the output of
+    `DataBlock.to_db()`, stored verbatim under `data`); the payload itself is
+    described by `DataBlockResponse` and its per-block-type subclasses.
+    """
+
+    type: Literal["blocks"] = "blocks"
+
+    block_id: str
+    """The runtime-generated shorthand ID for the block, used as the key in the
+    parent item's `blocks_obj`/`display_order` and in the DOM."""
+
+    blocktype: str
+    """A short string key specifying the type (technique) of the block."""
+
+    data: dict[str, Any] = Field(default_factory=dict)
+    """The block payload, exactly as produced by `DataBlock.to_db()`."""
+
+    version: int = 0
+    """The latest committed version number of this block in `block_versions`.
+
+    A newly created block starts at 0, i.e., with no committed version; the first
+    version is cut when an item version snapshot is next saved. Block creation
+    does not create a versioned entry. Only when item is saved."""

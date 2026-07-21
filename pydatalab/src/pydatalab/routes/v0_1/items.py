@@ -14,6 +14,7 @@ from pymongo.errors import DuplicateKeyError
 from werkzeug.exceptions import BadRequest, Conflict, InternalServerError, NotFound
 
 from pydatalab.apps import BLOCK_TYPES
+from pydatalab.blocks import store as block_store
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS, ItemVersion
@@ -51,6 +52,83 @@ ITEMS = Blueprint("items", __name__)
 
 # item types that should be accessed by anyone with an account
 ACCESSIBLE_TYPES = ("equipment", "starting_materials")
+
+_BLOCKS_OBJ_AS_ARRAY = {"$objectToArray": {"$ifNull": ["$blocks_obj", {}]}}
+"""Aggregation expression turning `blocks_obj` into an array of
+`{"k": <block_id>, "v": <entry>}` documents."""
+
+_BLOCKS_OBJ_ENTRY_IS_REFERENCE = {"$ne": [{"$type": "$$b.v.immutable_id"}, "missing"]}
+"""Aggregation condition telling a `{"immutable_id": ...}` block reference apart
+from a legacy embedded block payload (bound to a `blocks_obj` entry as `$$b`)."""
+
+
+def blocks_preview_stages() -> list[dict]:
+    """Aggregation stages that resolve the previews (blocktype/title) of an item's
+    referenced blocks from the `blocks` collection into a temporary
+    `_referenced_blocks` field, for use by `blocks_preview_projection()`.
+
+    Must be placed before the `$project` stage that consumes the result. Safe to
+    use on any permission-filtered items query: previews carry no payload beyond
+    the block type and title.
+    """
+    return [
+        {
+            "$set": {
+                "_referenced_block_ids": {
+                    "$map": {
+                        "input": {
+                            "$filter": {
+                                "input": _BLOCKS_OBJ_AS_ARRAY,
+                                "as": "b",
+                                "cond": _BLOCKS_OBJ_ENTRY_IS_REFERENCE,
+                            }
+                        },
+                        "as": "b",
+                        "in": "$$b.v.immutable_id",
+                    }
+                }
+            }
+        },
+        {
+            "$lookup": {
+                "from": "blocks",
+                "let": {"refs": "$_referenced_block_ids"},
+                "pipeline": [
+                    {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$refs", []]}]}}},
+                    {"$project": {"_id": 0, "blocktype": 1, "title": "$data.title"}},
+                ],
+                "as": "_referenced_blocks",
+            }
+        },
+    ]
+
+
+def blocks_preview_projection() -> dict:
+    """Projection expression for the `blocks` preview array (blocktype/title per
+    block), combining legacy embedded `blocks_obj` entries with the referenced
+    blocks resolved by `blocks_preview_stages()`.
+    """
+    return {
+        "$concatArrays": [
+            {
+                "$map": {
+                    "input": {
+                        "$filter": {
+                            "input": _BLOCKS_OBJ_AS_ARRAY,
+                            "as": "b",
+                            "cond": {"$not": _BLOCKS_OBJ_ENTRY_IS_REFERENCE},
+                        }
+                    },
+                    "as": "b",
+                    "in": {
+                        "blocktype": "$$b.v.blocktype",
+                        "title": "$$b.v.title",
+                    },
+                }
+            },
+            {"$ifNull": ["$_referenced_blocks", []]},
+        ]
+    }
 
 
 @ITEMS.before_request
@@ -100,20 +178,12 @@ def get_starting_materials():
                     }
                 },
                 {"$lookup": collections_lookup()},
+                *blocks_preview_stages(),
                 {
                     "$project": {
                         "_id": 0,
                         "item_id": 1,
-                        "blocks": {
-                            "$map": {
-                                "input": {"$objectToArray": {"$ifNull": ["$blocks_obj", {}]}},
-                                "as": "b",
-                                "in": {
-                                    "blocktype": "$$b.v.blocktype",
-                                    "title": "$$b.v.title",
-                                },
-                            }
-                        },
+                        "blocks": blocks_preview_projection(),
                         "collections": {
                             "collection_id": 1,
                         },
@@ -165,16 +235,7 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
 
     _project = {
         "_id": 0,
-        "blocks": {
-            "$map": {
-                "input": {"$objectToArray": {"$ifNull": ["$blocks_obj", {}]}},
-                "as": "b",
-                "in": {
-                    "blocktype": "$$b.v.blocktype",
-                    "title": "$$b.v.title",
-                },
-            }
-        },
+        "blocks": blocks_preview_projection(),
         "creators": {
             "display_name": 1,
             "gravatar_hash": 1,
@@ -218,6 +279,7 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
                 {"$lookup": creators_lookup()},
                 {"$lookup": groups_lookup()},
                 {"$lookup": collections_lookup()},
+                *blocks_preview_stages(),
                 {"$project": _project},
                 {"$sort": {"date": -1}},
             ]
@@ -241,16 +303,7 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
 
     _project = {
         "_id": 0,
-        "blocks": {
-            "$map": {
-                "input": {"$objectToArray": {"$ifNull": ["$blocks_obj", {}]}},
-                "as": "b",
-                "in": {
-                    "blocktype": "$$b.v.blocktype",
-                    "title": "$$b.v.title",
-                },
-            }
-        },
+        "blocks": blocks_preview_projection(),
         "creators": {
             "display_name": 1,
             "gravatar_hash": 1,
@@ -294,6 +347,7 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
                 {"$lookup": creators_lookup()},
                 {"$lookup": groups_lookup()},
                 {"$lookup": collections_lookup()},
+                *blocks_preview_stages(),
                 {"$project": _project},
                 {"$sort": {"date": -1}},
             ]
@@ -1000,7 +1054,7 @@ def delete_sample():
 
     item = flask_mongo.db.items.find_one(
         {"item_id": item_id, **get_default_permissions(user_only=True, deleting=True)},
-        {"refcode": 1},
+        {"refcode": 1, "blocks_obj": 1},
     )
 
     if not item:
@@ -1020,6 +1074,16 @@ def delete_sample():
 
     if result.deleted_count != 1:
         raise BadRequest(f"Failed to delete item with {item_id=}.")
+
+    # Deleting an item removes the live documents of its referenced blocks, but
+    # their `block_versions` history is retained.
+    referenced_block_ids = [
+        entry["immutable_id"]
+        for entry in (item.get("blocks_obj") or {}).values()
+        if block_store.is_block_reference(entry)
+    ]
+    if referenced_block_ids:
+        flask_mongo.db.blocks.delete_many({"_id": {"$in": referenced_block_ids}})
 
     flask_mongo.db.api_keys.delete_many({"refcode": item["refcode"], "type": "access_token"})
 
@@ -1096,6 +1160,11 @@ def get_item_data(
             raise BadRequest(f"Item {item_id=} has invalid type: {doc['type']}")
         else:
             raise BadRequest(f"Item {item_id=} has no type field in document.")
+
+    # Resolve any referenced blocks into full payloads so the response keeps
+    # the legacy `blocks_obj` shape (the item read above was already permission-filtered).
+    if doc.get("blocks_obj"):
+        doc["blocks_obj"] = block_store.load_blocks_obj(doc)
 
     try:
         doc = entry_reference_lookup(doc)
@@ -1289,6 +1358,12 @@ def get_version(refcode, version_id):
     if not version:
         raise NotFound
 
+    # Resolve any version-pinned block references in the snapshot into full
+    # payloads so the response keeps the pre-separation `blocks_obj` shape
+    # (access was already checked against the parent item).
+    if version.get("data", {}).get("blocks_obj"):
+        version["data"]["blocks_obj"] = block_store.resolve_snapshot_blocks_obj(version["data"])
+
     return jsonify({"status": "success", "version": version}), 200
 
 
@@ -1318,6 +1393,11 @@ def compare_versions(refcode):
     v2 = flask_mongo.db.item_versions.find_one({"_id": query_params.v2, "refcode": refcode})
     if not v1 or not v2:
         raise NotFound("One or both versions not found")
+
+    # Resolve any block references so the diff shows block content changes.
+    for v in (v1, v2):
+        if v.get("data", {}).get("blocks_obj"):
+            v["data"]["blocks_obj"] = block_store.resolve_snapshot_blocks_obj(v["data"])
 
     # Use DeepDiff for proper nested structure comparison
     # This handles nested dicts, lists, type changes, and provides detailed change information
@@ -1404,25 +1484,95 @@ def restore_version(refcode):
         raise BadRequest(f"Invalid item type: {item_type}")
 
     try:
-        # Validate using the appropriate model
-        ITEM_MODELS[item_type](**restored_data)
+        # Validate using the appropriate model. Version-pinned block references
+        # do not validate as block payloads, so validate a *resolved* copy while
+        # keeping each entry's original form for the writes below.
+        validation_data = restored_data
+        if any(
+            block_store.is_block_reference(entry)
+            for entry in (restored_data.get("blocks_obj") or {}).values()
+        ):
+            validation_data = {
+                **restored_data,
+                "blocks_obj": block_store.resolve_snapshot_blocks_obj(restored_data),
+            }
+        ITEM_MODELS[item_type](**validation_data)
     except ValidationError as exc:
         raise BadRequest(
             f"Restored data failed validation against schema for type {item_type}: {exc}"
         )
-
-    # Perform the restore first
-    flask_mongo.db.items.update_one({"refcode": refcode}, {"$set": restored_data})
 
     # Extract user information for hybrid storage approach
     user_id = None
     if current_user.is_authenticated:
         user_id = current_user.person.immutable_id
 
+    # Apply each snapshotted blocks_obj entry in its own form: embedded payloads
+    # are written back inline as before, while the references get
+    # the payload from the `block_versions` and becomes the new current `blocks`
+    # state, plus a new RESTORED `block_versions` entry.
+    restored_block_pins: dict[str, dict] = {}
+    if "blocks_obj" in restored_data:
+        live_blocks_obj = {}
+        for block_id, entry in (restored_data.get("blocks_obj") or {}).items():
+            if not block_store.is_block_reference(entry):
+                live_blocks_obj[block_id] = entry
+                continue
+            # Snapshot references should always be version-pinned.
+            # An unpinned one is not restorable.
+            pinned_version = entry.get("version")
+            new_block_version = (
+                block_store.restore_block_version(
+                    entry["immutable_id"], pinned_version, user_id=user_id
+                )
+                if pinned_version is not None
+                else None
+            )
+            if new_block_version is None:
+                # No block_versions entry to restore from (should not happen):
+                # drop the entry rather than leaving a dangling reference.
+                LOGGER.error(
+                    "Dropping unrestorable block reference %s (%s) while restoring %s",
+                    block_id,
+                    entry,
+                    refcode,
+                )
+                if isinstance(restored_data.get("display_order"), list):
+                    restored_data["display_order"] = [
+                        b for b in restored_data["display_order"] if b != block_id
+                    ]
+                continue
+            live_blocks_obj[block_id] = {"immutable_id": entry["immutable_id"]}
+            restored_block_pins[block_id] = {
+                "immutable_id": entry["immutable_id"],
+                "version": new_block_version,
+            }
+        restored_data["blocks_obj"] = live_blocks_obj
+
+        # Referenced blocks on the current item that are absent from the restored
+        # snapshot disappear from the item (as the legacy blocks), so remove
+        # their live documents too.
+        for block_id, entry in (current_item.get("blocks_obj") or {}).items():
+            if block_store.is_block_reference(entry) and block_id not in live_blocks_obj:
+                block_store.delete_block_document(entry["immutable_id"])
+
+    # Perform the restore first
+    flask_mongo.db.items.update_one({"refcode": refcode}, {"$set": restored_data})
+
     # Get the software version
     from pydatalab import __version__
 
     software_version = __version__
+
+    # The RESTORED snapshot pins its referenced blocks_obj entries to the
+    # new RESTORED block version numbers, so that this snapshot can be
+    # restored later.
+    restored_snapshot_data = restored_data
+    if restored_block_pins:
+        restored_snapshot_data = {
+            **restored_data,
+            "blocks_obj": {**restored_data["blocks_obj"], **restored_block_pins},
+        }
 
     # Save the RESTORED state as a new version snapshot (after restore)
     restored_version_entry = {
@@ -1434,7 +1584,7 @@ def restore_version(refcode):
         "restored_from_version": version_object_id,
         "user_id": user_id,  # ObjectId for efficient querying
         "datalab_version": software_version,
-        "data": restored_data,  # Store the complete snapshot of the restored state
+        "data": restored_snapshot_data,  # Store the complete snapshot of the restored state
     }
 
     # Validate with Pydantic before inserting
@@ -1448,10 +1598,10 @@ def restore_version(refcode):
         )
         raise BadRequest(f"Restored version data validation failed: {exc}")
 
-    # Insert validated data, restoring original restored_data into 'data' so None-valued
+    # Insert validated data, restoring the original snapshot dict into 'data' so None-valued
     # fields are not stripped by model_dump(exclude_none=True) recursing into the dict.
     restored_version_doc = validated_restored_version.model_dump(exclude_none=True)
-    restored_version_doc["data"] = restored_data
+    restored_version_doc["data"] = restored_snapshot_data
     flask_mongo.db.item_versions.insert_one(restored_version_doc)
 
     return jsonify(
@@ -1544,13 +1694,6 @@ def save_item():
 
     updated_data["last_modified"] = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
 
-    for block_id, block_data in updated_data.get("blocks_obj", {}).items():
-        blocktype = block_data["blocktype"]
-
-        block = BLOCK_TYPES.get(blocktype, BLOCK_TYPES["notsupported"]).from_web(block_data)
-
-        updated_data["blocks_obj"][block_id] = block.to_db()
-
     # Bit of a hack for now: starting materials and equipment should be editable by anyone,
     # so we adjust the query above to be more permissive when the user is requesting such an item
     # but before returning we need to check that the actual item did indeed have that type
@@ -1576,6 +1719,49 @@ def save_item():
 
     if not item:
         raise NotFound
+
+    # Reconcile the incoming blocks against their stored form (the request
+    # always carries full payloads, so the form is only knowable from the stored
+    # item): referenced blocks are written to the `blocks` collection, legacy
+    # embedded blocks stay inline in the item, and unknown block IDs are born
+    # referenced. A block never changes form. The block-document writes are
+    # deferred until the item payload has passed validation below.
+    stored_blocks_obj = item.get("blocks_obj") or {}
+    block_reference_map: dict[str, dict] = {}
+    pending_block_creations: dict[str, object] = {}
+    pending_block_updates: list[tuple[ObjectId, dict]] = []
+    pending_block_deletions: list[ObjectId] = []
+
+    if "blocks_obj" in updated_data:
+        incoming_blocks = updated_data["blocks_obj"] or {}
+        for block_id, block_data in incoming_blocks.items():
+            blocktype = block_data["blocktype"]
+            block = BLOCK_TYPES.get(blocktype, BLOCK_TYPES["notsupported"]).from_web(block_data)
+            incoming_blocks[block_id] = block.to_db()
+
+            stored_entry = stored_blocks_obj.get(block_id)
+            if stored_entry is None:
+                pending_block_creations[block_id] = block
+            elif block_store.is_block_reference(stored_entry):
+                pending_block_updates.append(
+                    (stored_entry["immutable_id"], incoming_blocks[block_id])
+                )
+                block_reference_map[block_id] = {"immutable_id": stored_entry["immutable_id"]}
+            # else: legacy embedded block — the payload is kept inline as before
+
+        # A stored referenced block missing from the payload is treated as a
+        # deletion, avoiding orphaned `blocks` documents.
+        for block_id, stored_entry in stored_blocks_obj.items():
+            if block_id not in incoming_blocks and block_store.is_block_reference(stored_entry):
+                pending_block_deletions.append(stored_entry["immutable_id"])
+    elif any(block_store.is_block_reference(entry) for entry in stored_blocks_obj.values()):
+        # The client did not send blocks_obj, so the stored blocks are untouched,
+        # but referenced entries must be resolved into full payloads for the item
+        # validation below and swapped back before the final write.
+        for block_id, stored_entry in stored_blocks_obj.items():
+            if block_store.is_block_reference(stored_entry):
+                block_reference_map[block_id] = stored_entry
+        item["blocks_obj"] = block_store.load_blocks_obj(item)
 
     if "collections" in updated_data:
         requested_collections = updated_data["collections"]
@@ -1636,8 +1822,6 @@ def save_item():
 
             if immutable_id:
                 if isinstance(immutable_id, str):
-                    from bson import ObjectId
-
                     immutable_id = ObjectId(immutable_id)
             elif collection_id:
                 collection_doc = flask_mongo.db.collections.find_one(
@@ -1685,6 +1869,21 @@ def save_item():
     item.pop("creators", None)
     item.pop("immutable_id", None)
     item.pop("files", None)
+
+    # Now that the item payload has passed validation, apply the deferred block
+    # document writes and swap `{"immutable_id": ...}` references back into the
+    # document in place of the full payloads of referenced blocks.
+    for block_id, block in pending_block_creations.items():
+        new_block_immutable_id = block_store.create_block_document(block)  # type: ignore[arg-type]
+        block_reference_map[block_id] = {"immutable_id": new_block_immutable_id}
+    for block_immutable_id, block_payload in pending_block_updates:
+        block_store.update_block_document(block_immutable_id, block_payload)
+    for block_immutable_id in pending_block_deletions:
+        block_store.delete_block_document(block_immutable_id)
+
+    if block_reference_map:
+        item.setdefault("blocks_obj", {})
+        item["blocks_obj"].update(block_reference_map)
 
     # Update the item FIRST (transaction safety: item update before version save)
     result = flask_mongo.db.items.update_one(

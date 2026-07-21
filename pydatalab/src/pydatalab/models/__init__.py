@@ -1,5 +1,6 @@
 import functools
 
+from pydatalab.models.blocks import Block
 from pydatalab.models.cells import Cell
 from pydatalab.models.collections import Collection
 from pydatalab.models.equipment import Equipment
@@ -8,7 +9,7 @@ from pydatalab.models.items import Item
 from pydatalab.models.people import Person
 from pydatalab.models.samples import Sample
 from pydatalab.models.starting_materials import StartingMaterial
-from pydatalab.models.versions import ItemVersion
+from pydatalab.models.versions import BlockVersion, ItemVersion
 
 
 @functools.lru_cache(maxsize=1)
@@ -31,6 +32,8 @@ ITEM_MODELS: dict[str, type[Item]] = get_item_models()
 ITEM_SCHEMAS = generate_schemas()
 
 __all__ = (
+    "Block",
+    "BlockVersion",
     "File",
     "Sample",
     "StartingMaterial",
