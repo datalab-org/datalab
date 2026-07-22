@@ -251,7 +251,7 @@ def insert_user(
     real_mongo_client.get_database(TEST_DATABASE_NAME).users.insert_one(demo_user)
     hash = sha512(api_key.encode("utf-8")).hexdigest()
     real_mongo_client.get_database(TEST_DATABASE_NAME).api_keys.insert_one(
-        {"_id": id, "hash": hash}
+        {"_id": ObjectId(), "user_id": str(id), "name": "testing API key", "hash": hash}
     )
     real_mongo_client.get_database(TEST_DATABASE_NAME).roles.insert_one({"_id": id, "role": role})
 

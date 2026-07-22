@@ -147,9 +147,11 @@ def get_by_api_key(key: str):
     """
 
     hash = sha512(key.encode("utf-8")).hexdigest()
-    user = flask_mongo.db.api_keys.find_one({"hash": hash}, projection={"hash": 0})
+    user = flask_mongo.db.api_keys.find_one(
+        {"hash": hash}, projection={"name": 0, "_id": 0, "digest": 0}
+    )
     if user:
-        return get_by_id_cached(str(user["_id"]))
+        return get_by_id_cached(str(user["user_id"]))
 
 
 LOGIN_MANAGER: LoginManager = LoginManager()
