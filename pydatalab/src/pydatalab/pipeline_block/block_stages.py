@@ -55,20 +55,26 @@ class BlockStage(ABC):
     """Whether the parser accepts a data dictionary"""
 
     list_df_input: bool
-    """Whether the stage takes lists of dfs or just an individual df"""  #
+    """Whether the stage takes lists of dfs or just an individual df"""
+
+    caching: bool = False
+    """Whether the stage performs caching or not"""
 
     def compute_expected_data(self) -> None:
         self.accepted_data = list(inspect.signature(self.function).parameters.keys())[1:]
 
     def check_args(self, input_args_names: list[str]):
-        return (
-            not self.accepted_data
-            or set(self.accepted_data) & set(input_args_names) == self.accepted_data
+        return not self.accepted_data or (
+            set(self.accepted_data) & set(input_args_names) == set(self.accepted_data)
         )
 
     def get_arg_data(self, input_args: dict[str, Any]) -> dict[str, Any]:
         common_args = set(self.accepted_data) & set(input_args.keys())
         return {arg: input_args[arg] for arg in common_args}
+
+    @abstractmethod
+    def validate_input(self, function_input: Any) -> bool:
+        pass
 
     def _create_and_save_to_cache(
         self, file_name, function_input, args: tuple[Any, ...], kwargs: dict[str, Any]
@@ -100,9 +106,20 @@ class BlockStage(ABC):
         cacheable_result.to_parquet(file_name)
         return original_result
 
-    @abstractmethod
-    def validate_input(self, function_input: Any) -> bool:
-        pass
+    def perform_with_optional_cache(
+        self,
+        upstream_cache_key,
+        folder,
+        function_input: Any,
+        *args: tuple[Any, ...],
+        **kwargs: dict[str, Any],
+    ) -> tuple[Any, Any]:
+        if self.caching:
+            return self.perform_with_cache(
+                upstream_cache_key, folder, function_input, *args, **kwargs
+            )
+        else:
+            return "None", self.perform(function_input, *args, **kwargs)
 
     def perform_with_cache(
         self, upstream_cache_key, folder, function_input: Any, *args: Any, **kwargs: Any
@@ -139,10 +156,12 @@ class BlockStage(ABC):
         list_df_input: bool = False,
         accepted_data=None,
         stage: Stage = Stage.DEFAULT,
+        caching: bool = caching,
     ):
         self.function = function
         self.accepts_data = accepted_data
         self.stage = stage
+        self.caching = caching
         if accepted_data is None:
             self.compute_expected_data()
         self.list_df_input = list_df_input
@@ -163,12 +182,13 @@ class ParserStage(BlockStage):
         self,
         function: "Callable[[str|pathlib.Path], pd.DataFrame]|Callable[[str], pd.DataFrame]",
         file_extension: list[str] | str,
+        caching=True,
     ):
         """
         :param function: takes the function to call. Can be a function taking in a path on its own or with a dict.
         :param file_extension: The file extension for this parser stage, * indicates that this parser attempts to parse all files.
         """
-        super().__init__(function, stage=Stage.PARSER)
+        super().__init__(function, stage=Stage.PARSER, caching=caching)
         if type(file_extension) is str:
             self.file_extension = [file_extension]
         elif type(file_extension) is list:
@@ -214,10 +234,15 @@ class ProcessorStage(BlockStage):
         self,
         function: "Callable[..., pd.DataFrame|list[pd.DataFrame]]",
         list_df_input: bool = False,
+        caching: bool = True,
         accepted_data: list[str] | None = None,
     ):
         super().__init__(
-            function, list_df_input, accepted_data=accepted_data, stage=Stage.PROCESSOR
+            function,
+            list_df_input,
+            accepted_data=accepted_data,
+            stage=Stage.PROCESSOR,
+            caching=caching,
         )
 
     def perform(
@@ -227,7 +252,9 @@ class ProcessorStage(BlockStage):
         # check the input to make sure that it matches the required input types
         if not self.check_args(list(kwargs.keys())):
             raise ValueError(
-                "Invalid arguments provided for processor (required: %s)", self.accepted_data
+                "Invalid arguments provided for processor (required: %s, received: %s)",
+                self.accepted_data,
+                list(kwargs.keys()),
             )
         data = self.get_arg_data(kwargs)
         if type(function_input) is not list and self.list_df_input:

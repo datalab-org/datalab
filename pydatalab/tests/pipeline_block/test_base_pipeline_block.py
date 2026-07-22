@@ -27,3 +27,9 @@ def test_callback():
 });
 document.dispatchEvent(block_event);"""
     )
+
+
+def test_file_acceptance_logic():
+    block = PipelineDataBlock(item_id="test-id")
+    block.data["file_id"] = "example"
+    block.perform_operations()

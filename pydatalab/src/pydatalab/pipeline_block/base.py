@@ -125,9 +125,7 @@ class PipelineDataBlock:
 
     def perform_operations(self):
         # First step - retrieve the file(s)
-        if ("file_id" not in self.data and not self.multi_file) or (
-            "file_ids" not in self.data and self.multi_file
-        ):
+        if "file_id" not in self.data or ("file_ids" not in self.data and self.multi_file):
             LOGGER.warning("No file(s) set in the DataBlock")
             return
 
@@ -164,7 +162,7 @@ class PipelineDataBlock:
                 files.append(Path(file_info["location"]))
                 checksums.append(file_info["checksums"])
         # Perform pipeline step
-        self.pipeline.perform_entire_pipeline(
+        self.data = self.pipeline.perform_entire_pipeline(
             data=self.data, file_folder=CONFIG.FILE_DIRECTORY, files=files, checksums=checksums
         )
 

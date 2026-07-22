@@ -110,3 +110,18 @@ def test_processor_input_multiple_dfs():
     assert type(result) is list
     pd.testing.assert_frame_equal(exp_dfs[0], result[0])
     pd.testing.assert_frame_equal(exp_dfs[1], result[1])
+
+
+def empty_test_function(df: pd.DataFrame, arg1: int, arg2: int) -> pd.DataFrame:
+    return pd.DataFrame()
+
+
+# tests the arg checker
+def test_input_args():
+    stage = ProcessorStage(empty_test_function, False)
+    arg_check = stage.check_args(["arg1", "arg2"])
+    assert arg_check is True
+    arg_check_2 = stage.check_args(["arg3", "arg5"])
+    assert arg_check_2 is False
+    arg_check_3 = stage.check_args(["arg4", "arg6", "arg1", "arg2"])
+    assert arg_check_3 is True

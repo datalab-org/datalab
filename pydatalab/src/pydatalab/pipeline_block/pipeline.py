@@ -74,6 +74,13 @@ class Pipeline:
     def set_plotter(self, plotter_function: PlotterStage) -> None:
         self.plotter_function = plotter_function
 
+    def set_caching_for_entire_pipeline(self, caching: bool) -> None:
+        for parser in self.parser_functions:
+            parser.caching = caching
+        for stages in self.processor_functions:
+            for processor in stages:
+                processor.caching = caching
+
     def exists(self):
         return self.plotter_function or self.processor_functions or self.parser_functions
 
@@ -135,6 +142,37 @@ class Pipeline:
             data["bokeh_plot_data"] = self.plotter_function.perform(processor_output, **data)
         return data
 
+    def parser_pass_step(
+        self, checksums: list[str], file_folder: str, files: list[Path | str]
+    ) -> tuple[list[str], list[DataFrame]]:
+        parser_output_df: "list[pd.DataFrame]" = []
+        parser_checksums: list[str] = []
+
+        for index, file in enumerate(files):
+            # TODO Need to refactor in case we want to parse two .txt(/any other extension) files that are the same..
+            for parser in self.parser_functions:
+                LOGGER.info("Processing file %s", file)
+                try:
+                    parser_checksum, result = parser.perform_with_optional_cache(
+                        checksums[index],
+                        file_folder,
+                        file,
+                    )
+                except Exception as exc:
+                    warnings.warn(f"Could not parse file {file} as data. Error: {exc}")
+                else:
+                    if result is not None:
+                        if type(result) is not list:
+                            result = [result]
+                        parser_output_df.extend(result)
+                        parser_checksums.append(parser_checksum)
+                        break
+            else:
+                LOGGER.warning(
+                    "This file failed to be processed successfully by any of the available parsers"
+                )
+        return parser_checksums, parser_output_df
+
     def processor_pass_step(
         self, data, file_folder: str, parser_checksums: list[str], parser_output_df: list[DataFrame]
     ) -> list[DataFrame]:
@@ -156,7 +194,7 @@ class Pipeline:
                     len(processor_group),
                 )
                 for processor in processor_group:
-                    process_checksum, result = processor.perform_with_cache(
+                    process_checksum, result = processor.perform_with_optional_cache(
                         "".join(processor_checksums), file_folder, processor_input, **data
                     )
                     if result is not None:
@@ -171,8 +209,7 @@ class Pipeline:
                     processor_input_name,
                 )
                 for i, processor in enumerate(processor_group):
-                    LOGGER.info(processor)
-                    process_checksum, result = processor.perform_with_cache(
+                    process_checksum, result = processor.perform_with_optional_cache(
                         processor_checksums[i], file_folder, processor_input[i], **data
                     )
                     if result is not None:
@@ -185,36 +222,6 @@ class Pipeline:
             processor_input = processor_output
             processor_checksums = output_checksums
         return processor_output
-
-    def parser_pass_step(
-        self, checksums: list[str], file_folder: str, files: list[Path | str]
-    ) -> tuple[list[str], list[DataFrame]]:
-        parser_output_df: "list[pd.DataFrame]" = []
-        parser_checksums: list[str] = []
-
-        for index, file in enumerate(files):
-            # TODO Need to refactor in case we want to parse two .txt(/any other extension) files that are the same..
-            # TODO logic could also do with refining, depending on use case.
-            for parser in self.parser_functions:
-                LOGGER.info("Processing file %s", file)
-                try:
-                    parser_checksum, result = parser.perform_with_cache(
-                        checksums[index], file_folder, file
-                    )
-                except Exception as exc:
-                    warnings.warn(f"Could not parse file {file} as data. Error: {exc}")
-                else:
-                    if result is not None:
-                        if type(result) is not list:
-                            result = [result]
-                        parser_output_df.extend(result)
-                        parser_checksums.append(parser_checksum)
-                        break
-            else:
-                LOGGER.warning(
-                    "This file failed to be processed successfully by any of the available parsers"
-                )
-        return parser_checksums, parser_output_df
 
     def clone(self) -> "Pipeline":
         clone = copy.copy(self)
