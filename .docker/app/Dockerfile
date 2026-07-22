@@ -23,6 +23,8 @@ ARG VUE_APP_EDITABLE_INVENTORY=magic-setting
 ARG VUE_APP_WEBSITE_TITLE=magic-title
 ARG VUE_APP_QR_CODE_RESOLVER_URL=magic-qr-code-resolver-url
 ARG VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT=magic-generate-id-setting
+ARG VUE_APP_ENABLE_LOGIN_PAGE=magic-enable-login-page
+ARG VUE_APP_LOGIN_HIDE_UNAVAILABLE_AUTH=magic-login-hide-unavailable-auth
 # Version source for scripts/get-version.js. Provided as a build arg so the
 # build layer doesn't depend on `.git` (which would invalidate cache every commit).
 ARG VUE_APP_GIT_VERSION=0.0.0+ci
