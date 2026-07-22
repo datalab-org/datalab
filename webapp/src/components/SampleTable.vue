@@ -70,6 +70,7 @@ export default {
           icon: ["fa", "file"],
           label: "Files",
         },
+        { field: "last_modified", header: "", label: "Last modified", icon: ["fa", "clock"] },
       ],
     };
   },

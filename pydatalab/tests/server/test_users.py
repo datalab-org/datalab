@@ -197,6 +197,11 @@ def test_groups(
     assert resp.status_code == 200
     assert len(resp.json["data"]) == 1
 
+    # Check a user can search groups, and check that it doesn't need to be a full match
+    resp = client.get("/search/groups?query=Grou")
+    assert resp.status_code == 200
+    assert len(resp.json["data"]) == 2
+
     # Check that a user can be added to the group by an admin
     resp = admin_client.put(f"/groups/{group_immutable_id}", json={"user_id": another_user_id})
     assert resp.status_code == 200

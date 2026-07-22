@@ -45,6 +45,10 @@ ITEMS = Blueprint("items", __name__)
 # item types that should be accessed by anyone with an account
 ACCESSIBLE_TYPES = ("equipment", "starting_materials")
 
+# Legacy items predate `last_modified` being set on creation, so fall back to the
+# creation time embedded in their ObjectId.
+LAST_MODIFIED_PROJECTION = {"$ifNull": ["$last_modified", {"$toDate": "$_id"}]}
+
 
 @ITEMS.before_request
 @active_users_or_get_only
@@ -59,6 +63,7 @@ def get_equipment_summary():
         "name": 1,
         "type": 1,
         "date": 1,
+        "last_modified": LAST_MODIFIED_PROJECTION,
         "refcode": 1,
         "location": 1,
         "status": 1,
@@ -113,6 +118,7 @@ def get_starting_materials():
                         "nblocks": {"$size": "$display_order"},
                         "nfiles": {"$size": "$file_ObjectIds"},
                         "date": 1,
+                        "last_modified": LAST_MODIFIED_PROJECTION,
                         "chemform": 1,
                         "smiles": 1,
                         "inchi_key": 1,
@@ -192,6 +198,7 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
         "characteristic_chemical_formula": 1,
         "type": 1,
         "date": 1,
+        "last_modified": LAST_MODIFIED_PROJECTION,
         "refcode": 1,
         "status": 1,
     }
@@ -268,6 +275,7 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
         "characteristic_chemical_formula": 1,
         "type": 1,
         "date": 1,
+        "last_modified": LAST_MODIFIED_PROJECTION,
         "refcode": 1,
         "status": 1,
     }
@@ -700,6 +708,9 @@ def _create_sample(
 
     # Set creation timestamp to now if not provided
     new_sample["date"] = new_sample.get("date", datetime.datetime.now(tz=datetime.timezone.utc))
+
+    # Always stamp the real creation time; `date` may be backdated or copied
+    new_sample["last_modified"] = datetime.datetime.now(tz=datetime.timezone.utc)
 
     # Try to deserialize the item data into the appropriate model
     try:
@@ -1163,6 +1174,10 @@ def get_item_data(
             ),
             404,
         )
+
+    # See LAST_MODIFIED_PROJECTION: same backfill, applied outside an aggregation
+    if not doc.get("last_modified") and isinstance(doc.get("_id"), ObjectId):
+        doc["last_modified"] = doc["_id"].generation_time
 
     # determine the item type and validate according to the appropriate schema
     try:
@@ -1647,11 +1662,10 @@ def save_item():
         "group_ids",
         "item_id",
         "relationships",
+        "last_modified",
     ):
         if k in updated_data:
             del updated_data[k]
-
-    updated_data["last_modified"] = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
 
     for block_id, block_data in updated_data.get("blocks_obj", {}).items():
         blocktype = block_data["blocktype"]
@@ -1774,6 +1788,12 @@ def save_item():
     item.pop("collections")
     item.pop("creators")
 
+    # `last_modified` is controlled by the versioning branch below: only bump it when a
+    # snapshot is actually saved, so re-submitting identical data leaves it untouched.
+    existing_last_modified = item.pop("last_modified", None)
+    if isinstance(existing_last_modified, datetime.datetime):
+        existing_last_modified = existing_last_modified.isoformat()
+
     # Update the item FIRST (transaction safety: item update before version save)
     result = flask_mongo.db.items.update_one(
         {"item_id": item_id, **get_default_permissions(user_only=True)},
@@ -1791,31 +1811,37 @@ def save_item():
         )
 
     # Now save a version AFTER successful item update.
-    # Only increment item.version when content actually changed (i.e., a snapshot was minted).
-    # If this fails, we log but don't fail the request since item was already saved.
-    try:
-        save_version_resp_dict, save_version_status = save_version_snapshot(
-            refcode,
-        )
-        if save_version_status != 200:
-            LOGGER.error(
-                "Failed to save version for item %s after successful update: %s",
-                item_id,
-                save_version_resp_dict,
-            )
-        elif "version" in save_version_resp_dict:
-            flask_mongo.db.items.update_one(
-                {"item_id": item_id},
-                {"$set": {"version": save_version_resp_dict["version"]}},
-            )
-    except Exception as e:
+    # Only increment item.version and bump last_modified when content actually changed
+    # (i.e., a snapshot was minted). If this fails, we log but don't fail the request
+    # since the item was already saved.
+    new_last_modified = None
+
+    save_version_resp_dict, save_version_status = save_version_snapshot(refcode)
+
+    if save_version_status != 200:
         LOGGER.error(
-            "Exception while saving version for item %s after successful update: %s",
+            "Failed to save version for item %s after successful update: %s",
             item_id,
-            str(e),
+            save_version_resp_dict,
+        )
+    elif "version" in save_version_resp_dict:
+        new_last_modified = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
+        flask_mongo.db.items.update_one(
+            {"item_id": item_id},
+            {
+                "$set": {
+                    "version": save_version_resp_dict["version"],
+                    "last_modified": new_last_modified,
+                }
+            },
         )
 
-    return jsonify(status="success", last_modified=updated_data["last_modified"]), 200
+    # Report the freshly-minted timestamp when content changed. If no version was minted
+    # the item was unchanged, so flag it as a no-op and echo back the existing timestamp
+    if new_last_modified:
+        return jsonify(status="success", last_modified=new_last_modified), 200
+
+    return jsonify(status="success", unchanged=True, last_modified=existing_last_modified), 200
 
 
 @ITEMS.route("/items/<refcode>/access-token-info", methods=["GET"])

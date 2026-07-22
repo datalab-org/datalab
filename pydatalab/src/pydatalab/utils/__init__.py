@@ -42,7 +42,17 @@ class CustomJSONEncoder(JSONEncoder):
 
     @staticmethod
     def default(o):
-        if isinstance(o, (datetime.date, datetime.datetime)):
+        if isinstance(o, datetime.datetime):
+            # MongoDB stores datetimes as UTC instants. With PyMongo's default
+            # tz_aware=False, those values are returned as naive datetimes even though
+            # they represent UTC. We attach UTC here so the serialized ISO 8601 string
+            # includes an explicit offset, matching the assumption made in
+            # IsoformatDateTime.validate.
+            if o.tzinfo is None:
+                o = o.replace(tzinfo=datetime.timezone.utc)
+            return o.isoformat()
+
+        elif isinstance(o, datetime.date):
             return o.isoformat()
 
         elif isinstance(o, ObjectId):
