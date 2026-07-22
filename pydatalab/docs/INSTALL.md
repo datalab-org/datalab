@@ -30,6 +30,28 @@ If you are not familiar with `git` or GitHub, you can do worse than reading thro
 
 Your local development *datalab* can be configured with all the options as a real *datalab*; these are expected in the same places as described in [Server configuration](https://docs.datalab-org.io/en/latest/config/), and can be set with environment variables or a config file, with additional config and secrets provided in `.env` files in the `pydatalab/`  and `webapp/` directories for development purposes.
 
+### Docker development environment
+
+The complete development stack can be run with Docker Compose:
+
+```shell
+docker compose --profile dev up --build
+```
+
+This starts the web app at [http://localhost:8081](http://localhost:8081), the API at
+[http://localhost:5001](http://localhost:5001), and MongoDB at
+`mongodb://localhost:27018`. Changes under `pydatalab/` and `webapp/` are
+bind-mounted into the containers and trigger the respective development servers to reload.
+
+After registration, you can make yourself admin with the command
+```shell
+docker compose exec api-dev /opt/.venv/bin/invoke admin.change-user-role \
+  --display-name "Your Name" --role admin
+```
+
+Stop the stack with `docker compose --profile dev down`. Add `--volumes` to also remove its
+development database and uploaded files.
+
 ### `pydatalab` server installation
 
 The instructions in this section will leave you with a running *datalab* server on your host machine, as implemented in the `pydatalab` Python package.

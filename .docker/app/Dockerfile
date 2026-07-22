@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:22.22-bullseye-slim AS build
+FROM node:22.22-bullseye-slim AS base
 SHELL ["/bin/bash", "--login", "-c"]
 
 WORKDIR /app
@@ -13,6 +13,29 @@ COPY webapp/package.json webapp/yarn.lock ./
 # Using a custom node_modules location to avoid mounting it outside of docker
 RUN --mount=type=cache,target=/root/.cache/yarn yarn install --frozen-lockfile --modules-folder /node_modules
 
+# dev target: deps installed, source mounted at runtime — no production build.
+# Also installs the system libraries the Cypress test runner needs (GTK/X11
+# runtime libs plus xvfb for a virtual display), so the webapp test suites can
+# run inside the container.
+FROM base AS dev
+RUN apt update \
+    && apt install -y --no-install-recommends \
+        libgtk2.0-0 \
+        libgtk-3-0 \
+        libgbm-dev \
+        libnotify-dev \
+        libnss3 \
+        libxss1 \
+        libasound2 \
+        libxtst6 \
+        xauth \
+        xvfb \
+    && rm -rf /var/lib/apt/lists/*
+
+# build target: runs the production webpack bundle. Derives from `base` rather
+# than `dev` so production builds don't pull in the Cypress system libraries.
+FROM base AS build
+COPY webapp ./
 # These get replaced by the entrypoint script for production builds.
 # Set the real values in `.env` files or an external docker-compose.
 ENV NODE_ENV=production
@@ -28,7 +51,6 @@ ARG VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT=magic-generate-id-setting
 ARG VUE_APP_GIT_VERSION=0.0.0+ci
 ENV VUE_APP_GIT_VERSION=${VUE_APP_GIT_VERSION}
 
-COPY webapp ./
 RUN /node_modules/.bin/vue-cli-service build
 
 FROM node:22.22-bullseye-slim AS production
