@@ -1063,17 +1063,69 @@ def get_authenticated_user_info():
         return jsonify({"status": "failure", "message": "User must be authenticated."}), 401
 
 
-@AUTH.route("/get-api-key/", methods=["GET"])
+@AUTH.route("/api-keys", methods=["POST"])
 def generate_user_api_key():
     """Returns metadata associated with the currently authenticated user."""
     if current_user.is_authenticated:
+        request_json = request.get_json()
         new_key = "".join(random.choices(ascii_letters, k=KEY_LENGTH))  # noqa: S311
-        flask_mongo.db.api_keys.update_one(
-            {"_id": ObjectId(current_user.id)},
-            {"$set": {"hash": sha512(new_key.encode("utf-8")).hexdigest()}},
-            upsert=True,
+        flask_mongo.db.api_keys.insert_one(
+            {
+                "name": request_json["name"],
+                "user_id": current_user.id,
+                "digest": new_key[:4] + "..." + new_key[-4:],
+                "hash": sha512(new_key.encode("utf-8")).hexdigest(),
+            }
         )
-        return jsonify({"key": new_key}), 200
+        return jsonify({"key": new_key, "name": request_json["name"]}), 200
+    else:
+        return (
+            jsonify(
+                {
+                    "status": "failure",
+                    "message": "User must be an authenticated admin to request an API key.",
+                }
+            ),
+            401,
+        )
+
+
+@AUTH.route("/api-keys", methods=["GET"])
+def get_all_api_keys():
+    """Returns all the api keys associated with the currently authenticated user."""
+    if current_user.is_authenticated:
+        all_api_keys = flask_mongo.db.api_keys.find(
+            {"user_id": current_user.id}, {"hash": 0, "user_id": 0}
+        )
+        return jsonify({"api_keys": list(all_api_keys)}), 200
+    else:
+        return (
+            jsonify(
+                {
+                    "status": "failure",
+                    "message": "User must be an authenticated admin to request an API key.",
+                }
+            ),
+            401,
+        )
+
+
+@AUTH.route("/api-keys/<id>", methods=["DELETE"])
+def delete_api_key(id):
+    """Deletes the api key associated with the given id. (After checking the user own the key)"""
+    if current_user.is_authenticated:
+        db_request = flask_mongo.db.api_keys.find_one({"_id": ObjectId(id)}, {"user_id": 1})
+        if db_request["user_id"] != current_user.id:
+            return (
+                jsonify({"status": "failure", "message": "User does not own this api key."}),
+                401,
+            )
+        result = flask_mongo.db.api_keys.delete_one({"_id": ObjectId(id)})
+        if result.deleted_count == 1:
+            return jsonify(), 204
+        else:
+            return jsonify({"status": "failure", "message": "Problem deleting the key"}), 400
+
     else:
         return (
             jsonify(

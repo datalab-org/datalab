@@ -1232,12 +1232,12 @@ export async function getItemGraph({
     });
 }
 
-export async function requestNewAPIKey() {
+export async function requestNewAPIKey(name) {
   try {
-    const response_json = await fetch_get(`${API_URL}/get-api-key/`);
+    const response_json = await fetch_post(`${API_URL}/api-keys`, { name });
 
     if (response_json.key) {
-      return response_json.key;
+      return response_json;
     } else {
       DialogService.error({
         title: "API Key Request Failed",
@@ -1250,7 +1250,33 @@ export async function requestNewAPIKey() {
       title: "API Key Request Failed",
       message: "Failed to retrieve new API key. Please try again later or report this issue.",
     });
-    throw new Error(`Failed to request new API key: ${error.message}`);
+    throw new Error(`Failed to request new API key: ${error.message || error}`);
+  }
+}
+
+export async function getAPIKeys() {
+  try {
+    const response_json = await fetch_get(`${API_URL}/api-keys`);
+    return response_json.api_keys || [];
+  } catch (error) {
+    DialogService.error({
+      title: "Unable to Fetch API Keys",
+      message: `Failed to fetch API keys: ${error.message || error}`,
+    });
+    return [];
+  }
+}
+
+export async function deleteAPIKey(id) {
+  try {
+    await fetch_delete(`${API_URL}/api-keys/${id}`);
+    return true;
+  } catch (error) {
+    DialogService.error({
+      title: "Unable to Delete API Key",
+      message: `Failed to delete API key: ${error.message || error}`,
+    });
+    return false;
   }
 }
 
