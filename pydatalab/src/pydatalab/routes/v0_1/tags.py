@@ -57,7 +57,7 @@ def _current_user_id() -> ObjectId | None:
 def _usable_tags_filter(user_id: ObjectId | None) -> dict:
     """The Mongo filter for tags the given user may list and use.
 
-    This is global tags plus the user's own personal tags.
+    This is global tags plus the user's own user-defined tags.
     """
     if user_id is None:
         return {"scope": AccessScope.GLOBAL.value}
@@ -72,7 +72,7 @@ def _name_conflict_exists(
 ) -> bool:
     """Whether a tag with `name` already exists within the given scope.
 
-    The same name may exist across scopes (e.g. a global `x` and a personal `x`).
+    The same name may exist across scopes (e.g. a global `x` and a user-defined `x`).
     """
     query: dict = {"name": name, "scope": scope.value}
     if scope == AccessScope.USER:
@@ -87,7 +87,7 @@ def _name_conflict_exists(
 def _authorize_tag_write(tag_doc: dict) -> bool:
     """Whether the current user may edit or delete the given tag document.
 
-    Global tags require an administrator; personal tags require the owner.
+    Global tags require an administrator; user-defined tags require the owner.
     """
     if tag_doc["scope"] == AccessScope.USER.value:
         user_id = _current_user_id()
@@ -99,7 +99,7 @@ def _authorize_tag_write(tag_doc: dict) -> bool:
 def create_tag():
     """Create a new tag.
 
-    Anyone logged in can create a personal tag. Only administrators can create
+    Anyone logged in can create a user-defined tag. Only administrators can create
     global tags.
     """
     request_json = request.get_json()
@@ -128,7 +128,10 @@ def create_tag():
         owner = _current_user_id()
         if owner is None:
             return (
-                jsonify(status="error", message="You must be logged in to create a personal tag."),
+                jsonify(
+                    status="error",
+                    message="You must be logged in to create a user-defined tag.",
+                ),
                 401,
             )
 
@@ -211,7 +214,7 @@ def search_tags():
 def save_tag(tag_id):
     """Update a tag's `name`/`description`/`color`.
 
-    Global tags may only be edited by administrators; personal tags only by their
+    Global tags may only be edited by administrators; user-defined tags only by their
     owner.
     """
     object_id = _parse_object_id(tag_id)
@@ -294,7 +297,7 @@ def save_tag(tag_id):
 def delete_tag(tag_id: str):
     """Delete a tag and drop its references from items.
 
-    Global tags may only be deleted by administrators; personal tags only by
+    Global tags may only be deleted by administrators; user-defined tags only by
     their owner.
     """
     object_id = _parse_object_id(tag_id)
