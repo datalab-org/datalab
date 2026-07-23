@@ -29,22 +29,22 @@ function mountAndOpen({ tag = null, role = "user" } = {}) {
 
 describe("TagFormModal.vue", () => {
   describe("create mode", () => {
-    it("creates a personal tag by default (non-admin has no scope choice)", () => {
+    it("creates a user-defined tag by default (non-admin has no scope choice)", () => {
       cy.intercept("PUT", "**/tags", { statusCode: 201, body: { status: "success", data: {} } }).as(
         "create",
       );
       mountAndOpen();
 
-      // A non-admin cannot choose a scope; the scope field is a disabled "Personal".
+      // A non-admin cannot choose a scope; the scope field is a disabled "User-defined".
       cy.get('[data-testid="tag-scope-select"]').should("not.exist");
-      cy.get("#tag-scope").should("be.disabled").and("have.value", "Personal");
+      cy.get("#tag-scope").should("be.disabled").and("have.value", "User-defined");
 
       cy.get("#tag-name").type("flammable", { force: true });
       cy.get("#tag-description").type("burns", { force: true });
       cy.get('input[type="submit"]').click({ force: true });
 
       // The color picker is left untouched, so the payload carries the default tag color,
-      // and the scope defaults to a personal ("user") tag.
+      // and the scope defaults to a user-defined ("user") tag.
       cy.wait("@create")
         .its("request.body")
         .should("deep.equal", {

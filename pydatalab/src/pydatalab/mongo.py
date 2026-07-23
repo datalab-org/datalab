@@ -121,7 +121,7 @@ def resolve_tags_for_docs(docs: list[dict]) -> None:
                         "name": match.get("name"),
                         "description": match.get("description"),
                         "color": match.get("color"),
-                        # `scope` lets the UI mark personal tags distinctly.
+                        # `scope` lets the UI mark user-defined tags distinctly.
                         "scope": match.get("scope"),
                     }
                 )
