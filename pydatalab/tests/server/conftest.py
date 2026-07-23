@@ -310,6 +310,14 @@ def insert_demo_users(
     )
 
 
+@pytest.fixture(scope="function", name="api_keys_db")
+def fixture_api_keys_db(database):
+    current_api_keys = list(database.api_keys.find())
+    yield database.api_keys
+    database.api_keys.delete_many({})
+    database.api_keys.insert_many(current_api_keys)
+
+
 @pytest.fixture(scope="module", name="default_sample")
 def fixture_default_sample(admin_user_id, user_id, group_id):
     return Sample(

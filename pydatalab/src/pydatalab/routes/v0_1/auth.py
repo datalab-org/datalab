@@ -1112,7 +1112,7 @@ def get_all_api_keys():
 
 @AUTH.route("/api-keys/<api_id>", methods=["DELETE"])
 def delete_api_key(api_id):
-    """Deletes the api key associated with the given id. (After checking the user own the key)"""
+    """Deletes the api key associated with the given id. (After checking the user owns the key)"""
     if current_user.is_authenticated:
         doc = flask_mongo.db.api_keys.find_one(
             {"_id": ObjectId(api_id), "user_id": current_user.id}, {"user_id": 1}
