@@ -11,15 +11,16 @@ from flask import Blueprint, jsonify, redirect, request
 from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
-from werkzeug.exceptions import BadRequest, Conflict, InternalServerError, NotFound
+from werkzeug.exceptions import BadRequest, Conflict, Forbidden, InternalServerError, NotFound
 
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
+from pydatalab.feature_flags import FEATURE_FLAGS
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS, ItemVersion
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
-from pydatalab.models.utils import InlineSubstance, generate_unique_refcode
+from pydatalab.models.utils import AccessScope, InlineSubstance, generate_unique_refcode
 from pydatalab.models.versions import (
     CompareVersionsQuery,
     RestoreVersionRequest,
@@ -32,6 +33,7 @@ from pydatalab.mongo import (
     flask_mongo,
     get_items_fts_fields,
     groups_lookup,
+    resolve_tags_for_docs,
 )
 from pydatalab.permissions import (
     PUBLIC_USER_ID,
@@ -278,6 +280,8 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
         "refcode": 1,
         "status": 1,
     }
+    if FEATURE_FLAGS.tags:
+        _project["tags"] = 1
 
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
     if project:
@@ -287,7 +291,7 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
             else:
                 _project[key] = 1
 
-    return list(
+    samples = list(
         flask_mongo.db.items.aggregate(
             [
                 {"$match": match},
@@ -299,6 +303,10 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
             ]
         )
     )
+    if FEATURE_FLAGS.tags:
+        resolve_tags_for_docs(samples)
+
+    return samples
 
 
 def entry_reference_lookup(item_doc: dict) -> dict:
@@ -590,6 +598,58 @@ def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
     return sample_dict
 
 
+def _strip_tag_display_fields(item: dict) -> None:
+    """Reduce tag references in ``item['tags']`` to the minimal
+    ``{type, immutable_id}`` link before storage, in place.
+
+    The display fields (name/description/color) are inlined by the client and
+    re-resolved on every read (`resolve_tags_for_docs`), so persisting them would
+    be redundant denormalisation.
+    """
+    tags = item.get("tags")
+    if not isinstance(tags, list):
+        return
+    item["tags"] = [
+        {"type": "tags", "immutable_id": tag["immutable_id"]}
+        for tag in tags
+        if isinstance(tag, dict) and tag.get("immutable_id") is not None
+    ]
+
+
+def _tag_immutable_ids(tags) -> set[str]:
+    """Collect the string `immutable_id`s of the tag references in a `tags` list."""
+    if not isinstance(tags, list):
+        return set()
+    return {
+        str(tag["immutable_id"])
+        for tag in tags
+        if isinstance(tag, dict) and tag.get("immutable_id") is not None
+    }
+
+
+def _authorize_added_tags(tags, existing_tag_ids: set[str]) -> None:
+    """Reject any newly added user-defined tag not owned by the current user.
+
+    A user may add global tags and their own user-defined tags.
+    """
+    # In testing an unauthenticated "public" user can write.
+    if CONFIG.TESTING and not current_user.is_authenticated:
+        return
+
+    user_id = current_user.person.immutable_id
+
+    added_ids = _tag_immutable_ids(tags) - existing_tag_ids
+    if not added_ids:
+        return
+
+    for tag_doc in flask_mongo.db.tags.find(
+        {"_id": {"$in": [ObjectId(i) for i in added_ids]}},
+        projection={"_id": 1, "scope": 1, "owner": 1},
+    ):
+        if tag_doc.get("scope") == AccessScope.USER.value and tag_doc.get("owner") != user_id:
+            raise Forbidden("You cannot add a tag that is owned by another user.")
+
+
 def _create_sample(
     sample_dict: dict,
     copy_from_item_id: str | None = None,
@@ -685,9 +745,10 @@ def _create_sample(
     # TODO: encode this at the model level, via custom schema properties or hard-coded `.store()` methods
     # the `Entry` model.
     try:
-        result = flask_mongo.db.items.insert_one(
-            data_model.model_dump(exclude={"creators", "collections", "groups"})
-        )
+        to_store = data_model.model_dump(exclude={"creators", "collections", "groups"})
+        _authorize_added_tags(to_store.get("tags"), set())
+        _strip_tag_display_fields(to_store)
+        result = flask_mongo.db.items.insert_one(to_store)
     except DuplicateKeyError as error:
         raise Conflict(f"Duplicate key error: {str(error)}.")
 
@@ -1099,6 +1160,9 @@ def get_item_data(
 
     try:
         doc = entry_reference_lookup(doc)
+        # Resolve tag references for display only (a read-time concern): inline
+        # current tag names and drop references to deleted tags.
+        resolve_tags_for_docs([doc])
         doc = ItemModel(**doc)
     except ValidationError as error:
         # The stored document doesn't validate against its declared schema.
@@ -1663,6 +1727,10 @@ def save_item():
     preserve_relationships = "collections" not in updated_data
     original_relationships = item.get("relationships", []) if preserve_relationships else None
 
+    # Snapshot the tags already on the item so we only authorize newly added
+    # tags below.
+    existing_tag_ids = _tag_immutable_ids(item.get("tags"))
+
     item.update(updated_data)
 
     try:
@@ -1685,6 +1753,12 @@ def save_item():
     item.pop("creators", None)
     item.pop("immutable_id", None)
     item.pop("files", None)
+
+    # A user may not add another user's user-defined tag.
+    _authorize_added_tags(item.get("tags"), existing_tag_ids)
+
+    # Store tag references minimally; see `_strip_tag_display_fields`.
+    _strip_tag_display_fields(item)
 
     # Update the item FIRST (transaction safety: item update before version save)
     result = flask_mongo.db.items.update_one(

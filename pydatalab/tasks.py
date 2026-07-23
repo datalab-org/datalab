@@ -1,3 +1,4 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 import json
 import os
 import pathlib
@@ -267,8 +268,6 @@ def change_user_role(_, display_name: str, role: str):
     from pydatalab.models.utils import UserRole
     from pydatalab.mongo import _get_active_mongo_client
 
-    role = UserRole(role.upper())
-
     try:
         role = getattr(UserRole, role.upper())
     except AttributeError:
@@ -345,6 +344,58 @@ def manually_register_user(
 
 
 admin.add_task(manually_register_user)
+
+
+@task
+def seed_e2e_admin(
+    _,
+    display_name: str = "Test Admin",
+    contact_email: str = "admin-user@example.com",
+):
+    """Ensure a predefined, active admin user exists, for end-to-end testing.
+
+    The tests may need an administrator, but the first admin cannot be created
+    over the API. This task creates the user with an email identity if it does
+    not already exist, marks it active, and grants it the admin role.
+    """
+    from pydatalab.models.people import AccountStatus, Identity, Person
+    from pydatalab.models.utils import UserRole
+    from pydatalab.mongo import get_database, insert_pydantic_model_fork_safe
+
+    db = get_database()
+
+    user = db.users.find_one(
+        {"identities.identity_type": "email", "identities.identifier": contact_email}
+    )
+
+    if user is None:
+        new_user = Person(
+            display_name=display_name,
+            contact_email=contact_email,
+            account_status=AccountStatus.ACTIVE,
+            identities=[
+                Identity(
+                    identity_type="email",
+                    identifier=contact_email,
+                    name=contact_email,
+                    verified=True,
+                )
+            ],
+        )
+        user_id = insert_pydantic_model_fork_safe(new_user, "users")
+        print(f"Created active user {display_name!r} <{contact_email}> ({user_id}).")
+    else:
+        user_id = user["_id"]
+        db.users.update_one(
+            {"_id": user_id}, {"$set": {"account_status": AccountStatus.ACTIVE.value}}
+        )
+        print(f"User <{contact_email}> already exists ({user_id}); ensured active.")
+
+    db.roles.update_one({"_id": user_id}, {"$set": {"role": UserRole.ADMIN.value}}, upsert=True)
+    print(f"Granted the admin role to <{contact_email}>.")
+
+
+admin.add_task(seed_e2e_admin)
 
 
 @task

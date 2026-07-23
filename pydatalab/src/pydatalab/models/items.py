@@ -8,6 +8,7 @@ from pydatalab.models.traits import (
     HasBlocks,
     HasOwner,
     HasRevisionControl,
+    HasTags,
     IsCollectable,
 )
 from pydatalab.models.utils import (
@@ -18,7 +19,7 @@ from pydatalab.models.utils import (
 )
 
 
-class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, abc.ABC):
+class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, HasTags, abc.ABC):
     """The generic model for data types that will be exposed with their own named endpoints."""
 
     refcode: Refcode | None = None

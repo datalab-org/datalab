@@ -145,6 +145,25 @@ export const SAMPLE_TABLE_TYPES = ["samples", "cells"];
 export const INVENTORY_TABLE_TYPES = ["starting_materials"];
 export const EQUIPMENT_TABLE_TYPES = ["equipment"];
 
+// Curated palette of distinguishable preset colors offered for tag colors.
+export const TAG_COLOR_PALETTE = [
+  "#e74c3c",
+  "#e67e22",
+  "#f1c40f",
+  "#2ecc71",
+  "#1abc9c",
+  "#3498db",
+  "#9b59b6",
+  "#34495e",
+  "#95a5a6",
+  "#e84393",
+  "#00b894",
+  "#fdcb6e",
+];
+
+// The color assigned to a newly created tag.
+export const DEFAULT_TAG_COLOR = "#95a5a6";
+
 export const cellFormats = {
   coin: "coin",
   pouch: "pouch",

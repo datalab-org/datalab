@@ -5,6 +5,7 @@ from functools import lru_cache
 from typing import Any
 
 import pymongo
+from bson import ObjectId
 from flask_pymongo import PyMongo
 from pydantic import BaseModel
 from pymongo.errors import ConnectionFailure
@@ -23,11 +24,13 @@ __all__ = (
     "USERS_FTS_FIELDS",
     "COLLECTIONS_FTS_FIELDS",
     "GROUPS_FTS_FIELDS",
+    "TAGS_FTS_FIELDS",
     "generate_heuristic_regex_search",
     "build_search_pipeline",
     "creators_lookup",
     "groups_lookup",
     "files_lookup",
+    "resolve_tags_for_docs",
 )
 
 flask_mongo = PyMongo()
@@ -75,6 +78,56 @@ def files_lookup() -> dict:
     }
 
 
+def resolve_tags_for_docs(docs: list[dict]) -> None:
+    """Inline tag details into each doc's `tags` field, in place.
+
+    Tag references (mappings carrying an `immutable_id`) are resolved against
+    the `tags` collection with no permission filter: display access is gated
+    by the parent entry itself, so every tag on a viewable entry resolves.
+    References to deleted tags are dropped.
+    """
+    tag_ids: set[ObjectId] = set()
+    for doc in docs:
+        for tag in doc.get("tags") or []:
+            if isinstance(tag, dict):
+                tag_ids.add(ObjectId(tag["immutable_id"]))
+
+    if not tag_ids:
+        return
+
+    resolved = {
+        tag_doc["_id"]: tag_doc
+        for tag_doc in flask_mongo.db.tags.find(
+            {"_id": {"$in": list(tag_ids)}},
+            projection={"_id": 1, "name": 1, "description": 1, "color": 1, "scope": 1},
+        )
+    }
+
+    for doc in docs:
+        tags = doc.get("tags")
+        if not tags:
+            continue
+        resolved_tags: list = []
+        for tag in tags:
+            if isinstance(tag, dict):
+                match = resolved.get(ObjectId(tag["immutable_id"]))
+                # Referenced tag no longer exists: drop it silently.
+                if match is None:
+                    continue
+                resolved_tags.append(
+                    {
+                        "type": "tags",
+                        "immutable_id": str(match["_id"]),
+                        "name": match.get("name"),
+                        "description": match.get("description"),
+                        "color": match.get("color"),
+                        # `scope` lets the UI mark user-defined tags distinctly.
+                        "scope": match.get("scope"),
+                    }
+                )
+        doc["tags"] = resolved_tags
+
+
 @lru_cache(maxsize=1)
 def get_items_fts_fields() -> set[str]:
     """Get all string fields from item models for full-text search."""
@@ -116,6 +169,9 @@ COLLECTIONS_FTS_FIELDS: set[str] = {"collection_id", "title", "description"}
 
 GROUPS_FTS_FIELDS: set[str] = {"group_id", "display_name", "description"}
 """Fields to search for groups."""
+
+TAGS_FTS_FIELDS: set[str] = {"name", "description"}
+"""Fields to search for tags."""
 
 
 def generate_heuristic_regex_search(
@@ -333,6 +389,12 @@ def create_default_indices(
         db.collections,
         ["collection_id", "title", "description"],
         weights={"collection_id": 3, "title": 3, "description": 3},
+    )
+
+    ret += create_or_recreate_text_index(
+        db.tags,
+        ["name", "description"],
+        weights={"name": 3, "description": 1},
     )
 
     ret += db.items.create_index("type", name="item type", background=background)

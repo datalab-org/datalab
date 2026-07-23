@@ -1312,6 +1312,14 @@
       "description": "Free-text details of the procedure applied to synthesise the sample",
       "title": "Synthesis Description"
     },
+    "tags": {
+      "description": "Tags applied to this entry: references to `tags` entries (by\n`immutable_id`).",
+      "items": {
+        "$ref": "#/$defs/EntryReference"
+      },
+      "title": "Tags",
+      "type": "array"
+    },
     "blocks_obj": {
       "additionalProperties": {
         "$ref": "#/$defs/DataBlockResponse"
