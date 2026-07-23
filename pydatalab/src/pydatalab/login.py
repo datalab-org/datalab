@@ -158,7 +158,7 @@ def get_by_api_key(key: str):
             "digest": {"$exists": False},
         },
     )
-    if user:
+    if user and user.get("user_id", False):
         return get_by_id_cached(str(user["user_id"]))
     elif legacy_user:
         return get_by_id_cached(str(legacy_user["_id"]))
