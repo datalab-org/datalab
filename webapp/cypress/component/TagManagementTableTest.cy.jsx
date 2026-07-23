@@ -10,7 +10,7 @@ const TAGS = [
     name: "flammable",
     description: "burns",
     color: "#f1c40f",
-    // A personal tag owned by the current user ("self").
+    // A user-defined tag owned by the current user ("self").
     scope: "user",
     owner: "self",
   },
@@ -65,7 +65,7 @@ describe("TagManagementTable Component Tests", () => {
       .find("tr")
       .eq(0)
       .find('[data-testid="tag-scope-badge"]')
-      .should("contain.text", "Personal");
+      .should("contain.text", "User-defined");
     cy.get(".p-datatable-tbody")
       .find("tr")
       .eq(1)
@@ -90,21 +90,21 @@ describe("TagManagementTable Component Tests", () => {
   });
 
   it("shows the create button and Edit/Delete on every tag for an admin", () => {
-    // An admin owns the personal tag ("self") and manages the global tag, so both rows.
+    // An admin owns the user-defined tag ("self") and manages the global tag, so both rows.
     mountTable("admin");
     cy.get('[data-testid="add-tag-button"]').should("exist");
     cy.get('button[title="Edit tag"]').should("have.length", TAGS.length);
     cy.get('button[title="Delete tag"]').should("have.length", TAGS.length);
   });
 
-  it("lets a non-admin create tags and manage only their own personal tags", () => {
-    // A non-admin can create (personal) tags, and manage their own personal tag,
+  it("lets a non-admin create tags and manage only their own user-defined tags", () => {
+    // A non-admin can create (user-defined) tags, and manage their own user-defined tag,
     // but not the global tag (which only admins manage).
     mountTable("user");
     cy.get('[data-testid="add-tag-button"]').should("exist");
     cy.get('button[title="Edit tag"]').should("have.length", 1);
     cy.get('button[title="Delete tag"]').should("have.length", 1);
-    // The controls sit on the personal (own) tag row, not the global one.
+    // The controls sit on the user-defined (own) tag row, not the global one.
     cy.get(".p-datatable-tbody")
       .find("tr")
       .eq(0)

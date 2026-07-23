@@ -1,6 +1,12 @@
 <template>
   <div class="tag-list d-flex flex-wrap align-items-center">
-    <TagBadge v-for="(tag, index) in visibleTags" :key="tagKey(tag, index)" :tag="tag" />
+    <TagBadge
+      v-for="(tag, index) in visibleTags"
+      :key="tagKey(tag, index)"
+      :tag="tag"
+      :clickable="clickable"
+      @tag-click="$emit('tag-click', $event)"
+    />
     <button
       v-if="hiddenTagCount"
       type="button"
@@ -22,7 +28,13 @@
       @hide="isPopoverOpen = false"
     >
       <div class="tag-list popover-tag-list d-flex flex-wrap align-items-center">
-        <TagBadge v-for="(tag, index) in tags" :key="tagKey(tag, index)" :tag="tag" />
+        <TagBadge
+          v-for="(tag, index) in tags"
+          :key="tagKey(tag, index)"
+          :tag="tag"
+          :clickable="clickable"
+          @tag-click="$emit('tag-click', $event)"
+        />
       </div>
     </Popover>
   </div>
@@ -50,7 +62,13 @@ export default {
       type: Number,
       default: null,
     },
+    // When true, tags are clickable and emit `tag-click` (e.g. to filter a table).
+    clickable: {
+      type: Boolean,
+      default: false,
+    },
   },
+  emits: ["tag-click"],
   data() {
     return {
       isPopoverOpen: false,
