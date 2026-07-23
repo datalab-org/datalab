@@ -95,35 +95,32 @@ def test_magic_link_auth_can_be_disabled(unauthenticated_client, app, database, 
 # ──────────────────────────────────────────────
 # API key tests
 # ──────────────────────────────────────────────
-def delete_test_gen_api_keys(database, names):
-    for name in names:
-        database.api_keys.delete_one({"name": name})
 
 
-def test_create_api_key(client, database):
+def test_create_api_key(client, api_keys_db):
     json = {"name": "Test_API_KEY"}
     request_result = client.post("/api-keys", json=json)
 
     assert request_result.status_code == 200
 
-    result_from_database = database.api_keys.find_one({"name": "Test_API_KEY"})
+    result_from_database = api_keys_db.find_one({"name": "Test_API_KEY"})
 
     assert result_from_database is not None
     assert result_from_database["digest"][4:-4] == "..."
-    delete_test_gen_api_keys(database, ["Test_API_KEY"])
+    # delete_test_gen_api_keys(database, ["Test_API_KEY"])
 
 
-def test_create_api_key_unauthorized(unauthenticated_client, database):
+def test_create_api_key_unauthorized(unauthenticated_client, api_keys_db):
     json = {"name": "Test_API_KEY"}
     request_result = unauthenticated_client.post("/api-keys", json=json)
 
     assert request_result.status_code == 401
 
-    result_from_database = database.api_keys.find_one({"name": "Test_API_KEY"})
+    result_from_database = api_keys_db.find_one({"name": "Test_API_KEY"})
     assert result_from_database is None
 
 
-def test_get_api_keys_for_user(client, database, user_id):
+def test_get_api_keys_for_user(client, api_keys_db, user_id):
     api_keys = [
         {
             "name": "Test_API_KEY_1",
@@ -144,7 +141,7 @@ def test_get_api_keys_for_user(client, database, user_id):
             "user_id": str(user_id),
         },
     ]
-    db_result = database.api_keys.insert_many(api_keys)
+    db_result = api_keys_db.insert_many(api_keys)
     assert len(db_result.inserted_ids) == 3
 
     request_result = client.get("/api-keys")
@@ -168,10 +165,8 @@ def test_get_api_keys_for_user(client, database, user_id):
     assert request_json[3]["digest"] == "433...851"
     assert request_json[3].get("hash", None) is None
 
-    delete_test_gen_api_keys(database, ["Test_API_KEY_1", "Test_API_KEY_2", "Anaconda_instance_4"])
 
-
-def test_cannot_gain_access_to_unauthorised_api_keys(client, another_user_id, database):
+def test_cannot_gain_access_to_unauthorised_api_keys(client, another_user_id, api_keys_db):
     api_keys = [
         {
             "name": "Test_API_KEY_1",
@@ -192,7 +187,7 @@ def test_cannot_gain_access_to_unauthorised_api_keys(client, another_user_id, da
             "user_id": str(another_user_id),
         },
     ]
-    db_result = database.api_keys.insert_many(api_keys)
+    db_result = api_keys_db.insert_many(api_keys)
     assert len(db_result.inserted_ids) == 3
 
     request_result = client.get("/api-keys")
@@ -204,7 +199,6 @@ def test_cannot_gain_access_to_unauthorised_api_keys(client, another_user_id, da
 
     # First one will be the API key for the test client
     assert request_json[0]["name"] == "testing API key"
-    delete_test_gen_api_keys(database, ["Test_API_KEY_1", "Test_API_KEY_2", "Anaconda_instance_4"])
 
 
 def test_cannot_gain_authorised_access_to_api_keys(unauthenticated_client):
@@ -212,8 +206,8 @@ def test_cannot_gain_authorised_access_to_api_keys(unauthenticated_client):
     assert request_result.status_code == 401
 
 
-def test_can_delete_api_key(client, database, user_id):
-    database.api_keys.insert_one(
+def test_can_delete_api_key(client, api_keys_db, user_id):
+    api_keys_db.insert_one(
         {
             "_id": ObjectId("507f1f88bcf86cd733439011"),
             "name": "Test_API_KEY_1",
@@ -225,13 +219,12 @@ def test_can_delete_api_key(client, database, user_id):
     request_result = client.delete("/api-keys/507f1f88bcf86cd733439011")
     assert request_result.status_code == 204
 
-    result = database.api_keys.find_one({"name": "Test_API_KEY_1", "digest": "234...567"})
+    result = api_keys_db.find_one({"name": "Test_API_KEY_1", "digest": "234...567"})
     assert result is None
-    delete_test_gen_api_keys(database, ["Test_API_KEY_1"])
 
 
-def test_cannot_delete_someone_else_api_key(client, another_user_id, database):
-    database.api_keys.insert_one(
+def test_cannot_delete_someone_else_api_key(client, another_user_id, api_keys_db):
+    api_keys_db.insert_one(
         {
             "_id": ObjectId("507f1f88bcf86cd733439011"),
             "name": "Test_API_KEY_1",
@@ -243,13 +236,12 @@ def test_cannot_delete_someone_else_api_key(client, another_user_id, database):
     request_result = client.delete("/api-keys/507f1f88bcf86cd733439011")
     assert request_result.status_code == 404
 
-    result = database.api_keys.find_one({"name": "Test_API_KEY_1", "digest": "234...567"})
+    result = api_keys_db.find_one({"name": "Test_API_KEY_1", "digest": "234...567"})
     assert result is not None
-    delete_test_gen_api_keys(database, ["Test_API_KEY_1"])
 
 
-def test_cannot_delete_api_key_when_unauthorised(unauthenticated_client, user_id, database):
-    database.api_keys.insert_one(
+def test_cannot_delete_api_key_when_unauthorised(unauthenticated_client, user_id, api_keys_db):
+    api_keys_db.insert_one(
         {
             "_id": ObjectId("507f1f88bcf86cd733439011"),
             "name": "Test_API_KEY_1",
@@ -261,9 +253,37 @@ def test_cannot_delete_api_key_when_unauthorised(unauthenticated_client, user_id
     request_result = unauthenticated_client.delete("/api-keys/507f1f88bcf86cd733439011")
     assert request_result.status_code == 401
 
-    result = database.api_keys.find_one({"name": "Test_API_KEY_1", "digest": "234...567"})
+    result = api_keys_db.find_one({"name": "Test_API_KEY_1", "digest": "234...567"})
     assert result is not None
-    delete_test_gen_api_keys(database, ["Test_API_KEY_1"])
+
+
+# Legacy key tests ======================================
+def test_retrieve_legacy_key(client, user_id, api_keys_db):
+    # Create legacy API key
+    api_keys_db.insert_one(
+        {
+            "_id": ObjectId(str(user_id)),
+            "hash": "test hash",
+        }
+    )
+    request_result = client.get("/api-keys")
+    assert request_result.status_code == 200
+    request_json = list(request_result.json["api_keys"])
+    assert len(request_json) == 2
+    assert request_json[0]["name"] == "Legacy key"
+    assert request_json[0]["digest"] == "Unknown"
+
+
+def test_delete_legacy_key(client, api_keys_db, user_id):
+    api_keys_db.insert_one(
+        {
+            "_id": ObjectId(user_id),
+            "hash": "test hash",
+        }
+    )
+    request_result = client.delete(f"/api-keys/{user_id}")
+    assert request_result.status_code == 204
+    assert api_keys_db.find_one({"_id": ObjectId(user_id)}) is None
 
 
 # ──────────────────────────────────────────────
