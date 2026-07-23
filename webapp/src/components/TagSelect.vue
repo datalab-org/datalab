@@ -28,7 +28,7 @@
           data-testid="tag-scope-badge"
         >
           <font-awesome-icon v-if="scope === 'user'" :icon="['fas', 'user']" class="mr-1" />
-          {{ scope === "user" ? "personal" : "global" }}
+          {{ scope === "user" ? "user-defined" : "global" }}
         </span>
       </span>
     </template>
@@ -38,7 +38,7 @@
         v-if="scope === 'user'"
         :icon="['fas', 'user']"
         class="mr-1"
-        title="Personal tag"
+        title="User-defined tag"
       />
       <span :title="description || name">{{ name }}</span>
     </template>
@@ -106,7 +106,7 @@ export default {
           if (tag.description) {
             ref.description = tag.description;
           }
-          // Keep `scope` so a just-added personal tag keeps its marker across the
+          // Keep `scope` so a just-added user-defined tag keeps its marker across the
           // edit<->display toggle. Like color/description it is display-only and
           // is stripped by the server on save (only {type, immutable_id} persists).
           if (tag.scope) {

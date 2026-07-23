@@ -13,7 +13,7 @@ class Tag(Entry):
 
     - `AccessScope.GLOBAL`: available to (and usable by) everyone; created and
       managed by administrators only. Global tags have no `owner`.
-    - `AccessScope.USER`: a personal tag owned by exactly one user; only that
+    - `AccessScope.USER`: a user-defined tag owned by exactly one user; only that
       user can list, use, edit and delete it.
 
     Names are only required to be unique within a scope.
