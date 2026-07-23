@@ -562,7 +562,7 @@ export function searchCollections(query, nresults = 100) {
 }
 
 export function createTag(data) {
-  // data: { name, description?, color?, scope? }. `scope` is "user" (personal,
+  // data: { name, description?, color?, scope? }. `scope` is "user" (user-defined,
   // default) or "global" (admins only). The caller refreshes the list via
   // getTags(). Rejects with the server message on error (e.g. 409 duplicate name).
   return fetch_put(`${API_URL}/tags`, { data }).then(function (response_json) {

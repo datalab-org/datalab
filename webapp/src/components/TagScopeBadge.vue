@@ -1,11 +1,11 @@
 <template>
   <span
     class="badge badge-pill"
-    :class="isPersonal ? 'badge-info' : 'badge-secondary'"
+    :class="isUserDefined ? 'badge-info' : 'badge-secondary'"
     data-testid="tag-scope-badge"
   >
-    <font-awesome-icon v-if="isPersonal" :icon="['fas', 'user']" class="mr-1" />
-    {{ isPersonal ? "Personal" : "Global" }}
+    <font-awesome-icon v-if="isUserDefined" :icon="['fas', 'user']" class="mr-1" />
+    {{ isUserDefined ? "User-defined" : "Global" }}
   </span>
 </template>
 
@@ -20,7 +20,7 @@ export default {
     },
   },
   computed: {
-    isPersonal() {
+    isUserDefined() {
       return this.tag.scope === "user";
     },
   },
