@@ -1089,12 +1089,13 @@ def get_all_api_keys():
         all_api_keys = flask_mongo.db.api_keys.find(
             {"user_id": current_user.id}, {"hash": 0, "user_id": 0}
         )
+        # find potential legacy keys
         legacy_key = flask_mongo.db.api_keys.find_one(
             {
-                "_id": current_user.id,
+                "_id": ObjectId(current_user.id),
                 "name": {"$exists": False},
                 "digest": {"$exists": False},
-                "user_id": False,
+                "user_id": {"$exists": False},
             },
             {"hash": 0},
         )
@@ -1117,14 +1118,24 @@ def delete_api_key(api_id):
             {"_id": ObjectId(api_id), "user_id": current_user.id}, {"user_id": 1}
         )
         if not doc:
-            return NotFound(description="API key not found.")
+            # Deal with potential legacy key
+            doc = flask_mongo.db.api_keys.find_one(
+                {
+                    "_id": ObjectId(api_id),
+                    "user_id": {"$exists": False},
+                    "digest": {"$exists": False},
+                    "name": {"$exists": False},
+                },
+            )
+        if not doc:
+            raise NotFound(description="API key not found.")
         result = flask_mongo.db.api_keys.delete_one({"_id": ObjectId(api_id)})
         if result.deleted_count == 1:
             return Response("", status=204)
         else:
-            return BadRequest(description="Problem deleting the key")
+            raise BadRequest(description="Problem deleting the key")
     else:
-        return Unauthorized("User must be an authenticated admin to request an API key.")
+        raise Unauthorized("User must be an authenticated admin to request an API key.")
 
 
 @AUTH.route("/testing/create-magic-link", methods=["POST"])
