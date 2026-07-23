@@ -1103,7 +1103,7 @@ def get_all_api_keys():
         if legacy_key:
             legacy_key["digest"] = "Unknown"
             legacy_key["name"] = "Legacy key"
-            all_keys.append(legacy_key)
+            all_keys.insert(0, legacy_key)
 
         return jsonify({"api_keys": all_keys}), 200
     else:
