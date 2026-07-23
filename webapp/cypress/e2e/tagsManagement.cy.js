@@ -1,7 +1,7 @@
 // E2e tests for the tag management page (/tags). Needs the dev server + API (:5001) running
 // with testing auth AND the tags feature enabled (PYDATALAB_ENABLE_TAGS).
 //
-// Tags have two scopes: "global" (admin-managed, usable by everyone) and "user" (personal,
+// Tags have two scopes: "global" (admin-managed, usable by everyone) and "user" (user-defined,
 // owned and managed by a single user). admin-user@example.com is an admin by the same
 // convention as authenticatedSampleTests.cy.js.
 
@@ -63,9 +63,9 @@ describe("Tag management page (admin, global tags)", () => {
   });
 });
 
-describe("Tag management page (user, personal tags)", () => {
-  const tagName = "e2e-personal-tag";
-  const renamedTag = "e2e-personal-renamed";
+describe("Tag management page (user, user-defined tags)", () => {
+  const tagName = "e2e-user-defined-tag";
+  const renamedTag = "e2e-user-defined-renamed";
 
   beforeEach(() => {
     cy.loginViaTestMagicLink(userEmail);
@@ -79,10 +79,10 @@ describe("Tag management page (user, personal tags)", () => {
     cy.deleteTagByNameViaAPI(renamedTag);
   });
 
-  it("lets a non-admin create, edit and delete their own personal tag", () => {
+  it("lets a non-admin create, edit and delete their own user-defined tag", () => {
     cy.visit("/tags");
 
-    // Create. A non-admin has no scope choice; the tag is personal by default.
+    // Create. A non-admin has no scope choice; the tag is user-defined by default.
     cy.get('[data-testid="add-tag-button"]').click();
     cy.get('[data-testid="tag-scope-select"]').should("not.exist");
     cy.get("#tag-name").type(tagName);
@@ -92,9 +92,9 @@ describe("Tag management page (user, personal tags)", () => {
     cy.get('[data-testid="tags-table"]')
       .contains("tr", tagName)
       .find('[data-testid="tag-scope-badge"]')
-      .should("contain.text", "Personal");
+      .should("contain.text", "User-defined");
 
-    // The owner can edit and delete their own personal tag.
+    // The owner can edit and delete their own user-defined tag.
     cy.contains("tr", tagName).find('button[title="Edit tag"]').click();
     cy.get("#tag-name").clear();
     cy.get("#tag-name").type(renamedTag);
@@ -126,7 +126,7 @@ describe("Tag management permissions", () => {
     cy.loginViaTestMagicLink(userEmail);
     cy.visit("/tags");
     cy.contains("tr", tagName).should("exist"); // the global tag is visible to everyone
-    // A non-admin can now create their own (personal) tags.
+    // A non-admin can now create their own (user-defined) tags.
     cy.get('[data-testid="add-tag-button"]').should("exist");
     // ... but cannot edit or delete a global tag.
     cy.contains("tr", tagName).within(() => {

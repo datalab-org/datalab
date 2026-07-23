@@ -26,7 +26,10 @@ describe("TagSelect.vue", () => {
     // The option shows the tag name, a color swatch and a scope pill.
     cy.get(".vs__dropdown-option").contains("test-tag").should("exist");
     cy.get(".vs__dropdown-option .color-swatch").should("exist");
-    cy.get('.vs__dropdown-option [data-testid="tag-scope-badge"]').should("contain", "personal");
+    cy.get('.vs__dropdown-option [data-testid="tag-scope-badge"]').should(
+      "contain",
+      "user-defined",
+    );
     cy.get(".vs__dropdown-option").contains("test-tag").click();
 
     // The reference preserves display fields (color/description/scope).
