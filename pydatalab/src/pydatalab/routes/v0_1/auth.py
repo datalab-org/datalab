@@ -18,7 +18,7 @@ from flask import Blueprint, g, jsonify, redirect, request
 from flask_dance.consumer import OAuth2ConsumerBlueprint, oauth_authorized
 from flask_login import current_user, login_user
 from flask_login.utils import LocalProxy
-from werkzeug.exceptions import BadRequest, Forbidden
+from werkzeug.exceptions import BadRequest, Forbidden, NotFound, Unauthorized
 
 from pydatalab.config import CONFIG
 from pydatalab.errors import UserRegistrationForbidden
@@ -1099,43 +1099,25 @@ def get_all_api_keys():
         )
         return jsonify({"api_keys": list(all_api_keys)}), 200
     else:
-        return (
-            jsonify(
-                {
-                    "status": "failure",
-                    "message": "User must be an authenticated admin to request an API key.",
-                }
-            ),
-            401,
-        )
+        return Unauthorized()
 
 
-@AUTH.route("/api-keys/<id>", methods=["DELETE"])
-def delete_api_key(id):
+@AUTH.route("/api-keys/<api_id>", methods=["DELETE"])
+def delete_api_key(api_id):
     """Deletes the api key associated with the given id. (After checking the user own the key)"""
     if current_user.is_authenticated:
-        doc = flask_mongo.db.api_keys.find_one({"_id": ObjectId(id), "user_id": current_user.id}, {"user_id": 1})
+        doc = flask_mongo.db.api_keys.find_one(
+            {"_id": ObjectId(api_id), "user_id": current_user.id}, {"user_id": 1}
+        )
         if not doc:
-            return (
-                jsonify({"status": "failure", "message": "API key not found."}),
-                404,
-            )
-        result = flask_mongo.db.api_keys.delete_one({"_id": ObjectId(id)})
+            return NotFound(description="API key not found.")
+        result = flask_mongo.db.api_keys.delete_one({"_id": ObjectId(api_id)})
         if result.deleted_count == 1:
             return jsonify(), 204
         else:
-            return jsonify({"status": "failure", "message": "Problem deleting the key"}), 400
-
+            return BadRequest(description="Problem deleting the key")
     else:
-        return (
-            jsonify(
-                {
-                    "status": "failure",
-                    "message": "User must be an authenticated admin to request an API key.",
-                }
-            ),
-            401,
-        )
+        return Unauthorized()
 
 
 @AUTH.route("/testing/create-magic-link", methods=["POST"])
