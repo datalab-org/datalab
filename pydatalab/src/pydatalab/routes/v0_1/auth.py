@@ -1089,7 +1089,22 @@ def get_all_api_keys():
         all_api_keys = flask_mongo.db.api_keys.find(
             {"user_id": current_user.id}, {"hash": 0, "user_id": 0}
         )
-        return jsonify({"api_keys": list(all_api_keys)}), 200
+        legacy_key = flask_mongo.db.api_keys.find_one(
+            {
+                "_id": current_user.id,
+                "name": {"$exists": False},
+                "digest": {"$exists": False},
+                "user_id": False,
+            },
+            {"hash": 0},
+        )
+        all_keys = list(all_api_keys)
+        if legacy_key:
+            legacy_key["digest"] = "Unknown"
+            legacy_key["name"] = "Legacy key"
+            all_keys.append(legacy_key)
+
+        return jsonify({"api_keys": all_keys}), 200
     else:
         return Unauthorized("User must be an authenticated admin to request an API key.")
 
