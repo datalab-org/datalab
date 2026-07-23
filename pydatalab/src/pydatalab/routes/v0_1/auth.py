@@ -14,7 +14,7 @@ from string import ascii_letters
 
 import jwt
 from bson import ObjectId
-from flask import Blueprint, g, jsonify, redirect, request
+from flask import Blueprint, Response, g, jsonify, redirect, request
 from flask_dance.consumer import OAuth2ConsumerBlueprint, oauth_authorized
 from flask_login import current_user, login_user
 from flask_login.utils import LocalProxy
@@ -1079,15 +1079,7 @@ def generate_user_api_key():
         )
         return jsonify({"key": new_key, "name": request_json["name"]}), 200
     else:
-        return (
-            jsonify(
-                {
-                    "status": "failure",
-                    "message": "User must be an authenticated admin to request an API key.",
-                }
-            ),
-            401,
-        )
+        return Unauthorized("User must be an authenticated admin to request an API key.")
 
 
 @AUTH.route("/api-keys", methods=["GET"])
@@ -1099,7 +1091,7 @@ def get_all_api_keys():
         )
         return jsonify({"api_keys": list(all_api_keys)}), 200
     else:
-        return Unauthorized()
+        return Unauthorized("User must be an authenticated admin to request an API key.")
 
 
 @AUTH.route("/api-keys/<api_id>", methods=["DELETE"])
@@ -1113,11 +1105,11 @@ def delete_api_key(api_id):
             return NotFound(description="API key not found.")
         result = flask_mongo.db.api_keys.delete_one({"_id": ObjectId(api_id)})
         if result.deleted_count == 1:
-            return jsonify(), 204
+            return Response("", status=204)
         else:
             return BadRequest(description="Problem deleting the key")
     else:
-        return Unauthorized()
+        return Unauthorized("User must be an authenticated admin to request an API key.")
 
 
 @AUTH.route("/testing/create-magic-link", methods=["POST"])
