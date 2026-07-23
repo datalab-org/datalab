@@ -1114,11 +1114,11 @@ def get_all_api_keys():
 def delete_api_key(id):
     """Deletes the api key associated with the given id. (After checking the user own the key)"""
     if current_user.is_authenticated:
-        db_request = flask_mongo.db.api_keys.find_one({"_id": ObjectId(id)}, {"user_id": 1})
-        if db_request["user_id"] != current_user.id:
+        doc = flask_mongo.db.api_keys.find_one({"_id": ObjectId(id), "user_id": current_user.id}, {"user_id": 1})
+        if not doc:
             return (
-                jsonify({"status": "failure", "message": "User does not own this api key."}),
-                401,
+                jsonify({"status": "failure", "message": "API key not found."}),
+                404,
             )
         result = flask_mongo.db.api_keys.delete_one({"_id": ObjectId(id)})
         if result.deleted_count == 1:
