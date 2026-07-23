@@ -38,7 +38,7 @@ export default {
     };
   },
   computed: {
-    // Global tags are managed by administrators; personal tags only
+    // Global tags are managed by administrators; user-defined tags only
     // by their owner.
     canManage() {
       const isAdmin = this.$store.state.currentUserRole === "admin";

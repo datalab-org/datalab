@@ -121,6 +121,7 @@
             @edit-group="$emit('edit-group', $event)"
             @group-deleted="$emit('group-deleted')"
             @edit-tag="$emit('edit-tag', $event)"
+            @tag-click="filterByTag"
           />
         </template>
         <template
@@ -1527,6 +1528,8 @@ export default {
         TagList: {
           tags: "tags",
           maxVisible: { value: 2 },
+          // Tags are click-to-filter only where a tag filter column exists.
+          clickable: { value: this.hasTagFilterColumn },
         },
       };
 
@@ -1594,6 +1597,24 @@ export default {
       if (this.hasTagFilterColumn && this.$store.state.tag_list === null) {
         getTags();
       }
+    },
+    filterByTag(tag) {
+      // Clicking a tag in a row replaces the tags filter with just that tag, so the
+      // table shows only items carrying it.
+      const tagsFilter = this.filters.tags;
+      if (!tagsFilter || !tagsFilter.constraints) {
+        return;
+      }
+      const option = { key: this.tagFilterKey(tag), name: tag.name, value: tag };
+      // Replace the `filters` reference so the DataTable reliably re-applies the
+      // menu-mode filter.
+      this.filters = {
+        ...this.filters,
+        tags: {
+          ...tagsFilter,
+          constraints: [{ ...tagsFilter.constraints[0], value: [option] }],
+        },
+      };
     },
     isFilterActive(field) {
       const filter = this.filters[field];

@@ -628,9 +628,9 @@ def _tag_immutable_ids(tags) -> set[str]:
 
 
 def _authorize_added_tags(tags, existing_tag_ids: set[str]) -> None:
-    """Reject any newly added personal tag not owned by the current user.
+    """Reject any newly added user-defined tag not owned by the current user.
 
-    A user may add global tags and their own personal tags.
+    A user may add global tags and their own user-defined tags.
     """
     # In testing an unauthenticated "public" user can write.
     if CONFIG.TESTING and not current_user.is_authenticated:
@@ -1754,7 +1754,7 @@ def save_item():
     item.pop("immutable_id", None)
     item.pop("files", None)
 
-    # A user may not add another user's personal tag.
+    # A user may not add another user's user-defined tag.
     _authorize_added_tags(item.get("tags"), existing_tag_ids)
 
     # Store tag references minimally; see `_strip_tag_display_fields`.

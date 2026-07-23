@@ -18,7 +18,7 @@
               data-testid="tag-scope-select"
               class="form-control"
             >
-              <option value="user">Personal (only you can use it)</option>
+              <option value="user">User-defined (only you can use it)</option>
               <option value="global">Global (available to everyone)</option>
             </select>
             <input
@@ -91,7 +91,7 @@ export default {
       name: "",
       description: "",
       color: DEFAULT_TAG_COLOR,
-      // New tags default to a personal tag.
+      // New tags default to a user-defined tag.
       scope: "user",
       errorMessage: null,
       submitting: false,
@@ -109,7 +109,7 @@ export default {
       return !this.isEditing && this.isAdmin;
     },
     scopeLabel() {
-      return this.scope === "global" ? "Global" : "Personal";
+      return this.scope === "global" ? "Global" : "User-defined";
     },
     isFormValid() {
       return !this.submitting && Boolean(this.name.trim());

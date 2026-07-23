@@ -117,7 +117,7 @@ Cypress.Commands.add("deleteSampleViaAPI", (item_id) => {
 
 Cypress.Commands.add("createTagViaAPI", (data) => {
   // data: { name, description?, color?, scope? }. `scope` defaults to "user"
-  // (a personal tag owned by the logged-in user); pass scope: "global" (as an
+  // (a user-defined tag owned by the logged-in user); pass scope: "global" (as an
   // admin) for a tag every user can use. Returns the new tag's id.
   return cy
     .request({

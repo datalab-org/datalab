@@ -223,14 +223,14 @@ def test_tag_scope_owner_consistency():
 
     owner = ObjectId()
 
-    # A valid personal tag.
-    personal = Tag(name="mine", scope="user", owner=owner)
-    assert personal.scope == AccessScope.USER
-    assert personal.owner == owner
+    # A valid user-defined tag.
+    user_defined = Tag(name="mine", scope="user", owner=owner)
+    assert user_defined.scope == AccessScope.USER
+    assert user_defined.owner == owner
     # `owner` is preserved as an ObjectId in the stored (python-mode) dump.
-    assert isinstance(personal.model_dump(exclude_none=True)["owner"], ObjectId)
+    assert isinstance(user_defined.model_dump(exclude_none=True)["owner"], ObjectId)
     # ... and stringified in the JSON dump sent to clients.
-    assert json.loads(personal.model_dump_json())["owner"] == str(owner)
+    assert json.loads(user_defined.model_dump_json())["owner"] == str(owner)
 
     # A valid global tag has no owner.
     glob = Tag(name="shared", scope="global")
