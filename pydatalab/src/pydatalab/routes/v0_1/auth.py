@@ -17,11 +17,7 @@ from flask import Blueprint, Response, g, jsonify, redirect, request
 from flask_dance.consumer import OAuth2ConsumerBlueprint, oauth_authorized
 from flask_login import current_user, login_user
 from flask_login.utils import LocalProxy
-<<<<<<< HEAD
-from werkzeug.exceptions import BadRequest, Forbidden, NotFound
-=======
-from werkzeug.exceptions import BadRequest, Forbidden, Unauthorized
->>>>>>> a8f2b330 (More clean up of errors in routes.)
+from werkzeug.exceptions import BadRequest, Forbidden, NotFound, Unauthorized
 
 from pydatalab.config import CONFIG
 from pydatalab.errors import UserRegistrationForbidden

@@ -216,7 +216,7 @@ def test_file_permissions(
 
     # Test that a random user cannot access the file directly
     response = another_client.get(f"/files/{file_id}/{filename}")
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert response.json["status"] == "error"
 
     # Give the user access to the item, then check again
@@ -275,7 +275,7 @@ def test_file_download_sudo_mode(
 
     # Admin without ?sudo=1 cannot access the file
     response = admin_client.get(f"/files/{file_id}/{filename}")
-    assert response.status_code == 401
+    assert response.status_code == 403
 
     # Admin with ?sudo=1 can access the file
     response = admin_client.get(f"/files/{file_id}/{filename}?sudo=1")

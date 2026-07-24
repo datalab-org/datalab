@@ -178,7 +178,7 @@ def test_groups(
 
     # Group ID must be unique
     resp = admin_client.put("/groups", json=good_group)
-    assert resp.status_code == 400
+    assert resp.status_code == 409
 
     # Request must come from admin
     # Make ID unique so that this would otherwise pass
