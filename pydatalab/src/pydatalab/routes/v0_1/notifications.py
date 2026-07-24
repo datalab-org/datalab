@@ -6,6 +6,7 @@ from flask import Blueprint, abort, jsonify, request
 from flask_login import current_user
 from pydantic import ValidationError
 from pymongo import ReturnDocument
+from pymongo.errors import PyMongoError
 from werkzeug.exceptions import BadRequest, NotFound
 
 from pydatalab.feature_flags import FEATURE_FLAGS
@@ -125,16 +126,15 @@ def create_notifications():
 
     try:
         hello = flask_mongo.cx.admin.command("hello")
-        supports_transactions = hello.get("msg") == "isdbgrid" or "setName" in hello
-    except Exception:
-        supports_transactions = False
-
-    if supports_transactions:
-        with flask_mongo.cx.start_session() as session:
-            with session.start_transaction():
-                notification_results = create_for_recipients(db_session=session)
-    else:
+    except PyMongoError:
         notification_results = create_for_recipients()
+    else:
+        if hello.get("msg") == "isdbgrid" or "setName" in hello:
+            with flask_mongo.cx.start_session() as session:
+                with session.start_transaction():
+                    notification_results = create_for_recipients(db_session=session)
+        else:
+            notification_results = create_for_recipients()
 
     created_count = sum(created for _, created in notification_results)
     grouped_count = len(notification_results) - created_count
