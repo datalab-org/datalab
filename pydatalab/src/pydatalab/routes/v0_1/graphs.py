@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from werkzeug.exceptions import NotFound
 
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
@@ -32,12 +33,7 @@ def get_graph_cy_format(
                 projection={"_id": 1},
             )
             if not collection_immutable_id:
-                return (
-                    jsonify(
-                        status="error", message=f"No collection found with ID {collection_id!r}"
-                    ),
-                    404,
-                )
+                raise NotFound(f"No collection found with ID {collection_id!r}")
             collection_immutable_id = collection_immutable_id["_id"]
             query = {
                 "$and": [
@@ -64,10 +60,7 @@ def get_graph_cy_format(
         )
 
         if not main_item:
-            return (
-                jsonify(status="error", message=f"Item {item_id} not found or no permission"),
-                404,
-            )
+            raise NotFound(f"Item {item_id} not found or no permission")
 
         node_ids = {item_id}
         all_documents = [main_item]

@@ -3,7 +3,7 @@ from typing import Any
 
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, NotFound, Unauthorized
 
 from pydatalab.config import CONFIG
 from pydatalab.permissions import active_users_or_get_only
@@ -45,30 +45,9 @@ def list_remote_directories():
         not (current_user.is_authenticated and current_user.account_status == "active")
         and not CONFIG.TESTING
     ):
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "title": "Not Authorized",
-                    "detail": "Listing remote directories requires authentication.",
-                }
-            ),
-            401,
-        )
+        raise Unauthorized("Listing remote directories requires authentication.")
 
-    try:
-        invalidate_cache = _check_invalidate_cache(request.args)
-    except RuntimeError as e:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "title": "Invalid Argument",
-                    "detail": str(e),
-                }
-            ),
-            400,
-        )
+    invalidate_cache = _check_invalidate_cache(request.args)
 
     all_directory_structures = get_directory_structures(
         CONFIG.REMOTE_FILESYSTEMS, invalidate_cache=invalidate_cache
@@ -94,46 +73,16 @@ def get_remote_directory(remote_id: str):
 
     """
     if not current_user.is_authenticated and not CONFIG.TESTING:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "title": "Not Authorized",
-                    "detail": "Listing remote directories requires authentication.",
-                }
-            ),
-            401,
-        )
+        raise Unauthorized("Listing remote directories requires authentication.")
 
-    try:
-        invalidate_cache = _check_invalidate_cache(request.args)
-    except RuntimeError as e:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "title": "Invalid Argument",
-                    "detail": str(e),
-                }
-            ),
-            400,
-        )
+    invalidate_cache = _check_invalidate_cache(request.args)
 
     for d in CONFIG.REMOTE_FILESYSTEMS:
         if remote_id == d.name:
             remote_obj = d
             break
     else:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "title": "Not Found",
-                    "detail": f"No remote found with name {remote_id!r}",
-                }
-            ),
-            404,
-        )
+        raise NotFound(f"No remote found with name {remote_id!r}")
 
     directory_structure = get_directory_structure(remote_obj, invalidate_cache=invalidate_cache)
 

@@ -4,7 +4,14 @@ import pymongo.errors
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
-from werkzeug.exceptions import BadRequest, NotFound
+from werkzeug.exceptions import (
+    BadRequest,
+    Conflict,
+    Forbidden,
+    InternalServerError,
+    NotFound,
+    Unauthorized,
+)
 
 from pydatalab.config import CONFIG
 from pydatalab.models.people import Group, Person
@@ -136,24 +143,21 @@ def save_role(user_id):
         user_role = request_json
 
     if not current_user.is_authenticated and not CONFIG.TESTING:
-        return (jsonify({"status": "error", "message": "No user authenticated."}), 401)
+        raise Unauthorized("No user authenticated.")
 
     if not CONFIG.TESTING and current_user.role != "admin":
-        return (
-            jsonify({"status": "error", "message": "User not allowed to edit this profile."}),
-            403,
-        )
+        raise Forbidden("User not allowed to edit this profile.")
 
     existing_user = flask_mongo.db.users.find_one({"_id": ObjectId(user_id)})
 
     if not existing_user:
-        return (jsonify({"status": "error", "message": "User not found."}), 404)
+        raise NotFound("User not found.")
 
     existing_role = flask_mongo.db.roles.find_one({"_id": ObjectId(user_id)})
 
     if not existing_role:
         if not user_role:
-            return (jsonify({"status": "error", "message": "Role not provided for new user."}), 400)
+            raise BadRequest("Role not provided for new user.")
 
         new_user_role = {"_id": ObjectId(user_id), **user_role}
         flask_mongo.db.roles.insert_one(new_user_role)
@@ -163,7 +167,7 @@ def save_role(user_id):
     update_result = flask_mongo.db.roles.update_one({"_id": ObjectId(user_id)}, {"$set": user_role})
 
     if update_result.matched_count != 1:
-        return (jsonify({"status": "error", "message": "Unable to update user."}), 400)
+        raise BadRequest("Unable to update user.")
 
     if update_result.modified_count != 1:
         return (
@@ -186,16 +190,16 @@ def update_user_managers(user_id):
     request_json = request.get_json()
 
     if request_json is None or "managers" not in request_json:
-        return jsonify({"status": "error", "message": "Managers list not provided"}), 400
+        raise BadRequest("Managers list not provided")
 
     managers = request_json["managers"]
 
     if not isinstance(managers, list):
-        return jsonify({"status": "error", "message": "Managers must be a list"}), 400
+        raise BadRequest("Managers must be a list")
 
     existing_user = flask_mongo.db.users.find_one({"_id": ObjectId(user_id)})
     if not existing_user:
-        return jsonify({"status": "error", "message": "User not found"}), 404
+        raise NotFound("User not found")
 
     manager_object_ids = []
     for manager_id in managers:
@@ -203,22 +207,15 @@ def update_user_managers(user_id):
             try:
                 manager_oid = ObjectId(manager_id)
             except Exception:
-                return jsonify(
-                    {"status": "error", "message": f"Invalid manager ID format: {manager_id}"}
-                ), 400
+                raise BadRequest(f"Invalid manager ID format: {manager_id}") from None
 
             if not flask_mongo.db.users.find_one({"_id": manager_oid}):
-                return jsonify(
-                    {"status": "error", "message": f"Manager with ID {manager_id} not found"}
-                ), 404
+                raise NotFound(f"Manager with ID {manager_id} not found")
 
             if check_manager_cycle(user_id, manager_id):
-                return jsonify(
-                    {
-                        "status": "error",
-                        "message": "Cannot assign manager: would create a circular management hierarchy",
-                    }
-                ), 400
+                raise BadRequest(
+                    "Cannot assign manager: would create a circular management hierarchy"
+                )
 
             manager_object_ids.append(manager_oid)
 
@@ -227,7 +224,7 @@ def update_user_managers(user_id):
     )
 
     if update_result.matched_count != 1:
-        return jsonify({"status": "error", "message": "Unable to update user managers"}), 400
+        raise BadRequest("Unable to update user managers")
 
     return jsonify({"status": "success"}), 200
 
@@ -252,8 +249,8 @@ def invalidate_access_token(refcode: str):
 
     if response.modified_count == 1:
         return jsonify({"status": "success"}), 200
-    else:
-        return jsonify({"status": "error", "detail": "Token not found or already invalidated"}), 404
+
+    raise NotFound("Token not found or already invalidated.")
 
 
 @ADMIN.route("/access-tokens", methods=["GET"])
@@ -395,14 +392,12 @@ def create_group():
             group.dict(exclude_unset=True)
         ).inserted_id
     except pymongo.errors.DuplicateKeyError:
-        return jsonify(
-            {"status": "error", "message": f"Group ID {group.group_id} already exists."}
-        ), 400
+        raise Conflict(f"Group ID {group.group_id} already exists.") from None
 
     if group_immutable_id:
         return jsonify({"status": "success", "group_immutable_id": str(group_immutable_id)}), 200
 
-    return jsonify({"status": "error", "message": "Unable to create group."}), 400
+    raise InternalServerError("Unable to create group.")
 
 
 @ADMIN.route("/groups/<group_immutable_id>", methods=["DELETE"])
@@ -413,7 +408,7 @@ def delete_group(group_immutable_id: str):
         if result.deleted_count == 1:
             return jsonify({"status": "success"}), 200
 
-    return jsonify({"status": "error", "message": "Unable to delete group."}), 400
+    raise NotFound("Unable to delete group.")
 
 
 @ADMIN.route("/groups/<group_immutable_id>", methods=["PATCH"])
@@ -422,7 +417,7 @@ def update_group(group_immutable_id: str):
 
     existing_group = flask_mongo.db.groups.find_one({"_id": ObjectId(group_immutable_id)})
     if not existing_group:
-        return jsonify({"status": "error", "message": "Group not found."}), 404
+        raise NotFound("Group not found.")
 
     update_data = {}
 
@@ -450,23 +445,22 @@ def update_group(group_immutable_id: str):
         temp_group_data.pop("_id", None)
         Group(**temp_group_data)
     except Exception as e:
-        return jsonify({"status": "error", "message": f"Invalid group data: {str(e)}"}), 400
+        raise BadRequest(f"Invalid group data: {str(e)}") from e
 
     try:
         result = flask_mongo.db.groups.update_one(
             {"_id": ObjectId(group_immutable_id)}, {"$set": update_data}
         )
+    except pymongo.errors.PyMongoError as e:
+        raise InternalServerError(f"Failed to update group: {str(e)}") from e
 
-        if result.matched_count == 0:
-            return jsonify({"status": "error", "message": "Group not found."}), 404
+    if result.matched_count == 0:
+        raise NotFound("Group not found.")
 
-        if result.modified_count == 0:
-            return jsonify({"status": "success", "message": "No changes were made."}), 200
+    if result.modified_count == 0:
+        return jsonify({"status": "success", "message": "No changes were made."}), 200
 
-        return jsonify({"status": "success", "message": "Group updated successfully."}), 200
-
-    except Exception as e:
-        return jsonify({"status": "error", "message": f"Failed to update group: {str(e)}"}), 500
+    return jsonify({"status": "success", "message": "Group updated successfully."}), 200
 
 
 @ADMIN.route("/groups/<group_immutable_id>", methods=["PUT"])

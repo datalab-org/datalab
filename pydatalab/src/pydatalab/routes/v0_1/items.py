@@ -11,7 +11,7 @@ from flask import Blueprint, jsonify, redirect, request
 from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
-from werkzeug.exceptions import BadRequest, Conflict, NotFound
+from werkzeug.exceptions import BadRequest, Conflict, InternalServerError, NotFound, Unauthorized
 
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
@@ -523,7 +523,7 @@ def search_items():
         types = types.split(",")
 
     if not query:
-        return jsonify({"status": "error", "message": "No query provided."}), 400
+        raise BadRequest("No query provided.")
 
     permissions = get_default_permissions(user_only=False)
     pipeline = build_search_pipeline(query, ITEMS_FTS_FIELDS, permissions)
@@ -797,12 +797,9 @@ def create_samples():
     sample_jsons = request_json["new_sample_datas"]
 
     if len(sample_jsons) > CONFIG.MAX_BATCH_CREATE_SIZE:
-        return jsonify(
-            {
-                "status": "error",
-                "message": f"Batch size limit exceeded. Maximum allowed: {CONFIG.MAX_BATCH_CREATE_SIZE}, requested: {len(sample_jsons)}",
-            }
-        ), 400
+        raise BadRequest(
+            f"Batch size limit exceeded. Maximum allowed: {CONFIG.MAX_BATCH_CREATE_SIZE}, requested: {len(sample_jsons)}"
+        )
 
     copy_from_item_ids = request_json.get("copy_from_item_ids")
     generate_ids_automatically = request_json.get("generate_ids_automatically")
@@ -1029,12 +1026,7 @@ def issue_physical_token(refcode: str):
     )
 
     if not current_item:
-        return jsonify(
-            {
-                "status": "error",
-                "message": f"No valid item found with the given {refcode=}.",
-            }
-        ), 404
+        raise NotFound(f"No valid item found with the given {refcode=}.")
 
     token = secrets.token_urlsafe(16)
     access_document = {
@@ -1050,15 +1042,11 @@ def issue_physical_token(refcode: str):
 
     try:
         result = flask_mongo.db.api_keys.insert_one(access_document)
-        if not result.inserted_id:
-            return jsonify(
-                {"status": "error", "message": "Unknown error generating token for item."}
-            ), 500
     except Exception as e:
         LOGGER.error("Error inserting access token: %s", e)
-        return jsonify(
-            {"status": "error", "message": "Database error generating token for item."}
-        ), 500
+        raise InternalServerError("Database error generating token for item.") from e
+    if not result.inserted_id:
+        raise InternalServerError("Unknown error generating token for item.")
 
     return jsonify({"status": "success", "token": token}), 201
 
@@ -1074,30 +1062,14 @@ def delete_sample():
     )
 
     if not item:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": f"Authorization required to attempt to delete sample with {item_id=} from the database.",
-                }
-            ),
-            401,
-        )
+        raise NotFound(f"No valid item found with {item_id=} and current authorization.")
 
     result = flask_mongo.db.items.delete_one(
         {"item_id": item_id, **get_default_permissions(user_only=True, deleting=True)}
     )
 
     if result.deleted_count != 1:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": f"Failed to delete item with {item_id=}.",
-                }
-            ),
-            400,
-        )
+        raise BadRequest(f"Failed to delete item with {item_id=}.")
 
     flask_mongo.db.api_keys.delete_many({"refcode": item["refcode"], "type": "access_token"})
 
@@ -1165,15 +1137,7 @@ def get_item_data(
         doc = None
 
     if not doc:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": f"No matching items for {match=} with current authorization.",
-                }
-            ),
-            404,
-        )
+        raise NotFound(f"No matching items for {match=} with current authorization.")
 
     # See LAST_MODIFIED_PROJECTION: same backfill, applied outside an aggregation
     if not doc.get("last_modified") and isinstance(doc.get("_id"), ObjectId):
@@ -1201,15 +1165,9 @@ def get_item_data(
             doc["type"],
             error,
         )
-        return (
-            jsonify(
-                status="error",
-                message=(
-                    f"Item {item_id=} is stored in a state that does not validate "
-                    f"against the expected schema for its type {doc['type']}: {error}"
-                ),
-            ),
-            500,
+        raise InternalServerError(
+            f"Item {item_id=} is stored in a state that does not validate "
+            f"against the expected schema for its type {doc['type']}: {error}"
         )
 
     # find any documents with relationships that mention this document
@@ -1291,9 +1249,7 @@ def list_versions(refcode):
     # Check if user has access to the item (read access)
     has_access, _ = check_version_access(refcode, user_only=False)
     if not has_access:
-        return jsonify(
-            {"status": "error", "message": "Item not found or insufficient permissions"}
-        ), 404
+        raise NotFound("Item not found or insufficient permissions")
 
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
@@ -1345,9 +1301,7 @@ def get_version(refcode, version_id):
     # Check if user has access to the item (read access)
     has_access, _ = check_version_access(refcode, user_only=False)
     if not has_access:
-        return jsonify(
-            {"status": "error", "message": "Item not found or insufficient permissions"}
-        ), 404
+        raise NotFound("Item not found or insufficient permissions")
 
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
@@ -1355,7 +1309,7 @@ def get_version(refcode, version_id):
     try:
         version_object_id = ObjectId(version_id)
     except (InvalidId, TypeError):
-        return jsonify({"status": "error", "message": f"Invalid version_id: {version_id}"}), 400
+        raise BadRequest(f"Invalid version_id: {version_id}") from None
 
     version = list(
         flask_mongo.db.item_versions.aggregate(
@@ -1382,7 +1336,7 @@ def get_version(refcode, version_id):
         version = version[0]
 
     if not version:
-        return jsonify({"status": "error", "message": "Version not found"}), 404
+        raise NotFound("Version not found")
 
     return jsonify({"status": "success", "version": version}), 200
 
@@ -1396,9 +1350,7 @@ def compare_versions(refcode):
     # Check if user has access to the item (read access)
     has_access, _ = check_version_access(refcode, user_only=False)
     if not has_access:
-        return jsonify(
-            {"status": "error", "message": "Item not found or insufficient permissions"}
-        ), 404
+        raise NotFound("Item not found or insufficient permissions")
 
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
@@ -1417,12 +1369,12 @@ def compare_versions(refcode):
         v1_object_id = ObjectId(query_params.v1)
         v2_object_id = ObjectId(query_params.v2)
     except (InvalidId, TypeError) as e:
-        return jsonify({"status": "error", "message": f"Invalid version ID format: {str(e)}"}), 400
+        raise BadRequest(f"Invalid version ID format: {str(e)}") from e
 
     v1 = flask_mongo.db.item_versions.find_one({"_id": v1_object_id, "refcode": refcode})
     v2 = flask_mongo.db.item_versions.find_one({"_id": v2_object_id, "refcode": refcode})
     if not v1 or not v2:
-        return jsonify({"status": "error", "message": "One or both versions not found"}), 404
+        raise NotFound("One or both versions not found")
 
     # Use DeepDiff for proper nested structure comparison
     # This handles nested dicts, lists, type changes, and provides detailed change information
@@ -1474,22 +1426,18 @@ def restore_version(refcode):
     try:
         version_object_id = ObjectId(restore_request.version_id)
     except (InvalidId, TypeError):
-        return jsonify(
-            {"status": "error", "message": f"Invalid version_id: {restore_request.version_id}"}
-        ), 400
+        raise BadRequest(f"Invalid version_id: {restore_request.version_id}") from None
 
     # Check permissions - user must have write access
     current_item = flask_mongo.db.items.find_one(
         {"refcode": refcode, **get_default_permissions(user_only=True)}
     )
     if not current_item:
-        return jsonify(
-            {"status": "error", "message": "Item not found or insufficient permissions"}
-        ), 404
+        raise NotFound("Item not found or insufficient permissions")
 
     version = flask_mongo.db.item_versions.find_one({"_id": version_object_id, "refcode": refcode})
     if not version:
-        return jsonify({"status": "error", "message": "Version not found"}), 404
+        raise NotFound("Version not found")
 
     restored_data = version["data"].copy()
 
@@ -1498,12 +1446,9 @@ def restore_version(refcode):
 
     # Ensure type consistency
     if restored_data.get("type") != current_item.get("type"):
-        return jsonify(
-            {
-                "status": "error",
-                "message": f"Cannot restore version with different type. Current: {current_item.get('type')}, Version: {restored_data.get('type')}",
-            }
-        ), 400
+        raise BadRequest(
+            f"Cannot restore version with different type. Current: {current_item.get('type')}, Version: {restored_data.get('type')}"
+        )
 
     # Atomically get the next version number (used for both version in item_versions and item.version)
     next_version_number = get_next_version_number(refcode)
@@ -1515,7 +1460,7 @@ def restore_version(refcode):
     # Validate restored data against the item model
     item_type = current_item["type"]
     if item_type not in ITEM_MODELS:
-        return jsonify({"status": "error", "message": f"Invalid item type: {item_type}"}), 400
+        raise BadRequest(f"Invalid item type: {item_type}")
 
     try:
         # Validate using the appropriate model
@@ -1595,9 +1540,7 @@ def delete_version(refcode, version_id):
     # Check if user has write access to the item (write access required)
     has_access, _ = check_version_access(refcode, user_only=True)
     if not has_access:
-        return jsonify(
-            {"status": "error", "message": "Item not found or insufficient permissions"}
-        ), 404
+        raise NotFound("Item not found or insufficient permissions")
 
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
@@ -1605,13 +1548,13 @@ def delete_version(refcode, version_id):
     try:
         version_object_id = ObjectId(version_id)
     except (InvalidId, TypeError):
-        return jsonify({"status": "error", "message": f"Invalid version_id: {version_id}"}), 400
+        raise BadRequest(f"Invalid version_id: {version_id}") from None
 
     result = flask_mongo.db.item_versions.delete_one({"_id": version_object_id, "refcode": refcode})
     if result.deleted_count == 1:
         return jsonify({"status": "success"}), 200
     else:
-        return jsonify({"status": "error", "message": "Version not found"}), 404
+        raise NotFound("Version not found")
 
 
 @ITEMS.route("/items/<refcode>/save-version/", methods=["POST"])
@@ -1682,24 +1625,12 @@ def save_item():
     )
 
     if not item:
-        return (
-            jsonify(
-                status="error",
-                message=f"Unable to find item with appropriate permissions and {item_id=}.",
-            ),
-            404,
-        )
+        raise NotFound(f"Unable to find item with appropriate permissions and {item_id=}.")
 
     # Store refcode for version saving after successful update
     refcode = item.get("refcode")
     if not refcode:
-        return (
-            jsonify(
-                status="error",
-                message=f"Item {item_id} does not have a refcode.",
-            ),
-            400,
-        )
+        raise BadRequest(f"Item {item_id} does not have a refcode.")
 
     user_only = item["type"] not in ("starting_materials", "equipment")
 
@@ -1708,13 +1639,7 @@ def save_item():
     )
 
     if not item:
-        return (
-            jsonify(
-                status="error",
-                message=f"Unable to find item with appropriate permissions and {item_id=}.",
-            ),
-            404,
-        )
+        raise NotFound(f"Unable to find item with appropriate permissions and {item_id=}.")
 
     if "collections" in updated_data:
         requested_collections = updated_data["collections"]
@@ -1854,7 +1779,7 @@ def get_access_token_info(refcode: str):
     if access_token and check_access_token(refcode, access_token):
         pass
     elif not (current_user.is_authenticated):
-        return jsonify({"status": "error", "message": "Authentication required."}), 401
+        raise Unauthorized("Authentication required.")
 
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
@@ -1865,12 +1790,7 @@ def get_access_token_info(refcode: str):
     )
 
     if not current_item:
-        return jsonify(
-            {
-                "status": "error",
-                "message": f"No valid item found with the given {refcode=}.",
-            }
-        ), 404
+        raise NotFound(f"No valid item found with the given {refcode=}.")
 
     existing_token = flask_mongo.db.api_keys.find_one(
         {"refcode": refcode, "active": True, "type": "access_token"},

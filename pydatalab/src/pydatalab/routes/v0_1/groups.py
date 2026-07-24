@@ -1,6 +1,7 @@
 import json
 
 from flask import Blueprint, jsonify, request
+from werkzeug.exceptions import BadRequest
 
 from pydatalab.models.people import Group
 from pydatalab.mongo import (
@@ -34,7 +35,7 @@ def search_groups():
     nresults = request.args.get("nresults", default=100, type=int)
 
     if not query:
-        return jsonify({"status": "error", "message": "No query provided"}), 400
+        raise BadRequest("No query provided")
 
     pipeline = build_search_pipeline(query, GROUPS_FTS_FIELDS, permissions=None)
     pipeline.append({"$limit": nresults})
