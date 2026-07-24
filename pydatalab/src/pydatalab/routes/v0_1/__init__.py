@@ -12,6 +12,7 @@ from .groups import GROUPS
 from .healthcheck import HEALTHCHECK
 from .info import INFO
 from .items import ITEMS
+from .notifications import NOTIFICATIONS
 from .remotes import REMOTES
 from .users import USERS
 
@@ -27,6 +28,7 @@ BLUEPRINTS: tuple[Blueprint, ...] = (
     FILES,
     HEALTHCHECK,
     INFO,
+    NOTIFICATIONS,
     GRAPHS,
     EXPORT,
 )

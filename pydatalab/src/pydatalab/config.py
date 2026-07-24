@@ -237,6 +237,11 @@ class ServerConfig(BaseSettings):
         description="Whether to disable magic-link email authentication while retaining SMTP-backed notification emails.",
     )
 
+    ENABLE_NOTIFICATIONS: bool = Field(
+        False,
+        description="Whether to enable in-app notifications and their API endpoints.",
+    )
+
     MAX_CONTENT_LENGTH: int = Field(
         10 * 1000**3,
         description=r"""Direct mapping to the equivalent Flask setting. In practice, limits the file size that can be uploaded.
