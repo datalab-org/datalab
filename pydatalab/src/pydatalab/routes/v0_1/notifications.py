@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from bson import ObjectId
-from flask import Blueprint, abort, jsonify, request
+from flask import Blueprint, jsonify, request
 from flask_login import current_user
 from pydantic import ValidationError
 from pymongo import ReturnDocument
@@ -28,7 +28,7 @@ NOTIFICATIONS = Blueprint("notifications", __name__)
 def _require_notifications_feature():
     """Gate the whole blueprint behind the `notifications` feature flag."""
     if not FEATURE_FLAGS.notifications.enabled:
-        abort(404)
+        raise NotFound()
 
 
 @NOTIFICATIONS.before_request
