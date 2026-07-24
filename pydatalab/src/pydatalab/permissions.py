@@ -3,6 +3,7 @@ from hashlib import sha512
 from typing import Any
 
 from bson import ObjectId
+from bson.errors import InvalidId
 from flask import request
 from flask_login import current_user
 
@@ -134,10 +135,11 @@ def notification_recipient_only(func):
     def wrapped_route(*args, **kwargs):
         # notifications_permissions are injected by the with_notification_permissions decorator(see below)
         notification_permissions = kwargs["notification_permissions"]
+        raw_notification_id = kwargs.pop("notification_id")
         try:
-            notification_object_id = ObjectId(kwargs["notification_id"])
-        except Exception:
-            return {"error": f"Invalid notification_id {kwargs.get('notification_id')!r}."}, 400
+            notification_object_id = ObjectId(raw_notification_id)
+        except (InvalidId, TypeError):
+            return {"error": f"Invalid notification_id {raw_notification_id!r}."}, 400
 
         notification = flask_mongo.db.notifications.find_one(
             {"_id": notification_object_id, **notification_permissions}

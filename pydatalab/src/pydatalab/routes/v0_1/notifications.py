@@ -204,7 +204,6 @@ def get_notification_unread_count(notification_permissions: dict):
 @NOTIFICATIONS.route("/notifications/<notification_id>", methods=["PATCH"])
 @notification_recipient_only
 def update_notification(
-    notification_id: str,
     notification: dict,
     notification_permissions: dict,
 ):
@@ -286,7 +285,6 @@ def mark_all_notifications_read(notification_permissions: dict):
 @NOTIFICATIONS.route("/notifications/<notification_id>", methods=["DELETE"])
 @notification_recipient_only
 def delete_notification(
-    notification_id: str,
     notification: dict,
     notification_permissions: dict,
 ):
