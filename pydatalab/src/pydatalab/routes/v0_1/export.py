@@ -7,6 +7,7 @@ from pathlib import Path
 
 from flask import Blueprint, jsonify, make_response, request, send_file
 from flask_login import current_user
+from werkzeug.exceptions import BadRequest, Conflict, NotFound
 
 from pydatalab.config import CONFIG
 from pydatalab.export import create_eln_file
@@ -201,7 +202,7 @@ def start_collection_export(collection_id: str):
         {"collection_id": collection_id, **get_default_permissions(user_only=False)}
     )
     if not collection_with_perms:
-        return jsonify({"status": "error", "message": "Collection not found"}), 404
+        raise NotFound("Collection not found")
 
     task_id = str(uuid.uuid4())
 
@@ -245,7 +246,7 @@ def get_export_status(task_id: str):
     )
 
     if not task:
-        return jsonify({"status": "error", "message": "Export task not found"}), 404
+        raise NotFound("Export task not found")
 
     response = {
         "status": task["status"],
@@ -326,12 +327,10 @@ def download_export(task_id: str):
         task = flask_mongo.db.tasks.find_one({"task_id": task_id, "type": TaskType.EXPORT})
 
     if not task:
-        return jsonify({"status": "error", "message": "Export task not found"}), 404
+        raise NotFound("Export task not found")
 
     if task["status"] != TaskStatus.READY:
-        return jsonify(
-            {"status": "error", "message": f"Export is not ready. Current status: {task['status']}"}
-        ), 400
+        raise Conflict(f"Export is not ready. Current status: {task['status']}")
 
     spec = task.get("spec", {})
     file_path = spec.get("file_path")
@@ -340,7 +339,7 @@ def download_export(task_id: str):
         or not _is_export_path_safe(file_path, task_id)
         or not os.path.exists(file_path)
     ):
-        return jsonify({"status": "error", "message": "Export file not found"}), 404
+        raise NotFound("Export file not found")
 
     filename = f"{spec.get('collection_id') or spec.get('item_id')}.eln"
 
@@ -355,7 +354,7 @@ def start_item_export(item_id: str):
         {"item_id": item_id, **get_default_permissions(user_only=False)}
     )
     if not item_data:
-        return jsonify({"status": "error", "message": "Item not found"}), 404
+        raise NotFound("Item not found")
 
     task_id = str(uuid.uuid4())
 
@@ -371,12 +370,7 @@ def start_item_export(item_id: str):
     if request_data.get("include_related"):
         related_item_ids = request_data.get("related_item_ids", [])
         if not related_item_ids:
-            return jsonify(
-                {
-                    "status": "error",
-                    "message": "related_item_ids required when include_related is true",
-                }
-            ), 400
+            raise BadRequest("related_item_ids required when include_related is true")
         export_type = "graph"
 
     export_task = Task(

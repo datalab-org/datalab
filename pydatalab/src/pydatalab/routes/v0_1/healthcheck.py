@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify
+from werkzeug.exceptions import BadGateway
 
 HEALTHCHECK = Blueprint("healthcheck", __name__)
 
@@ -10,10 +11,7 @@ def is_ready():
     try:
         check_mongo_connection()
     except RuntimeError:
-        return (
-            jsonify(status="error", message="Unable to connect to MongoDB at specified URI."),
-            502,
-        )
+        raise BadGateway("Unable to connect to MongoDB at specified URI.") from None
     return (jsonify(status="success", message="Server and database are ready"), 200)
 
 

@@ -226,7 +226,7 @@ def test_download_export_not_ready(client, user_id, database):
     database.tasks.insert_one(task.dict())
 
     response = client.get(f"/exports/{task_id}/download")
-    assert response.status_code == 400
+    assert response.status_code == 409
 
     data = json.loads(response.data)
     assert "not ready" in data["message"].lower()

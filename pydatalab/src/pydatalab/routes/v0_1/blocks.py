@@ -257,13 +257,7 @@ def add_data_block():
     )
 
     if result.modified_count < 1:
-        return (
-            jsonify(
-                status="error",
-                message=f"Update failed. {item_id=} is probably incorrect.",
-            ),
-            400,
-        )
+        raise BadRequest(f"Update failed. {item_id=} is probably incorrect.")
 
     # get the new display_order:
     display_order_result = flask_mongo.db.items.find_one(
@@ -430,15 +424,7 @@ def delete_block():
     )
 
     if result.modified_count < 1:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": f"Update failed. The item_id probably incorrect: {item_id}",
-                }
-            ),
-            400,
-        )
+        raise BadRequest(f"Update failed. The item_id probably incorrect: {item_id}")
     return (
         jsonify({"status": "success"}),
         200,
@@ -450,7 +436,7 @@ def get_block_task_status(task_id: str):
     task = flask_mongo.db.tasks.find_one({"task_id": task_id, "type": TaskType.BLOCK_PROCESSING})
 
     if not task:
-        return jsonify({"status": "error", "message": "Task not found"}), 404
+        raise NotFound("Task not found")
 
     response = {
         "status": task["status"],
