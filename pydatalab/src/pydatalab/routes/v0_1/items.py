@@ -1169,9 +1169,9 @@ def delete_sample():
     # Deleting an item removes the live documents of its referenced blocks, but
     # their `block_versions` history is retained.
     referenced_block_ids = [
-        entry["immutable_id"]
-        for entry in (item.get("blocks_obj") or {}).values()
-        if block_store.is_block_reference(entry)
+        blocks_obj_value["immutable_id"]
+        for blocks_obj_value in (item.get("blocks_obj") or {}).values()
+        if block_store.is_block_reference(blocks_obj_value)
     ]
     if referenced_block_ids:
         flask_mongo.db.blocks.delete_many({"_id": {"$in": referenced_block_ids}})
@@ -1582,16 +1582,11 @@ def restore_version(refcode):
     try:
         # Validate using the appropriate model. Version-pinned block references
         # do not validate as block payloads, so validate a *resolved* copy while
-        # keeping each entry's original form for the writes below.
-        validation_data = restored_data
-        if any(
-            block_store.is_block_reference(entry)
-            for entry in (restored_data.get("blocks_obj") or {}).values()
-        ):
-            validation_data = {
-                **restored_data,
-                "blocks_obj": block_store.resolve_snapshot_blocks_obj(restored_data),
-            }
+        # keeping each blocks_obj value's original form for the writes below.
+        validation_data = {
+            **restored_data,
+            "blocks_obj": block_store.resolve_snapshot_blocks_obj(restored_data),
+        }
         ITEM_MODELS[item_type](**validation_data)
     except ValidationError as exc:
         raise BadRequest(
@@ -1603,23 +1598,23 @@ def restore_version(refcode):
     if current_user.is_authenticated:
         user_id = current_user.person.immutable_id
 
-    # Apply each snapshotted blocks_obj entry in its own form: embedded payloads
+    # Apply each snapshotted blocks_obj value in its own form: embedded payloads
     # are written back inline as before, while the references get
     # the payload from the `block_versions` and becomes the new current `blocks`
     # state, plus a new RESTORED `block_versions` entry.
     restored_block_pins: dict[str, dict] = {}
     if "blocks_obj" in restored_data:
         live_blocks_obj = {}
-        for block_id, entry in (restored_data.get("blocks_obj") or {}).items():
-            if not block_store.is_block_reference(entry):
-                live_blocks_obj[block_id] = entry
+        for block_id, blocks_obj_value in (restored_data.get("blocks_obj") or {}).items():
+            if not block_store.is_block_reference(blocks_obj_value):
+                live_blocks_obj[block_id] = blocks_obj_value
                 continue
             # Snapshot references should always be version-pinned.
             # An unpinned one is not restorable.
-            pinned_version = entry.get("version")
+            pinned_version = blocks_obj_value.get("version")
             new_block_version = (
                 block_store.restore_block_version(
-                    entry["immutable_id"], pinned_version, user_id=user_id
+                    blocks_obj_value["immutable_id"], pinned_version, user_id=user_id
                 )
                 if pinned_version is not None
                 else None
@@ -1630,7 +1625,7 @@ def restore_version(refcode):
                 LOGGER.error(
                     "Dropping unrestorable block reference %s (%s) while restoring %s",
                     block_id,
-                    entry,
+                    blocks_obj_value,
                     refcode,
                 )
                 if isinstance(restored_data.get("display_order"), list):
@@ -1638,9 +1633,9 @@ def restore_version(refcode):
                         b for b in restored_data["display_order"] if b != block_id
                     ]
                 continue
-            live_blocks_obj[block_id] = {"immutable_id": entry["immutable_id"]}
+            live_blocks_obj[block_id] = {"immutable_id": blocks_obj_value["immutable_id"]}
             restored_block_pins[block_id] = {
-                "immutable_id": entry["immutable_id"],
+                "immutable_id": blocks_obj_value["immutable_id"],
                 "version": new_block_version,
             }
         restored_data["blocks_obj"] = live_blocks_obj
@@ -1648,9 +1643,9 @@ def restore_version(refcode):
         # Referenced blocks on the current item that are absent from the restored
         # snapshot disappear from the item (as the legacy blocks), so remove
         # their live documents too.
-        for block_id, entry in (current_item.get("blocks_obj") or {}).items():
-            if block_store.is_block_reference(entry) and block_id not in live_blocks_obj:
-                block_store.delete_block_document(entry["immutable_id"])
+        for block_id, blocks_obj_value in (current_item.get("blocks_obj") or {}).items():
+            if block_store.is_block_reference(blocks_obj_value) and block_id not in live_blocks_obj:
+                block_store.delete_block_document(blocks_obj_value["immutable_id"])
 
     # Perform the restore first
     flask_mongo.db.items.update_one({"refcode": refcode}, {"$set": restored_data})
@@ -1844,28 +1839,31 @@ def save_item():
             )
             incoming_blocks[block_id] = block.to_db()
 
-            stored_entry = stored_blocks_obj.get(block_id)
-            if stored_entry is None:
+            blocks_obj_value = stored_blocks_obj.get(block_id)
+            if blocks_obj_value is None:
                 pending_block_creations[block_id] = block
-            elif block_store.is_block_reference(stored_entry):
+            elif block_store.is_block_reference(blocks_obj_value):
                 pending_block_updates.append(
-                    (stored_entry["immutable_id"], incoming_blocks[block_id])
+                    (blocks_obj_value["immutable_id"], incoming_blocks[block_id])
                 )
-                block_reference_map[block_id] = {"immutable_id": stored_entry["immutable_id"]}
+                block_reference_map[block_id] = {"immutable_id": blocks_obj_value["immutable_id"]}
             # else: legacy embedded block — the payload is kept inline as before
 
         # A stored referenced block missing from the payload is treated as a
         # deletion, avoiding orphaned `blocks` documents.
-        for block_id, stored_entry in stored_blocks_obj.items():
-            if block_id not in incoming_blocks and block_store.is_block_reference(stored_entry):
-                pending_block_deletions.append(stored_entry["immutable_id"])
-    elif any(block_store.is_block_reference(entry) for entry in stored_blocks_obj.values()):
+        for block_id, blocks_obj_value in stored_blocks_obj.items():
+            if block_id not in incoming_blocks and block_store.is_block_reference(blocks_obj_value):
+                pending_block_deletions.append(blocks_obj_value["immutable_id"])
+    elif any(
+        block_store.is_block_reference(blocks_obj_value)
+        for blocks_obj_value in stored_blocks_obj.values()
+    ):
         # The client did not send blocks_obj, so the stored blocks are untouched,
-        # but referenced entries must be resolved into full payloads for the item
+        # but referenced values must be resolved into full payloads for the item
         # validation below and swapped back before the final write.
-        for block_id, stored_entry in stored_blocks_obj.items():
-            if block_store.is_block_reference(stored_entry):
-                block_reference_map[block_id] = stored_entry
+        for block_id, blocks_obj_value in stored_blocks_obj.items():
+            if block_store.is_block_reference(blocks_obj_value):
+                block_reference_map[block_id] = blocks_obj_value
         item["blocks_obj"] = block_store.load_blocks_obj(item)
 
     if "collections" in updated_data:
