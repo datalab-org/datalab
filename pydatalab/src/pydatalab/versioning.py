@@ -174,15 +174,15 @@ def save_version_snapshot(
 
     # Cut `block_versions` entries for any *referenced* blocks whose payload has
     # changed since their last committed version, and pin each referenced
-    # `blocks_obj` entry to its now-current version number in this snapshot.
+    # `blocks_obj` value to its now-current version number in this snapshot.
     # Embedded blocks are captured verbatim in the item snapshot.
     # This must happen before the de-duplication guard below so that a
     # block content change is seen as an item change.
-    for block_id, entry in list((item.get("blocks_obj") or {}).items()):
-        if not is_block_reference(entry):
+    for block_id, blocks_obj_value in list((item.get("blocks_obj") or {}).items()):
+        if not is_block_reference(blocks_obj_value):
             continue
         block_version = snapshot_block_version(
-            entry["immutable_id"], action=action, user_id=user_id
+            blocks_obj_value["immutable_id"], action=action, user_id=user_id
         )
         if block_version is None:
             # There is no live block document and no committed history for
@@ -193,7 +193,7 @@ def save_version_snapshot(
             LOGGER.warning(
                 "Dropping dangling block reference %r (%s) from version snapshot of %s",
                 block_id,
-                entry["immutable_id"],
+                blocks_obj_value["immutable_id"],
                 refcode,
             )
             del item["blocks_obj"][block_id]
@@ -201,7 +201,7 @@ def save_version_snapshot(
                 item["display_order"] = [b for b in item["display_order"] if b != block_id]
             continue
         item["blocks_obj"][block_id] = {
-            "immutable_id": entry["immutable_id"],
+            "immutable_id": blocks_obj_value["immutable_id"],
             "version": block_version,
         }
 

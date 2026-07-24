@@ -146,12 +146,12 @@ def get_graph_cy_format(
     nodes = []
     edges = []
 
-    # Resolve the blocktype of referenced blocks_obj entries in one batched query.
+    # Resolve the blocktype of referenced blocks_obj values in one batched query.
     referenced_block_ids = {
-        entry["immutable_id"]
+        blocks_obj_value["immutable_id"]
         for document in all_documents
-        for entry in (document.get("blocks_obj") or {}).values()
-        if is_block_reference(entry)
+        for blocks_obj_value in (document.get("blocks_obj") or {}).values()
+        if is_block_reference(blocks_obj_value)
     }
     referenced_blocktypes: dict = {}
     if referenced_block_ids:
