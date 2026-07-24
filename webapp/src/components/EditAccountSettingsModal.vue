@@ -118,7 +118,7 @@
               >
                 <strong>{{ key.name }}</strong>
                 <code v-if="!key.show" class="ms-2">{{ key.digest }}</code>
-                <div v-if="key.show" class="input-group">
+                <div v-if="key.show" class="input-group d-flex justify-content-center">
                   <StyledInput
                     v-model="apiKey"
                     :readonly="true"
