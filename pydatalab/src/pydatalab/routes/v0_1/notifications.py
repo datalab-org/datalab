@@ -101,27 +101,27 @@ def create_notifications():
     level = request_json.get("level", "normal")
     created_by = current_user.person.immutable_id
 
-    def create_for_recipients(session=None):
-        notification_results = []
-        for recipient_id in recipient_ids:
+    def create_for_recipients(db_session=None):
+        recipient_notification_results = []
+        for target_recipient_id in recipient_ids:
             try:
                 notification_result = create_notification_with_result(
-                    recipient_id=recipient_id,
+                    recipient_id=target_recipient_id,
                     title=title,
                     summary=summary,
                     message=message,
                     level=level,
                     created_by=created_by,
                     grouping=grouping,
-                    session=session,
+                    session=db_session,
                 )
-            except (ValidationError, ValueError) as exc:
-                raise BadRequest(str(exc)) from exc
+            except (ValidationError, ValueError) as notification_error:
+                raise BadRequest(str(notification_error)) from notification_error
 
             if notification_result is not None:
-                notification_results.append(notification_result)
+                recipient_notification_results.append(notification_result)
 
-        return notification_results
+        return recipient_notification_results
 
     try:
         hello = flask_mongo.cx.admin.command("hello")
@@ -132,7 +132,7 @@ def create_notifications():
     if supports_transactions:
         with flask_mongo.cx.start_session() as session:
             with session.start_transaction():
-                notification_results = create_for_recipients(session=session)
+                notification_results = create_for_recipients(db_session=session)
     else:
         notification_results = create_for_recipients()
 
