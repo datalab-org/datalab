@@ -2,7 +2,7 @@
 
 This module is the single chokepoint for reading and writing separated block
 documents, and for the branching logic between the two coexisting storage
-forms of an item's `blocks_obj` entry:
+forms of an item's `blocks_obj` value:
 
 - **Embedded (legacy)**: the full block payload stored inline in the item
   document. Legacy blocks are frozen in this form — they are read, written,
@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 
 __all__ = (
     "is_block_reference",
-    "authorize_and_get_form",
+    "authorize_and_get_blocks_data",
     "load_blocks_obj",
     "resolve_snapshot_blocks_obj",
     "create_block_document",
@@ -63,27 +63,29 @@ def _current_user_id() -> ObjectId | None:
     return None
 
 
-def is_block_reference(entry: Any) -> bool:
-    """Whether a stored `blocks_obj` entry is a reference to a `blocks` document
+def is_block_reference(blocks_obj_value: Any) -> bool:
+    """Whether a stored `blocks_obj` value is a reference to a `blocks` document
     (``{"immutable_id": ...}``) rather than a legacy embedded block.
     """
     return (
-        isinstance(entry, dict) and "immutable_id" in entry and set(entry.keys()) <= _REFERENCE_KEYS
+        isinstance(blocks_obj_value, dict)
+        and "immutable_id" in blocks_obj_value
+        and set(blocks_obj_value.keys()) <= _REFERENCE_KEYS
     )
 
 
-def authorize_and_get_form(item_id: str | None, block_id: str) -> dict | None:
+def authorize_and_get_blocks_data(item_id: str | None, block_id: str) -> dict | None:
     """The single permissioned query at the head of every block write.
 
     Checks in one query that the current user may write blocks on the item and
-    returns the stored `blocks_obj` entry for `block_id` (embedded payload or
+    returns the stored `blocks_obj` value for `block_id` (embedded payload or
     reference).
 
     Read-level access is sufficient, matching the permissions applied to block
     writes on embedded blocks before blocks were separated out (#1951).
 
     Returns:
-        The stored `blocks_obj` entry, or `None` if the item has no entry for
+        The stored `blocks_obj` value, or `None` if the item has no entry for
         this `block_id`.
     """
     from pydatalab.permissions import get_default_permissions
@@ -101,19 +103,46 @@ def authorize_and_get_form(item_id: str | None, block_id: str) -> dict | None:
     return (item.get("blocks_obj") or {}).get(block_id)
 
 
+def _assemble_blocks_obj(
+    blocks_obj: dict, resolved_payloads: dict[str, Any], source_label: str
+) -> dict[str, Any]:
+    """Reassemble a `blocks_obj` into full payloads keyed by `block_id`.
+
+    Embedded values pass through verbatim; each referenced value is replaced by
+    its payload from `resolved_payloads` (keyed by `block_id`).
+    A reference with missing reference is dropped.
+    """
+    assembled: dict[str, Any] = {}
+    for block_id, blocks_obj_value in blocks_obj.items():
+        if not is_block_reference(blocks_obj_value):
+            assembled[block_id] = blocks_obj_value
+            continue
+        payload = resolved_payloads.get(block_id)
+        if not payload:
+            LOGGER.error(
+                "Dangling block reference in %s: blocks_obj[%r] -> %s",
+                source_label,
+                block_id,
+                blocks_obj_value,
+            )
+            continue
+        assembled[block_id] = payload
+    return assembled
+
+
 def load_blocks_obj(parent_doc: dict) -> dict[str, Any]:
     """Resolve a live parent document's `blocks_obj` into full payloads keyed by
     `block_id`, i.e., the API shape used before blocks were separated.
 
-    Embedded entries pass through verbatim; referenced entries are resolved from
+    Embedded values pass through verbatim; referenced values are resolved from
     the `blocks` collection in a single batched query. Must only be called on a
     document the caller is already authorized to read.
     """
     blocks_obj = parent_doc.get("blocks_obj") or {}
     referenced: dict[str, ObjectId] = {
-        block_id: entry["immutable_id"]
-        for block_id, entry in blocks_obj.items()
-        if is_block_reference(entry)
+        block_id: blocks_obj_value["immutable_id"]
+        for block_id, blocks_obj_value in blocks_obj.items()
+        if is_block_reference(blocks_obj_value)
     }
 
     resolved_docs: dict[ObjectId, dict] = {}
@@ -125,39 +154,30 @@ def load_blocks_obj(parent_doc: dict) -> dict[str, Any]:
             )
         }
 
-    loaded: dict[str, Any] = {}
-    for block_id, entry in blocks_obj.items():
-        if block_id not in referenced:
-            loaded[block_id] = entry
-            continue
-        doc = resolved_docs.get(referenced[block_id])
-        if doc is None:
-            LOGGER.error(
-                "Dangling block reference: blocks_obj[%r] points at missing blocks doc %s",
-                block_id,
-                referenced[block_id],
-            )
-            continue
-        loaded[block_id] = doc.get("data", {})
-
-    return loaded
+    resolved_payloads = {
+        block_id: resolved_docs[immutable_id]["data"]
+        for block_id, immutable_id in referenced.items()
+        if resolved_docs.get(immutable_id) and resolved_docs[immutable_id].get("data")
+    }
+    return _assemble_blocks_obj(blocks_obj, resolved_payloads, "live item")
 
 
 def resolve_snapshot_blocks_obj(snapshot_data: dict) -> dict[str, Any]:
     """Resolve an `item_versions` snapshot's `blocks_obj` into full payloads keyed
     by `block_id`.
 
-    Embedded entries pass through verbatim; version-pinned references
+    Embedded values pass through verbatim; version-pinned references
     ``{"immutable_id", "version"}`` are resolved from `block_versions` in a single
-    batched query.
+    batched query (an unpinned reference has no committed version to resolve and
+    is treated as dangling).
     Must only be called downstream of an authorized item(-version) read.
     """
     blocks_obj = snapshot_data.get("blocks_obj") or {}
 
     referenced: dict[str, tuple[ObjectId, int]] = {
-        block_id: (entry["immutable_id"], entry["version"])
-        for block_id, entry in blocks_obj.items()
-        if is_block_reference(entry) and entry.get("version") is not None
+        block_id: (blocks_obj_value["immutable_id"], blocks_obj_value["version"])
+        for block_id, blocks_obj_value in blocks_obj.items()
+        if is_block_reference(blocks_obj_value) and blocks_obj_value.get("version") is not None
     }
 
     resolved_versions: dict[tuple[ObjectId, int], dict] = {}
@@ -175,22 +195,12 @@ def resolve_snapshot_blocks_obj(snapshot_data: dict) -> dict[str, Any]:
             )
         }
 
-    resolved: dict[str, Any] = {}
-    for block_id, entry in blocks_obj.items():
-        if not is_block_reference(entry):
-            resolved[block_id] = entry
-            continue
-        doc = resolved_versions.get(referenced[block_id]) if block_id in referenced else None
-        if doc is None:
-            LOGGER.error(
-                "Dangling block reference in version snapshot: blocks_obj[%r] -> %s",
-                block_id,
-                entry,
-            )
-            continue
-        resolved[block_id] = doc.get("data", {})
-
-    return resolved
+    resolved_payloads = {
+        block_id: resolved_versions[key]["data"]
+        for block_id, key in referenced.items()
+        if resolved_versions.get(key) and resolved_versions[key].get("data")
+    }
+    return _assemble_blocks_obj(blocks_obj, resolved_payloads, "version snapshot")
 
 
 def create_block_document(block: "DataBlock") -> ObjectId:

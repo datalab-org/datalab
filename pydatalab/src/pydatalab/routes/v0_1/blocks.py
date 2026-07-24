@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 import gridfs
 from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_user
+from pymongo import ReturnDocument
 from werkzeug.exceptions import BadRequest, NotFound, NotImplemented
 
 from pydatalab.apps import BLOCK_TYPES
@@ -323,14 +324,16 @@ def _save_block_to_db(block: DataBlock):
     updated_block = block.to_db()
     update = {"$set": {f"blocks_obj.{block.block_id}": updated_block}}
 
-    stored_entry = store.authorize_and_get_form(block.data.get("item_id"), block.block_id)
-    if stored_entry is None:
+    stored_blocks_obj_value = store.authorize_and_get_blocks_data(
+        block.data.get("item_id"), block.block_id
+    )
+    if stored_blocks_obj_value is None:
         raise BadRequest(
             f"Failed to save block, likely because block_id ({block.block_id}) wasn't found on item ({block.data.get('item_id')})"
         )
 
-    if store.is_block_reference(stored_entry):
-        store.update_block_document(stored_entry["immutable_id"], updated_block)
+    if store.is_block_reference(stored_blocks_obj_value):
+        store.update_block_document(stored_blocks_obj_value["immutable_id"], updated_block)
     else:
         match = {
             "item_id": block.data["item_id"],
@@ -477,11 +480,14 @@ def delete_block():
             "$unset": {f"blocks_obj.{block_id}": ""},
         },
         projection={f"blocks_obj.{block_id}": 1, "display_order": 1},
+        return_document=ReturnDocument.BEFORE,
     )
 
-    stored_entry = (doc_before.get("blocks_obj") or {}).get(block_id) if doc_before else None
+    stored_blocks_obj_value = (
+        (doc_before.get("blocks_obj") or {}).get(block_id) if doc_before else None
+    )
 
-    block_was_present = stored_entry is not None or (
+    block_was_present = stored_blocks_obj_value is not None or (
         doc_before is not None and block_id in (doc_before.get("display_order") or [])
     )
     if not block_was_present:
@@ -495,8 +501,8 @@ def delete_block():
             400,
         )
 
-    if store.is_block_reference(stored_entry):
-        store.delete_block_document(stored_entry["immutable_id"])
+    if store.is_block_reference(stored_blocks_obj_value):
+        store.delete_block_document(stored_blocks_obj_value["immutable_id"])
 
     return (
         jsonify({"status": "success"}),
