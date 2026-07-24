@@ -5,6 +5,7 @@ from bson.errors import InvalidId
 from flask import Blueprint, jsonify, request, send_from_directory
 from flask_login import current_user
 from pymongo import ReturnDocument
+from werkzeug.exceptions import BadRequest
 from werkzeug.utils import secure_filename
 
 import pydatalab.mongo
@@ -207,12 +208,8 @@ def delete_file_from_sample():
     )
 
     if not updated_file_entry:
-        return (
-            jsonify(
-                status="error",
-                message=f"{item_id} {file_id} delete failed. Something went wrong with the db call to remove sample from file",
-            ),
-            400,
+        raise BadRequest(
+            f"{item_id} {file_id} delete failed. Something went wrong with the db call to remove sample from file"
         )
 
     return (
@@ -253,13 +250,7 @@ def delete_file():
     path = os.path.join(CONFIG.FILE_DIRECTORY, secure_item_id, secure_fname)
 
     if not os.path.isfile(path):
-        return (
-            jsonify(
-                status="error",
-                message=f"Delete failed. file not found: {path}",
-            ),
-            400,
-        )
+        raise BadRequest(f"Delete failed. file not found: {path}")
 
     result = pydatalab.mongo.flask_mongo.db.items.update_one(
         {"item_id": item_id, **get_default_permissions(user_only=True)},
