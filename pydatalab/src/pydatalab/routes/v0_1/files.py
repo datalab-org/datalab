@@ -5,7 +5,7 @@ from bson.errors import InvalidId
 from flask import Blueprint, jsonify, request, send_from_directory
 from flask_login import current_user
 from pymongo import ReturnDocument
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, Forbidden, Unauthorized
 from werkzeug.utils import secure_filename
 
 import pydatalab.mongo
@@ -40,16 +40,7 @@ def get_file(file_id: str, filename: str):
     if not pydatalab.mongo.flask_mongo.db.items.find_one(
         {"file_ObjectIds": {"$in": [_file_id]}, **get_default_permissions(user_only=False)}
     ):
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "title": "Not Authorized",
-                    "detail": "Authorization required to access file",
-                }
-            ),
-            401,
-        )
+        raise Forbidden("Authorization required to access file")
 
     path = os.path.join(CONFIG.FILE_DIRECTORY, secure_filename(file_id))
     return send_from_directory(path, filename)
@@ -71,21 +62,12 @@ def upload():
     """
 
     if not current_user.is_authenticated and not CONFIG.TESTING:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "title": "Not Authorized",
-                    "detail": "File upload requires login.",
-                }
-            ),
-            401,
-        )
+        raise Unauthorized("File upload requires login.")
 
     if len(request.files) == 0:
-        return jsonify(error="No file in request"), 400
+        raise BadRequest("No file in request")
     if "item_id" not in request.form:
-        return jsonify(error="No item id provided in form"), 400
+        raise BadRequest("No item id provided in form")
     item_id = request.form["item_id"]
     replace_file_id = request.form["replace_file"]
 
@@ -132,16 +114,7 @@ def upload():
 @FILES.route("/add-remote-file-to-sample/", methods=["POST"])
 def add_remote_file_to_sample():
     if not current_user.is_authenticated and not CONFIG.TESTING:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "title": "Not Authorized",
-                    "detail": "Adding a file to a sample requires login.",
-                }
-            ),
-            401,
-        )
+        raise Unauthorized("Adding a file to a sample requires login.")
 
     request_json = request.get_json()
     item_id = request_json["item_id"]
@@ -173,16 +146,7 @@ def delete_file_from_sample():
     """Remove a file from a sample, but don't delete the actual file (for now)"""
 
     if not current_user.is_authenticated and not CONFIG.TESTING:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "title": "Not Authorized",
-                    "detail": "Adding a file to a sample requires login.",
-                }
-            ),
-            401,
-        )
+        raise Unauthorized("Adding a file to a sample requires login.")
 
     request_json = request.get_json()
 
@@ -228,16 +192,7 @@ def delete_file():
     """delete a data file from the uploads/item_id folder"""
 
     if not current_user.is_authenticated and not CONFIG.TESTING:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "title": "Not Authorized",
-                    "detail": "Adding a file to a sample requires login.",
-                }
-            ),
-            401,
-        )
+        raise Unauthorized("Adding a file to a sample requires login.")
 
     request_json = request.get_json()
 

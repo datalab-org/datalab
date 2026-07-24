@@ -776,7 +776,7 @@ def test_add_items_to_collection_not_found(client):
 
     response = client.post(f"/collections/{collection_id}", json={"data": {"refcodes": []}})
     assert response.status_code == 404
-    assert response.json["error"] == "Collection not found"
+    assert response.json["message"] == "Collection not found"
 
 
 @pytest.mark.dependency(depends=["test_add_items_to_collection_not_found"])
@@ -786,7 +786,7 @@ def test_add_items_to_collection_no_items(client, default_collection):
     )
 
     assert response.status_code == 400
-    assert response.json["error"] == "No item provided"
+    assert response.json["message"] == "No item provided"
 
 
 @pytest.mark.dependency(depends=["test_add_items_to_collection_no_items"])
@@ -797,7 +797,7 @@ def test_add_items_to_collection_no_matching_items(client, default_collection):
         f"/collections/{default_collection.collection_id}", json={"data": {"refcodes": refcodes}}
     )
     assert response.status_code == 404
-    assert response.json["error"] == "No matching items found"
+    assert response.json["message"] == "No matching items found"
 
 
 @pytest.mark.dependency(depends=["test_add_items_to_collection_no_matching_items"])
@@ -906,7 +906,7 @@ def test_remove_items_from_collection_not_found(client):
 
     assert response.status_code == 404
     data = response.get_json()
-    assert data["error"] == "Collection not found"
+    assert data["message"] == "Collection not found"
 
 
 @pytest.mark.dependency()
@@ -922,7 +922,7 @@ def test_remove_items_from_collection_no_items_provided(client, default_collecti
 
     assert response.status_code == 400
     data = response.get_json()
-    assert data["error"] == "No refcodes provided"
+    assert data["message"] == "No refcodes provided"
 
 
 @pytest.mark.dependency()

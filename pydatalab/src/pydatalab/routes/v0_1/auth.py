@@ -18,7 +18,7 @@ from flask import Blueprint, g, jsonify, redirect, request
 from flask_dance.consumer import OAuth2ConsumerBlueprint, oauth_authorized
 from flask_login import current_user, login_user
 from flask_login.utils import LocalProxy
-from werkzeug.exceptions import BadRequest, Forbidden
+from werkzeug.exceptions import BadRequest, Forbidden, Unauthorized
 
 from pydatalab.config import CONFIG
 from pydatalab.errors import UserRegistrationForbidden
@@ -1059,8 +1059,8 @@ def get_authenticated_user_info():
         current_user_response = json.loads(current_user.person.json())
         current_user_response["role"] = current_user.role.value
         return jsonify(current_user_response), 200
-    else:
-        return jsonify({"status": "failure", "message": "User must be authenticated."}), 401
+
+    raise Unauthorized("User must be authenticated.")
 
 
 @AUTH.route("/get-api-key/", methods=["GET"])
@@ -1074,16 +1074,8 @@ def generate_user_api_key():
             upsert=True,
         )
         return jsonify({"key": new_key}), 200
-    else:
-        return (
-            jsonify(
-                {
-                    "status": "failure",
-                    "message": "User must be an authenticated admin to request an API key.",
-                }
-            ),
-            401,
-        )
+
+    raise Unauthorized("User must be an authenticated admin to request an API key.")
 
 
 @AUTH.route("/testing/create-magic-link", methods=["POST"])
@@ -1095,9 +1087,7 @@ def create_test_magic_link():
     and returns the token.
     """
     if not CONFIG.TESTING:
-        return jsonify(
-            {"status": "error", "detail": "This endpoint is only available in testing mode."}
-        ), 403
+        raise Forbidden("This endpoint is only available in testing mode.")
 
     request_json = request.get_json()
     email = request_json.get("email")
