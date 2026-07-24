@@ -6,7 +6,7 @@ from flask import Blueprint, jsonify, request
 from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.results import InsertOneResult, UpdateResult
-from werkzeug.exceptions import BadRequest, NotFound
+from werkzeug.exceptions import BadRequest, Conflict, NotFound, Unauthorized
 
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER, logged_route
@@ -94,14 +94,7 @@ def create_collection():
     starting_members = data.get("starting_members", [])
 
     if not current_user.is_authenticated and not CONFIG.TESTING:
-        return (
-            dict(
-                status="error",
-                message="Unable to create new collection without user authentication.",
-                collection_id=data.get("collection_id"),
-            ),
-            401,
-        )
+        raise Unauthorized("Unable to create new collection without user authentication.")
 
     if copy_from_id:
         raise NotImplementedError("Copying collections is not yet implemented.")
@@ -133,13 +126,8 @@ def create_collection():
 
     # check to make sure that item_id isn't taken already
     if flask_mongo.db.collections.find_one({"collection_id": data["collection_id"]}):
-        return (
-            dict(
-                status="error",
-                message=f"collection_id_validation_error: {data['collection_id']!r} already exists in database.",
-                collection_id=data["collection_id"],
-            ),
-            409,  # 409: Conflict
+        raise Conflict(
+            f"collection_id_validation_error: {data['collection_id']!r} already exists in database."
         )
 
     data["last_modified"] = data.get(
@@ -497,17 +485,17 @@ def add_items_to_collection(collection_id):
     )
 
     if not collection:
-        return jsonify({"error": "Collection not found"}), 404
+        raise NotFound("Collection not found")
 
     if not refcodes:
-        return jsonify({"error": "No item provided"}), 400
+        raise BadRequest("No item provided")
 
     item_count = flask_mongo.db.items.count_documents(
         {"refcode": {"$in": refcodes}, **get_default_permissions()}
     )
 
     if item_count == 0:
-        return jsonify({"error": "No matching items found"}), 404
+        raise NotFound("No matching items found")
 
     update_result = flask_mongo.db.items.update_many(
         {"refcode": {"$in": refcodes}, **get_default_permissions()},
@@ -552,10 +540,10 @@ def remove_items_from_collection(collection_id):
     )
 
     if not collection:
-        return jsonify({"error": "Collection not found"}), 404
+        raise NotFound("Collection not found")
 
     if not refcodes:
-        return jsonify({"error": "No refcodes provided"}), 400
+        raise BadRequest("No refcodes provided")
 
     update_result = flask_mongo.db.items.update_many(
         {"refcode": {"$in": refcodes}, **get_default_permissions()},

@@ -249,8 +249,8 @@ def invalidate_access_token(refcode: str):
 
     if response.modified_count == 1:
         return jsonify({"status": "success"}), 200
-    else:
-        return jsonify({"status": "error", "detail": "Token not found or already invalidated"}), 404
+
+    raise NotFound("Token not found or already invalidated.")
 
 
 @ADMIN.route("/access-tokens", methods=["GET"])
