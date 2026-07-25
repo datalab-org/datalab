@@ -307,6 +307,120 @@ def test_restore_referenced_block(sample_with_block, admin_client, database):
     assert item_data["blocks_obj"][block_id]["freeform_comment"] == "first comment"
 
 
+def test_block_version_numbers_are_monotonic_and_never_reused(
+    sample_with_block, admin_client, database
+):
+    """Version numbers come from a single persistent per-block counter shared by
+    the snapshot and restore paths, so they are always distinct and never reset —
+    even across a block deletion (the counter outlives the block document)."""
+    sample_id, refcode, block_id = sample_with_block
+    immutable_id = database.items.find_one({"item_id": sample_id}, {"blocks_obj": 1})["blocks_obj"][
+        block_id
+    ]["immutable_id"]
+
+    # Two content changes → block versions 1 and 2 (item versions 2 and 3)
+    for comment in ("one", "two"):
+        item_data = _get_item_data(admin_client, sample_id)
+        item_data["blocks_obj"][block_id]["freeform_comment"] = comment
+        _save_item(admin_client, sample_id, item_data)
+
+    # Item version 2 pins block version 1; restoring it mints block version 3
+    response = admin_client.get(f"/items/{refcode}/versions/")
+    v_first = next(v for v in response.json["versions"] if v["version"] == 2)
+    response = admin_client.post(
+        f"/items/{refcode}/restore-version/", json={"version_id": v_first["_id"]}
+    )
+    assert response.status_code == 200, response.json
+    assert database.blocks.find_one({"_id": immutable_id})["version"] == 3
+
+    # Delete the block (counter persists), then restore again → block version 4,
+    # NOT a reused 1/2/3 (an on-document counter, destroyed with the block, would
+    # have restarted from the retained max instead)
+    admin_client.post("/delete-block/", json={"item_id": sample_id, "block_id": block_id})
+    response = admin_client.post(
+        f"/items/{refcode}/restore-version/", json={"version_id": v_first["_id"]}
+    )
+    assert response.status_code == 200, response.json
+
+    assert database.blocks.find_one({"_id": immutable_id})["version"] == 4
+    versions = sorted(
+        v["version"] for v in database.block_versions.find({"block_immutable_id": immutable_id})
+    )
+    assert versions == [1, 2, 3, 4]
+    assert (
+        database.block_version_counters.find_one({"block_immutable_id": immutable_id})["counter"]
+        == 4
+    )
+
+
+def test_stale_blocks_version_cache_does_not_cause_collision(
+    sample_with_block, admin_client, database
+):
+    """Regression: allocation is driven by the counter, not the denormalised
+    `blocks.version` field, so a stale/corrupt cache value cannot mint a colliding
+    or mispinned `block_versions` entry. Under the old on-document `$inc` counter
+    this exact drift produced a DuplicateKeyError and a pin to the wrong content."""
+    sample_id, refcode, block_id = sample_with_block
+    immutable_id = database.items.find_one({"item_id": sample_id}, {"blocks_obj": 1})["blocks_obj"][
+        block_id
+    ]["immutable_id"]
+
+    item_data = _get_item_data(admin_client, sample_id)
+    item_data["blocks_obj"][block_id]["freeform_comment"] = "one"
+    _save_item(admin_client, sample_id, item_data)
+    assert database.blocks.find_one({"_id": immutable_id})["version"] == 1
+
+    # Corrupt the denormalised cache to a stale, already-used value
+    database.blocks.update_one({"_id": immutable_id}, {"$set": {"version": 0}})
+
+    # A further content change + save must still mint a fresh, non-colliding v2
+    item_data = _get_item_data(admin_client, sample_id)
+    item_data["blocks_obj"][block_id]["freeform_comment"] = "two"
+    _save_item(admin_client, sample_id, item_data)
+
+    versions = sorted(
+        v["version"] for v in database.block_versions.find({"block_immutable_id": immutable_id})
+    )
+    assert versions == [1, 2]  # no duplicate v1, no collision
+    v2 = database.block_versions.find_one({"block_immutable_id": immutable_id, "version": 2})
+    assert v2["data"]["freeform_comment"] == "two"  # pinned to the correct content
+    item_version = database.item_versions.find_one({"refcode": refcode}, sort=[("version", -1)])
+    assert item_version["data"]["blocks_obj"][block_id] == {
+        "immutable_id": immutable_id,
+        "version": 2,
+    }
+    # the cache is refreshed to the true latest committed version
+    assert database.blocks.find_one({"_id": immutable_id})["version"] == 2
+
+
+def test_block_version_counter_persists_after_deletion(sample_with_block, admin_client, database):
+    """The `block_version_counters` document survives block deletion (mirroring
+    `version_counters` surviving item deletion), so a later restore continues the
+    sequence rather than reusing a number."""
+    sample_id, _, block_id = sample_with_block
+    immutable_id = database.items.find_one({"item_id": sample_id}, {"blocks_obj": 1})["blocks_obj"][
+        block_id
+    ]["immutable_id"]
+
+    for comment in ("one", "two"):
+        item_data = _get_item_data(admin_client, sample_id)
+        item_data["blocks_obj"][block_id]["freeform_comment"] = comment
+        _save_item(admin_client, sample_id, item_data)
+    assert (
+        database.block_version_counters.find_one({"block_immutable_id": immutable_id})["counter"]
+        == 2
+    )
+
+    response = admin_client.post(
+        "/delete-block/", json={"item_id": sample_id, "block_id": block_id}
+    )
+    assert response.status_code == 200
+    assert database.blocks.find_one({"_id": immutable_id}) is None
+
+    counter = database.block_version_counters.find_one({"block_immutable_id": immutable_id})
+    assert counter is not None and counter["counter"] == 2
+
+
 def test_legacy_embedded_block_stays_embedded(sample_with_block, admin_client, database):
     """A legacy embedded block is frozen in embedded form across update-block,
     save-item, snapshots, and restores — no `blocks` document is ever created for

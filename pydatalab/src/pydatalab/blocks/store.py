@@ -26,13 +26,13 @@ from typing import TYPE_CHECKING, Any
 
 from bson import ObjectId
 from flask_login import current_user
+from pydantic import ValidationError
 from pymongo import ReturnDocument
-from pymongo.errors import DuplicateKeyError
 from werkzeug.exceptions import BadRequest, NotFound
 
 from pydatalab.logger import LOGGER
 from pydatalab.models.blocks import Block
-from pydatalab.models.versions import BlockVersion, VersionAction
+from pydatalab.models.versions import BlockVersion, BlockVersionCounter, VersionAction
 from pydatalab.mongo import flask_mongo
 
 if TYPE_CHECKING:
@@ -46,6 +46,7 @@ __all__ = (
     "create_block_document",
     "update_block_document",
     "delete_block_document",
+    "get_next_block_version_number",
     "snapshot_block_version",
     "restore_block_version",
 )
@@ -61,6 +62,32 @@ def _current_user_id() -> ObjectId | None:
     if current_user and current_user.is_authenticated:
         return current_user.person.immutable_id
     return None
+
+
+def get_next_block_version_number(immutable_id: ObjectId) -> int:
+    """Atomically get and increment the version counter for a block.
+
+    Returns:
+        The next version number (1-indexed).
+    """
+    result = flask_mongo.db.block_version_counters.find_one_and_update(
+        {"block_immutable_id": immutable_id},
+        {"$inc": {"counter": 1}},
+        upsert=True,
+        return_document=ReturnDocument.AFTER,
+    )
+
+    try:
+        return BlockVersionCounter(**result).counter
+    except ValidationError as exc:
+        LOGGER.error(
+            "Block version counter validation failed for block %s: %s",
+            immutable_id,
+            str(exc),
+        )
+        # Fallback: return the raw counter value to avoid blocking saves.
+        # This should only happen if the counter document is corrupted.
+        return result["counter"]
 
 
 def is_block_reference(blocks_obj_value: Any) -> bool:
@@ -287,14 +314,8 @@ def snapshot_block_version(
     if last_version and last_version.get("data") == data:
         return last_version["version"]
 
-    updated_doc = flask_mongo.db.blocks.find_one_and_update(
-        {"_id": immutable_id},
-        {"$inc": {"version": 1}},
-        return_document=ReturnDocument.AFTER,
-    )
-    if updated_doc is None:
-        return None
-    next_version = updated_doc["version"]
+    # Allocate the next number from the shared atomic counter.
+    next_version = get_next_block_version_number(immutable_id)
 
     version_entry = BlockVersion(
         block_immutable_id=immutable_id,
@@ -311,16 +332,10 @@ def snapshot_block_version(
     # stripped by model_dump(exclude_none=True), mirroring item snapshots.
     version_doc = version_entry.model_dump(exclude_none=True)
     version_doc["data"] = data
-    try:
-        flask_mongo.db.block_versions.insert_one(version_doc)
-    except DuplicateKeyError:
-        # A concurrent snapshot minted this version number first; both captured
-        # the same live payload, so re-pinning the number is safe.
-        LOGGER.warning(
-            "Concurrent block version snapshot for block %s (version %d)",
-            immutable_id,
-            next_version,
-        )
+    flask_mongo.db.block_versions.insert_one(version_doc)
+
+    # Refresh the denormalised `blocks.version` cache.
+    flask_mongo.db.blocks.update_one({"_id": immutable_id}, {"$set": {"version": next_version}})
 
     return next_version
 
@@ -350,12 +365,10 @@ def restore_block_version(
         )
         return None
 
-    latest = flask_mongo.db.block_versions.find_one(
-        {"block_immutable_id": immutable_id},
-        {"version": 1, "_id": 0},
-        sort=[("version", -1)],
-    )
-    next_version = (latest["version"] if latest else 0) + 1
+    # Allocate from the shared atomic counter (the single allocator, also used by
+    # snapshot). This works even when the live block document was deleted, since
+    # the counter persists past deletion.
+    next_version = get_next_block_version_number(immutable_id)
 
     data = pinned["data"]
     if user_id is None:

@@ -133,6 +133,23 @@ class VersionCounter(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
 
+class BlockVersionCounter(BaseModel):
+    """Atomic counter for tracking version numbers per block.
+
+    This model represents a document in the `block_version_counters` collection.
+    It is the single allocator of `block_versions` numbers, used by both the
+    snapshot and restore paths. It is keyed by the block's `immutable_id`.
+    """
+
+    block_immutable_id: PyObjectId
+    """The immutable ID (`_id`) of the block this counter belongs to"""
+
+    counter: int = Field(1, ge=1)
+    """Current version counter value (1-indexed, matches version numbers)"""
+
+    model_config = ConfigDict(extra="ignore")
+
+
 class RestoreVersionRequest(BaseModel):
     """Request body for restoring a version."""
 
