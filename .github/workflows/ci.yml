@@ -196,6 +196,63 @@ jobs:
           # Test that plugin block is listed in info endpoint
           curl -s http://localhost:5000/info/blocks | jq '.data | any(.id == "example")'
 
+  docker-dev:
+    name: Test dev Docker builds
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Validate Docker Compose configuration
+        run: docker compose config --quiet
+
+      - name: Build dev Docker images
+        uses: docker/bake-action@v7
+        with:
+          files: docker-compose.yml
+          load: true
+          source: .
+          targets: "app-dev,api-dev,database-dev"
+          set: |
+            app-dev.cache-from=type=gha,scope=${{ github.ref_name }}-build-app-dev
+            app-dev.cache-from=type=gha,scope=main-build-app-dev
+            app-dev.cache-to=type=gha,scope=${{ github.ref_name }}-build-app-dev,mode=max
+            api-dev.cache-from=type=gha,scope=${{ github.ref_name }}-build-api
+            api-dev.cache-from=type=gha,scope=main-build-api
+            database-dev.cache-from=type=gha,scope=${{ github.ref_name }}-build-database
+            database-dev.cache-from=type=gha,scope=main-build-database
+            api-dev.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0+ci
+            app-dev.tags=datalab-app-dev:latest
+            api-dev.tags=datalab-api-dev:latest
+            database-dev.tags=datalab-database-dev:latest
+
+      - name: Start dev services
+        run: |
+          # Boot the hot-reloading dev profile and block on healthchecks
+          # (webpack dev server compiled, API answering /healthcheck/is_ready).
+          docker compose --profile dev up --no-build --force-recreate -d --wait
+
+      - name: Check the dev API and app respond
+        run: |
+          curl --fail http://localhost:5001/healthcheck/is_ready
+          curl --fail --silent --output /dev/null http://localhost:8081
+
+      - name: Show dev service diagnostics
+        if: failure()
+        run: |
+          docker compose --profile dev logs
+          docker compose --profile dev ps
+
+      - name: Stop dev services
+        if: always()
+        run: docker compose --profile dev down --volumes
+
   e2e:
     name: e2e tests
     runs-on: ubuntu-latest
