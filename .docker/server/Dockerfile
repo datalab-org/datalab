@@ -1,7 +1,7 @@
 ARG UV_VERSION="0.11.8"
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv_image
 
-FROM python:3.11-slim-trixie AS api
+FROM python:3.11-slim-trixie AS build
 ARG TARGETARCH
 SHELL ["/bin/bash", "--login", "-c"]
 
@@ -67,11 +67,21 @@ RUN git config --global --add safe.directory /
 # a `.git` bind mount, so this layer doesn't invalidate on every commit.
 RUN uv pip install --python /opt/.venv/bin/python --no-deps --editable .
 
+
+FROM build as dev
+# Hot-reloading dev server
+
+ENV PORT=5001
+CMD ["/opt/.venv/bin/invoke", "dev.serve", "--host", "0.0.0.0", "--port", "${PORT}"]
+HEALTHCHECK --interval=30s --timeout=30s --start-interval=15s --start-period=30s --retries=3 CMD curl --fail http://localhost:${PORT}/healthcheck/is_ready || exit 1
+
+FROM build as api
+# Production gunicorn server
+
 # Define some default gunicorn runtime args
 ENV WEB_CONCURRENCY=4
 ENV GUNICORN_CMD_ARGS="--preload --timeout 120 --graceful-timeout 90"
 ENV PORT=5001
 
 CMD ["/bin/bash", "-c", "/opt/.venv/bin/python -m gunicorn -b 0.0.0.0:${PORT} -w ${WEB_CONCURRENCY} ${GUNICORN_CMD_ARGS} 'pydatalab.main:create_app()'"]
-
 HEALTHCHECK --interval=30s --timeout=30s --start-interval=15s --start-period=30s --retries=3 CMD curl --fail http://localhost:${PORT}/healthcheck/is_ready || exit 1
