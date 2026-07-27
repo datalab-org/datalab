@@ -68,14 +68,14 @@ RUN git config --global --add safe.directory /
 RUN uv pip install --python /opt/.venv/bin/python --no-deps --editable .
 
 
-FROM build as dev
+FROM build AS dev
 # Hot-reloading dev server
 
 ENV PORT=5001
-CMD ["/opt/.venv/bin/invoke", "dev.serve", "--host", "0.0.0.0", "--port", "${PORT}"]
+CMD ["/bin/bash", "-c", "/opt/.venv/bin/invoke dev.serve --host 0.0.0.0 --port ${PORT}"]
 HEALTHCHECK --interval=30s --timeout=30s --start-interval=15s --start-period=30s --retries=3 CMD curl --fail http://localhost:${PORT}/healthcheck/is_ready || exit 1
 
-FROM build as api
+FROM build AS api
 # Production gunicorn server
 
 # Define some default gunicorn runtime args
