@@ -135,7 +135,7 @@
           </div>
 
           <div v-if="previewData.location" class="row mb-3">
-            <div class="col-md-6">
+            <div class="col-12">
               <strong>Location:</strong>
               <p><LocationInput :model-value="previewData.location" :readonly="true" /></p>
             </div>
