@@ -3,6 +3,10 @@
   "description": "A model for representing an experimental sample, based on the connection\nwith cheminventory.net, which mixes container-level and substance-level\ninformation.",
   "type": "object",
   "properties": {
+    "location": {
+      "title": "Location",
+      "type": "string"
+    },
     "chemform": {
       "title": "Chemform",
       "example": [
@@ -227,10 +231,6 @@
     },
     "supplier": {
       "title": "Supplier",
-      "type": "string"
-    },
-    "location": {
-      "title": "Location",
       "type": "string"
     },
     "comment": {

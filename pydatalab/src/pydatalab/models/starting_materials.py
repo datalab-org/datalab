@@ -1,11 +1,11 @@
 from pydantic import Field
 
 from pydatalab.models.items import Item
-from pydatalab.models.traits import HasSubstanceInfo, HasSynthesisInfo
+from pydatalab.models.traits import HasLocation, HasSubstanceInfo, HasSynthesisInfo
 from pydatalab.models.utils import IsoformatDateTime, StartingMaterialsStatus
 
 
-class StartingMaterial(Item, HasSynthesisInfo, HasSubstanceInfo):
+class StartingMaterial(Item, HasSynthesisInfo, HasSubstanceInfo, HasLocation):
     """A model for representing an experimental sample, based on the connection
     with cheminventory.net, which mixes container-level and substance-level
     information.
@@ -44,9 +44,6 @@ class StartingMaterial(Item, HasSynthesisInfo, HasSubstanceInfo):
 
     supplier: str | None = Field(alias="Supplier")
     """Supplier or manufacturer of the chemical."""
-
-    location: str | None = Field(alias="Location")
-    """The place where the container is located."""
 
     comment: str | None = Field(alias="Comments")
     """Any additional comments or notes about the container."""

@@ -82,6 +82,10 @@
         "$ref": "#/definitions/Collection"
       }
     },
+    "location": {
+      "title": "Location",
+      "type": "string"
+    },
     "revision": {
       "title": "Revision",
       "default": 1,
