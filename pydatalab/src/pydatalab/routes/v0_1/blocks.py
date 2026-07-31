@@ -294,7 +294,7 @@ def _save_block_to_db(block: DataBlock):
     match = {
         "item_id": block.data["item_id"],
         f"blocks_obj.{block.block_id}": {"$exists": True},
-        **get_default_permissions(user_only=True),
+        **get_default_permissions(user_only=False),
     }
     result = flask_mongo.db.items.update_one(match, update)
 
@@ -328,7 +328,7 @@ def update_block():
         raise BadRequest(f"Invalid or missing item_id: {item_id}")
 
     if not flask_mongo.db.items.find_one(
-        {"item_id": item_id, **get_default_permissions(user_only=True)}
+        {"item_id": item_id, **get_default_permissions(user_only=False)}
     ):
         raise NotFound(f"Item with item_id {item_id} not found or not accessible")
 
