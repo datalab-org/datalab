@@ -42,16 +42,21 @@ export default {
       default: null,
     },
   },
-  computed: {
-    graphData() {
-      return this.$store.state.itemGraphData;
-    },
-    isLoading() {
-      return this.$store.state.itemGraphIsLoading;
-    },
+  data() {
+    return {
+      graphData: null,
+      isLoading: true,
+    };
   },
   mounted() {
-    getItemGraph({ item_id: null, collection_id: this.collection_id });
+    this.isLoading = true;
+    getItemGraph({ item_id: null, collection_id: this.collection_id })
+      .then((graphData) => {
+        this.graphData = graphData;
+      })
+      .finally(() => {
+        this.isLoading = false;
+      });
   },
 };
 </script>
