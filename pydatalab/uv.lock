@@ -601,14 +601,14 @@ dependencies = [
 
 [[package]]
 name = "datalab-org-galvani"
-version = "0.5.2"
+version = "0.5.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/33/6a/69ecb9755917488acacfdf5255ed3554a7b6c0bb4b2e53478b37be18d565/datalab_org_galvani-0.5.2.tar.gz", hash = "sha256:390e6bbf5c590273cd2408c6ad865c01ed6c2e1504ba0e00bd57e02188331a56", size = 56316, upload-time = "2025-07-23T18:26:22.334Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/83/71/687486e1bcf9fb7605a708acb0f21c9eb777fa0058abdba4f05aaec739d9/datalab_org_galvani-0.5.4.tar.gz", hash = "sha256:f5c0f56d0023bd7c7250143c720ce5c1a4d2258b6c0de3051f886fb8fffc7e96", size = 56376, upload-time = "2026-07-30T14:03:37.938Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/98/1f/a3b83f4a2200a0beee7c59686d39e60c4827bf327b4a4dfe2fad7f6e2035/datalab_org_galvani-0.5.2-py3-none-any.whl", hash = "sha256:6eed8537dc2ff53dcb13aef22b96fd978c4e3811d5f6d57e70e27e9fb5256e33", size = 27437, upload-time = "2025-07-23T18:26:20.888Z" },
+    { url = "https://files.pythonhosted.org/packages/28/9a/c5d3afd7ee6ba63049a3c495c36ddf480fc985b3edde7af949d395b2ce61/datalab_org_galvani-0.5.4-py3-none-any.whl", hash = "sha256:ec7cd39228bd34b224236944e15ddaa7bc3d3bd4a964629127feb252d4b7ebb3", size = 27480, upload-time = "2026-07-30T14:03:36.805Z" },
 ]
 
 [[package]]
@@ -737,7 +737,7 @@ requires-dist = [
     { name = "langchain-openai", marker = "extra == 'chat'", specifier = "~=0.1" },
     { name = "matador-db", marker = "extra == 'apps'", specifier = ">=0.11.2" },
     { name = "matplotlib", specifier = "~=3.8" },
-    { name = "navani", marker = "extra == 'apps'", specifier = ">=0.1.20" },
+    { name = "navani", marker = "extra == 'apps'", specifier = ">=0.1.21" },
     { name = "nmrglue", marker = "extra == 'apps'", git = "https://github.com/jjhelmus/nmrglue.git?rev=b6408751bf18801a0a4ce084acf4d31335e2b02a" },
     { name = "pandas", extras = ["excel"], specifier = "~=2.2" },
     { name = "periodictable", specifier = "~=1.7" },
@@ -1891,7 +1891,7 @@ wheels = [
 
 [[package]]
 name = "navani"
-version = "0.1.20"
+version = "0.1.21"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "datalab-org-galvani" },
@@ -1903,9 +1903,9 @@ dependencies = [
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scipy", version = "1.16.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4e/23/0ff68f7663a8642dc387a2773b65acc713f22377a20fcd17cb906964e8e8/navani-0.1.20.tar.gz", hash = "sha256:2a3baa847fdf06ae11f9590e203358fcd978c7b0162be1a6629394df682e4d6d", size = 7058591, upload-time = "2026-05-21T17:04:40.289Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5f/20/504de233fb2efd1bdba9bbd89640dd16a7e8acef83185c6df89a4ab8d404/navani-0.1.21.tar.gz", hash = "sha256:f0f91b0c555ba3995829df6d04975311b5c5ddff33455d542356088611e4d310", size = 7102616, upload-time = "2026-07-31T16:02:51.429Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/24/c4/864832bde32e9752ec6a9a31bfdeacb2e64701c58eb29ae4b7fb06668586/navani-0.1.20-py3-none-any.whl", hash = "sha256:81950188eb9c29f407e9f1eb8aac980138176f6e6b36bc8a891667c192edb60f", size = 21789, upload-time = "2026-05-21T17:04:38.982Z" },
+    { url = "https://files.pythonhosted.org/packages/ef/ef/be5aa72ae680b1824258fba3dade8e2a51be331d99de51c0253de102dd7c/navani-0.1.21-py3-none-any.whl", hash = "sha256:38a285c9d9d045058dbf3c9c3bf69d8a403a75adf5bd92de7fc62c8fb01655eb", size = 24964, upload-time = "2026-07-31T16:02:50.097Z" },
 ]
 
 [[package]]
