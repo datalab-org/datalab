@@ -125,19 +125,19 @@ def test_get_api_keys_for_user(client, api_keys_db, user_id):
             "name": "Test_API_KEY_1",
             "digest": "234...567",
             "hash": "test hash",
-            "user_id": str(user_id),
+            "user_id": ObjectId(str(user_id)),
         },
         {
             "name": "Test_API_KEY_2",
             "digest": "658...098",
             "hash": "test hash",
-            "user_id": str(user_id),
+            "user_id": ObjectId(str(user_id)),
         },
         {
             "name": "Anaconda_instance_4",
             "digest": "433...851",
             "hash": "test hash",
-            "user_id": str(user_id),
+            "user_id": ObjectId(str(user_id)),
         },
     ]
     db_result = api_keys_db.insert_many(api_keys)
@@ -171,19 +171,19 @@ def test_cannot_gain_access_to_unauthorised_api_keys(client, another_user_id, ap
             "name": "Test_API_KEY_1",
             "digest": "234...567",
             "hash": "test hash",
-            "user_id": str(another_user_id),
+            "user_id": another_user_id,
         },
         {
             "name": "Test_API_KEY_2",
             "digest": "658...098",
             "hash": "test hash",
-            "user_id": str(another_user_id),
+            "user_id": another_user_id,
         },
         {
             "name": "Anaconda_instance_4",
             "digest": "433...851",
             "hash": "test hash",
-            "user_id": str(another_user_id),
+            "user_id": another_user_id,
         },
     ]
     db_result = api_keys_db.insert_many(api_keys)
@@ -211,7 +211,7 @@ def test_can_delete_api_key(client, api_keys_db, user_id):
             "_id": ObjectId("507f1f88bcf86cd733439011"),
             "name": "Test_API_KEY_1",
             "digest": "234...567",
-            "user_id": str(user_id),
+            "user_id": user_id,
         }
     )
 

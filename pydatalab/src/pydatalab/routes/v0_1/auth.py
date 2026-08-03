@@ -1072,7 +1072,7 @@ def generate_user_api_key():
         flask_mongo.db.api_keys.insert_one(
             {
                 "name": request_json["name"],
-                "user_id": current_user.id,
+                "user_id": ObjectId(current_user.id),
                 "digest": new_key[:4] + "..." + new_key[-4:],
                 "hash": sha512(new_key.encode("utf-8")).hexdigest(),
             }
@@ -1087,7 +1087,7 @@ def get_all_api_keys():
     """Returns all the api keys associated with the currently authenticated user."""
     if current_user.is_authenticated:
         all_api_keys = flask_mongo.db.api_keys.find(
-            {"user_id": current_user.id}, {"hash": 0, "user_id": 0}
+            {"user_id": ObjectId(current_user.id)}, {"hash": 0, "user_id": 0}
         )
         # find potential legacy keys
         legacy_key = flask_mongo.db.api_keys.find_one(
@@ -1115,7 +1115,7 @@ def delete_api_key(api_id):
     """Deletes the api key associated with the given id. (After checking the user owns the key)"""
     if current_user.is_authenticated:
         doc = flask_mongo.db.api_keys.find_one(
-            {"_id": ObjectId(api_id), "user_id": current_user.id}, {"user_id": 1}
+            {"_id": ObjectId(api_id), "user_id": ObjectId(current_user.id)}, {"user_id": 1}
         )
         if not doc:
             # Deal with potential legacy key
