@@ -226,6 +226,7 @@ class XRDBlock(DataBlock):
         """
         pattern_dfs: list[pd.DataFrame] = []
         all_files: list[dict] = []
+        peak_information: dict[str, dict] = {}
 
         if not filenames:
             file_ids = self.data.get("file_ids") or []
@@ -250,8 +251,6 @@ class XRDBlock(DataBlock):
 
             all_files = [{"location": filename, "immutable_id": filename} for filename in filenames]
 
-        pattern_dfs = []
-        peak_information = {}
         y_options: list[str] = []
         for ind, f in enumerate(all_files):
             try:
@@ -265,13 +264,13 @@ class XRDBlock(DataBlock):
                 pattern_df.attrs["wavelength"] = (
                     f"{self.data.get('wavelength', self.defaults['wavelength'])} Å"
                 )
+                peak_information[str(f["immutable_id"])] = PeakInformation(**peak_data).dict()
+                if len(all_files) > 1:
+                    pattern_df["normalized intensity (staggered)"] += ind
+                pattern_dfs.append(pattern_df)
+
             except Exception as exc:
                 warnings.warn(f"Could not parse file {f['location']} as XRD data. Error: {exc}")
-                continue
-            peak_information[str(f["immutable_id"])] = PeakInformation(**peak_data).dict()
-            if len(all_files) > 1:
-                pattern_df["normalized intensity (staggered)"] += ind
-            pattern_dfs.append(pattern_df)
 
         self.data["computed"] = {}
         self.data["computed"]["peak_data"] = peak_information
