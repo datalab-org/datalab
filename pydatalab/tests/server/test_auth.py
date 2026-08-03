@@ -228,7 +228,7 @@ def test_cannot_delete_someone_else_api_key(client, another_user_id, api_keys_db
             "_id": ObjectId("507f1f88bcf86cd733439011"),
             "name": "Test_API_KEY_1",
             "digest": "234...567",
-            "user_id": str(another_user_id),
+            "user_id": another_user_id,
         }
     )
 
@@ -245,7 +245,7 @@ def test_cannot_delete_api_key_when_unauthorised(unauthenticated_client, user_id
             "_id": ObjectId("507f1f88bcf86cd733439011"),
             "name": "Test_API_KEY_1",
             "digest": "234...567",
-            "user_id": str(user_id),
+            "user_id": user_id,
         }
     )
 
