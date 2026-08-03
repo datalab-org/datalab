@@ -56,6 +56,12 @@ describe("CollectionTable Component Tests", () => {
     cy.get('[data-testid="add-to-collection-button"]').should("not.exist");
     cy.get('[data-testid="delete-selected-button"]').should("not.exist");
     cy.get('[data-testid="search-input"]').should("exist");
+    cy.get('[data-testid="selection-summary"]').should("contain.text", "Number of collections: 2");
+  });
+
+  it("uses collection wording for selected rows", () => {
+    cy.get(".p-datatable-tbody > tr").first().find("input[type='checkbox']").click({ force: true });
+    cy.get('[data-testid="selection-summary"]').should("contain.text", "1 collection selected");
   });
 
   it("renders the correct columns in the table", () => {

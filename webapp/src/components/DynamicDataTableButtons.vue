@@ -96,7 +96,7 @@
           <span v-if="itemsSelected.length > 0">
             {{ itemsSelected.length }} {{ itemLabel(itemsSelected.length) }} selected
           </span>
-          <span v-else>Number of items: {{ displayedItemCount }}</span>
+          <span v-else>Number of {{ itemLabel(2) }}: {{ displayedItemCount }}</span>
         </div>
 
         <div v-if="itemsSelected.length > 0" class="dropdown">
@@ -437,7 +437,18 @@ export default {
   },
   methods: {
     itemLabel(count) {
-      return count === 1 ? "item" : "items";
+      const labels = {
+        samples: ["item", "items"],
+        collections: ["collection", "collections"],
+        equipment: ["equipment item", "equipment items"],
+        startingMaterials: ["starting material", "starting materials"],
+        collectionItems: ["item", "items"],
+        users: ["user", "users"],
+        tokens: ["token", "tokens"],
+        groups: ["group", "groups"],
+      };
+      const [singular, plural] = labels[this.dataType] || ["item", "items"];
+      return count === 1 ? singular : plural;
     },
     async confirmDeletion() {
       const idsSelected = this.itemsSelected.map((x) => x.item_id || x.collection_id);
