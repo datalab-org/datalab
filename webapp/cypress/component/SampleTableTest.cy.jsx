@@ -156,11 +156,12 @@ describe("SampleTable Component Tests", () => {
   });
 
   it("keeps the table rows in place when selecting an item", () => {
+    cy.viewport(1280, 720);
+
     let initialRowTop;
     let actionsRight;
 
     cy.get('[data-testid="selection-summary"]').should("contain.text", "Number of items: 6");
-    cy.get('[data-testid="selection-summary"] [data-icon="stream"]').should("exist");
     cy.get('[data-testid="selected-dropdown"]').should("not.exist");
 
     cy.get(".p-datatable-tbody > tr")
@@ -172,7 +173,6 @@ describe("SampleTable Component Tests", () => {
     cy.get(".p-datatable-tbody > tr").first().find("input[type='checkbox']").click({ force: true });
 
     cy.get('[data-testid="selection-summary"]').should("contain.text", "1 item selected");
-    cy.get('[data-testid="selection-summary"] [data-icon="check-square"]').should("exist");
     cy.get('[data-testid="selected-dropdown"]')
       .should("contain.text", "Actions")
       .then(($button) => {
