@@ -73,6 +73,10 @@ describe("StartingMaterialTable Component Tests", () => {
     cy.get('[data-testid="add-to-collection-button"]').should("not.exist");
     cy.get('[data-testid="delete-selected-button"]').should("not.exist");
     cy.get('[data-testid="search-input"]').should("exist");
+    cy.get('[data-testid="selection-summary"]').should(
+      "contain.text",
+      "Number of starting materials:",
+    );
   });
 
   it("renders the correct columns in the table", () => {
