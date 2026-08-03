@@ -87,6 +87,142 @@
 
       <div class="button-bar-spacer"></div>
 
+      <div class="selection-controls">
+        <div data-testid="selection-summary" class="selection-summary">
+          <font-awesome-icon
+            :icon="itemsSelected.length > 0 ? 'check-square' : 'stream'"
+            class="mr-1"
+          />
+          <span v-if="itemsSelected.length > 0">
+            {{ itemsSelected.length }} {{ itemLabel(itemsSelected.length) }} selected
+          </span>
+          <span v-else>Number of items: {{ displayedItemCount }}</span>
+        </div>
+
+        <div v-if="itemsSelected.length > 0" class="dropdown">
+          <button
+            id="selected-actions-dropdown"
+            data-testid="selected-dropdown"
+            class="btn btn-default dropdown-toggle"
+            type="button"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            :aria-expanded="isSelectedDropdownVisible"
+            @click="isSelectedDropdownVisible = !isSelectedDropdownVisible"
+          >
+            Actions
+          </button>
+          <div
+            v-show="isSelectedDropdownVisible"
+            class="dropdown-menu"
+            style="display: block"
+            aria-labelledby="selected-actions-dropdown"
+          >
+            <a
+              v-if="
+                !['collections', 'collectionItems', 'users', 'tokens', 'groups'].includes(dataType)
+              "
+              data-testid="add-to-collection-button"
+              class="dropdown-item"
+              @click="handleAddToCollection"
+            >
+              Add to collection
+            </a>
+            <a
+              v-if="dataType === 'collectionItems'"
+              data-testid="remove-from-collection-dropdown"
+              class="dropdown-item"
+              @click="confirmRemoveFromCollection"
+            >
+              Remove from collection
+            </a>
+            <a
+              v-if="
+                !['collections', 'collectionItems', 'users', 'tokens', 'groups'].includes(dataType)
+              "
+              data-testid="batch-share-button"
+              class="dropdown-item"
+              @click="handleBatchShare"
+            >
+              Batch share
+            </a>
+            <a
+              v-if="!['collectionItems', 'users', 'tokens', 'groups'].includes(dataType)"
+              data-testid="delete-selected-button"
+              class="dropdown-item"
+              @click="confirmDeletion"
+            >
+              Delete selected
+            </a>
+            <a
+              v-if="dataType === 'users'"
+              data-testid="bulk-change-role-button"
+              class="dropdown-item"
+              @click="
+                showBulkChangeRoleModal = true;
+                isSelectedDropdownVisible = false;
+              "
+            >
+              Change role
+            </a>
+            <a
+              v-if="dataType === 'users'"
+              data-testid="bulk-add-to-group-button"
+              class="dropdown-item"
+              @click="
+                showBulkAddToGroupModal = true;
+                isSelectedDropdownVisible = false;
+              "
+            >
+              Add to group
+            </a>
+            <a
+              v-if="dataType === 'users'"
+              data-testid="bulk-change-managers-button"
+              class="dropdown-item"
+              @click="
+                showBulkChangeManagersModal = true;
+                isSelectedDropdownVisible = false;
+              "
+            >
+              Add manager(s)
+            </a>
+            <a
+              v-if="dataType === 'users'"
+              data-testid="bulk-activate-users-button"
+              class="dropdown-item"
+              @click="handleBulkActivateUsers"
+            >
+              Activate selected users
+            </a>
+            <a
+              v-if="dataType === 'users'"
+              data-testid="bulk-deactivate-users-button"
+              class="dropdown-item"
+              @click="handleBulkDeactivateUsers"
+            >
+              Deactivate selected users
+            </a>
+            <a
+              v-if="dataType === 'tokens'"
+              data-testid="bulk-invalidate-tokens-button"
+              class="dropdown-item"
+              @click="handleBulkInvalidateTokens"
+            >
+              Invalidate selected tokens
+            </a>
+            <a
+              v-if="dataType === 'groups'"
+              data-testid="bulk-delete-groups-button"
+              class="dropdown-item"
+              @click="handleBulkDeleteGroups"
+            >
+              Delete selected groups
+            </a>
+          </div>
+        </div>
+      </div>
+
       <div class="search-settings-group">
         <IconField class="search-field">
           <InputIcon>
@@ -146,129 +282,6 @@
       </div>
     </div>
 
-    <div v-if="itemsSelected.length > 0" class="d-flex justify-content-end align-items-center mt-2">
-      <div class="dropdown">
-        <button
-          data-testid="selected-dropdown"
-          class="btn btn-default dropdown-toggle"
-          type="button"
-          data-toggle="dropdown"
-          aria-haspopup="true"
-          aria-expanded="false"
-          @click="isSelectedDropdownVisible = !isSelectedDropdownVisible"
-        >
-          {{ itemsSelected.length }} selected...
-        </button>
-        <div
-          v-show="isSelectedDropdownVisible"
-          class="dropdown-menu"
-          style="display: block"
-          aria-labelledby="dropdownMenuButton"
-        >
-          <a
-            v-if="
-              !['collections', 'collectionItems', 'users', 'tokens', 'groups'].includes(dataType)
-            "
-            data-testid="add-to-collection-button"
-            class="dropdown-item"
-            @click="handleAddToCollection"
-          >
-            Add to collection
-          </a>
-          <a
-            v-if="dataType === 'collectionItems'"
-            data-testid="remove-from-collection-dropdown"
-            class="dropdown-item"
-            @click="confirmRemoveFromCollection"
-          >
-            Remove from collection
-          </a>
-          <a
-            v-if="
-              !['collections', 'collectionItems', 'users', 'tokens', 'groups'].includes(dataType)
-            "
-            data-testid="batch-share-button"
-            class="dropdown-item"
-            @click="handleBatchShare"
-          >
-            Batch share
-          </a>
-          <a
-            v-if="!['collectionItems', 'users', 'tokens', 'groups'].includes(dataType)"
-            data-testid="delete-selected-button"
-            class="dropdown-item"
-            @click="confirmDeletion"
-          >
-            Delete selected
-          </a>
-          <a
-            v-if="dataType === 'users'"
-            data-testid="bulk-change-role-button"
-            class="dropdown-item"
-            @click="
-              showBulkChangeRoleModal = true;
-              isSelectedDropdownVisible = false;
-            "
-          >
-            Change role
-          </a>
-          <a
-            v-if="dataType === 'users'"
-            data-testid="bulk-add-to-group-button"
-            class="dropdown-item"
-            @click="
-              showBulkAddToGroupModal = true;
-              isSelectedDropdownVisible = false;
-            "
-          >
-            Add to group
-          </a>
-          <a
-            v-if="dataType === 'users'"
-            data-testid="bulk-change-managers-button"
-            class="dropdown-item"
-            @click="
-              showBulkChangeManagersModal = true;
-              isSelectedDropdownVisible = false;
-            "
-          >
-            Add manager(s)
-          </a>
-          <a
-            v-if="dataType === 'users'"
-            data-testid="bulk-activate-users-button"
-            class="dropdown-item"
-            @click="handleBulkActivateUsers"
-          >
-            Activate selected users
-          </a>
-          <a
-            v-if="dataType === 'users'"
-            data-testid="bulk-deactivate-users-button"
-            class="dropdown-item"
-            @click="handleBulkDeactivateUsers"
-          >
-            Deactivate selected users
-          </a>
-          <a
-            v-if="dataType === 'tokens'"
-            data-testid="bulk-invalidate-tokens-button"
-            class="dropdown-item"
-            @click="handleBulkInvalidateTokens"
-          >
-            Invalidate selected tokens
-          </a>
-          <a
-            v-if="dataType === 'groups'"
-            data-testid="bulk-delete-groups-button"
-            class="dropdown-item"
-            @click="handleBulkDeleteGroups"
-          >
-            Delete selected groups
-          </a>
-        </div>
-      </div>
-    </div>
     <BulkChangeRoleModal
       v-model="showBulkChangeRoleModal"
       :selected-users="itemsSelected"
@@ -333,6 +346,11 @@ export default {
     itemsSelected: {
       type: Array,
       required: true,
+    },
+    displayedItemCount: {
+      type: Number,
+      required: false,
+      default: 0,
     },
     filters: {
       type: Object,
@@ -418,6 +436,9 @@ export default {
     },
   },
   methods: {
+    itemLabel(count) {
+      return count === 1 ? "item" : "items";
+    },
     async confirmDeletion() {
       const idsSelected = this.itemsSelected.map((x) => x.item_id || x.collection_id);
       let idsSelectedLabel = idsSelected;
@@ -963,6 +984,16 @@ export default {
 .btn-action {
   flex: 1;
   text-align: center;
+  white-space: nowrap;
+}
+
+.selection-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.selection-summary {
   white-space: nowrap;
 }
 
