@@ -17,7 +17,8 @@ This patch release includes several bug fixes, usability fixes and developer exp
 > [!note]
 > The previous release 0.7.2 was not pushed to PyPI due to an error with our release workflow. As 0.7.3 supersedes it, we will not release a separate backport unless otherwise requested.
 
-## What's Changed
+### What's Changed
+
 * Fix loose permissions when creating a sample by copying from another by @davidwaroquiers in https://github.com/datalab-org/datalab/pull/1922
 * Add option to disable magic link authentication by @davidwaroquiers in https://github.com/datalab-org/datalab/pull/1917
 * Fix tz-naive datetime for certain routes by @be-smith in https://github.com/datalab-org/datalab/pull/1927
@@ -32,7 +33,8 @@ This patch release includes several bug fixes, usability fixes and developer exp
 * Allow non-creators but those with permission to "read" blocks by @be-smith in https://github.com/datalab-org/datalab/pull/1951
 * Make XRD block natively multi-file by @ml-evs in https://github.com/datalab-org/datalab/pull/1868
 
-## New Contributors
+### New Contributors
+
 * @davidwaroquiers made their first contribution in https://github.com/datalab-org/datalab/pull/1922
 * @gpetretto made their first contribution in https://github.com/datalab-org/datalab/pull/1921
 
@@ -48,7 +50,8 @@ On a more pleasant note, the release also includes some niceties:
 - Installation documentation improvements.
 - Improvements to group searching.
 
-## What's Changed
+### What's Changed
+
 * Improvements to ELN export: capture other file reprs and report progress to UI by @ml-evs in https://github.com/datalab-org/datalab/pull/1801
 * Improvements to substance info display (rounding, toggle and styling) by @jdbocarsly in https://github.com/datalab-org/datalab/pull/1836
 * Fixes events from bokeh route to fire by @be-smith in https://github.com/datalab-org/datalab/pull/1853
@@ -63,7 +66,8 @@ On a more pleasant note, the release also includes some niceties:
 * Fix group search + group row unclickable by @jbouquiaux in https://github.com/datalab-org/datalab/pull/1909
 * Lower erroneously open permissions of block updates if IDs are known by @ml-evs in https://github.com/datalab-org/datalab/pull/1918
 
-## New Contributors
+### New Contributors
+
 * @jbouquiaux made their first contribution in https://github.com/datalab-org/datalab/pull/1909
 
 **Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.1...v0.7.2
@@ -78,7 +82,8 @@ Minor release with bug fixes and usability improvements relative to v0.7.0. High
 - better mobile scaling for the edit page navbar
 - improved sharing UI with clear distinction between read and write permissions
 
-## What's Changed
+### What's Changed
+
 * Add directly copyable text link under sharing QR codes by @ml-evs in https://github.com/datalab-org/datalab/pull/1777
 * Only write a new version when item data actually changes by @be-smith in https://github.com/datalab-org/datalab/pull/1775
 * Add a modal for sharing items with creators and groups by @ml-evs in https://github.com/datalab-org/datalab/pull/1779
