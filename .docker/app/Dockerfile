@@ -54,7 +54,7 @@ ARG VUE_APP_ENABLE_LOGIN_PAGE=magic-enable-login-page
 ARG VUE_APP_LOGIN_HIDE_UNAVAILABLE_AUTH=magic-login-hide-unavailable-auth
 # Version source for scripts/get-version.js. Provided as a build arg so the
 # build layer doesn't depend on `.git` (which would invalidate cache every commit).
-ARG VUE_APP_GIT_VERSION=0.0.0+ci
+ARG VUE_APP_GIT_VERSION=0.0.0-git
 ENV VUE_APP_GIT_VERSION=${VUE_APP_GIT_VERSION}
 
 RUN /node_modules/.bin/vue-cli-service build
