@@ -107,7 +107,6 @@ def test_create_api_key(client, api_keys_db):
 
     assert result_from_database is not None
     assert result_from_database["digest"][4:-4] == "..."
-    # delete_test_gen_api_keys(database, ["Test_API_KEY"])
 
 
 def test_create_api_key_unauthorized(unauthenticated_client, api_keys_db):
