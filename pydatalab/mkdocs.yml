@@ -70,7 +70,7 @@ markdown_extensions:
       normalize_issue_symbols: true
   - toc:
       permalink: true
-      toc_depth: 2
+      toc_depth: 3
 
 extra_css:
   - css/reference.css

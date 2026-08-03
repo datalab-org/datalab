@@ -116,6 +116,90 @@ def test_save_good_sample(client, default_sample_dict):
 
 
 @pytest.mark.dependency(depends=["test_new_sample"])
+def test_save_item_last_modified(client, default_sample_dict):
+    """`last_modified` should only be bumped when a save actually changes the
+    item's content (i.e., a new version is minted), and left untouched when
+    identical data is re-submitted.
+    """
+    # Use a dedicated item so this test doesn't interfere with the shared sample
+    sample = copy.deepcopy(default_sample_dict)
+    sample["item_id"] = "last_modified_test"
+    item_id = sample["item_id"]
+
+    response = client.put("/new-sample/", json=sample)
+    assert response.status_code == 201, response.json
+
+    def get_item():
+        resp = client.get(f"/get-item-data/{item_id}")
+        assert resp.status_code == 200, resp.json
+        return resp.json["item_data"]
+
+    before = get_item()
+    # Creation stamps `last_modified`, independently of the (backdated) `date` field
+    assert before.get("last_modified") is not None
+    assert before["last_modified"] != before["date"]
+    version_before = before.get("version")
+
+    # 1. A genuine metadata change bumps `last_modified` and mints a new version
+    changed = copy.deepcopy(sample)
+    changed["description"] = "A genuinely new description."
+    response = client.post("/save-item/", json={"item_id": item_id, "data": changed})
+    assert response.status_code == 200, response.json
+    first_last_modified = response.json["last_modified"]
+    assert first_last_modified is not None
+    # A genuine change is not flagged as a no-op
+    assert not response.json.get("unchanged")
+
+    after_change = get_item()
+    assert after_change["last_modified"] == first_last_modified
+    assert after_change["last_modified"] != before.get("last_modified")
+    assert after_change.get("version") != version_before
+
+    # 2. Re-submitting identical data is a no-op: flagged `unchanged`, no version, no bump
+    response = client.post("/save-item/", json={"item_id": item_id, "data": changed})
+    assert response.status_code == 200, response.json
+    assert response.json["status"] == "success"
+    assert response.json["unchanged"] is True
+    assert response.json["last_modified"] == first_last_modified
+
+    after_noop = get_item()
+    assert after_noop["last_modified"] == first_last_modified
+    assert after_noop.get("version") == after_change.get("version")
+
+
+@pytest.mark.dependency(depends=["test_new_sample"])
+def test_last_modified_backfilled_from_object_id(client, database, default_sample_dict):
+    """Legacy items stored without a `last_modified` should have it derived from the
+    creation timestamp embedded in their MongoDB ObjectId.
+    """
+    sample = copy.deepcopy(default_sample_dict)
+    sample["item_id"] = "last_modified_backfill_test"
+    item_id = sample["item_id"]
+
+    response = client.put("/new-sample/", json=sample)
+    assert response.status_code == 201, response.json
+
+    # Simulate a legacy document that predates `last_modified` being set on creation
+    result = database.items.update_one({"item_id": item_id}, {"$unset": {"last_modified": ""}})
+    assert result.modified_count == 1
+
+    stored = database.items.find_one({"item_id": item_id}, {"_id": 1})
+    expected = stored["_id"].generation_time
+
+    response = client.get(f"/get-item-data/{item_id}")
+    assert response.status_code == 200, response.json
+    last_modified = response.json["item_data"]["last_modified"]
+    assert last_modified is not None
+    assert datetime.datetime.fromisoformat(last_modified) == expected
+
+    # The summary endpoint backing the item tables should backfill it too
+    response = client.get("/samples/")
+    assert response.status_code == 200, response.json
+    summary = next(d for d in response.json["samples"] if d["item_id"] == item_id)
+    assert summary["last_modified"] is not None
+
+
+@pytest.mark.dependency(depends=["test_new_sample"])
 def test_save_bad_sample(client, default_sample_dict):
     updated_sample = default_sample_dict.copy()
     updated_sample.update({"unknown_key": "This should not be allowed in."})

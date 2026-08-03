@@ -37,6 +37,16 @@ def test_auth_mechanisms_endpoint_only_exposes_auth_flags(unauthenticated_client
     assert all(isinstance(enabled, bool) for enabled in auth.values())
 
 
+def test_magic_link_auth_feature_flag_can_be_disabled(app, monkeypatch):
+    from pydatalab import config
+    from pydatalab.feature_flags import FEATURE_FLAGS, check_feature_flags
+
+    monkeypatch.setattr(config.CONFIG, "DISABLE_MAGIC_LINK_AUTH", True)
+    check_feature_flags(app)
+    assert FEATURE_FLAGS.email_notifications is True
+    assert FEATURE_FLAGS.auth_mechanisms.email is False
+
+
 def test_landing_page(unauthenticated_client, client):
     """Check that the rudimentary landing page renders without error for both
     unauthenticated and authenticated users."""

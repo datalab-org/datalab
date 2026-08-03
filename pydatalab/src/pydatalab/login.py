@@ -118,12 +118,16 @@ def get_by_id(user_id: str) -> LoginUser | None:
 
     """
 
-    user = flask_mongo.db.users.aggregate(
+    # Use next(..., None) rather than the cursor's .next() to avoid the case
+    # where StopIteration is raised and not handled (e.g. manually deleted user,
+    # tries to reconnect while the old cookies are still in the browser).
+    cursor = flask_mongo.db.users.aggregate(
         [
             {"$match": {"_id": ObjectId(user_id)}},
             {"$lookup": groups_lookup()},
         ]
-    ).next()
+    )
+    user = next(cursor, None)
     if not user:
         return None
 
