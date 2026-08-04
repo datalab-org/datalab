@@ -5,7 +5,6 @@ with their local accounts.
 """
 
 import datetime
-import json
 import os
 import random
 import re
@@ -1058,7 +1057,7 @@ def redirect_to_ui(blueprint, token):  # pylint: disable=unused-argument
 def get_authenticated_user_info():
     """Returns metadata associated with the currently authenticated user."""
     if current_user.is_authenticated:
-        current_user_response = json.loads(current_user.person.model_dump_json())
+        current_user_response = current_user.person.model_dump(mode="json")
         current_user_response["role"] = current_user.role.value
         return jsonify(current_user_response), 200
     else:
