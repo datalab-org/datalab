@@ -1,5 +1,3 @@
-import json
-
 from flask import Blueprint, jsonify, request
 
 from pydatalab.models.people import Group
@@ -44,6 +42,6 @@ def search_groups():
     return jsonify(
         {
             "status": "success",
-            "data": list(json.loads(Group(**d).model_dump_json()) for d in cursor),
+            "data": [Group(**d).model_dump(mode="json") for d in cursor],
         }
     ), 200

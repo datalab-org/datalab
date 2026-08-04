@@ -1,5 +1,4 @@
 import datetime
-import json
 
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
@@ -87,7 +86,7 @@ def get_collection(collection_id):
         {
             "status": "success",
             "collection_id": collection_id,
-            "data": json.loads(collection.model_dump_json(exclude_unset=True)),
+            "data": collection.model_dump(mode="json", exclude_unset=True),
             "child_items": list(samples),
         }
     )
@@ -218,7 +217,7 @@ def create_collection():
 
     response = {
         "status": "success",
-        "data": json.loads(data_model.model_dump_json()),
+        "data": data_model.model_dump(mode="json"),
     }
 
     if errors:
@@ -534,7 +533,7 @@ def search_collections():
     )
 
     cursor = [
-        json.loads(Collection(**doc).model_dump_json(exclude_unset=True))
+        Collection(**doc).model_dump(mode="json", exclude_unset=True)
         for doc in flask_mongo.db.collections.aggregate(pipeline)
     ]
 
