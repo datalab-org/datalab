@@ -86,10 +86,10 @@ describe("Navbar", () => {
       },
     });
 
-    cy.get("#loginDropdown").click();
-    cy.get("#loginDropdown").parent().find(".dropdown-menu").should("be.visible");
-    cy.get("#nav").click();
-    cy.get("#loginDropdown").parent().find(".dropdown-menu").should("not.be.visible");
+    cy.get('[data-testid="login-dropdown-button"]').click();
+    cy.get('[data-testid="login-dropdown-menu"]').should("be.visible");
+    cy.get('[data-testid="navbar-navigation"]').click();
+    cy.get('[data-testid="login-dropdown-menu"]').should("not.be.visible");
   });
 
   it("renders all navigation links with correct URLs", () => {

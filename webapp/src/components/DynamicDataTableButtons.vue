@@ -115,6 +115,7 @@
           </button>
           <div
             v-show="isSettingsDropdownVisible"
+            data-testid="table-settings-menu"
             class="dropdown-menu dropdown-menu-right settings-dropdown"
             style="display: block"
           >

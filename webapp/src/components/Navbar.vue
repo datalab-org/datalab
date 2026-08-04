@@ -22,7 +22,7 @@
     <LoginDetails />
   </div>
 
-  <div id="nav">
+  <div id="nav" data-testid="navbar-navigation">
     <router-link to="/about">About</router-link> |
     <router-link to="/samples">Samples</router-link> |
     <router-link to="/collections">Collections</router-link> |
