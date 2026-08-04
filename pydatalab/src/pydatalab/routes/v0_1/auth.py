@@ -1099,6 +1099,7 @@ def get_all_api_keys():
                 "name": {"$exists": False},
                 "digest": {"$exists": False},
                 "user_id": {"$exists": False},
+                "type": {"$exists": False},
             },
             {"hash": 0},
         )
