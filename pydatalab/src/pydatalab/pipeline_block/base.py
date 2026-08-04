@@ -53,9 +53,6 @@ class PipelineDataBlock:
     version: str = __version__
     """The implementation version of this particular block."""
 
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__()
-
     def __init__(
         self,
         item_id: str | None = None,
