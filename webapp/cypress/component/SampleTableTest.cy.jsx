@@ -158,7 +158,7 @@ describe("SampleTable Component Tests", () => {
   it("closes table settings outside but keeps them open when selecting columns", () => {
     cy.get('[data-testid="table-settings-button"]').click();
     cy.get(".settings-dropdown").should("be.visible");
-    cy.get(".p-datatable-tbody").click();
+    cy.get('[data-testid="search-input"]').click();
     cy.get(".settings-dropdown").should("not.be.visible");
 
     cy.get('[data-testid="table-settings-button"]').click();
