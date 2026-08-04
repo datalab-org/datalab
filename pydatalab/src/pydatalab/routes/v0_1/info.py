@@ -1,6 +1,5 @@
 """This submodule defines introspective info endpoints of the API."""
 
-import json
 from datetime import datetime
 from datetime import timedelta as td
 from datetime import timezone as tz
@@ -118,7 +117,7 @@ def get_info():
     )
 
     return (
-        jsonify(json.loads(response_data.model_dump_json())),
+        jsonify(response_data.model_dump(mode="json")),
         200,
     )
 
@@ -142,27 +141,23 @@ def get_stats():
 def list_block_types():
     """Returns a list of all blocks implemented in this server."""
     return jsonify(
-        json.loads(
-            JSONAPIResponse[dict[str, Any]](
-                data=[
-                    Data(
-                        id=block_type,
-                        type="block_type",
-                        attributes={
-                            "name": getattr(block, "name", ""),
-                            "description": getattr(block, "description", ""),
-                            "version": getattr(block, "version", __version__),
-                            "accepted_file_extensions": getattr(
-                                block, "accepted_file_extensions", []
-                            ),
-                            "multi_file": getattr(block, "multi_file", False),
-                        },
-                    )
-                    for block_type, block in BLOCK_TYPES.items()
-                ],
-                meta=Meta(query=request.query_string.decode() if request.query_string else ""),
-            ).model_dump_json()
-        )
+        JSONAPIResponse[dict[str, Any]](
+            data=[
+                Data(
+                    id=block_type,
+                    type="block_type",
+                    attributes={
+                        "name": getattr(block, "name", ""),
+                        "description": getattr(block, "description", ""),
+                        "version": getattr(block, "version", __version__),
+                        "accepted_file_extensions": getattr(block, "accepted_file_extensions", []),
+                        "multi_file": getattr(block, "multi_file", False),
+                    },
+                )
+                for block_type, block in BLOCK_TYPES.items()
+            ],
+            meta=Meta(query=request.query_string.decode() if request.query_string else ""),
+        ).model_dump(mode="json")
     )
 
 
@@ -171,23 +166,21 @@ def list_supported_types():
     """Returns a list of supported schemas."""
 
     return jsonify(
-        json.loads(
-            JSONAPIResponse[dict[str, Any]](
-                data=[
-                    Data(
-                        id=item_type,
-                        type="item_type",
-                        attributes={
-                            "version": __version__,
-                            "api_version": __api_version__,
-                            "schema": schema,
-                        },
-                    )
-                    for item_type, schema in ITEM_SCHEMAS.items()
-                ],
-                meta=Meta(query=request.query_string.decode() if request.query_string else ""),
-            ).model_dump_json()
-        )
+        JSONAPIResponse[dict[str, Any]](
+            data=[
+                Data(
+                    id=item_type,
+                    type="item_type",
+                    attributes={
+                        "version": __version__,
+                        "api_version": __api_version__,
+                        "schema": schema,
+                    },
+                )
+                for item_type, schema in ITEM_SCHEMAS.items()
+            ],
+            meta=Meta(query=request.query_string.decode() if request.query_string else ""),
+        ).model_dump(mode="json")
     )
 
 
@@ -200,20 +193,18 @@ def get_schema_type(item_type):
         ), 404
 
     return jsonify(
-        json.loads(
-            JSONAPIResponse[dict[str, Any]](
-                data=Data(
-                    id=item_type,
-                    type="item_type",
-                    attributes={
-                        "version": __version__,
-                        "api_version": __api_version__,
-                        "schema": ITEM_SCHEMAS[item_type],
-                    },
-                ),
-                meta=Meta(query=request.query_string.decode() if request.query_string else ""),
-            ).model_dump_json()
-        )
+        JSONAPIResponse[dict[str, Any]](
+            data=Data(
+                id=item_type,
+                type="item_type",
+                attributes={
+                    "version": __version__,
+                    "api_version": __api_version__,
+                    "schema": ITEM_SCHEMAS[item_type],
+                },
+            ),
+            meta=Meta(query=request.query_string.decode() if request.query_string else ""),
+        ).model_dump(mode="json")
     )
 
 

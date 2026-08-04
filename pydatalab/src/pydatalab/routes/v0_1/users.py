@@ -1,4 +1,3 @@
-import json
 from datetime import datetime
 from datetime import timedelta as td
 from datetime import timezone as tz
@@ -218,5 +217,5 @@ def search_users():
 
     cursor = flask_mongo.db.users.aggregate(pipeline)
     return jsonify(
-        {"status": "success", "users": [json.loads(Person(**d).model_dump_json()) for d in cursor]}
+        {"status": "success", "users": [Person(**d).model_dump(mode="json") for d in cursor]}
     ), 200
