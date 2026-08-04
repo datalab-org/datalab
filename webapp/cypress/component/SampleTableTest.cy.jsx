@@ -155,6 +155,18 @@ describe("SampleTable Component Tests", () => {
     cy.get('[data-testid="search-input"]').should("exist");
   });
 
+  it("closes table settings outside but keeps them open when selecting columns", () => {
+    cy.get('[data-testid="table-settings-button"]').click();
+    cy.get(".settings-dropdown").should("be.visible");
+    cy.get(".p-datatable-tbody").click();
+    cy.get(".settings-dropdown").should("not.be.visible");
+
+    cy.get('[data-testid="table-settings-button"]').click();
+    cy.get(".settings-dropdown .p-multiselect-label-container").click();
+    cy.get(".settings-dropdown .p-multiselect-option").first().click();
+    cy.get(".settings-dropdown").should("be.visible");
+  });
+
   it("renders the table with correct headers", () => {
     const headers = [
       "", //checkbox
