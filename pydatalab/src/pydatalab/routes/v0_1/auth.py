@@ -25,6 +25,7 @@ from pydatalab.errors import UserRegistrationForbidden
 from pydatalab.feature_flags import FEATURE_FLAGS
 from pydatalab.logger import LOGGER
 from pydatalab.login import get_by_id
+from pydatalab.models.api_keys import ApiKey
 from pydatalab.models.people import AccountStatus, Identity, IdentityType, Person
 from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
 from pydatalab.send_email import send_mail
@@ -1068,18 +1069,21 @@ def generate_user_api_key():
     """Returns metadata associated with the currently authenticated user."""
     if current_user.is_authenticated:
         request_json = request.get_json()
-        
+
         if not request_json.get("name"):
             raise RuntimeError("API key must have a name")
         new_key = "".join(random.choices(ascii_letters, k=KEY_LENGTH))  # noqa: S311
-        flask_mongo.db.api_keys.insert_one(
-            {
-                "name": request_json["name"],
-                "user_id": ObjectId(current_user.id),
-                "digest": new_key[:4] + "..." + new_key[-4:],
-                "hash": sha512(new_key.encode("utf-8")).hexdigest(),
-            }
+        access_key = ApiKey(
+            name=request_json["name"],
+            user=ObjectId(current_user.id),
+            digest=new_key[:4] + "..." + new_key[-4:],
+            hash=sha512(new_key.encode("utf-8")).hexdigest(),
+            created_at=datetime.datetime.now(tz=datetime.timezone.utc),
+            expires_at=None,
+            version=1,
         )
+
+        flask_mongo.db.api_keys.insert_one(access_key.dict())
         return jsonify({"key": new_key, "name": request_json["name"]}), 200
     else:
         return Unauthorized("User must be an authenticated admin to request an API key.")
@@ -1090,7 +1094,7 @@ def get_all_api_keys():
     """Returns all the api keys associated with the currently authenticated user."""
     if current_user.is_authenticated:
         all_api_keys = flask_mongo.db.api_keys.find(
-            {"user_id": ObjectId(current_user.id)}, {"hash": 0, "user_id": 0}
+            {"user": ObjectId(current_user.id), "type": "api_key"}, {"hash": 0, "user": 0}
         )
         # find potential legacy keys
         legacy_key = flask_mongo.db.api_keys.find_one(
@@ -1098,7 +1102,7 @@ def get_all_api_keys():
                 "_id": ObjectId(current_user.id),
                 "name": {"$exists": False},
                 "digest": {"$exists": False},
-                "user_id": {"$exists": False},
+                "user": {"$exists": False},
                 "type": {"$exists": False},
             },
             {"hash": 0},
@@ -1119,16 +1123,18 @@ def delete_api_key(api_id):
     """Deletes the api key associated with the given id. (After checking the user owns the key)"""
     if current_user.is_authenticated:
         doc = flask_mongo.db.api_keys.find_one(
-            {"_id": ObjectId(api_id), "user_id": ObjectId(current_user.id)}, {"user_id": 1}
+            {"_id": ObjectId(api_id), "user": ObjectId(current_user.id), "type": "api_key"},
+            {"user": 1},
         )
         if not doc:
             # Deal with potential legacy key
             doc = flask_mongo.db.api_keys.find_one(
                 {
                     "_id": ObjectId(api_id),
-                    "user_id": {"$exists": False},
+                    "user": {"$exists": False},
                     "digest": {"$exists": False},
                     "name": {"$exists": False},
+                    "type": {"$exists": False},
                 },
             )
         if not doc:

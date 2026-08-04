@@ -1,3 +1,4 @@
+import datetime
 from unittest.mock import MagicMock
 
 from bson import ObjectId
@@ -125,19 +126,31 @@ def test_get_api_keys_for_user(client, api_keys_db, user_id):
             "name": "Test_API_KEY_1",
             "digest": "234...567",
             "hash": "test hash",
-            "user_id": ObjectId(str(user_id)),
+            "user": ObjectId(str(user_id)),
+            "created_at": datetime.datetime(2026, 8, 1, 9, 30, tzinfo=datetime.timezone.utc),
+            "expires_at": None,
+            "type": "api_key",
+            "version": "1",
         },
         {
             "name": "Test_API_KEY_2",
             "digest": "658...098",
             "hash": "test hash",
-            "user_id": ObjectId(str(user_id)),
+            "user": ObjectId(str(user_id)),
+            "created_at": datetime.datetime(2026, 8, 1, 9, 30, tzinfo=datetime.timezone.utc),
+            "expires_at": None,
+            "type": "api_key",
+            "version": "1",
         },
         {
             "name": "Anaconda_instance_4",
             "digest": "433...851",
             "hash": "test hash",
-            "user_id": ObjectId(str(user_id)),
+            "user": ObjectId(str(user_id)),
+            "created_at": datetime.datetime(2026, 8, 1, 9, 30, tzinfo=datetime.timezone.utc),
+            "expires_at": None,
+            "type": "api_key",
+            "version": "1",
         },
     ]
     db_result = api_keys_db.insert_many(api_keys)
@@ -171,19 +184,31 @@ def test_cannot_gain_access_to_unauthorised_api_keys(client, another_user_id, ap
             "name": "Test_API_KEY_1",
             "digest": "234...567",
             "hash": "test hash",
-            "user_id": another_user_id,
+            "user": another_user_id,
+            "created_at": datetime.datetime(2026, 8, 1, 9, 30, tzinfo=datetime.timezone.utc),
+            "expires_at": None,
+            "type": "api_key",
+            "version": "1",
         },
         {
             "name": "Test_API_KEY_2",
             "digest": "658...098",
             "hash": "test hash",
-            "user_id": another_user_id,
+            "user": another_user_id,
+            "created_at": datetime.datetime(2026, 8, 1, 9, 30, tzinfo=datetime.timezone.utc),
+            "expires_at": None,
+            "type": "api_key",
+            "version": "1",
         },
         {
             "name": "Anaconda_instance_4",
             "digest": "433...851",
             "hash": "test hash",
-            "user_id": another_user_id,
+            "user": another_user_id,
+            "created_at": datetime.datetime(2026, 7, 24, 11, 30, tzinfo=datetime.timezone.utc),
+            "expires_at": None,
+            "type": "api_key",
+            "version": "1",
         },
     ]
     db_result = api_keys_db.insert_many(api_keys)
@@ -211,7 +236,11 @@ def test_can_delete_api_key(client, api_keys_db, user_id):
             "_id": ObjectId("507f1f88bcf86cd733439011"),
             "name": "Test_API_KEY_1",
             "digest": "234...567",
-            "user_id": user_id,
+            "user": user_id,
+            "created_at": datetime.datetime(2026, 8, 14, 9, 30, tzinfo=datetime.timezone.utc),
+            "expires_at": None,
+            "type": "api_key",
+            "version": "1",
         }
     )
 
@@ -228,7 +257,7 @@ def test_cannot_delete_someone_else_api_key(client, another_user_id, api_keys_db
             "_id": ObjectId("507f1f88bcf86cd733439011"),
             "name": "Test_API_KEY_1",
             "digest": "234...567",
-            "user_id": another_user_id,
+            "user": another_user_id,
         }
     )
 
@@ -245,7 +274,7 @@ def test_cannot_delete_api_key_when_unauthorised(unauthenticated_client, user_id
             "_id": ObjectId("507f1f88bcf86cd733439011"),
             "name": "Test_API_KEY_1",
             "digest": "234...567",
-            "user_id": user_id,
+            "user": user_id,
         }
     )
 

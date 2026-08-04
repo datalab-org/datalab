@@ -117,6 +117,7 @@
                 class="list-group-item d-flex justify-content-between align-items-center"
               >
                 <strong>{{ key.name }}</strong>
+
                 <code v-if="!key.show" class="ms-2">{{ key.digest }}</code>
                 <div v-if="key.show" class="input-group d-flex justify-content-center">
                   <StyledInput
@@ -135,6 +136,10 @@
                     </button>
                   </span>
                 </div>
+                <span v-if="key.created_at" class="text-muted ms-2"
+                  >Created at: {{ $filters.IsoDatetimeToDate(key.created_at) }}
+                </span>
+                <span v-if="!key.created_at" class="text-muted ms-2"> Unknown creation date </span>
 
                 <button
                   class="btn btn-sm btn-outline-danger"

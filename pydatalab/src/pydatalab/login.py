@@ -148,11 +148,11 @@ def get_by_api_key(key: str):
 
     key_hash = sha512(key.encode("utf-8")).hexdigest()
     user = flask_mongo.db.api_keys.find_one(
-        {"hash": key_hash}, projection={"name": 0, "_id": 0, "digest": 0}
+        {"hash": key_hash, "type": "api_key"}, projection={"name": 0, "_id": 0, "digest": 0}
     )
 
-    if user and user.get("user_id", False):
-        return get_by_id_cached(str(user["user_id"]))
+    if user and user.get("user", False):
+        return get_by_id_cached(str(user["user"]))
 
     legacy_user = flask_mongo.db.api_keys.find_one(
         {

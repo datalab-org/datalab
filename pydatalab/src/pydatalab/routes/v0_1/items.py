@@ -17,6 +17,7 @@ from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS, ItemVersion
+from pydatalab.models.api_keys import AccessToken
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import InlineSubstance, generate_unique_refcode
@@ -1038,19 +1039,18 @@ def issue_physical_token(refcode: str):
         ), 404
 
     token = secrets.token_urlsafe(16)
-    access_document = {
-        "token": sha512(token.encode("utf-8")).hexdigest(),
-        "refcode": refcode,
-        "user": ObjectId(current_user.id),
-        "active": True,
-        "created_at": datetime.datetime.now(tz=datetime.timezone.utc),
-        "expires_at": None,
-        "version": 1,
-        "type": "access_token",
-    }
+    access_document = AccessToken(
+        token=sha512(token.encode("utf-8")).hexdigest(),
+        refcode=refcode,
+        user=ObjectId(current_user.id),
+        active=True,
+        created_at=datetime.datetime.now(tz=datetime.timezone.utc),
+        expires_at=None,
+        version=1,
+    )
 
     try:
-        result = flask_mongo.db.api_keys.insert_one(access_document)
+        result = flask_mongo.db.api_keys.insert_one(access_document.dict())
         if not result.inserted_id:
             return jsonify(
                 {"status": "error", "message": "Unknown error generating token for item."}
