@@ -1068,6 +1068,9 @@ def generate_user_api_key():
     """Returns metadata associated with the currently authenticated user."""
     if current_user.is_authenticated:
         request_json = request.get_json()
+        
+        if not request_json.get("name"):
+            raise RuntimeError("API key must have a name")
         new_key = "".join(random.choices(ascii_letters, k=KEY_LENGTH))  # noqa: S311
         flask_mongo.db.api_keys.insert_one(
             {
