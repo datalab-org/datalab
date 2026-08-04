@@ -150,7 +150,7 @@ Cypress.Commands.add("searchAndSelectItem", (search_text, selector, clickPlus = 
 });
 
 Cypress.Commands.add("createEquipment", (item_id, name = null, date = null) => {
-  cy.findByText("Add an item").click();
+  cy.get('[data-testid="add-equipment-button"]').click();
 
   cy.get('[data-testid="create-equipment-form"]').within(() => {
     cy.findByText("Add equipment").should("exist");
