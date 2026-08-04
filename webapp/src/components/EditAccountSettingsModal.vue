@@ -114,21 +114,21 @@
               <li
                 v-for="key in apiKeys"
                 :key="key._id"
-                class="list-group-item d-flex justify-content-between align-items-center"
+                class="list-group-item d-flex align-items-center"
               >
-                <strong>{{ key.name }}</strong>
+                <strong class="flex-shrink-0 api-key-name">{{ key.name }}</strong>
 
-                <code v-if="!key.show" class="ms-2">{{ key.digest }}</code>
-                <div v-if="key.show" class="input-group d-flex justify-content-center">
+                <code v-if="!key.show" class="ml-2">{{ key.digest }}</code>
+                <div v-if="key.show" class="input-group input-group-sm api-key-input-group ml-2">
                   <StyledInput
                     v-model="apiKey"
                     :readonly="true"
                     :help-message="apiKeyHelpMessage"
-                    class="form-control"
+                    class="form-control form-control-sm"
                   />
                   <span class="input-group-append">
                     <button
-                      class="btn btn-outline-secondary"
+                      class="btn btn-sm btn-outline-secondary"
                       type="button"
                       @click="copyToClipboard"
                     >
@@ -136,13 +136,13 @@
                     </button>
                   </span>
                 </div>
-                <span v-if="key.created_at" class="text-muted ms-2"
-                  >Created at: {{ $filters.IsoDatetimeToDate(key.created_at) }}
+
+                <span class="text-muted text-nowrap ml-auto">
+                  {{ key.created_at ? humanDate(key.created_at) : "Unknown creation date" }}
                 </span>
-                <span v-if="!key.created_at" class="text-muted ms-2"> Unknown creation date </span>
 
                 <button
-                  class="btn btn-sm btn-outline-danger"
+                  class="btn btn-sm btn-outline-danger ml-2"
                   type="button"
                   @click="deleteKey(key._id)"
                 >
@@ -157,7 +157,7 @@
                 v-model="newKeyName"
                 type="text"
                 class="form-control"
-                placeholder="Key name (e.g. laptop, CI)"
+                placeholder="Add a key (e.g. laptop, CI)"
               />
               <div class="input-group-append">
                 <button
@@ -189,6 +189,8 @@
 </template>
 
 <script>
+import { format } from "date-fns";
+
 import { DialogService } from "@/services/DialogService";
 
 import { API_URL } from "@/resources.js";
@@ -329,6 +331,9 @@ export default {
     copyToClipboard() {
       navigator.clipboard.writeText(this.apiKey);
     },
+    humanDate(isodatetime) {
+      return format(new Date(isodatetime), "d MMM yyyy");
+    },
     resetForm() {
       this.apiKeyDisplayed = false;
       this.apiKey = null;
@@ -357,5 +362,23 @@ export default {
 
 .btn:disabled {
   cursor: not-allowed;
+}
+
+.api-key-name {
+  display: inline-block;
+  min-width: 6rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.api-key-input-group {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 0;
+}
+
+.api-key-input-group :deep(input) {
+  width: 12rem;
 }
 </style>
