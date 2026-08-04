@@ -3,6 +3,7 @@ import UserBubble from "@/components/UserBubble.vue";
 import StyledTooltip from "@/components/StyledTooltip.vue";
 import PrimeVue from "primevue/config";
 import { createStore } from "vuex";
+import "bootstrap/dist/css/bootstrap.css";
 
 const IsoDatetimeToDate = (value) => {
   if (!value) return "";
@@ -153,6 +154,31 @@ describe("SampleTable Component Tests", () => {
     cy.get('[data-testid="add-to-collection-button"]').should("not.exist");
     cy.get('[data-testid="delete-selected-button"]').should("not.exist");
     cy.get('[data-testid="search-input"]').should("exist");
+  });
+
+  it("lays out the Sample action buttons responsively", () => {
+    const actionButtons = [
+      '[data-testid="add-item-button"]',
+      '[data-testid="batch-item-button"]',
+      '[data-testid="scan-qr-button"]',
+    ].join(", ");
+
+    cy.viewport(375, 720);
+    cy.get(actionButtons).should(($buttons) => {
+      const tops = [...$buttons].map((button) => Math.round(button.getBoundingClientRect().top));
+      const widths = [...$buttons].map((button) =>
+        Math.round(button.getBoundingClientRect().width),
+      );
+
+      expect(new Set(tops).size).to.equal(3);
+      expect(new Set(widths).size).to.equal(1);
+    });
+
+    cy.viewport(600, 720);
+    cy.get(actionButtons).should(($buttons) => {
+      const tops = [...$buttons].map((button) => Math.round(button.getBoundingClientRect().top));
+      expect(new Set(tops).size).to.equal(1);
+    });
   });
 
   it("keeps the table rows in place when selecting an item", () => {
