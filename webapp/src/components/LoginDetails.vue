@@ -44,6 +44,7 @@
     <div v-on-click-outside="() => (isLoginDropdownVisible = false)" class="dropdown">
       <button
         id="loginDropdown"
+        data-testid="login-dropdown-button"
         class="btn border dropdown-toggle"
         type="button"
         data-toggle="dropdown"
@@ -55,6 +56,7 @@
       </button>
       <div
         v-show="isLoginDropdownVisible"
+        data-testid="login-dropdown-menu"
         class="dropdown-menu"
         style="display: block"
         aria-labelledby="loginButton"
