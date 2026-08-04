@@ -278,7 +278,7 @@ def change_user_role(_, display_name: str, role: str):
     from pydatalab.models.utils import UserRole
     from pydatalab.mongo import _get_active_mongo_client
 
-    role = UserRole(role.upper())
+    role = UserRole(role.lower())
 
     try:
         role = getattr(UserRole, role.upper())
