@@ -1,87 +1,12 @@
-import base64
-import io
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-from .base import PipelineDataBlock
-from .block_stages import ParserStage, PlotterStage, ProcessorStage
+from .base import DataBlockDefaults
+from .pipeline import Pipeline
 
 if TYPE_CHECKING:
     import pandas as pd
-
-
-class NotSupportedBlockPipeline(PipelineDataBlock):
-    name = "Not Supported Pipeline"
-    blocktype = "notsupportedPipeline"
-    description = "A placeholder block type when the requested block is not supported by the current version of the server."
-
-
-CommentBlockPipeline = PipelineDataBlock.define(
-    "CommentBlockPipeline",
-    name="Comment Pipeline",
-    blocktype="commentPipeline",
-    description="Add a rich text comment to the document.",
-)
-
-
-def plot_functions(self):
-    return (self.encode_tiff,)
-
-
-def image_parser(location: Path | str) -> "pd.DataFrame":
-    import pandas as _pd
-    from PIL import Image
-
-    df = _pd.DataFrame()
-
-    im = Image.open(Path(location))
-    with io.BytesIO() as f:
-        im.save(f, format="PNG")
-        f.seek(0)
-        df["b64_encoded_image"] = _pd.Series([base64.b64encode(f.getvalue()).decode()])
-    df["file_content"] = location
-    df["file_id"] = location
-    return df
-
-
-def image_processor(df: "pd.DataFrame", data: "dict") -> "pd.DataFrame":
-    import pandas as _pd
-
-    if not data.get("b64_encoded_image"):
-        data["b64_encoded_image"] = {}
-    data["b64_encoded_image"][str(df["file_id"].item())] = df["b64_encoded_image"].item()
-    return _pd.DataFrame()
-
-
-image_accepted_file_extensions = (
-    ".png",
-    ".jpeg",
-    ".jpg",
-    ".tif",
-    ".tiff",
-    ".mp4",
-    ".mov",
-    ".webm",
-    ".pdf",
-    ".svg",
-)
-
-
-def image_plotter(_: "pd.DataFrame") -> Any:
-    return None
-
-
-MediaBlock = PipelineDataBlock.define(
-    "MediaBlock",
-    name="Media",
-    blocktype="media",
-    description="Display an image or a video of a supported format.",
-    accepted_file_extensions=image_accepted_file_extensions,
-    processor=ProcessorStage(image_processor, list_df_input=False),
-    plotter=PlotterStage(image_plotter),
-    parser=ParserStage(image_parser, list(image_accepted_file_extensions)),
-)
 
 
 def load_excel(location: Path | str) -> "pd.DataFrame":
@@ -165,15 +90,17 @@ NORMAL_EXTENSIONS: tuple[str, ...] = (
 
 accepted_file_extensions: tuple[str, ...] = (*NORMAL_EXTENSIONS, *EXCEL_LIKE_EXTENSIONS)
 
-TabularPipelineDataBlock = PipelineDataBlock.define(
-    "TabularPipelineDataBlock",
-    parser=[
-        ParserStage(load_excel, list(EXCEL_LIKE_EXTENSIONS)),
-        ParserStage(load_other, list(NORMAL_EXTENSIONS)),
-    ],
+TabularDefaults = DataBlockDefaults(
     blocktype=blocktype,
     name=name,
     description=description,
     accepted_file_extensions=accepted_file_extensions,
     multi_file=False,
 )
+tabular_pipeline = Pipeline(parser=[load_excel, load_other])
+
+TABULAR_DATABLOCK = {
+    "name": "PipelineTabularDataBlock",
+    "pipeline": tabular_pipeline,
+    "default_params": TabularDefaults,
+}

@@ -9,7 +9,7 @@ from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_user
 from werkzeug.exceptions import BadRequest, NotFound, NotImplemented
 
-from pydatalab.apps import BLOCK_TYPES
+from pydatalab.apps import BLOCK_TYPES, block_manager
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
 from pydatalab.login import get_by_id
@@ -221,25 +221,7 @@ def _register_cleanup_job(state):
 def _(): ...
 
 
-@BLOCKS.route("/add-data-block/", methods=["POST"])
-@BLOCKS.route("/blocks/", methods=["PUT"])
-def add_data_block():
-    """Call with AJAX to add a block to the sample"""
-
-    request_json = request.get_json()
-
-    # pull out required arguments from json
-    block_type = request_json["block_type"]
-    item_id = request_json["item_id"]
-    insert_index = request_json["index"]
-
-    if block_type not in BLOCK_TYPES:
-        raise NotImplemented(  # noqa
-            f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
-        )
-
-    block = BLOCK_TYPES[block_type](item_id=item_id)
-
+def _legacy_data_block(insert_index, block, item_id):
     if insert_index:
         display_order_update = {
             "$each": [block.block_id],
@@ -278,6 +260,73 @@ def add_data_block():
         else len(display_order_result["display_order"]) - 1,
         new_display_order=display_order_result["display_order"],
     )
+
+
+def _pipeline_data_block(insert_index, block_data: dict[str, str], item_id, block_type: str):
+    if insert_index:
+        display_order_update = {
+            "$each": [block_data["block_id"]],
+            "$position": insert_index,
+        }
+    else:
+        display_order_update = block_data["block_id"]
+
+    result = flask_mongo.db.items.update_one(
+        {"item_id": item_id, **get_default_permissions(user_only=True)},
+        {
+            "$push": {"display_order": display_order_update},
+            "$set": {
+                f"blocks_obj.{block_data['block_id']}": block_manager.to_db(block_type, block_data)
+            },
+        },
+    )
+
+    if result.modified_count < 1:
+        return (
+            jsonify(
+                status="error",
+                message=f"Update failed. {item_id=} is probably incorrect.",
+            ),
+            400,
+        )
+
+    # get the new display_order:
+    display_order_result = flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=True)}, {"display_order": 1}
+    )
+
+    return jsonify(
+        status="success",
+        new_block_obj=block_manager.to_web(block_type, block_data),
+        new_block_insert_index=insert_index
+        if insert_index is None
+        else len(display_order_result["display_order"]) - 1,
+        new_display_order=display_order_result["display_order"],
+    )
+
+
+@BLOCKS.route("/add-data-block/", methods=["POST"])
+@BLOCKS.route("/blocks/", methods=["PUT"])
+def add_data_block():
+    """Call with AJAX to add a block to the sample"""
+
+    request_json = request.get_json()
+
+    # pull out required arguments from json
+    block_type = request_json["block_type"]
+    item_id = request_json["item_id"]
+    insert_index = request_json["index"]
+
+    if block_type not in BLOCK_TYPES and block_type not in block_manager:
+        raise NotImplemented(  # noqa
+            f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
+        )
+    elif block_type in BLOCK_TYPES:
+        block = BLOCK_TYPES[block_type](item_id=item_id)
+        return _legacy_data_block(insert_index, block, item_id)
+    else:
+        block = block_manager.create_block_data(item_id=item_id)
+        return _pipeline_data_block(insert_index, block, item_id, block_type)
 
 
 def _save_block_to_db(block: DataBlock):
