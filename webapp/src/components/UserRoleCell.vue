@@ -80,18 +80,11 @@ export default {
       }
     },
     async handleRoleChange(newRole) {
-      const originalRole = this.localRole;
+      const originalRole = this.user?.role || "user";
 
-      if (originalRole === "admin" && newRole !== "admin") {
-        const confirmed = await DialogService.confirm({
-          title: "Change Admin Role",
-          message: `Are you sure you want to remove admin privileges from ${this.user.display_name}?`,
-          type: "warning",
-        });
-        if (!confirmed) {
-          this.localRole = originalRole;
-          return;
-        }
+      if (newRole === originalRole) {
+        this.localRole = originalRole;
+        return;
       }
 
       const confirmed = await DialogService.confirm({
