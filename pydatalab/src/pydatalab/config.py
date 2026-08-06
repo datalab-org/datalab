@@ -159,20 +159,31 @@ class _NestedSettings(BaseModel):
 class ToolsSettings(_NestedSettings):
     """Configuration shared by installed tool plugins."""
 
+    ORDER: list[str] = Field(
+        default_factory=list,
+        description="Tool plugin IDs in their preferred display order.",
+    )
     DISABLED: set[str] = Field(
         default_factory=set,
         description="Installed tool plugin IDs disabled for this deployment.",
     )
 
-    @validator("DISABLED", pre=True)
-    def parse_disabled_tool_ids(cls, value):
+    @validator("ORDER", "DISABLED", pre=True)
+    def parse_tool_id_collection(cls, value):
         """Parse the JSON list form used by nested environment settings."""
         if value is None:
-            return set()
+            return []
         if isinstance(value, str):
             if not value.strip():
-                return set()
+                return []
             value = json.loads(value)
+        return value
+
+    @validator("ORDER")
+    def ordered_tool_ids_are_unique(cls, value):
+        """Reject ambiguous configured positions for the same tool ID."""
+        if len(value) != len(set(value)):
+            raise ValueError("TOOLS.ORDER must not contain duplicate tool IDs")
         return value
 
 

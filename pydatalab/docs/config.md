@@ -47,6 +47,19 @@ Disable selected plugins with the `TOOLS.DISABLED` set:
 PYDATALAB_TOOLS__DISABLED='["example-tool", "another-tool"]'
 ```
 
+Set `TOOLS.ORDER` to place selected tools in a preferred order across the
+navigation menu, Tools page, and selected-items actions:
+
+```shell
+PYDATALAB_TOOLS__ORDER='["jupyter", "item-comparison"]'
+```
+
+The setting uses stable tool IDs rather than display names. Listed, available
+tools appear first in the configured order. Installed tools omitted from the
+list follow in alphabetical ID order. Unknown, unavailable, disabled, or
+uninstalled IDs are ignored, allowing the same partial order to be shared by
+deployments with different plugin sets. Duplicate IDs are invalid.
+
 JupyterLab is supplied by the separately installed
 [`datalab-jupyter`](https://github.com/Matgenix/datalab-jupyter) tool plugin.
 Its settings are owned by that package rather than `ServerConfig`:

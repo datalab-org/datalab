@@ -121,9 +121,15 @@ class ToolRegistry:
 def create_tool_registry() -> ToolRegistry:
     """Create a fresh registry for one Flask application."""
     registry = ToolRegistry()
+    configured_positions = {
+        tool_id: position for position, tool_id in enumerate(CONFIG.TOOLS.ORDER)
+    }
     for entry_point in sorted(
         entry_points(group=TOOL_ENTRY_POINT_GROUP),
-        key=lambda candidate: candidate.name,
+        key=lambda candidate: (
+            configured_positions.get(candidate.name, len(configured_positions)),
+            candidate.name,
+        ),
     ):
         try:
             registry.register(entry_point.load()(), entry_point_name=entry_point.name)

@@ -46,6 +46,11 @@ Selected-items actions use the same ordered list of immutable refcodes for
 in-app and standalone tools. A tool chooses which tables and selection sizes it
 supports; it does not appear in tables for which it has not opted in.
 
+Deployment administrators can configure one consistent tool order for the
+navigation menu, Tools page, and selected-items actions with `TOOLS.ORDER`.
+Tools omitted from that list follow alphabetically by stable tool ID. See
+[server configuration](config.md#tools) for the configuration syntax.
+
 ## Tool plugins
 
 A tool is installed as a [tool plugin](plugins.md#writing-a-tool-plugin).
