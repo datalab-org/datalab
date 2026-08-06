@@ -30,8 +30,8 @@ class DataBlockDefaults(BaseModel):
     multi_file: bool = False
     """Whether this block can accept multiple files as input."""
 
-    block_db_model: object = DataBlockResponse
-    """Base class for a data block. Has a metaclass of MetaPipelineDataBlock."""
+    block_db_model: type[DataBlockResponse] = DataBlockResponse
+    """The DataBlockResponse model"""
 
     version: str = __version__
     """The implementation version of this particular block."""

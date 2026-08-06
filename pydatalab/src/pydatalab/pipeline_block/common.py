@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from .base import DataBlockDefaults
+from .block_stages import ParserStage
 from .pipeline import Pipeline
 
 if TYPE_CHECKING:
@@ -97,10 +98,11 @@ TabularDefaults = DataBlockDefaults(
     accepted_file_extensions=accepted_file_extensions,
     multi_file=False,
 )
-tabular_pipeline = Pipeline(parser=[load_excel, load_other])
+tabular_pipeline = Pipeline(
+    parser=[ParserStage(load_excel, list(EXCEL_LIKE_EXTENSIONS)), ParserStage(load_other, "*")]
+)
 
 TABULAR_DATABLOCK = {
-    "name": "PipelineTabularDataBlock",
     "pipeline": tabular_pipeline,
     "default_params": TabularDefaults,
 }

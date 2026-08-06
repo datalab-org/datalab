@@ -1,4 +1,3 @@
-import functools
 import pprint
 import traceback
 import warnings
@@ -14,27 +13,37 @@ from pydatalab.pipeline_block.utils import generate_random_id
 
 
 def get_datablock_params(func):
-    @functools.wraps(func)
-    def wrapper(self, string: str, *args, **kwargs):
-        params = self._list_of_blocks.get(string, None)
+    def wrapper(self, data: dict, *args, **kwargs):
+        params = self._list_of_blocks.get(data["blocktype"], None)
         if params is None:
             LOGGER.warning("This block does not exist")
             return None
         else:
-            return func(params, *args, **kwargs)
+            return func(self, data, params, *args, **kwargs)
+
+    return wrapper
+
+
+def get_datablock_params_from_string(func):
+    def wrapper(self, block_type: str, *args, **kwargs):
+        params = self._list_of_blocks.get(block_type, None)
+        if params is None:
+            LOGGER.warning("This block does not exist")
+            return None
+        else:
+            return func(self, params, *args, **kwargs)
 
     return wrapper
 
 
 def get_pipeline_params(func):
-    @functools.wraps(func)
-    def wrapper(self, string: str, *args, **kwargs):
-        pipeline = self._list_of_pipelines.get(string, None)
+    def wrapper(self, data: dict, *args, **kwargs):
+        pipeline = self._list_of_pipelines.get(data["blocktype"], None)
         if pipeline is None:
             LOGGER.warning("This pipeline does not exist")
             return None
         else:
-            return func(self, string, pipeline, *args, **kwargs)
+            return func(self, data, pipeline, *args, **kwargs)
 
     return wrapper
 
@@ -91,15 +100,22 @@ class PipelineBlockManager:
         self._list_of_pipelines: dict[str, Pipeline] = {}
         pass
 
-    def register_block(self, name: str, pipeline: Pipeline, default_params: DataBlockDefaults):
+    def register_block(self, pipeline: Pipeline, default_params: DataBlockDefaults):
         """Registers a new block with the given default parameters and the given pipeline."""
-        self._list_of_pipelines[name] = pipeline
-        self._list_of_blocks[name] = default_params
+        self._list_of_pipelines[default_params.blocktype] = pipeline
+        self._list_of_blocks[default_params.blocktype] = default_params
 
     def __contains__(self, item: str) -> bool:
         return item in self._list_of_blocks and item in self._list_of_pipelines
 
+    def get_block_items(self):
+        return self._list_of_blocks.items()
+
     @get_datablock_params
+    def prefers_async(self, _, block: DataBlockDefaults):
+        return getattr(block, "_prefers_async", False)
+
+    @get_datablock_params_from_string
     def create_block_data(
         self,
         block: DataBlockDefaults,
@@ -154,7 +170,11 @@ class PipelineBlockManager:
         return data
 
     @get_datablock_params
-    def to_db(self, block: DataBlockDefaults, data) -> dict:
+    def to_db(
+        self,
+        data,
+        block: DataBlockDefaults,
+    ) -> dict:
         """returns a dictionary with the data for this
         block, ready to be input into mongodb"""
 
@@ -170,6 +190,31 @@ class PipelineBlockManager:
             exclude_none=True,
         )
 
+    @get_pipeline_params
+    def process_events(self, data, pipeline, events: list[dict] | dict):
+        """Handle any supported events passed to the block."""
+        if isinstance(events, dict):
+            events = [events]
+
+        for event in events:
+            # Match the event to any registered by the block
+            if (event_name := event.pop("event_name")) in pipeline.event_functions.keys():
+                # Bind the method to the instance before calling
+                event_stage = pipeline.event_functions[event_name]
+                try:
+                    event_stage.perform(data, **event)
+                except Exception as e:
+                    LOGGER.error(
+                        "Error processing event %s for block %s: %s",
+                        event_name,
+                        self.__class__.__name__,
+                        e,
+                    )
+                    data["errors"] = [
+                        f"{self.__class__.__name__}: Error processing event {event}: {e}"
+                    ]
+        return data
+
     def from_web(self, block_type: str, new_data: dict):
         """Initialise the block state from data passed via web request
         with a given item, collection and block ID.
@@ -183,11 +228,11 @@ class PipelineBlockManager:
             item_id=new_data.get("item_id"),
             unique_id=new_data["block_id"],
         )
-        return self.update_from_web(block_type, data, new_data)
+        return self.update_from_web(data, new_data)
 
     @get_pipeline_params
     @get_datablock_params
-    def to_web(self, block, pipeline, data: dict) -> dict[str, Any]:
+    def to_web(self, data, block, pipeline) -> dict[str, Any]:
         """Returns a JSON serializable dictionary to render the data block on the web."""
         block_errors = []
         block_warnings = []
@@ -238,34 +283,8 @@ class PipelineBlockManager:
 
         return block.block_db_model(**data).model_dump(exclude_unset=True, exclude_none=True)
 
-    @get_pipeline_params
     @get_datablock_params
-    def process_events(self, block, pipeline, data, events: list[dict] | dict):
-        """Handle any supported events passed to the block."""
-        if isinstance(events, dict):
-            events = [events]
-
-        for event in events:
-            # Match the event to any registered by the block
-            if (event_name := event.pop("event_name")) in pipeline.event_functions.keys():
-                # Bind the method to the instance before calling
-                event_stage = pipeline.event_functions[event_name]
-                try:
-                    event_stage.perform(data, **event)
-                except Exception as e:
-                    LOGGER.error(
-                        "Error processing event %s for block %s: %s",
-                        event_name,
-                        self.__class__.__name__,
-                        e,
-                    )
-                    data["errors"] = [
-                        f"{self.__class__.__name__}: Error processing event {event}: {e}"
-                    ]
-        return data
-
-    @get_datablock_params
-    def update_from_web(self, block, block_data: dict, new_data: dict):
+    def update_from_web(self, block_data: dict, block, new_data: dict):
         """Update the block with validated data received from a web request.
         Will strip any fields that are "computed" or otherwise not controllable
         by the user.
@@ -286,4 +305,4 @@ class PipelineBlockManager:
         }
         [new_data.pop(f, None) for f in exclude_fields]
         block_data.update(block.block_db_model(**new_data).model_dump(exclude_unset=True))
-        return self
+        return block_data

@@ -258,7 +258,6 @@ xrd_block_pipeline = Pipeline(
     events={"set_wavelength": EventStage(set_wavelength)},
 )
 xrd_block = {
-    "name": "XRDBlock",
     "default_params": XRDBlockDefaults,
     "pipeline": xrd_block_pipeline,
 }
