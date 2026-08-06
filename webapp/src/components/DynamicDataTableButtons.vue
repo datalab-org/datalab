@@ -91,7 +91,7 @@
           class="btn btn-default btn-action"
           @click="$emit('open-create-equipment-modal')"
         >
-          Add an equipment
+          Add equipment
         </button>
       </div>
 
@@ -186,7 +186,7 @@
                 class="dropdown-item"
                 @click="confirmDeletion"
               >
-                Delete selected
+                Delete items
               </a>
               <a
                 v-if="dataType === 'users'"
