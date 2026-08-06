@@ -1083,7 +1083,7 @@ def generate_user_api_key():
             version=1,
         )
 
-        flask_mongo.db.api_keys.insert_one(access_key.dict())
+        flask_mongo.db.api_keys.insert_one(access_key.model_dump())
         return jsonify({"key": new_key, "name": request_json["name"]}), 200
     else:
         return Unauthorized("User must be an authenticated admin to request an API key.")
