@@ -5,6 +5,7 @@ from typing import Any
 from bson import ObjectId
 from flask import request
 from flask_login import current_user
+from werkzeug.exceptions import Forbidden
 
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
@@ -109,6 +110,17 @@ def admin_only(func):
             return {"error": "Unauthorized"}, 401
 
         return {"error": "Insufficient privileges"}, 403
+
+    return wrapped_route
+
+
+def exclude_api_key(func):
+    @wraps(func)
+    def wrapped_route(*args, **kwargs):
+        if getattr(current_user, "api_login", False):
+            raise Forbidden("You are not allowed to access this resource.")
+        else:
+            return func(*args, **kwargs)
 
     return wrapped_route
 

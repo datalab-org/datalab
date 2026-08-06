@@ -162,6 +162,15 @@ def deactivated_client(app, deactivated_user_api_key):
     yield client_factory(app, deactivated_user_api_key)
 
 
+@pytest.fixture(scope="function")
+def session_client(app, user_id):
+    app.test_client_class = FlaskClient
+    with app.test_client() as cli:
+        with cli.session_transaction() as session:
+            session["_user_id"] = str(user_id)
+        yield cli
+
+
 def generate_api_key():
     import random
 

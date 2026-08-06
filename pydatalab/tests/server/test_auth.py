@@ -98,9 +98,9 @@ def test_magic_link_auth_can_be_disabled(unauthenticated_client, app, database, 
 # ──────────────────────────────────────────────
 
 
-def test_create_api_key(client, api_keys_db):
+def test_create_api_key(session_client, api_keys_db):
     json = {"name": "Test_API_KEY"}
-    request_result = client.post("/api-keys", json=json)
+    request_result = session_client.post("/api-keys", json=json)
 
     assert request_result.status_code == 200
 
@@ -120,7 +120,18 @@ def test_create_api_key_unauthorized(unauthenticated_client, api_keys_db):
     assert result_from_database is None
 
 
-def test_get_api_keys_for_user(client, api_keys_db, user_id):
+def test_cannot_create_api_key_using_api_key(client, api_keys_db):
+    json = {"name": "API_KEY_MADE_USING_API"}
+    request_result = client.post("/api-keys", json=json)
+
+    assert request_result.status_code == 403
+    assert request_result.json["message"] == "You are not allowed to access this resource."
+
+    result_from_database = api_keys_db.find_one({"name": "API_KEY_MADE_USING_API"})
+    assert result_from_database is None
+
+
+def test_get_api_keys_for_user(session_client, api_keys_db, user_id):
     api_keys = [
         {
             "name": "Test_API_KEY_1",
@@ -156,7 +167,7 @@ def test_get_api_keys_for_user(client, api_keys_db, user_id):
     db_result = api_keys_db.insert_many(api_keys)
     assert len(db_result.inserted_ids) == 3
 
-    request_result = client.get("/api-keys")
+    request_result = session_client.get("/api-keys")
     assert request_result.status_code == 200
     request_json = list(request_result.json["api_keys"])
 
@@ -178,7 +189,7 @@ def test_get_api_keys_for_user(client, api_keys_db, user_id):
     assert request_json[3].get("hash", None) is None
 
 
-def test_cannot_gain_access_to_unauthorised_api_keys(client, another_user_id, api_keys_db):
+def test_cannot_gain_access_to_unauthorised_api_keys(session_client, another_user_id, api_keys_db):
     api_keys = [
         {
             "name": "Test_API_KEY_1",
@@ -214,7 +225,7 @@ def test_cannot_gain_access_to_unauthorised_api_keys(client, another_user_id, ap
     db_result = api_keys_db.insert_many(api_keys)
     assert len(db_result.inserted_ids) == 3
 
-    request_result = client.get("/api-keys")
+    request_result = session_client.get("/api-keys")
     assert request_result.status_code == 200
     request_json = list(request_result.json["api_keys"])
     print(request_json)
@@ -230,7 +241,13 @@ def test_cannot_gain_authorised_access_to_api_keys(unauthenticated_client):
     assert request_result.status_code == 401
 
 
-def test_can_delete_api_key(client, api_keys_db, user_id):
+def test_cannot_access_api_keys_using_an_api_key(client):
+    request_result = client.get("/api-keys")
+    assert request_result.status_code == 403
+    assert request_result.json["message"] == "You are not allowed to access this resource."
+
+
+def test_can_delete_api_key(session_client, api_keys_db, user_id):
     api_keys_db.insert_one(
         {
             "_id": ObjectId("507f1f88bcf86cd733439011"),
@@ -244,14 +261,14 @@ def test_can_delete_api_key(client, api_keys_db, user_id):
         }
     )
 
-    request_result = client.delete("/api-keys/507f1f88bcf86cd733439011")
+    request_result = session_client.delete("/api-keys/507f1f88bcf86cd733439011")
     assert request_result.status_code == 204
 
     result = api_keys_db.find_one({"name": "Test_API_KEY_1", "digest": "234...567"})
     assert result is None
 
 
-def test_cannot_delete_someone_else_api_key(client, another_user_id, api_keys_db):
+def test_cannot_delete_someone_else_api_key(session_client, another_user_id, api_keys_db):
     api_keys_db.insert_one(
         {
             "_id": ObjectId("507f1f88bcf86cd733439011"),
@@ -261,7 +278,7 @@ def test_cannot_delete_someone_else_api_key(client, another_user_id, api_keys_db
         }
     )
 
-    request_result = client.delete("/api-keys/507f1f88bcf86cd733439011")
+    request_result = session_client.delete("/api-keys/507f1f88bcf86cd733439011")
     assert request_result.status_code == 404
 
     result = api_keys_db.find_one({"name": "Test_API_KEY_1", "digest": "234...567"})
@@ -285,8 +302,25 @@ def test_cannot_delete_api_key_when_unauthorised(unauthenticated_client, user_id
     assert result is not None
 
 
+def test_cannot_delete_api_key_when_using_api_key(client, user_id, api_keys_db):
+    api_keys_db.insert_one(
+        {
+            "_id": ObjectId("507f1f88bcf86cd733439011"),
+            "name": "Test_API_KEY_1",
+            "digest": "234...567",
+            "user": user_id,
+        }
+    )
+
+    request_result = client.delete("/api-keys/507f1f88bcf86cd733439011")
+    assert request_result.status_code == 403
+
+    result = api_keys_db.find_one({"name": "Test_API_KEY_1", "digest": "234...567"})
+    assert result is not None
+
+
 # Legacy key tests ======================================
-def test_retrieve_legacy_key(client, user_id, api_keys_db):
+def test_retrieve_legacy_key(session_client, user_id, api_keys_db):
     # Create legacy API key
     api_keys_db.insert_one(
         {
@@ -294,7 +328,7 @@ def test_retrieve_legacy_key(client, user_id, api_keys_db):
             "hash": "test hash",
         }
     )
-    request_result = client.get("/api-keys")
+    request_result = session_client.get("/api-keys")
     assert request_result.status_code == 200
     request_json = list(request_result.json["api_keys"])
     assert len(request_json) == 2
@@ -302,14 +336,14 @@ def test_retrieve_legacy_key(client, user_id, api_keys_db):
     assert request_json[0]["digest"] == "Unknown"
 
 
-def test_delete_legacy_key(client, api_keys_db, user_id):
+def test_delete_legacy_key(session_client, api_keys_db, user_id):
     api_keys_db.insert_one(
         {
             "_id": ObjectId(user_id),
             "hash": "test hash",
         }
     )
-    request_result = client.delete(f"/api-keys/{user_id}")
+    request_result = session_client.delete(f"/api-keys/{user_id}")
     assert request_result.status_code == 204
     assert api_keys_db.find_one({"_id": ObjectId(user_id)}) is None
 

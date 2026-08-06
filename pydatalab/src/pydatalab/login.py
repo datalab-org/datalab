@@ -28,13 +28,9 @@ class LoginUser(UserMixin):
     id: str
     person: Person
     role: UserRole
+    api_login: bool
 
-    def __init__(
-        self,
-        _id: str,
-        data: Person,
-        role: UserRole,
-    ):
+    def __init__(self, _id: str, data: Person, role: UserRole, api_login: bool = False):
         """Construct the logged in user from a given ID and user data.
 
         Parameters:
@@ -46,6 +42,7 @@ class LoginUser(UserMixin):
         self.id = _id
         self.person = data
         self.role = role
+        self.api_login = api_login
 
     @property
     def display_name(self) -> str | None:
@@ -81,15 +78,10 @@ class LoginUser(UserMixin):
         """Reconstruct the user object from their database entry, to be used when,
         e.g., a new identity has been associated with them.
         """
-        user = get_by_id(self.id)
+        user = get_by_id(self.id, self.api_login)
         if user:
             self.person = user.person
             self.role = user.role
-
-
-def get_by_id_cached(user_id):
-    """Cached version of get_by_id."""
-    return get_by_id(user_id)
 
 
 def groups_lookup() -> dict:
@@ -137,7 +129,7 @@ def get_by_id(user_id: str) -> LoginUser | None:
     else:
         role = role["role"]
 
-    return LoginUser(_id=user_id, data=Person(**user), role=UserRole(role))
+    return LoginUser(_id=user_id, data=Person(**user), role=UserRole(role), api_login=api_login)
 
 
 def get_by_api_key(key: str):
@@ -152,7 +144,7 @@ def get_by_api_key(key: str):
     )
 
     if user and user.get("user", False):
-        return get_by_id_cached(str(user["user"]))
+        return get_by_id(str(user["user"]), True)
 
     legacy_user = flask_mongo.db.api_keys.find_one(
         {
@@ -164,7 +156,7 @@ def get_by_api_key(key: str):
     )
 
     if legacy_user:
-        return get_by_id_cached(str(legacy_user["_id"]))
+        return get_by_id(str(legacy_user["_id"]), True)
     return None
 
 
@@ -175,7 +167,7 @@ LOGIN_MANAGER: LoginManager = LoginManager()
 @LOGIN_MANAGER.user_loader
 def load_user(user_id: str) -> LoginUser | None:
     """Looks up the currently authenticated user and returns a `LoginUser` model."""
-    return get_by_id_cached(str(user_id))
+    return get_by_id(str(user_id), False)
 
 
 @LOGIN_MANAGER.request_loader

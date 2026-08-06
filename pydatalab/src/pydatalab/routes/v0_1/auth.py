@@ -28,6 +28,7 @@ from pydatalab.login import get_by_id
 from pydatalab.models.api_keys import ApiKey
 from pydatalab.models.people import AccountStatus, Identity, IdentityType, Person
 from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
+from pydatalab.permissions import exclude_api_key
 from pydatalab.send_email import send_mail
 
 KEY_LENGTH: int = 32
@@ -613,9 +614,9 @@ def find_create_or_modify_user(
                 identity, use_display_name=True, account_status=account_status
             )
             LOGGER.debug("Inserting new user model %s into database", user)
-            insert_pydantic_model_fork_safe(user, "users")
-            user_model = get_by_id(str(user.immutable_id))
-            if user is None:
+            inserted_id = insert_pydantic_model_fork_safe(user, "users")
+            login_user = get_by_id(inserted_id, False)
+            if login_user is None:
                 raise RuntimeError("Failed to insert user into database")
 
             wrapped_login_user(user_model)
@@ -627,7 +628,8 @@ def find_create_or_modify_user(
 
     # Log the user into the session with this identity
     if user is not None:
-        wrapped_login_user(get_by_id(str(user.immutable_id)))
+        login_user = get_by_id(user.immutable_id, False)
+        wrapped_login_user(login_user)
 
 
 def _validate_magic_link_request(email: str, referrer: str) -> None:
@@ -1065,6 +1067,7 @@ def get_authenticated_user_info():
 
 
 @AUTH.route("/api-keys", methods=["POST"])
+@exclude_api_key
 def generate_user_api_key():
     """Returns metadata associated with the currently authenticated user."""
     if current_user.is_authenticated:
@@ -1090,6 +1093,7 @@ def generate_user_api_key():
 
 
 @AUTH.route("/api-keys", methods=["GET"])
+@exclude_api_key
 def get_all_api_keys():
     """Returns all the api keys associated with the currently authenticated user."""
     if current_user.is_authenticated:
@@ -1119,6 +1123,7 @@ def get_all_api_keys():
 
 
 @AUTH.route("/api-keys/<api_id>", methods=["DELETE"])
+@exclude_api_key
 def delete_api_key(api_id):
     """Deletes the api key associated with the given id. (After checking the user owns the key)"""
     if current_user.is_authenticated:
