@@ -2,14 +2,14 @@
 from pydatalab.blocks.base import DataBlock
 from pydatalab.blocks.common import (
     CommentBlock,
-    LegacyMediaBlock,
+    MediaBlock,
     NotSupportedBlock,
     TabularDataBlock,
 )
 
 COMMON_BLOCKS: list[type[DataBlock]] = [
     CommentBlock,
-    LegacyMediaBlock,
+    MediaBlock,
     NotSupportedBlock,
     TabularDataBlock,
 ]

@@ -5,6 +5,7 @@ import pytest
 from bson import ObjectId
 
 from pydatalab.apps import BLOCK_TYPES, BLOCKS
+from pydatalab.pipeline_block.block_manager import PipelineBlockManager
 
 
 def test_get_all_available_block_types():
@@ -453,7 +454,6 @@ def test_echem_block_lifecycle(
 
 
 def test_xrd_block_lifecycle(admin_client, client, user_id, default_sample_dict, example_data_dir):
-    from pydatalab.apps.xrd import XRDBlock
 
     block_type = "xrd"
 
@@ -541,8 +541,9 @@ def test_xrd_block_lifecycle(admin_client, client, user_id, default_sample_dict,
     assert web_block["file_id"] == file_id
     assert web_block.get("errors") is None
 
-    block = XRDBlock.from_web(web_block)
-    db = block.to_db()
+    block_manager = PipelineBlockManager()
+    block_data = block_manager.from_web("xrd", web_block)
+    db = block_manager.to_db(block_data)
     # 'computed' keys should be dropped when loading from web
     assert "bokeh_plot_data" not in db
     assert "computed" not in db
