@@ -6,7 +6,7 @@ from typing import Any
 from bson import ObjectId
 from flask import g, request
 from flask_login import current_user
-from werkzeug.exceptions import Forbidden
+from werkzeug.exceptions import Forbidden, Unauthorized
 
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
@@ -158,13 +158,29 @@ def admin_only(func):
     return wrapped_route
 
 
+def authenticate(authentication_error):
+    """Decorator to ensure the client is authenticated"""
+
+    def function_wrap(func):
+        @wraps(func)
+        def wrapped_route(*args, **kwargs):
+            # current_user must be accessed to regenerate the api_key_session
+            if not current_user.is_authenticated:
+                raise Unauthorized(authentication_error)
+            else:
+                return func(*args, **kwargs)
+
+        return wrapped_route
+
+    return function_wrap
+
+
 def exclude_api_key(func):
     """Decorator to ensure that ensures client using api keys cannot access a route"""
 
     @wraps(func)
     def wrapped_route(*args, **kwargs):
         # current_user must be accessed to regenerate the api_key_session
-        current_user.is_authenticated
         if getattr(g, "api_key_session", True):
             raise Forbidden("You are not allowed to access this resource.")
         else:

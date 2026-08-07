@@ -17,7 +17,7 @@ from flask import Blueprint, Response, g, jsonify, redirect, request
 from flask_dance.consumer import OAuth2ConsumerBlueprint, oauth_authorized
 from flask_login import current_user, login_user
 from flask_login.utils import LocalProxy
-from werkzeug.exceptions import BadRequest, Forbidden, NotFound, Unauthorized
+from werkzeug.exceptions import BadRequest, Forbidden, NotFound
 
 from pydatalab.config import CONFIG
 from pydatalab.errors import UserRegistrationForbidden
@@ -26,7 +26,7 @@ from pydatalab.logger import LOGGER
 from pydatalab.login import get_by_id
 from pydatalab.models.people import AccountStatus, Identity, IdentityType, Person
 from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
-from pydatalab.permissions import ApiKey, exclude_api_key
+from pydatalab.permissions import ApiKey, authenticate, exclude_api_key
 from pydatalab.send_email import send_mail
 
 KEY_LENGTH: int = 32
@@ -403,7 +403,6 @@ def wrapped_login_user(*args, **kwargs):
 EMAIL_BLUEPRINT = Blueprint("email", __name__)
 
 AUTH = Blueprint("auth", __name__)
-
 
 OAUTH: dict[IdentityType, Blueprint] = {
     IdentityType.ORCID: make_orcid_blueprint(
@@ -1065,90 +1064,85 @@ def get_authenticated_user_info():
 
 
 @AUTH.route("/api-keys", methods=["POST"])
+@authenticate("User must be an authenticated admin to request an API key.")
 @exclude_api_key
 def generate_user_api_key():
     """Returns metadata associated with the currently authenticated user."""
-    if current_user.is_authenticated:
-        request_json = request.get_json()
 
-        if not request_json.get("name"):
-            raise RuntimeError("API key must have a name")
-        new_key = secrets.token_urlsafe(KEY_LENGTH)  # noqa: S311
-        access_key = ApiKey(
-            name=request_json["name"],
-            user=ObjectId(current_user.id),
-            digest=new_key[:4] + "..." + new_key[-4:],
-            hash=sha512(new_key.encode("utf-8")).hexdigest(),
-            created_at=datetime.datetime.now(tz=datetime.timezone.utc),
-            expires_at=None,
-            version=1,
-        )
+    request_json = request.get_json()
 
-        flask_mongo.db.api_keys.insert_one(access_key.model_dump())
-        return jsonify({"key": new_key, "name": request_json["name"]}), 200
-    else:
-        return Unauthorized("User must be an authenticated admin to request an API key.")
+    if not request_json.get("name"):
+        raise RuntimeError("API key must have a name")
+    new_key = secrets.token_urlsafe(KEY_LENGTH)  # noqa: S311
+    access_key = ApiKey(
+        name=request_json["name"],
+        user=ObjectId(current_user.id),
+        digest=new_key[:4] + "..." + new_key[-4:],
+        hash=sha512(new_key.encode("utf-8")).hexdigest(),
+        created_at=datetime.datetime.now(tz=datetime.timezone.utc),
+        expires_at=None,
+        version=1,
+    )
+
+    flask_mongo.db.api_keys.insert_one(access_key.model_dump())
+    return jsonify({"key": new_key, "name": request_json["name"]}), 200
 
 
 @AUTH.route("/api-keys", methods=["GET"])
+@authenticate("User must be an authenticated admin to request an API key.")
 @exclude_api_key
 def get_all_api_keys():
     """Returns all the api keys associated with the currently authenticated user."""
-    if current_user.is_authenticated:
-        all_api_keys = flask_mongo.db.api_keys.find(
-            {"user": ObjectId(current_user.id), "type": "api_key"}, {"hash": 0, "user": 0}
-        )
-        # find potential legacy keys
-        legacy_key = flask_mongo.db.api_keys.find_one(
-            {
-                "_id": ObjectId(current_user.id),
-                "name": {"$exists": False},
-                "digest": {"$exists": False},
-                "user": {"$exists": False},
-                "type": {"$exists": False},
-            },
-            {"hash": 0},
-        )
-        all_keys = list(all_api_keys)
-        if legacy_key:
-            legacy_key["digest"] = "Unknown"
-            legacy_key["name"] = "Legacy key"
-            all_keys.insert(0, legacy_key)
+    all_api_keys = flask_mongo.db.api_keys.find(
+        {"user": ObjectId(current_user.id), "type": "api_key"}, {"hash": 0, "user": 0}
+    )
+    # find potential legacy keys
+    legacy_key = flask_mongo.db.api_keys.find_one(
+        {
+            "_id": ObjectId(current_user.id),
+            "name": {"$exists": False},
+            "digest": {"$exists": False},
+            "user": {"$exists": False},
+            "type": {"$exists": False},
+        },
+        {"hash": 0},
+    )
+    all_keys = list(all_api_keys)
+    if legacy_key:
+        legacy_key["digest"] = "Unknown"
+        legacy_key["name"] = "Legacy key"
+        all_keys.insert(0, legacy_key)
 
-        return jsonify({"api_keys": all_keys}), 200
-    else:
-        return Unauthorized("User must be an authenticated admin to request an API key.")
+    return jsonify({"api_keys": all_keys}), 200
 
 
 @AUTH.route("/api-keys/<api_id>", methods=["DELETE"])
+@authenticate("User must be an authenticated admin to request an API key.")
 @exclude_api_key
 def delete_api_key(api_id):
     """Deletes the api key associated with the given id. (After checking the user owns the key)"""
-    if current_user.is_authenticated:
+    doc = flask_mongo.db.api_keys.find_one(
+        {"_id": ObjectId(api_id), "user": ObjectId(current_user.id), "type": "api_key"},
+        {"user": 1},
+    )
+    if not doc:
+        # Deal with potential legacy key
         doc = flask_mongo.db.api_keys.find_one(
-            {"_id": ObjectId(api_id), "user": ObjectId(current_user.id), "type": "api_key"},
-            {"user": 1},
+            {
+                "_id": ObjectId(api_id),
+                "user": {"$exists": False},
+                "digest": {"$exists": False},
+                "name": {"$exists": False},
+                "type": {"$exists": False},
+            },
         )
-        if not doc:
-            # Deal with potential legacy key
-            doc = flask_mongo.db.api_keys.find_one(
-                {
-                    "_id": ObjectId(api_id),
-                    "user": {"$exists": False},
-                    "digest": {"$exists": False},
-                    "name": {"$exists": False},
-                    "type": {"$exists": False},
-                },
-            )
-        if not doc:
-            raise NotFound(description="API key not found.")
-        result = flask_mongo.db.api_keys.delete_one({"_id": ObjectId(api_id)})
-        if result.deleted_count == 1:
-            return Response("", status=204)
-        else:
-            raise BadRequest(description="Problem deleting the key")
+    if not doc:
+        raise NotFound(description="API key not found.")
+    result = flask_mongo.db.api_keys.delete_one({"_id": ObjectId(api_id)})
+    if result.deleted_count == 1:
+        return Response("", status=204)
     else:
-        raise Unauthorized("User must be an authenticated admin to request an API key.")
+        raise BadRequest(description="Problem deleting the key")
 
 
 @AUTH.route("/testing/create-magic-link", methods=["POST"])
