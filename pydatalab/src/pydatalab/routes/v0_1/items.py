@@ -1667,13 +1667,6 @@ def save_item():
         if k in updated_data:
             del updated_data[k]
 
-    for block_id, block_data in updated_data.get("blocks_obj", {}).items():
-        blocktype = block_data["blocktype"]
-
-        block = BLOCK_TYPES.get(blocktype, BLOCK_TYPES["notsupported"]).from_web(block_data)
-
-        updated_data["blocks_obj"][block_id] = block.to_db()
-
     # Bit of a hack for now: starting materials and equipment should be editable by anyone,
     # so we adjust the query above to be more permissive when the user is requesting such an item
     # but before returning we need to check that the actual item did indeed have that type
@@ -1715,6 +1708,16 @@ def save_item():
             ),
             404,
         )
+
+    stored_blocks = item.get("blocks_obj", {})
+    for block_id, block_data in updated_data.get("blocks_obj", {}).items():
+        blocktype = block_data["blocktype"]
+
+        block = BLOCK_TYPES.get(blocktype, BLOCK_TYPES["notsupported"]).from_web(
+            block_data, stored_data=stored_blocks.get(block_id)
+        )
+
+        updated_data["blocks_obj"][block_id] = block.to_db()
 
     if "collections" in updated_data:
         requested_collections = updated_data["collections"]

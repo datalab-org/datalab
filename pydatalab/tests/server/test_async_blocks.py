@@ -118,7 +118,7 @@ class TestAsyncUpdateBlock:
             (),
             {
                 "_prefers_async": True,
-                "from_web": classmethod(lambda cls, x: MagicMock()),
+                "from_web": classmethod(lambda cls, x, stored_data=None: MagicMock()),
             },
         )
         with patch.dict(

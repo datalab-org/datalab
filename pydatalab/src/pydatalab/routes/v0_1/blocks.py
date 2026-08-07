@@ -73,7 +73,15 @@ def _process_block_async(
             block_type = block_data["blocktype"]
             add_stage(f"Loading {block_type} block from database")
 
-            block = BLOCK_TYPES[block_type].from_web(block_data)
+            stored_item = flask_mongo.db.items.find_one(
+                {"item_id": block_data["item_id"], **get_default_permissions(user_only=True)},
+                projection={f"blocks_obj.{block_data['block_id']}": 1},
+            )
+            stored_block_data = (
+                (stored_item or {}).get("blocks_obj", {}).get(block_data["block_id"])
+            )
+
+            block = BLOCK_TYPES[block_type].from_web(block_data, stored_data=stored_block_data)
 
             if event_data:
                 add_stage("Processing block events")
@@ -327,12 +335,16 @@ def update_block():
     if not item_id:
         raise BadRequest(f"Invalid or missing item_id: {item_id}")
 
-    if not flask_mongo.db.items.find_one(
-        {"item_id": item_id, **get_default_permissions(user_only=False)}
-    ):
+    item = flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=False)},
+        projection={f"blocks_obj.{block_data['block_id']}": 1},
+    )
+    if not item:
         raise NotFound(f"Item with item_id {item_id} not found or not accessible")
 
-    block = BLOCK_TYPES[block_type].from_web(block_data)
+    block = BLOCK_TYPES[block_type].from_web(
+        block_data, stored_data=item.get("blocks_obj", {}).get(block_data["block_id"])
+    )
 
     from pydatalab.config import CONFIG
 
