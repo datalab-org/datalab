@@ -59,7 +59,7 @@ def _process_block_async(
 
     with app_ctx, req_ctx:
         if creator_id:
-            user = get_by_id(str(creator_id), True)
+            user = get_by_id(str(creator_id))
             if user:
                 login_user(user)
 

@@ -139,6 +139,12 @@ def client(app, user_api_key):
 
 
 @pytest.fixture(scope="function")
+def api_key_client(app, client):
+    """Returns a test client for the API with normal API user access."""
+    yield client
+
+
+@pytest.fixture(scope="function")
 def another_client(app, another_user_api_key):
     """Returns a test client for the API with a second normal user access."""
     yield client_factory(app, another_user_api_key)
@@ -168,6 +174,13 @@ def session_client(app, user_id):
     with app.test_client() as cli:
         with cli.session_transaction() as session:
             session["_user_id"] = str(user_id)
+        yield cli
+
+
+@pytest.fixture(scope="function")
+def unauthenticated_session_client(app):
+    app.test_client_class = FlaskClient
+    with app.test_client() as cli:
         yield cli
 
 

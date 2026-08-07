@@ -7,10 +7,9 @@ with their local accounts.
 import datetime
 import json
 import os
-import random
 import re
+import secrets
 from hashlib import sha512
-from string import ascii_letters
 
 import jwt
 from bson import ObjectId
@@ -614,7 +613,7 @@ def find_create_or_modify_user(
             )
             LOGGER.debug("Inserting new user model %s into database", user)
             inserted_id = insert_pydantic_model_fork_safe(user, "users")
-            login_user = get_by_id(inserted_id, False)
+            login_user = get_by_id(inserted_id)
             if login_user is None:
                 raise RuntimeError("Failed to insert user into database")
 
@@ -627,7 +626,7 @@ def find_create_or_modify_user(
 
     # Log the user into the session with this identity
     if user is not None:
-        login_user = get_by_id(user.immutable_id, False)
+        login_user = get_by_id(user.immutable_id)
         wrapped_login_user(login_user)
 
 
@@ -1074,7 +1073,7 @@ def generate_user_api_key():
 
         if not request_json.get("name"):
             raise RuntimeError("API key must have a name")
-        new_key = "".join(random.choices(ascii_letters, k=KEY_LENGTH))  # noqa: S311
+        new_key = secrets.token_urlsafe(KEY_LENGTH)  # noqa: S311
         access_key = ApiKey(
             name=request_json["name"],
             user=ObjectId(current_user.id),

@@ -110,9 +110,9 @@ def test_create_api_key(session_client, api_keys_db):
     assert result_from_database["digest"][4:-4] == "..."
 
 
-def test_create_api_key_unauthorized(unauthenticated_client, api_keys_db):
+def test_create_api_key_unauthorized(unauthenticated_session_client, api_keys_db):
     json = {"name": "Test_API_KEY"}
-    request_result = unauthenticated_client.post("/api-keys", json=json)
+    request_result = unauthenticated_session_client.post("/api-keys", json=json)
 
     assert request_result.status_code == 401
 
@@ -120,9 +120,9 @@ def test_create_api_key_unauthorized(unauthenticated_client, api_keys_db):
     assert result_from_database is None
 
 
-def test_cannot_create_api_key_using_api_key(client, api_keys_db):
+def test_cannot_create_api_key_using_api_key(api_key_client, api_keys_db):
     json = {"name": "API_KEY_MADE_USING_API"}
-    request_result = client.post("/api-keys", json=json)
+    request_result = api_key_client.post("/api-keys", json=json)
 
     assert request_result.status_code == 403
     assert request_result.json["message"] == "You are not allowed to access this resource."
@@ -236,13 +236,13 @@ def test_cannot_gain_access_to_unauthorised_api_keys(session_client, another_use
     assert request_json[0]["name"] == "testing API key"
 
 
-def test_cannot_gain_authorised_access_to_api_keys(unauthenticated_client):
-    request_result = unauthenticated_client.get("/api-keys")
+def test_cannot_gain_authorised_access_to_api_keys(unauthenticated_session_client):
+    request_result = unauthenticated_session_client.get("/api-keys")
     assert request_result.status_code == 401
 
 
-def test_cannot_access_api_keys_using_an_api_key(client):
-    request_result = client.get("/api-keys")
+def test_cannot_access_api_keys_using_an_api_key(api_key_client):
+    request_result = api_key_client.get("/api-keys")
     assert request_result.status_code == 403
     assert request_result.json["message"] == "You are not allowed to access this resource."
 
@@ -285,7 +285,9 @@ def test_cannot_delete_someone_else_api_key(session_client, another_user_id, api
     assert result is not None
 
 
-def test_cannot_delete_api_key_when_unauthorised(unauthenticated_client, user_id, api_keys_db):
+def test_cannot_delete_api_key_when_unauthorised(
+    unauthenticated_session_client, user_id, api_keys_db
+):
     api_keys_db.insert_one(
         {
             "_id": ObjectId("507f1f88bcf86cd733439011"),
@@ -295,14 +297,14 @@ def test_cannot_delete_api_key_when_unauthorised(unauthenticated_client, user_id
         }
     )
 
-    request_result = unauthenticated_client.delete("/api-keys/507f1f88bcf86cd733439011")
+    request_result = unauthenticated_session_client.delete("/api-keys/507f1f88bcf86cd733439011")
     assert request_result.status_code == 401
 
     result = api_keys_db.find_one({"name": "Test_API_KEY_1", "digest": "234...567"})
     assert result is not None
 
 
-def test_cannot_delete_api_key_when_using_api_key(client, user_id, api_keys_db):
+def test_cannot_delete_api_key_when_using_api_key(api_key_client, user_id, api_keys_db):
     api_keys_db.insert_one(
         {
             "_id": ObjectId("507f1f88bcf86cd733439011"),
@@ -312,7 +314,7 @@ def test_cannot_delete_api_key_when_using_api_key(client, user_id, api_keys_db):
         }
     )
 
-    request_result = client.delete("/api-keys/507f1f88bcf86cd733439011")
+    request_result = api_key_client.delete("/api-keys/507f1f88bcf86cd733439011")
     assert request_result.status_code == 403
 
     result = api_keys_db.find_one({"name": "Test_API_KEY_1", "digest": "234...567"})

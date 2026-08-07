@@ -4,7 +4,7 @@ from hashlib import sha512
 from typing import Any
 
 from bson import ObjectId
-from flask import request
+from flask import g, request
 from flask_login import current_user
 from werkzeug.exceptions import Forbidden
 
@@ -159,9 +159,13 @@ def admin_only(func):
 
 
 def exclude_api_key(func):
+    """Decorator to ensure that ensures client using api keys cannot access a route"""
+
     @wraps(func)
     def wrapped_route(*args, **kwargs):
-        if getattr(current_user, "api_login", False):
+        # current_user must be accessed to regenerate the api_key_session
+        current_user.is_authenticated
+        if getattr(g, "api_key_session", True):
             raise Forbidden("You are not allowed to access this resource.")
         else:
             return func(*args, **kwargs)
