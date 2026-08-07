@@ -25,10 +25,9 @@ from pydatalab.errors import UserRegistrationForbidden
 from pydatalab.feature_flags import FEATURE_FLAGS
 from pydatalab.logger import LOGGER
 from pydatalab.login import get_by_id
-from pydatalab.models.api_keys import ApiKey
 from pydatalab.models.people import AccountStatus, Identity, IdentityType, Person
 from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
-from pydatalab.permissions import exclude_api_key
+from pydatalab.permissions import ApiKey, exclude_api_key
 from pydatalab.send_email import send_mail
 
 KEY_LENGTH: int = 32

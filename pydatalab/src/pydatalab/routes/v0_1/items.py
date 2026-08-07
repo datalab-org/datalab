@@ -17,7 +17,6 @@ from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS, ItemVersion
-from pydatalab.models.api_keys import AccessToken
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import InlineSubstance, generate_unique_refcode
@@ -29,6 +28,7 @@ from pydatalab.models.versions import (
 from pydatalab.mongo import ITEMS_FTS_FIELDS, build_search_pipeline, flask_mongo
 from pydatalab.permissions import (
     PUBLIC_USER_ID,
+    AccessToken,
     access_token_or_active_users,
     active_users_or_get_only,
     check_access_token,
