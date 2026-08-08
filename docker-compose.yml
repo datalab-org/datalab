@@ -26,7 +26,8 @@ services:
       args:
         SETUPTOOLS_SCM_PRETEND_VERSION: ${SETUPTOOLS_SCM_PRETEND_VERSION}
     depends_on:
-      - database
+      database:
+        condition: service_healthy
     restart: unless-stopped
     volumes:
       - /data/logs:/logs
@@ -82,7 +83,10 @@ services:
       dockerfile: .docker/server/Dockerfile
       target: dev
     depends_on:
-      - database-dev
+      # The dev server has no restart policy, so it must not boot (and
+      # try to create indices) until the database accepts connections
+      database-dev:
+        condition: service_healthy
     volumes:
       - ./pydatalab:/app
       - datalab-dev-files:/app/files
