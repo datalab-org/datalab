@@ -10,6 +10,21 @@ ACCESS_LOG_FORMAT_STRING = (
 )
 
 
+class PerLoggerFormatter(logging.Formatter):
+    """Formats werkzeug access log records with the concise access
+    format and all other records with the full format, so that a
+    single handler can serve both loggers."""
+
+    def __init__(self):
+        super().__init__(LOG_FORMAT_STRING)
+        self._access_formatter = logging.Formatter(ACCESS_LOG_FORMAT_STRING)
+
+    def format(self, record: logging.LogRecord) -> str:
+        if record.name == "werkzeug":
+            return self._access_formatter.format(record)
+        return super().format(record)
+
+
 class AnsiColorHandler(logging.StreamHandler):
     """Colourful and truncated log handler, exfiltrated from/inspired
     by various answers at
@@ -76,17 +91,14 @@ def setup_log(log_name: str = "pydatalab", log_level: int | None = None) -> logg
     werkzeug_logger.addHandler(access_stream_handler)
 
     if CONFIG.LOG_FILE is not None:
+        # A single handler instance shared between both loggers, so that
+        # only one object is ever responsible for rotating the file
         rotating_file_handler = logging.handlers.RotatingFileHandler(
             CONFIG.LOG_FILE, maxBytes=1000000, backupCount=100
         )
-        rotating_file_handler.setFormatter(logging.Formatter(LOG_FORMAT_STRING))
+        rotating_file_handler.setFormatter(PerLoggerFormatter())
         logger.addHandler(rotating_file_handler)
-
-        access_file_handler = logging.handlers.RotatingFileHandler(
-            CONFIG.LOG_FILE, maxBytes=1000000, backupCount=100
-        )
-        access_file_handler.setFormatter(logging.Formatter(ACCESS_LOG_FORMAT_STRING))
-        werkzeug_logger.addHandler(access_file_handler)
+        werkzeug_logger.addHandler(rotating_file_handler)
 
     if log_level is None:
         log_level = logging.INFO

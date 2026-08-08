@@ -1,5 +1,4 @@
 import datetime
-import logging
 import os
 import pathlib
 from typing import Any
@@ -15,7 +14,7 @@ import pydatalab.mongo
 from pydatalab import __version__
 from pydatalab.config import CONFIG
 from pydatalab.feature_flags import check_feature_flags
-from pydatalab.logger import LOGGER, setup_log
+from pydatalab.logger import LOGGER
 from pydatalab.login import LOGIN_MANAGER
 from pydatalab.send_email import MAIL
 from pydatalab.utils import BSONProvider
@@ -36,9 +35,6 @@ def create_app(
         The `Flask` app with all associated endpoints.
 
     """
-    setup_log("werkzeug", log_level=logging.INFO)
-    setup_log("", log_level=logging.INFO)
-
     app = Flask(__name__, instance_relative_config=True)
 
     if config_override:
@@ -77,7 +73,6 @@ def create_app(
             os.environ[key] = app.config[key]
 
     LOGGER.info("Launching datalab version %s", __version__)
-    LOGGER.info("Starting app with Flask app.config: %s", app.config)
 
     check_feature_flags(app)
 
