@@ -190,22 +190,18 @@ def logged_route(fn: Callable):
             result = fn(*args, **kwargs)
 
             LOGGER.debug(
-                "%s returned in %s seconds with %s",
+                "%s returned in %.3f seconds",
                 fn.__name__,
                 (time.monotonic_ns() - start) / 1e9,
-                result,
             )
             return result
         except Exception as exc:
-            import traceback
-
-            LOGGER.error(
-                "%s errored in %s seconds with %s %s %s",
+            LOGGER.exception(
+                "%s errored in %.3f seconds with %s: %s",
                 fn.__name__,
                 (time.monotonic_ns() - start) / 1e9,
                 exc.__class__.__name__,
                 exc,
-                traceback.print_tb(exc.__traceback__),
             )
             raise exc
 
