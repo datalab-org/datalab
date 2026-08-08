@@ -1,10 +1,12 @@
 import datetime
 import os
 import pathlib
+import time
 from typing import Any
+from uuid import uuid4
 
 from dotenv import dotenv_values
-from flask import Flask, redirect, request, url_for
+from flask import Flask, g, redirect, request, url_for
 from flask_compress import Compress
 from flask_cors import CORS
 from flask_login import current_user, logout_user
@@ -14,7 +16,7 @@ import pydatalab.mongo
 from pydatalab import __version__
 from pydatalab.config import CONFIG
 from pydatalab.feature_flags import check_feature_flags
-from pydatalab.logger import LOGGER
+from pydatalab.logger import LOGGER, request_id_var
 from pydatalab.login import LOGIN_MANAGER
 from pydatalab.send_email import MAIL
 from pydatalab.utils import BSONProvider
@@ -114,6 +116,25 @@ def create_app(
 
     if CONFIG.FILE_DIRECTORY is not None:
         pathlib.Path(CONFIG.FILE_DIRECTORY).mkdir(parents=False, exist_ok=True)
+
+    @app.before_request
+    def assign_request_id():
+        """Tag the current context with a short ID for log correlation."""
+        request_id_var.set(uuid4().hex[:8])
+        g.start_time = time.perf_counter()
+
+    @app.after_request
+    def log_request(response):
+        """Write a single access log line per request handled."""
+        duration_ms = 1000 * (time.perf_counter() - g.start_time)
+        LOGGER.info(
+            '"%s %s" %s in %.1fms',
+            request.method,
+            request.path,
+            response.status_code,
+            duration_ms,
+        )
+        return response
 
     register_endpoints(app)
     LOGGER.info("App created.")
