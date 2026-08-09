@@ -1050,7 +1050,7 @@ def issue_physical_token(refcode: str):
     )
 
     try:
-        result = flask_mongo.db.api_keys.insert_one(access_document.model_dump())
+        result = flask_mongo.db.api_keys.insert_one(access_document.dict())
         if not result.inserted_id:
             return jsonify(
                 {"status": "error", "message": "Unknown error generating token for item."}

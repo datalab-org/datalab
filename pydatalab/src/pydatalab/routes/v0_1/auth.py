@@ -616,7 +616,8 @@ def find_create_or_modify_user(
             if login_user is None:
                 raise RuntimeError("Failed to insert user into database")
 
-            wrapped_login_user(user_model)
+            user = login_user.person
+
             # Send email notification to admins
             _send_admin_email_notification(user)
 
@@ -1084,7 +1085,7 @@ def generate_user_api_key():
         version=1,
     )
 
-    flask_mongo.db.api_keys.insert_one(access_key.model_dump())
+    flask_mongo.db.api_keys.insert_one(access_key.dict())
     return jsonify({"key": new_key, "name": request_json["name"]}), 200
 
 
