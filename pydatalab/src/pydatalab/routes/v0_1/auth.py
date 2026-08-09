@@ -1074,7 +1074,7 @@ def generate_user_api_key():
 
     if not request_json.get("name"):
         raise RuntimeError("API key must have a name")
-    new_key = secrets.token_urlsafe(KEY_LENGTH)  # noqa: S311
+    new_key = secrets.token_urlsafe(KEY_LENGTH)
     access_key = ApiKey(
         name=request_json["name"],
         user=ObjectId(current_user.id),
