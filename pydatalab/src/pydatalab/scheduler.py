@@ -1,8 +1,10 @@
+import contextvars
 from concurrent.futures import ThreadPoolExecutor
+from functools import wraps
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from pydatalab.logger import LOGGER
+from pydatalab.logger import LOGGER, request_id_var
 
 
 class TaskScheduler:
@@ -61,13 +63,22 @@ class TaskScheduler:
         except Exception:
             LOGGER.info("Submitting job %s to executor", job_id or func.__name__)
 
-        return executor.submit(func, *args)
+        # Run the job in a copy of the current context, so that its log
+        # lines carry the request ID of the request that spawned it
+        ctx = contextvars.copy_context()
+        return executor.submit(ctx.run, func, *args)
 
     def add_periodic_job(self, func, job_id, hours, replace_existing=True):
         """Register a periodic job via APScheduler (MemoryJobStore)."""
         scheduler = self._get_scheduler()
+
+        @wraps(func)
+        def job_with_log_context(*args, **kwargs):
+            request_id_var.set(job_id)
+            return func(*args, **kwargs)
+
         scheduler.add_job(
-            func=func,
+            func=job_with_log_context,
             trigger="interval",
             id=job_id,
             hours=hours,
