@@ -169,6 +169,7 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
                 "input": {"$objectToArray": {"$ifNull": ["$blocks_obj", {}]}},
                 "as": "b",
                 "in": {
+                    "block_id": "$$b.k",
                     "blocktype": "$$b.v.blocktype",
                     "title": "$$b.v.title",
                 },
