@@ -1073,7 +1073,7 @@ def generate_user_api_key():
     request_json = request.get_json()
 
     if not request_json.get("name"):
-        raise RuntimeError("API key must have a name")
+        raise BadRequest("API key must have a name")
     new_key = secrets.token_urlsafe(KEY_LENGTH)
     access_key = ApiKey(
         name=request_json["name"],
