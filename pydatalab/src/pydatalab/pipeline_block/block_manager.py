@@ -51,7 +51,7 @@ def get_pipeline_params(func):
 def _perform_operations(block, pipeline, data):
 
     # First step - retrieve the file(s)
-    if "file_id" not in data or ("file_ids" not in data and block.multi_file):
+    if ("file_id" not in data) and ("file_ids" not in data):
         LOGGER.warning("No file(s) set in the DataBlock")
         return None
 
@@ -268,8 +268,6 @@ class PipelineBlockManager:
                         )
         if new_data is not None:
             data = new_data
-        else:
-            return data
         # If the last plotting run did not raise any errors or warnings, remove any old ones
         if block_errors:
             data["errors"] = block_errors
