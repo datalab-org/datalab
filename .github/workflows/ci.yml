@@ -162,7 +162,9 @@ jobs:
       - name: Set some environment variables for CI containers pre-build
         run: |
           echo "PYDATALAB_TESTING=true" >> .env
+          echo "PYDATALAB_ROOT_PATH='/api'" >> .env
           echo "PYDATALAB_TESTING=true" >> pydatalab/.env
+          echo "PYDATALAB_ROOT_PATH='/api'" >> pydatalab/.env
 
       - name: Build Docker images
         uses: docker/bake-action@v7
@@ -194,7 +196,7 @@ jobs:
       - name: Test that plugin is loaded
         run: |
           # Test that plugin block is listed in info endpoint
-          curl -s http://localhost:5000/info/blocks | jq '.data | any(.id == "example")'
+          curl -s http://localhost:5000/api/info/blocks | jq '.data | any(.id == "example")'
 
   docker-dev:
     name: Test dev Docker builds
