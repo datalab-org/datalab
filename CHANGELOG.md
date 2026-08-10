@@ -4,6 +4,36 @@
 > Release candidates are not included in this changelog; there may be more
 recent changes described in the [release notes on GitHub](https://github.com/datalab-org/datalab/releases).
 
+## v0.7.4 (August 2026)
+
+This patch release adds a series of quality-of-life improvements, principally:
+
+- The ability for users to register multiple named API keys; in the future these can be assigned to service accounts for instruments.
+- Extended the `.raw` XRD reader to work on incomplete files, so that diffraction data can be observed as it is recorded.
+- Improvements to the block lifecycle that enables block events to edit and preserve metadata.
+- ELN file exports are now named `.eln.zip` for better downstream support in Windows/macOS.
+- Updated Neware parsers (via [NewareNDA](https://github.com/d-cogswell/NewareNDA)) to support latest cyclers.
+
+### What's Changed
+
+* Fix ephemeral race condition in e2e test of batch sample table by @davidwaroquiers in https://github.com/datalab-org/datalab/pull/1962
+* Set default .eln file extension to .zip by @ml-evs in https://github.com/datalab-org/datalab/pull/1972
+* Fixed editing of roles (UI) by @davidwaroquiers in https://github.com/datalab-org/datalab/pull/1924
+* Bump the python-production group across 1 directory with 9 updates by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1956
+* Extend GSAS-II vendored .raw reader to be able to read incomplete files by @ml-evs in https://github.com/datalab-org/datalab/pull/1974
+* Remove unecessary log volume mounts from docker compose by @ml-evs in https://github.com/datalab-org/datalab/pull/1980
+* Add mongo image healthcheck and add API startup dependency by @ml-evs in https://github.com/datalab-org/datalab/pull/1985
+* Tidy up and improve API logging by @ml-evs in https://github.com/datalab-org/datalab/pull/1984
+* Make block hydration more consistent when using pydantic by @ml-evs in https://github.com/datalab-org/datalab/pull/1979
+* Added ability to have multiple named API keys per user by @OMWalmsley in https://github.com/datalab-org/datalab/pull/1942
+* Bump NewareNDA to support latest Neware formats and reintroduce uv autoupdater for subdeps by @ml-evs in https://github.com/datalab-org/datalab/pull/1990
+
+### New Contributors
+
+* @OMWalmsley made their first contribution in https://github.com/datalab-org/datalab/pull/1942
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.3...v0.7.4
+
 ## v0.7.3 (August 2026)
 
 This patch release includes several bug fixes, usability fixes and developer experience improvements. Highlights include:
