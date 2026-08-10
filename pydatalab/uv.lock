@@ -1911,14 +1911,15 @@ wheels = [
 
 [[package]]
 name = "newarenda"
-version = "2025.6.2"
+version = "2026.6.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pandas" },
+    { name = "xmltodict" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e8/54/7eaa3c06c817fc92501f54e995e909a09d0b24c2414227bd3b2386290d78/newarenda-2025.6.2.tar.gz", hash = "sha256:b699313fd83da0dc9d75a27c87315591843a70a845e4351cfb6e97e63db3344b", size = 12721, upload-time = "2025-06-02T13:20:02.866Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b5/e9/a60effb1ff32320c8b83b65fe801f1b20f0d1e029930d4e694e8c3c408d1/newarenda-2026.6.11.tar.gz", hash = "sha256:10d764309bed8ab84a412d1c12b8eb42422941a39814a962f644eddfae62cfbd", size = 14240, upload-time = "2026-06-12T03:44:32.317Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4d/f2/6975400b7ca26a1ed8d6d6b2500c391b7df71f1c533f1f230a25f196a72c/newarenda-2025.6.2-py3-none-any.whl", hash = "sha256:7c77bd8f24a0b6b383dcb6e8071f4e2c75c87c982b95e16858e8bf6b3303798b", size = 15119, upload-time = "2025-06-02T13:20:01.833Z" },
+    { url = "https://files.pythonhosted.org/packages/27/e1/72768ea7150f9f0ebb4783427a818c9d43bb5d82ab3c91066f0481154c7d/newarenda-2026.6.11-py3-none-any.whl", hash = "sha256:668fe04c596781a8560bccf6c214199706aad39881f726c655d7e4a4544dddf3", size = 16552, upload-time = "2026-06-12T03:44:30.698Z" },
 ]
 
 [[package]]
@@ -3212,6 +3213,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/a7/47/7704bac42ac6fe1710ae099b70e6a1e68ed173ef14792b647808c357da43/xlsxwriter-3.2.5.tar.gz", hash = "sha256:7e88469d607cdc920151c0ab3ce9cf1a83992d4b7bc730c5ffdd1a12115a7dbe", size = 213306, upload-time = "2025-06-17T08:59:14.619Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fa/34/a22e6664211f0c8879521328000bdcae9bf6dbafa94a923e531f6d5b3f73/xlsxwriter-3.2.5-py3-none-any.whl", hash = "sha256:4f4824234e1eaf9d95df9a8fe974585ff91d0f5e3d3f12ace5b71e443c1c6abd", size = 172347, upload-time = "2025-06-17T08:59:13.453Z" },
+]
+
+[[package]]
+name = "xmltodict"
+version = "1.0.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/19/70/80f3b7c10d2630aa66414bf23d210386700aa390547278c789afa994fd7e/xmltodict-1.0.4.tar.gz", hash = "sha256:6d94c9f834dd9e44514162799d344d815a3a4faec913717a9ecbfa5be1bb8e61", size = 26124, upload-time = "2026-02-22T02:21:22.074Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/38/34/98a2f52245f4d47be93b580dae5f9861ef58977d73a79eb47c58f1ad1f3a/xmltodict-1.0.4-py3-none-any.whl", hash = "sha256:a4a00d300b0e1c59fc2bfccb53d7b2e88c32f200df138a0dd2229f842497026a", size = 13580, upload-time = "2026-02-22T02:21:21.039Z" },
 ]
 
 [[package]]
