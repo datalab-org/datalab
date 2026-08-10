@@ -247,6 +247,13 @@ def register_endpoints(app: Flask):
                 bp, url_prefix=f"{CONFIG.ROOT_PATH}{ver}", name=f"{ver}/{bp.name}"
             )
 
+    if CONFIG.ROOT_PATH != "/":
+        # Also serve the healthcheck endpoints at the bare root, so that e.g. container
+        # healthchecks work without needing to know the configured `ROOT_PATH`
+        from pydatalab.routes.v0_1.healthcheck import HEALTHCHECK
+
+        app.register_blueprint(HEALTHCHECK, url_prefix="/", name=f"root/{HEALTHCHECK.name}")
+
     for bp in OAUTH:  # type: ignore
         app.register_blueprint(OAUTH[bp], url_prefix=f"{CONFIG.ROOT_PATH}login")  # type: ignore
 
