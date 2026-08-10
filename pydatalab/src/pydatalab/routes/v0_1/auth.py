@@ -1128,15 +1128,16 @@ def delete_api_key(api_id):
     )
     if not doc:
         # Deal with potential legacy key
-        doc = flask_mongo.db.api_keys.find_one(
-            {
-                "_id": ObjectId(api_id),
-                "user": {"$exists": False},
-                "digest": {"$exists": False},
-                "name": {"$exists": False},
-                "type": {"$exists": False},
-            },
-        )
+        if ObjectId(api_id) == ObjectId(current_user.id):
+	        doc = flask_mongo.db.api_keys.find_one(
+	            {
+	                "_id": ObjectId(api_id),
+	                "user": {"$exists": False},
+	                "digest": {"$exists": False},
+	                "name": {"$exists": False},
+	                "type": {"$exists": False},
+	            },
+			)
     if not doc:
         raise NotFound(description="API key not found.")
     result = flask_mongo.db.api_keys.delete_one({"_id": ObjectId(api_id)})
