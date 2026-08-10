@@ -1118,7 +1118,7 @@ def get_all_api_keys():
 
 
 @AUTH.route("/api-keys/<api_id>", methods=["DELETE"])
-@authenticate("User must be an authenticated admin to request an API key.")
+@authenticate("User must be an authenticated to revoke an API key.")
 @exclude_api_key
 def delete_api_key(api_id):
     """Deletes the api key associated with the given id. (After checking the user owns the key)"""
