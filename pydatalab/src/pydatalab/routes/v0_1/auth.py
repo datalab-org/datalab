@@ -1065,7 +1065,7 @@ def get_authenticated_user_info():
 
 
 @AUTH.route("/api-keys", methods=["POST"])
-@authenticate("User must be an authenticated admin to request an API key.")
+@authenticate("User must be an authenticated user to request an API key.")
 @exclude_api_key
 def generate_user_api_key():
     """Returns metadata associated with the currently authenticated user."""
