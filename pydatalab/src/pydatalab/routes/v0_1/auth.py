@@ -1090,7 +1090,7 @@ def generate_user_api_key():
 
 
 @AUTH.route("/api-keys", methods=["GET"])
-@authenticate("User must be an authenticated admin to request an API key.")
+@authenticate("User must be an authenticated user to request an API key.")
 @exclude_api_key
 def get_all_api_keys():
     """Returns all the api keys associated with the currently authenticated user."""
@@ -1118,7 +1118,7 @@ def get_all_api_keys():
 
 
 @AUTH.route("/api-keys/<api_id>", methods=["DELETE"])
-@authenticate("User must be an authenticated to revoke an API key.")
+@authenticate("User must be an authenticated user to revoke an API key.")
 @exclude_api_key
 def delete_api_key(api_id):
     """Deletes the api key associated with the given id. (After checking the user owns the key)"""
@@ -1126,18 +1126,17 @@ def delete_api_key(api_id):
         {"_id": ObjectId(api_id), "user": ObjectId(current_user.id), "type": "api_key"},
         {"user": 1},
     )
-    if not doc:
+    if (not doc) and ObjectId(api_id) == ObjectId(current_user.id):
         # Deal with potential legacy key
-        if ObjectId(api_id) == ObjectId(current_user.id):
-            doc = flask_mongo.db.api_keys.find_one(
-                {
-                    "_id": ObjectId(api_id),
-                    "user": {"$exists": False},
-                    "digest": {"$exists": False},
-                    "name": {"$exists": False},
-                    "type": {"$exists": False},
-                },
-            )
+        doc = flask_mongo.db.api_keys.find_one(
+            {
+                "_id": ObjectId(api_id),
+                "user": {"$exists": False},
+                "digest": {"$exists": False},
+                "name": {"$exists": False},
+                "type": {"$exists": False},
+            },
+        )
     if not doc:
         raise NotFound(description="API key not found.")
     result = flask_mongo.db.api_keys.delete_one({"_id": ObjectId(api_id)})
