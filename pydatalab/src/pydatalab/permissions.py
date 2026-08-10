@@ -180,7 +180,6 @@ def exclude_api_key(func):
 
     @wraps(func)
     def wrapped_route(*args, **kwargs):
-        # current_user must be accessed to regenerate the api_key_session
         if getattr(g, "api_key_session", True):
             raise Forbidden("You are not allowed to access this resource.")
         else:
