@@ -7,18 +7,17 @@ with their local accounts.
 import datetime
 import json
 import os
-import random
 import re
+import secrets
 from hashlib import sha512
-from string import ascii_letters
 
 import jwt
 from bson import ObjectId
-from flask import Blueprint, g, jsonify, redirect, request
+from flask import Blueprint, Response, g, jsonify, redirect, request
 from flask_dance.consumer import OAuth2ConsumerBlueprint, oauth_authorized
 from flask_login import current_user, login_user
 from flask_login.utils import LocalProxy
-from werkzeug.exceptions import BadRequest, Forbidden
+from werkzeug.exceptions import BadRequest, Forbidden, NotFound
 
 from pydatalab.config import CONFIG
 from pydatalab.errors import UserRegistrationForbidden
@@ -27,6 +26,7 @@ from pydatalab.logger import LOGGER
 from pydatalab.login import get_by_id
 from pydatalab.models.people import AccountStatus, Identity, IdentityType, Person
 from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
+from pydatalab.permissions import ApiKey, authenticate, exclude_api_key
 from pydatalab.send_email import send_mail
 
 KEY_LENGTH: int = 32
@@ -404,7 +404,6 @@ EMAIL_BLUEPRINT = Blueprint("email", __name__)
 
 AUTH = Blueprint("auth", __name__)
 
-
 OAUTH: dict[IdentityType, Blueprint] = {
     IdentityType.ORCID: make_orcid_blueprint(
         scope="openid",
@@ -612,12 +611,13 @@ def find_create_or_modify_user(
                 identity, use_display_name=True, account_status=account_status
             )
             LOGGER.debug("Inserting new user model %s into database", user)
-            insert_pydantic_model_fork_safe(user, "users")
-            user_model = get_by_id(str(user.immutable_id))
-            if user is None:
+            inserted_id = insert_pydantic_model_fork_safe(user, "users")
+            login_user = get_by_id(inserted_id)
+            if login_user is None:
                 raise RuntimeError("Failed to insert user into database")
 
-            wrapped_login_user(user_model)
+            user = login_user.person
+
             # Send email notification to admins
             _send_admin_email_notification(user)
 
@@ -626,7 +626,8 @@ def find_create_or_modify_user(
 
     # Log the user into the session with this identity
     if user is not None:
-        wrapped_login_user(get_by_id(str(user.immutable_id)))
+        login_user = get_by_id(user.immutable_id)
+        wrapped_login_user(login_user)
 
 
 def _validate_magic_link_request(email: str, referrer: str) -> None:
@@ -1063,27 +1064,86 @@ def get_authenticated_user_info():
         return jsonify({"status": "failure", "message": "User must be authenticated."}), 401
 
 
-@AUTH.route("/get-api-key/", methods=["GET"])
+@AUTH.route("/api-keys", methods=["POST"])
+@authenticate("User must be an authenticated user to request an API key.")
+@exclude_api_key
 def generate_user_api_key():
     """Returns metadata associated with the currently authenticated user."""
-    if current_user.is_authenticated:
-        new_key = "".join(random.choices(ascii_letters, k=KEY_LENGTH))  # noqa: S311
-        flask_mongo.db.api_keys.update_one(
-            {"_id": ObjectId(current_user.id)},
-            {"$set": {"hash": sha512(new_key.encode("utf-8")).hexdigest()}},
-            upsert=True,
+
+    request_json = request.get_json()
+
+    if not request_json.get("name"):
+        raise BadRequest("API key must have a name")
+    new_key = secrets.token_urlsafe(KEY_LENGTH)
+    access_key = ApiKey(
+        name=request_json["name"],
+        user=ObjectId(current_user.id),
+        digest=new_key[:4] + "..." + new_key[-4:],
+        hash=sha512(new_key.encode("utf-8")).hexdigest(),
+        created_at=datetime.datetime.now(tz=datetime.timezone.utc),
+        expires_at=None,
+        version=1,
+    )
+
+    flask_mongo.db.api_keys.insert_one(access_key.dict())
+    return jsonify({"key": new_key, "name": request_json["name"]}), 200
+
+
+@AUTH.route("/api-keys", methods=["GET"])
+@authenticate("User must be an authenticated user to request an API key.")
+@exclude_api_key
+def get_all_api_keys():
+    """Returns all the api keys associated with the currently authenticated user."""
+    all_api_keys = flask_mongo.db.api_keys.find(
+        {"user": ObjectId(current_user.id), "type": "api_key"}, {"hash": 0, "user": 0}
+    )
+    # find potential legacy keys
+    legacy_key = flask_mongo.db.api_keys.find_one(
+        {
+            "_id": ObjectId(current_user.id),
+            "name": {"$exists": False},
+            "digest": {"$exists": False},
+            "user": {"$exists": False},
+            "type": {"$exists": False},
+        },
+        {"hash": 0},
+    )
+    all_keys = list(all_api_keys)
+    if legacy_key:
+        legacy_key["digest"] = "Unknown"
+        legacy_key["name"] = "Legacy key"
+        all_keys.insert(0, legacy_key)
+
+    return jsonify({"api_keys": all_keys}), 200
+
+
+@AUTH.route("/api-keys/<api_id>", methods=["DELETE"])
+@authenticate("User must be an authenticated user to revoke an API key.")
+@exclude_api_key
+def delete_api_key(api_id):
+    """Deletes the api key associated with the given id. (After checking the user owns the key)"""
+    doc = flask_mongo.db.api_keys.find_one(
+        {"_id": ObjectId(api_id), "user": ObjectId(current_user.id), "type": "api_key"},
+        {"user": 1},
+    )
+    if (not doc) and ObjectId(api_id) == ObjectId(current_user.id):
+        # Deal with potential legacy key
+        doc = flask_mongo.db.api_keys.find_one(
+            {
+                "_id": ObjectId(api_id),
+                "user": {"$exists": False},
+                "digest": {"$exists": False},
+                "name": {"$exists": False},
+                "type": {"$exists": False},
+            },
         )
-        return jsonify({"key": new_key}), 200
+    if not doc:
+        raise NotFound(description="API key not found.")
+    result = flask_mongo.db.api_keys.delete_one({"_id": ObjectId(api_id)})
+    if result.deleted_count == 1:
+        return Response("", status=204)
     else:
-        return (
-            jsonify(
-                {
-                    "status": "failure",
-                    "message": "User must be an authenticated admin to request an API key.",
-                }
-            ),
-            401,
-        )
+        raise BadRequest(description="Problem deleting the key")
 
 
 @AUTH.route("/testing/create-magic-link", methods=["POST"])
