@@ -38,7 +38,7 @@
     "@tiptap/pm": "^3.22.5",
     "@tiptap/starter-kit": "^3.22.5",
     "@tiptap/vue-3": "^3.22.5",
-    "@uppy/core": "^4.4.6",
+    "@uppy/core": "^4.5.3",
     "@uppy/dashboard": "^4.3.4",
     "@uppy/webcam": "^4.2.0",
     "@uppy/xhr-upload": "^4.3.3",
