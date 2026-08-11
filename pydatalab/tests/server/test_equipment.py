@@ -106,6 +106,50 @@ def test_save_good_equipment(client, default_equipment_dict):
             assert response.json[key] == updated_equipment[key]
 
 
+def test_get_equipment_summary_naive_datetime_serialized_as_utc(client, database):
+    """Regression test for `CustomJSONEncoder`/`BSONProvider`: MongoDB has no
+    timezone concept (BSON dates are plain UTC instants), so `pymongo.MongoClient`
+    (not configured with `tz_aware=True`) always reads dates back as *naive*
+    Python datetimes -- with no intervening Pydantic validation, e.g. via
+    `get_equipment_summary`'s raw aggregation -- regardless of whether the value
+    was originally written as tz-aware. The encoder must assume UTC for such
+    naive datetimes before calling `.isoformat()`, otherwise the serialized
+    string carries no timezone offset and clients (e.g. JS `Date` parsing)
+    misinterpret it as local time.
+    """
+    aware_date = datetime.datetime(2026, 7, 15, 14, 30, 0, 123000, tzinfo=datetime.timezone.utc)
+
+    database.items.insert_one(
+        {
+            "item_id": "test_naive_datetime_equipment",
+            "type": "equipment",
+            "date": aware_date,
+            "refcode": "test:NAIVEDATETIME",
+            "status": None,
+        }
+    )
+
+    try:
+        # Confirm the premise: pymongo hands back a naive datetime even though
+        # `aware_date` was tz-aware when written.
+        raw_doc = database.items.find_one({"item_id": "test_naive_datetime_equipment"})
+        assert raw_doc["date"].tzinfo is None
+
+        response = client.get("/equipment/")
+        assert response.status_code == 200
+
+        entry = next(
+            item
+            for item in response.json["items"]
+            if item["item_id"] == "test_naive_datetime_equipment"
+        )
+        # The serialized date must carry an explicit UTC offset/designator, matching
+        # the original tz-aware value.
+        assert entry["date"] == aware_date.isoformat()
+    finally:
+        database.items.delete_one({"item_id": "test_naive_datetime_equipment"})
+
+
 @pytest.mark.dependency(depends=["test_new_equipment"])
 def test_delete_equipment(admin_client, default_equipment_dict):
     """For now, only admins can delete equipment."""

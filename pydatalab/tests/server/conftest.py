@@ -139,6 +139,12 @@ def client(app, user_api_key):
 
 
 @pytest.fixture(scope="function")
+def api_key_client(app, client):
+    """Returns a test client for the API with normal API user access."""
+    yield client
+
+
+@pytest.fixture(scope="function")
 def another_client(app, another_user_api_key):
     """Returns a test client for the API with a second normal user access."""
     yield client_factory(app, another_user_api_key)
@@ -160,6 +166,22 @@ def unverified_client(app, unverified_user_api_key):
 def deactivated_client(app, deactivated_user_api_key):
     """Returns a test client for the API with a deactivated user's credentials."""
     yield client_factory(app, deactivated_user_api_key)
+
+
+@pytest.fixture(scope="function")
+def session_client(app, user_id):
+    app.test_client_class = FlaskClient
+    with app.test_client() as cli:
+        with cli.session_transaction() as session:
+            session["_user_id"] = str(user_id)
+        yield cli
+
+
+@pytest.fixture(scope="function")
+def unauthenticated_session_client(app):
+    app.test_client_class = FlaskClient
+    with app.test_client() as cli:
+        yield cli
 
 
 def generate_api_key():
@@ -251,7 +273,13 @@ def insert_user(
     real_mongo_client.get_database(TEST_DATABASE_NAME).users.insert_one(demo_user)
     hash = sha512(api_key.encode("utf-8")).hexdigest()
     real_mongo_client.get_database(TEST_DATABASE_NAME).api_keys.insert_one(
-        {"_id": id, "hash": hash}
+        {
+            "_id": ObjectId(),
+            "user": ObjectId(id),
+            "name": "testing API key",
+            "hash": hash,
+            "type": "api_key",
+        }
     )
     real_mongo_client.get_database(TEST_DATABASE_NAME).roles.insert_one({"_id": id, "role": role})
 
@@ -308,6 +336,14 @@ def insert_demo_users(
         display_name="Unverified User",
         status=AccountStatus.UNVERIFIED,
     )
+
+
+@pytest.fixture(scope="function", name="api_keys_db")
+def fixture_api_keys_db(database):
+    current_api_keys = list(database.api_keys.find())
+    yield database.api_keys
+    database.api_keys.delete_many({})
+    database.api_keys.insert_many(current_api_keys)
 
 
 @pytest.fixture(scope="module", name="default_sample")

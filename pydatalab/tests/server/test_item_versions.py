@@ -156,6 +156,40 @@ class TestListVersions:
         assert "action" in version
         assert version["action"] == "manual_save"
 
+    def test_list_versions_timestamp_serialized_as_utc(self, client, sample_with_version):
+        """Regression test for `CustomJSONEncoder`/`BSONProvider`: `list_versions`
+        returns `timestamp` straight from a raw `item_versions` aggregation, with
+        no intervening Pydantic validation. `save_version_snapshot` writes a
+        tz-aware `datetime.now(tz=utc)` for `timestamp`, but MongoDB has no
+        timezone concept -- it stores dates as plain UTC instants -- so pymongo
+        (not configured with `tz_aware=True`) always reads dates back as *naive*
+        Python datetimes, regardless of what tzinfo was set when they were
+        written. The encoder must assume UTC for such naive datetimes before
+        calling `.isoformat()`, otherwise the serialized string carries no
+        timezone offset and clients (e.g. JS `Date` parsing) misinterpret it as
+        local time.
+        """
+        import datetime
+
+        from pydatalab.mongo import flask_mongo
+
+        refcode = sample_with_version.refcode.split(":")[1]
+        client.post(f"/items/{refcode}/save-version/")
+
+        # Confirm the premise: pymongo hands back a naive datetime for a field
+        # that was written as tz-aware, since BSON dates carry no tzinfo.
+        raw_version = flask_mongo.db.item_versions.find_one(
+            {"refcode": sample_with_version.refcode}
+        )
+        assert raw_version["timestamp"].tzinfo is None
+
+        response = client.get(f"/items/{refcode}/versions/")
+        timestamp = response.json["versions"][0]["timestamp"]
+
+        assert (
+            timestamp == raw_version["timestamp"].replace(tzinfo=datetime.timezone.utc).isoformat()
+        )
+
 
 class TestGetVersion:
     """Tests for the get_version endpoint."""

@@ -232,6 +232,11 @@ class ServerConfig(BaseSettings):
         description="A dictionary containing SMTP settings for sending emails for account registration.",
     )
 
+    DISABLE_MAGIC_LINK_AUTH: bool = Field(
+        False,
+        description="Whether to disable magic-link email authentication while retaining SMTP-backed notification emails.",
+    )
+
     MAX_CONTENT_LENGTH: int = Field(
         10 * 1000**3,
         description=r"""Direct mapping to the equivalent Flask setting. In practice, limits the file size that can be uploaded.

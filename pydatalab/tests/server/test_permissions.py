@@ -725,3 +725,129 @@ def test_item_loses_inherited_access_when_collection_unshared(admin_client, clie
     assert response.status_code == 200
 
     assert client.get(f"/items/{refcode}").status_code == 404
+
+
+def test_copy_from_private_item_requires_read_access(client, another_client, database):
+    response = client.post(
+        "/new-sample/",
+        json={
+            "type": "samples",
+            "item_id": "copy-permissions-private-source",
+            "description": "private source marker",
+        },
+    )
+    assert response.status_code == 201, response.json
+    source_refcode = response.json["sample_list_entry"]["refcode"]
+
+    assert another_client.get(f"/items/{source_refcode}").status_code == 404
+
+    response = another_client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {"item_id": "copy-permissions-private-target"},
+            "copy_from_item_id": "copy-permissions-private-source",
+        },
+    )
+
+    assert response.status_code == 404, response.json
+    assert database.items.find_one({"item_id": "copy-permissions-private-target"}) is None
+
+
+def test_batch_copy_from_private_item_requires_read_access(client, another_client, database):
+    response = client.post(
+        "/new-sample/",
+        json={
+            "type": "samples",
+            "item_id": "copy-permissions-private-batch-source",
+            "description": "private batch source marker",
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    response = another_client.post(
+        "/new-samples/",
+        json={
+            "new_sample_datas": [{"item_id": "copy-permissions-private-batch-target"}],
+            "copy_from_item_ids": ["copy-permissions-private-batch-source"],
+        },
+    )
+
+    assert response.status_code == 404, response.json
+    assert database.items.find_one({"item_id": "copy-permissions-private-batch-target"}) is None
+
+
+def test_copy_from_group_shared_item_is_allowed(client, another_client, group_id):
+    source_description = "group source marker"
+    response = client.post(
+        "/new-sample/",
+        json={
+            "type": "samples",
+            "item_id": "copy-permissions-group-source",
+            "description": source_description,
+        },
+    )
+    assert response.status_code == 201, response.json
+    source_refcode = response.json["sample_list_entry"]["refcode"]
+
+    response = client.patch(
+        f"/items/{source_refcode}/permissions",
+        json={"groups": [{"immutable_id": str(group_id)}]},
+    )
+    assert response.status_code == 200, response.json
+    assert another_client.get(f"/items/{source_refcode}").status_code == 200
+
+    response = another_client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {"item_id": "copy-permissions-group-target"},
+            "copy_from_item_id": "copy-permissions-group-source",
+        },
+    )
+
+    assert response.status_code == 201, response.json
+    assert response.json["status"] == "success"
+    assert response.json["sample_list_entry"]["description"] == source_description
+
+
+def test_copy_from_collection_shared_item_is_allowed(client, another_client, group_id):
+    source_item_id = "copy-permissions-collection-source"
+    collection_id = "copy-permissions-collection"
+    source_description = "collection source marker"
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "type": "samples",
+            "item_id": source_item_id,
+            "description": source_description,
+        },
+    )
+    assert response.status_code == 201, response.json
+    source_refcode = response.json["sample_list_entry"]["refcode"]
+
+    response = client.put(
+        "/collections",
+        json={
+            "data": {
+                "collection_id": collection_id,
+                "title": "Copy permissions collection",
+                "type": "collections",
+                "groups": [{"immutable_id": str(group_id)}],
+                "starting_members": [{"item_id": source_item_id}],
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+    assert another_client.get(f"/items/{source_refcode}").status_code == 200
+
+    response = another_client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {"item_id": "copy-permissions-collection-target"},
+            "copy_from_item_id": source_item_id,
+        },
+    )
+
+    assert response.status_code == 201, response.json
+    assert response.json["status"] == "success"
+    assert response.json["sample_list_entry"]["description"] == source_description

@@ -130,9 +130,6 @@ class DataBlock:
     plot_functions: Sequence[Callable[[], None]] | None = None
     """A list of methods that will generate plots for this block."""
 
-    _supports_collections: bool = False
-    """Whether this datablock can operate on collection data, or just individual items"""
-
     multi_file: bool = False
     """Whether this block can accept multiple files as input."""
 
@@ -142,15 +139,13 @@ class DataBlock:
     def __init__(
         self,
         item_id: str | None = None,
-        collection_id: str | None = None,
         init_data: dict | None = None,
         unique_id: str | None = None,
     ):
-        """Create a data block object for the given `item_id` or `collection_id`.
+        """Create a data block object for the given `item_id`.
 
         Parameters:
-            item_id: The item to which the block is attached, or
-            collection_id: The collection to which the block is attached.
+            item_id: The item to which the block is attached.
             init_data: A dictionary of data to initialise the block with.
             unique_id: A unique id for the block, used in the DOM and database.
 
@@ -158,16 +153,8 @@ class DataBlock:
         if init_data is None:
             init_data = {}
 
-        if item_id is None and not self._supports_collections:
+        if item_id is None:
             raise RuntimeError(f"Must supply `item_id` to make {self.__class__.__name__}.")
-
-        if collection_id is not None and not self._supports_collections:
-            raise RuntimeError(
-                f"This block ({self.__class__.__name__}) does not support collections."
-            )
-
-        if item_id is not None and collection_id is not None:
-            raise RuntimeError("Must provide only one of `item_id` and `collection_id`.")
 
         LOGGER.debug(
             "Creating new block '%s' associated with item_id '%s'",
@@ -179,7 +166,6 @@ class DataBlock:
         )  # this is supposed to be a unique id for use in html and the database.
         self.data = {
             "item_id": item_id,
-            "collection_id": collection_id,
             "blocktype": self.blocktype,
             "block_id": self.block_id,
             **self.defaults,
@@ -195,17 +181,18 @@ class DataBlock:
             init_data
         )  # this could overwrite blocktype and block_id. I think that's reasonable... maybe
         LOGGER.debug(
-            "Initialised block %s for item ID %s or collection ID %s.",
+            "Initialised block %s for item ID %s",
             self.__class__.__name__,
             item_id,
-            collection_id,
         )
 
     def to_db(self) -> dict:
         """returns a dictionary with the data for this
         block, ready to be input into mongodb"""
 
-        LOGGER.debug("Casting block %s to database object.", self.__class__.__name__)
+        LOGGER.debug(
+            "Casting block %s to database object, data: %s", self.__class__.__name__, self.data
+        )
         exclude_fields: set[str] = {
             f
             for (f, s) in self.block_db_model.schema()["properties"].items()
@@ -253,6 +240,10 @@ class DataBlock:
                                 ]
                             )
 
+        # Opportunistically convert the data to a dict if it is already a pydantic model
+        if not isinstance(self.data, dict):
+            self.data = self.data.dict()
+
         # If the last plotting run did not raise any errors or warnings, remove any old ones
         if block_errors:
             self.data["errors"] = block_errors
@@ -278,6 +269,7 @@ class DataBlock:
                     self, self.__class__
                 )
                 try:
+                    LOGGER.debug("Processing event %s with params %s", event_name, event)
                     bound_method(**event)
                 except Exception as e:
                     LOGGER.error(
@@ -324,29 +316,32 @@ class DataBlock:
         }
 
     @classmethod
-    def from_web(cls, data: dict):
+    def from_web(cls, data: dict, stored_data: dict | None = None):
         """Initialise the block state from data passed via web request
-        with a given item, collection and block ID.
+        with a given item and block ID.
 
         Parameters:
             data: The block data to initialiaze the block with.
+            stored_data: The stored database state of the block, if any,
+                used to preserve server-authoritative fields that cannot
+                be set from the web.
 
         """
         block = cls(
             item_id=data.get("item_id"),
-            collection_id=data.get("collection_id"),
             unique_id=data["block_id"],
         )
-        block.update_from_web(data)
+        block.update_from_web(data, stored_data=stored_data)
         return block
 
-    def update_from_web(self, data: dict):
+    def update_from_web(self, data: dict, stored_data: dict | None = None):
         """Update the block with validated data received from a web request.
         Will strip any fields that are "computed" or otherwise not controllable
-        by the user.
+        by the user, restoring their stored database values where available.
 
         Parameters:
             data: A dictionary of data to update the block with.
+            stored_data: The stored database state of the block, if any.
 
         """
         LOGGER.debug(
@@ -360,4 +355,13 @@ class DataBlock:
         }
         [data.pop(f, None) for f in exclude_fields]
         self.data.update(self.block_db_model(**data).dict())
+        # Fields stripped above (e.g., `metadata`, `computed`) are server-authoritative:
+        # writable only via block events or block code, never from the web payload.
+        # Without restoring them from the stored state here, the model defaults
+        # materialised by `.dict()` above would overwrite them in the database on
+        # every subsequent save of the block or its item.
+        if stored_data:
+            for field in exclude_fields:
+                if field in stored_data:
+                    self.data[field] = stored_data[field]
         return self

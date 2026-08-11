@@ -25,7 +25,7 @@ dependencies = [
     "pint ~= 0.24",
     "pandas[excel] ~= 2.2",
     "pymongo ~= 4.7",
-    "deepdiff ~= 8.1",
+    "deepdiff>=8.1,<10.0",
     "tomlkit ~= 0.14",
 ]
 
@@ -58,7 +58,7 @@ server = [
     "python-dotenv ~= 1.0",
     "pillow>=11,<13",
     "pyjwt ~= 2.9",
-    "invoke ~= 2.2",
+    "invoke>=2.2,<4.0",
 ]
 apps = [
     # General
@@ -66,7 +66,7 @@ apps = [
     # NMR
     "nmrglue ~= 0.11",
     # Electrochemistry
-    "navani >= 0.1.20",
+    "navani >= 0.1.21",
     "pyarrow ~= 23.0.1",
     # Raman
     "pybaselines ~= 1.1",
@@ -128,7 +128,7 @@ dev = [
     "mkdocs ~= 1.6",
     "mkdocs-material ~= 9.5",
     "mkdocstrings[python] ~= 1.0",
-    "docstring-inheritance ~= 2.2",
+    "docstring-inheritance>=2.2,<4.0",
     "griffe-inherited-docstrings ~= 1.1",
     "mkdocs-awesome-pages-plugin ~= 2.9",
     "markdown-callouts ~= 0.4",

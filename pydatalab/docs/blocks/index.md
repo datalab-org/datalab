@@ -30,10 +30,8 @@ Data blocks are modular components that:
 The block system exposes several API endpoints:
 
 - `/add-data-block/`: Create and add a new block to an item
-- `/add-collection-data-block/`: Create and add a new block to a collection
 - `/update-block/`: Update an existing block's state
 - `/delete-block/`: Remove a block from an item
-- `/delete-collection-block/`: Remove a block from a collection
 
 ## Creating a new block
 

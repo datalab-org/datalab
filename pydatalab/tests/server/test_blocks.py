@@ -120,7 +120,11 @@ def test_add_multiple_blocks_to_sample(admin_client, default_sample_dict):
 
 
 def test_block_permissions(client, admin_client, unauthenticated_client, default_sample_dict):
-    """Test that normal users can add blocks to samples they have access to, but unauthenticated users cannot."""
+    """Test that normal users can add blocks to samples they have access to, but unauthenticated users cannot,
+    and that a user with read access to an item (e.g., via a shared group) can update its blocks,
+    even if they are not its creator.
+
+    """
     sample_id = "test_sample_user_permissions"
     sample_data = default_sample_dict.copy()
     sample_data["item_id"] = sample_id
@@ -163,6 +167,58 @@ def test_block_permissions(client, admin_client, unauthenticated_client, default
         },
     )
     assert response.status_code == 401
+
+    sample_id = "test_sample_admin_permissions"
+    sample_data = default_sample_dict.copy()
+    sample_data["item_id"] = sample_id
+
+    # Create sample with normal user
+    response = admin_client.post("/new-sample/", json=sample_data)
+    assert response.status_code == 201
+
+    block_type = list(BLOCK_TYPES.keys())[0]
+
+    response = admin_client.post(
+        "/add-data-block/",
+        json={
+            "block_type": block_type,
+            "item_id": sample_id,
+            "index": 0,
+        },
+    )
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    block_id = response.json["new_block_obj"]["block_id"]
+
+    response = admin_client.post(
+        "/update-block/",
+        json={
+            "block_data": {
+                "block_id": block_id,
+                "item_id": sample_id,
+                "blocktype": block_type,
+                "freeform_comment": "Admin updated comment",
+            }
+        },
+    )
+
+    # `client` shares a group with `admin_client` (via `default_sample_dict`), so it has read
+    # access to this item and is currently permitted to update its blocks, even though it is
+    # not the creator. This is intentionally relaxed for now (to allow rendering/collaboration)
+    # and should be tightened once block permissions are refactored.
+    read_access_response = client.post(
+        "/update-block/",
+        json={
+            "block_data": {
+                "block_id": block_id,
+                "item_id": sample_id,
+                "blocktype": block_type,
+                "freeform_comment": "User updated comment",
+            }
+        },
+    )
+
+    assert read_access_response.status_code == 200
 
 
 def test_add_block_to_nonexistent_item(admin_client):

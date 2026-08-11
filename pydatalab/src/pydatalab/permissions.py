@@ -1,18 +1,63 @@
+import datetime
 from functools import wraps
 from hashlib import sha512
 from typing import Any
 
 from bson import ObjectId
-from flask import request
+from flask import g, request
 from flask_login import current_user
+from werkzeug.exceptions import Forbidden, Unauthorized
 
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.login import UserRole
 from pydatalab.models.people import AccountStatus
+from pydatalab.models.utils import BaseModel, PyObjectId
 from pydatalab.mongo import flask_mongo, get_database
 
 PUBLIC_USER_ID = ObjectId(24 * "0")
+
+
+class Key(BaseModel):
+    user: PyObjectId
+    """id that the object belongs to"""
+
+    created_at: "datetime.datetime"
+    """date that the object was created"""
+
+    expires_at: "datetime.datetime|None"
+    """date that the object expires"""
+
+    version: int
+    """version of the key"""
+
+
+class AccessToken(Key):
+    refcode: str
+    """The reference code of the access key"""
+
+    active: bool
+    """whether the access key is active"""
+
+    type: str = "access_token"
+    """the type of access key"""
+
+    token: str
+    """The hash of the access token"""
+
+
+class ApiKey(Key):
+    name: str
+    """The name of the API key"""
+
+    digest: str
+    """The hash of the API key"""
+
+    type: str = "api_key"
+    """The type of the API key"""
+
+    hash: str
+    """The hash of the token"""
 
 
 def active_users_or_get_only(func):
@@ -109,6 +154,36 @@ def admin_only(func):
             return {"error": "Unauthorized"}, 401
 
         return {"error": "Insufficient privileges"}, 403
+
+    return wrapped_route
+
+
+def authenticate(authentication_error):
+    """Decorator to ensure the client is authenticated"""
+
+    def function_wrap(func):
+        @wraps(func)
+        def wrapped_route(*args, **kwargs):
+            # current_user must be accessed to regenerate the api_key_session
+            if not current_user.is_authenticated:
+                raise Unauthorized(authentication_error)
+            else:
+                return func(*args, **kwargs)
+
+        return wrapped_route
+
+    return function_wrap
+
+
+def exclude_api_key(func):
+    """Decorator to ensure that ensures client using api keys cannot access a route"""
+
+    @wraps(func)
+    def wrapped_route(*args, **kwargs):
+        if getattr(g, "api_key_session", True):
+            raise Forbidden("You are not allowed to access this resource.")
+        else:
+            return func(*args, **kwargs)
 
     return wrapped_route
 

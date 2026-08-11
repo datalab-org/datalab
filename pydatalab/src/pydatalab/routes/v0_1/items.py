@@ -28,6 +28,7 @@ from pydatalab.models.versions import (
 from pydatalab.mongo import ITEMS_FTS_FIELDS, build_search_pipeline, flask_mongo
 from pydatalab.permissions import (
     PUBLIC_USER_ID,
+    AccessToken,
     access_token_or_active_users,
     active_users_or_get_only,
     check_access_token,
@@ -169,6 +170,7 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
                 "input": {"$objectToArray": {"$ifNull": ["$blocks_obj", {}]}},
                 "as": "b",
                 "in": {
+                    "block_id": "$$b.k",
                     "blocktype": "$$b.v.blocktype",
                     "title": "$$b.v.title",
                 },
@@ -559,7 +561,9 @@ def search_items():
 
 
 def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
-    copied_doc = flask_mongo.db.items.find_one({"item_id": copy_from_item_id})
+    copied_doc = flask_mongo.db.items.find_one(
+        {"item_id": copy_from_item_id, **get_default_permissions(user_only=False)}
+    )
 
     LOGGER.debug("Copying from pre-existing item %s with data:\n%s", copy_from_item_id, copied_doc)
     if not copied_doc:
@@ -1035,19 +1039,18 @@ def issue_physical_token(refcode: str):
         ), 404
 
     token = secrets.token_urlsafe(16)
-    access_document = {
-        "token": sha512(token.encode("utf-8")).hexdigest(),
-        "refcode": refcode,
-        "user": ObjectId(current_user.id),
-        "active": True,
-        "created_at": datetime.datetime.now(tz=datetime.timezone.utc),
-        "expires_at": None,
-        "version": 1,
-        "type": "access_token",
-    }
+    access_document = AccessToken(
+        token=sha512(token.encode("utf-8")).hexdigest(),
+        refcode=refcode,
+        user=ObjectId(current_user.id),
+        active=True,
+        created_at=datetime.datetime.now(tz=datetime.timezone.utc),
+        expires_at=None,
+        version=1,
+    )
 
     try:
-        result = flask_mongo.db.api_keys.insert_one(access_document)
+        result = flask_mongo.db.api_keys.insert_one(access_document.dict())
         if not result.inserted_id:
             return jsonify(
                 {"status": "error", "message": "Unknown error generating token for item."}
@@ -1665,13 +1668,6 @@ def save_item():
         if k in updated_data:
             del updated_data[k]
 
-    for block_id, block_data in updated_data.get("blocks_obj", {}).items():
-        blocktype = block_data["blocktype"]
-
-        block = BLOCK_TYPES.get(blocktype, BLOCK_TYPES["notsupported"]).from_web(block_data)
-
-        updated_data["blocks_obj"][block_id] = block.to_db()
-
     # Bit of a hack for now: starting materials and equipment should be editable by anyone,
     # so we adjust the query above to be more permissive when the user is requesting such an item
     # but before returning we need to check that the actual item did indeed have that type
@@ -1713,6 +1709,16 @@ def save_item():
             ),
             404,
         )
+
+    stored_blocks = item.get("blocks_obj", {})
+    for block_id, block_data in updated_data.get("blocks_obj", {}).items():
+        blocktype = block_data["blocktype"]
+
+        block = BLOCK_TYPES.get(blocktype, BLOCK_TYPES["notsupported"]).from_web(
+            block_data, stored_data=stored_blocks.get(block_id)
+        )
+
+        updated_data["blocks_obj"][block_id] = block.to_db()
 
     if "collections" in updated_data:
         requested_collections = updated_data["collections"]

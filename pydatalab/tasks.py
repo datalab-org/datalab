@@ -132,9 +132,17 @@ dev.add_task(generate_schemas)
         "port": "Port to bind",
         "reload": "Enable the Werkzeug reloader and debugger (disable with --no-reload)",
         "testing": "Enable CONFIG.TESTING if PYDATALAB_TESTING is not already set",
+        "debug": "Enable CONFIG.DEBUG if PYDATALAB_DEBUG is not already set",
     }
 )
-def serve(_, host: str = "127.0.0.1", port: int = 5001, reload: bool = True, testing: bool = False):
+def serve(
+    _,
+    host: str = "127.0.0.1",
+    port: int = 5001,
+    reload: bool = True,
+    testing: bool = False,
+    debug: bool = False,
+):
     """Boot the Flask development server."""
     from dotenv import load_dotenv
 
@@ -153,13 +161,16 @@ def serve(_, host: str = "127.0.0.1", port: int = 5001, reload: bool = True, tes
     if testing and "PYDATALAB_TESTING" not in os.environ:
         os.environ["PYDATALAB_TESTING"] = "1"
 
+    if debug and "PYDATALAB_DEBUG" not in os.environ:
+        os.environ["PYDATALAB_DEBUG"] = "1"
+
     if "PYDATALAB_SECRET_KEY" not in os.environ:
         os.environ["PYDATALAB_SECRET_KEY"] = "dev-insecure-secret-key-do-not-use-in-production"  # noqa: S105
         os.environ["PYDATALAB_ALLOW_INSECURE_SECRET_KEY"] = "1"  # noqa: S105
 
     from pydatalab.main import create_app
 
-    create_app(env_file=env_path).run(host=host, port=port, debug=reload, use_reloader=reload)
+    create_app(env_file=env_path).run(host=host, port=port, debug=debug, use_reloader=reload)
 
 
 dev.add_task(serve)

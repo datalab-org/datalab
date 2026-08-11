@@ -6,6 +6,7 @@ for retrieving the authenticated user for a session and their identities.
 from hashlib import sha512
 
 from bson import ObjectId
+from flask import g
 from flask_login import LoginManager, UserMixin
 
 from pydatalab.models import Person
@@ -29,12 +30,7 @@ class LoginUser(UserMixin):
     person: Person
     role: UserRole
 
-    def __init__(
-        self,
-        _id: str,
-        data: Person,
-        role: UserRole,
-    ):
+    def __init__(self, _id: str, data: Person, role: UserRole):
         """Construct the logged in user from a given ID and user data.
 
         Parameters:
@@ -87,11 +83,6 @@ class LoginUser(UserMixin):
             self.role = user.role
 
 
-def get_by_id_cached(user_id):
-    """Cached version of get_by_id."""
-    return get_by_id(user_id)
-
-
 def groups_lookup() -> dict:
     return {
         "from": "groups",
@@ -105,7 +96,7 @@ def groups_lookup() -> dict:
     }
 
 
-def get_by_id(user_id: str) -> LoginUser | None:
+def get_by_id(user_id: str | ObjectId) -> LoginUser | None:
     """Lookup the user database ID and create a new `LoginUser`
     with the relevant metadata.
 
@@ -118,12 +109,16 @@ def get_by_id(user_id: str) -> LoginUser | None:
 
     """
 
-    user = flask_mongo.db.users.aggregate(
+    # Use next(..., None) rather than the cursor's .next() to avoid the case
+    # where StopIteration is raised and not handled (e.g. manually deleted user,
+    # tries to reconnect while the old cookies are still in the browser).
+    cursor = flask_mongo.db.users.aggregate(
         [
             {"$match": {"_id": ObjectId(user_id)}},
             {"$lookup": groups_lookup()},
         ]
-    ).next()
+    )
+    user = next(cursor, None)
     if not user:
         return None
 
@@ -142,10 +137,26 @@ def get_by_api_key(key: str):
 
     """
 
-    hash = sha512(key.encode("utf-8")).hexdigest()
-    user = flask_mongo.db.api_keys.find_one({"hash": hash}, projection={"hash": 0})
-    if user:
-        return get_by_id_cached(str(user["_id"]))
+    key_hash = sha512(key.encode("utf-8")).hexdigest()
+    user = flask_mongo.db.api_keys.find_one(
+        {"hash": key_hash, "type": "api_key"}, projection={"name": 0, "_id": 0, "digest": 0}
+    )
+
+    if user and user.get("user", False):
+        return get_by_id(str(user["user"]))
+
+    legacy_user = flask_mongo.db.api_keys.find_one(
+        {
+            "hash": key_hash,
+            "user_id": {"$exists": False},
+            "name": {"$exists": False},
+            "digest": {"$exists": False},
+        },
+    )
+
+    if legacy_user:
+        return get_by_id(str(legacy_user["_id"]))
+    return None
 
 
 LOGIN_MANAGER: LoginManager = LoginManager()
@@ -155,12 +166,14 @@ LOGIN_MANAGER: LoginManager = LoginManager()
 @LOGIN_MANAGER.user_loader
 def load_user(user_id: str) -> LoginUser | None:
     """Looks up the currently authenticated user and returns a `LoginUser` model."""
-    return get_by_id_cached(str(user_id))
+    g.api_key_session = False
+    return get_by_id(str(user_id))
 
 
 @LOGIN_MANAGER.request_loader
 def request_loader(request) -> LoginUser | None:
     api_key = request.headers.get("DATALAB-API-KEY", None)
     if api_key:
+        g.api_key_session = True
         return get_by_api_key(str(api_key))
     return None
