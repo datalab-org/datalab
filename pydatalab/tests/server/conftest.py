@@ -7,6 +7,7 @@ from flask.testing import FlaskClient
 
 from pydatalab.models import Cell, Collection, Equipment, Sample, StartingMaterial
 from pydatalab.models.people import AccountStatus
+from pydatalab.mongo import flask_mongo
 
 TEST_DATABASE_NAME = "__datalab-testing__"
 
@@ -643,6 +644,24 @@ def _insert_and_cleanup_item_from_model(model):
     flask_mongo.db.items.insert_one(model.model_dump(exclude_unset=False))
     yield model
     flask_mongo.db.items.delete_one({"refcode": model.refcode})
+
+
+@pytest.fixture(scope="function", name="item_creator")
+def fixture_item_creator():
+    ref_codes_to_remove = []
+
+    def _insert_item_from_model(model):
+        from pydatalab.models.utils import generate_unique_refcode
+        from pydatalab.mongo import flask_mongo
+
+        refcode = generate_unique_refcode()
+        model.refcode = refcode
+        flask_mongo.db.items.insert_one(model.model_dump(exclude_unset=False))
+        ref_codes_to_remove.append(refcode)
+        return model
+
+    yield _insert_item_from_model
+    flask_mongo.db.items.delete_many({"refcode": {"$in": ref_codes_to_remove}})
 
 
 @pytest.fixture(scope="module", name="insert_default_sample")
