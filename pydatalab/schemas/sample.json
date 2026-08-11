@@ -1330,6 +1330,19 @@
       "title": "Display Order",
       "type": "array"
     },
+    "location": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The place where the item is located.",
+      "title": "Location"
+    },
     "collections": {
       "description": "Inlined info for the collections associated with this item.",
       "items": {

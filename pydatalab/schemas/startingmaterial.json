@@ -1189,6 +1189,37 @@
   },
   "description": "A model for representing an experimental sample, based on the connection\nwith cheminventory.net, which mixes container-level and substance-level\ninformation.",
   "properties": {
+    "blocks_obj": {
+      "additionalProperties": {
+        "$ref": "#/$defs/DataBlockResponse"
+      },
+      "default": {},
+      "description": "A mapping from block ID to block data.",
+      "title": "Blocks Obj",
+      "type": "object"
+    },
+    "display_order": {
+      "default": [],
+      "description": "The order in which to display block data in the UI.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Display Order",
+      "type": "array"
+    },
+    "location": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The place where the container is located.",
+      "title": "Location"
+    },
     "chemform": {
       "anyOf": [
         {
@@ -1312,24 +1343,6 @@
       "default": null,
       "description": "Free-text details of the procedure applied to synthesise the sample",
       "title": "Synthesis Description"
-    },
-    "blocks_obj": {
-      "additionalProperties": {
-        "$ref": "#/$defs/DataBlockResponse"
-      },
-      "default": {},
-      "description": "A mapping from block ID to block data.",
-      "title": "Blocks Obj",
-      "type": "object"
-    },
-    "display_order": {
-      "default": [],
-      "description": "The order in which to display block data in the UI.",
-      "items": {
-        "type": "string"
-      },
-      "title": "Display Order",
-      "type": "array"
     },
     "collections": {
       "description": "Inlined info for the collections associated with this item.",
@@ -1645,19 +1658,6 @@
       "default": null,
       "description": "Supplier or manufacturer of the chemical.",
       "title": "Supplier"
-    },
-    "location": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "description": "The place where the container is located.",
-      "title": "Location"
     },
     "comment": {
       "anyOf": [

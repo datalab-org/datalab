@@ -19,9 +19,6 @@ class Equipment(Item):
     manufacturer: str | None = None
     """The manufacturer of this piece of equipment"""
 
-    location: str | None = None
-    """Place where the equipment is located"""
-
     contact: str | None = None
     """Contact information for equipment (e.g., email address or phone number)."""
 

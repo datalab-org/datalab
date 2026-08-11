@@ -13,6 +13,7 @@ __all__ = (
     "IsCollectable",
     "HasSynthesisInfo",
     "HasSubstanceInfo",
+    "HasLocation",
 )
 
 
@@ -229,3 +230,8 @@ class HasSubstanceInfo(BaseModel):
                 return None
 
         return v
+
+
+class HasLocation(BaseModel):
+    location: str | None = Field(alias="Location")
+    """The place where the item is located."""

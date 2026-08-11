@@ -3,11 +3,11 @@ from typing import Literal
 from pydantic import Field
 
 from pydatalab.models.items import Item
-from pydatalab.models.traits import HasSubstanceInfo, HasSynthesisInfo
+from pydatalab.models.traits import HasLocation, HasSubstanceInfo, HasSynthesisInfo
 from pydatalab.models.utils import IsoformatDateTime, StartingMaterialsStatus
 
 
-class StartingMaterial(Item, HasSynthesisInfo, HasSubstanceInfo):
+class StartingMaterial(Item, HasSynthesisInfo, HasSubstanceInfo, HasLocation):
     """A model for representing an experimental sample, based on the connection
     with cheminventory.net, which mixes container-level and substance-level
     information.
