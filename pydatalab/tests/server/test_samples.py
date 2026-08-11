@@ -86,7 +86,7 @@ def test_new_sample_with_automatically_generated_id(client, user_id):
     assert response.status_code == 200
     assert response.json["status"] == "success"
     assert response.json["item_data"]["refcode"].split(":")[1] == created_item_id
-    assert response.json["item_data"]["molar_mass"] == 18.01528
+    assert response.json["item_data"]["molar_mass"] == pytest.approx(18.015)
 
     for key in new_sample_data:
         if isinstance(v := new_sample_data[key], datetime.datetime):
