@@ -11,6 +11,9 @@ updates:
   - dependency_updates
   - Python
   versioning-strategy: "increase-if-necessary"
+  # Major bumps of production deps fall outside these groups, so each
+  # gets its own PR; the limit is raised so they aren't starved out.
+  open-pull-requests-limit: 30
   groups:
     python-production:
       applies-to: version-updates
@@ -22,6 +25,7 @@ updates:
       applies-to: version-updates
       dependency-type: development
       update-types:
+        - major
         - minor
         - patch
   ignore:
