@@ -1216,6 +1216,19 @@
       "title": "File Objectids",
       "type": "array"
     },
+    "location": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The place where the item is located.",
+      "title": "Location"
+    },
     "blocks_obj": {
       "additionalProperties": {
         "$ref": "#/$defs/DataBlockResponse"

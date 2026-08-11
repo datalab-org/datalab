@@ -1052,6 +1052,19 @@
       "title": "File Objectids",
       "type": "array"
     },
+    "location": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The place where the item is located.",
+      "title": "Location"
+    },
     "blocks_obj": {
       "additionalProperties": {
         "$ref": "#/$defs/DataBlockResponse"
@@ -1293,19 +1306,6 @@
       "default": null,
       "description": "The manufacturer of this piece of equipment",
       "title": "Manufacturer"
-    },
-    "location": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "description": "Place where the equipment is located",
-      "title": "Location"
     },
     "contact": {
       "anyOf": [
