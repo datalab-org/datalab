@@ -74,8 +74,7 @@ apps = [
     # TGA
     "python-dateutil ~= 2.9",
     # XRD
-    "matador-db >= 0.11.2",
-    "psutil>=7.0.0",
+    "matador-db ~= 0.12",
 ]
 
 app-plugins-git = [
@@ -138,7 +137,7 @@ dev = [
 # Do not allow installing third-party deps that are very young
 exclude-newer = "1 week"
 # But allow deps we manage ourselves to be newer
-exclude-newer-package = { "navani" = false, "datalab-org-galvani" = false, "datalab-app-plugin-insitu" = false, "datalab-app-plugin-xps" = false }
+exclude-newer-package = { "navani" = false, "datalab-org-galvani" = false, "datalab-app-plugin-insitu" = false, "datalab-app-plugin-xps" = false, "matador-db" = false }
 
 [tool.uv.sources]
 datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git", rev = "v0.4.1" }
