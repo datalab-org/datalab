@@ -31,8 +31,10 @@ export default {
   },
   props: {
     barcode: {
+      // Items without a barcode store an explicit `null`, which bypasses prop
+      // defaults, so this cannot be `required`. The template guards on it.
       type: String,
-      required: true,
+      default: null,
     },
     enableBarcode: {
       type: Boolean,
