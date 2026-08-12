@@ -9,6 +9,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
         :block_id="block_id"
         :extensions="blockInfo?.attributes?.accepted_file_extensions"
         :main-label="'Select and order files'"
+        fallback-to-single-file-id
         update-block-on-change
       />
     </div>
