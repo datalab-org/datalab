@@ -1860,20 +1860,10 @@ def get_locations_for_items():
     for location_locators in flat_locations:
         comprising_locations = location_locators.split(">")
         curr_dict = nested_locations
-        for index, location in enumerate(comprising_locations):
+        for location in comprising_locations:
             location = location.strip()
-            if (
-                location in curr_dict
-                and index + 1 < len(comprising_locations)
-                and comprising_locations[index + 1] not in curr_dict[location]
-            ):
-                curr_dict[location][comprising_locations[index + 1].strip()] = {}
-                curr_dict = curr_dict[location]
-            elif index + 1 < len(comprising_locations):
-                curr_dict[location] = {comprising_locations[index + 1].strip(): {}}
-                curr_dict = curr_dict[location]
-            elif index + 1 >= len(comprising_locations) and index == 0:
+            if location not in curr_dict:
                 curr_dict[location] = {}
-                curr_dict = curr_dict[location]
+            curr_dict = curr_dict[location]
 
     return jsonify({"flat_locations": flat_locations, "nested_locations": nested_locations}), 200
