@@ -117,8 +117,7 @@
           <component
             :is="column.body"
             v-bind="getComponentProps(column.body, slotProps.data)"
-            @edit-group="$emit('edit-group', $event)"
-            @group-deleted="$emit('group-deleted')"
+            v-on="getComponentListeners(column.body)"
           />
         </template>
         <template v-else-if="column.field === 'last_modified'" #body="slotProps">
@@ -1338,6 +1337,18 @@ export default {
         }
       }
     },
+    getComponentListeners(componentName) {
+      // Only the group actions cell emits these; binding them on every body cell
+      // makes Vue warn about extraneous listeners on components that render a
+      // fragment root (e.g. FormattedCollectionName).
+      if (componentName !== "GroupActionsCell") {
+        return {};
+      }
+      return {
+        "edit-group": (group) => this.$emit("edit-group", group),
+        "group-deleted": () => this.$emit("group-deleted"),
+      };
+    },
     getComponentProps(componentName, data) {
       const propsConfig = {
         FormattedItemName: {
@@ -1352,7 +1363,6 @@ export default {
         },
         FormattedBarcode: {
           enableBarcode: false,
-          enableModifiedClick: false,
           barcode: "barcode",
         },
         FormattedCollectionName: {
