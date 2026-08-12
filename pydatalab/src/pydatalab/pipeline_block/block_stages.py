@@ -220,7 +220,7 @@ class ParserStage(BlockStage):
 
 
 class ProcessorStage(BlockStage):
-    function: "Callable[..., pd.DataFrame|list[pd.DataFrame]]"
+    function: "Callable[..., pd.DataFrame|list[pd.DataFrame], list[dict]]"
     """The processor stage function type"""
 
     def validate_input(self, function_input: Any) -> bool:
@@ -232,7 +232,7 @@ class ProcessorStage(BlockStage):
 
     def __init__(
         self,
-        function: "Callable[..., pd.DataFrame|list[pd.DataFrame]]",
+        function: "Callable[..., pd.DataFrame|list[pd.DataFrame], dict|list[dict]]",
         list_df_input: bool = False,
         caching: bool = True,
         accepted_data: list[str] | None = None,
@@ -247,7 +247,7 @@ class ProcessorStage(BlockStage):
 
     def perform(
         self, function_input: "list[pd.DataFrame]|pd.DataFrame", *args, **kwargs
-    ) -> "pd.DataFrame | list[pd.DataFrame]":
+    ) -> "tuple[pd.DataFrame | list[pd.DataFrame], dict|list[dict]]":
 
         # check the input to make sure that it matches the required input types
         if not self.check_args(list(kwargs.keys())):
