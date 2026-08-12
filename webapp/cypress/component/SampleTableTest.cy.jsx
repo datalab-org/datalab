@@ -169,6 +169,7 @@ describe("SampleTable Component Tests", () => {
       "", // nblocks
       "", // nfiles
       "", // last_modified
+      "", // clear filters
     ];
 
     cy.get(".p-datatable-column-header-content").should("have.length", headers.length);

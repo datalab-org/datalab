@@ -84,6 +84,7 @@ describe("EquipmentTable Component Tests", () => {
       "Date",
       "Location",
       "Maintainers",
+      "", // clear filters
     ];
 
     cy.get(".p-datatable-column-header-content").should("have.length", headers.length);
@@ -101,7 +102,7 @@ describe("EquipmentTable Component Tests", () => {
         .within(() => {
           cy.get("td").eq(columnIndices["ID"]).should("contain.text", "equipment1");
           cy.get("td").eq(columnIndices["Name"]).should("contain.text", "Equipment One");
-          cy.get("td").eq(columnIndices["Date"]).should("contain.text", "9/1/2023");
+          cy.get("td").eq(columnIndices["Date"]).should("contain.text", "2023-09-01");
           cy.get("td").eq(columnIndices["Location"]).should("contain.text", "Warehouse A");
           cy.get("td").eq(columnIndices["Maintainers"]).find(".avatar").should("have.length", 1);
         });
@@ -113,7 +114,7 @@ describe("EquipmentTable Component Tests", () => {
         .within(() => {
           cy.get("td").eq(columnIndices["ID"]).should("contain.text", "equipment2");
           cy.get("td").eq(columnIndices["Name"]).should("contain.text", "Equipment Two");
-          cy.get("td").eq(columnIndices["Date"]).should("contain.text", "8/15/2023");
+          cy.get("td").eq(columnIndices["Date"]).should("contain.text", "2023-08-15");
           cy.get("td").eq(columnIndices["Location"]).should("contain.text", "Warehouse B");
           cy.get("td").eq(columnIndices["Maintainers"]).find(".avatar").should("have.length", 2);
         });
