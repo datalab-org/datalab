@@ -1890,6 +1890,10 @@ def get_locations_for_items():
             **get_default_permissions(user_only=False),
         },
     )
+
+    config_items = getattr(CONFIG, "EXTRA_LOCATIONS", [])
+    items.extend(config_items)
+
     flat_locations = list(items)
     nested_locations = {}
     for location_locators in flat_locations:

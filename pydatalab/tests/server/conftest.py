@@ -74,6 +74,7 @@ def app_config(secret_key, files_directory):
         "MAIL_DEBUG": True,
         "MAIL_SUPPRESS_SEND": True,
         "MAIL_PASSWORD": "test",
+        "EXTRA_LOCATIONS": ["Cambridge > Lab 1 > Location A", "Cambridge > Lab 2"],
         # Set to 10 MB to check that larger files fail; this should be larger than all of our example files.
         # Elsewhere, we can generate an artificial large file to check that it fails.
         "MAX_CONTENT_LENGTH": 10 * 1000**2,

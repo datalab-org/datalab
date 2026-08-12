@@ -31,6 +31,24 @@ def test_fts_fields():
     assert all(field in get_items_fts_fields() for field in fields)
 
 
+def test_location_endpoint_server_defaults(client, item_creator, user_id):
+    response = client.get("/locations")
+    assert response.status_code == 200
+    assert "flat_locations" in response.json
+
+    assert set(response.json["flat_locations"]).issuperset(
+        {"Cambridge > Lab 1 > Location A", "Cambridge > Lab 2"}
+    )
+
+    # non-flat checks
+    assert "nested_locations" in response.json
+    assert response.json["nested_locations"] is not None
+    assert "Cambridge" in response.json["nested_locations"]
+    assert "Lab 1" in response.json["nested_locations"]["Cambridge"]
+    assert "Lab 2" in response.json["nested_locations"]["Cambridge"]
+    assert "Location A" in response.json["nested_locations"]["Cambridge"]["Lab 1"]
+
+
 def test_location_endpoint(client, item_creator, user_id):
     item_creator(
         Cell(
@@ -203,8 +221,7 @@ def test_location_endpoint(client, item_creator, user_id):
 
     # non-flat checks
     assert "nested_locations" in response.json
-    assert response.json["nested_locations"]
-    print(response.json["nested_locations"])
+    assert response.json["nested_locations"] is not None
     assert "Place4" in response.json["nested_locations"]
     assert "Place5" in response.json["nested_locations"]["Place4"]
     assert "Place6" in response.json["nested_locations"]["Place4"]["Place5"]
