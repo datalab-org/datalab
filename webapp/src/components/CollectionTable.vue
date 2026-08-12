@@ -12,6 +12,15 @@
 import DynamicDataTable from "@/components/DynamicDataTable";
 import { getCollectionList } from "@/server_fetch_utils.js";
 
+import FormattedCollectionName from "@/components/FormattedCollectionName";
+import Creators from "@/components/Creators";
+
+import TextFilter from "@/components/TextFilter";
+import CreatorsAndGroupsFilter from "@/components/CreatorsAndGroupsFilter";
+
+import { FilterOperator, FilterMatchMode } from "@primevue/core/api";
+import { matchCreatorsAndGroups, creatorsAndGroupsOptions } from "@/utils/filterMatchers";
+
 export default {
   components: { DynamicDataTable },
   data() {
@@ -20,17 +29,49 @@ export default {
         {
           field: "collection_id",
           header: "ID",
-          body: "FormattedCollectionName",
-          filter: true,
           label: "Collections",
+          body: {
+            component: FormattedCollectionName,
+            props: (row) => ({
+              collection_id: row.collection_id,
+              enableClick: true,
+              enableModifiedClick: true,
+            }),
+          },
+          filter: {
+            component: TextFilter,
+            componentProps: { placeholder: "Search by ID" },
+            matchMode: FilterMatchMode.CONTAINS,
+            operator: FilterOperator.AND,
+          },
         },
         { field: "title", header: "Title", label: "Title" },
         {
           field: "creatorsAndGroups",
           header: "Creators",
-          body: "Creators",
-          filter: true,
           label: "Creators",
+          body: {
+            component: Creators,
+            props: (row) => ({
+              creators: row.creatorsAndGroups
+                ? row.creatorsAndGroups.filter((item) => item.type === "creator")
+                : row.creators || [],
+              groups: row.creatorsAndGroups
+                ? row.creatorsAndGroups.filter((item) => item.type === "group")
+                : row.groups || [],
+              showNames:
+                (row.creatorsAndGroups || row.creators || []).filter(
+                  (item) => !item.type || item.type === "creator",
+                ).length === 1,
+              showBubble: true,
+            }),
+          },
+          filter: {
+            component: CreatorsAndGroupsFilter,
+            match: matchCreatorsAndGroups,
+            operator: FilterOperator.AND,
+            options: creatorsAndGroupsOptions,
+          },
         },
       ],
     };
