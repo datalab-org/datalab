@@ -9,10 +9,16 @@ from scipy.signal import medfilt
 
 from pydatalab.blocks.base import generate_js_callback_single_float_parameter
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
+from pydatalab.pipeline_block.base import DataBlockDefaults
+from pydatalab.pipeline_block.block_stages import (
+    EventStage,
+    ParserStage,
+    PlotterStage,
+    ProcessorStage,
+)
 
 from ...logger import LOGGER
-from ...pipeline_block import PipelineDataBlock
-from ...pipeline_block.block_stages import EventStage, ParserStage, PlotterStage, ProcessorStage
+from ...pipeline_block.pipeline import Pipeline
 from .models import PeakInformation
 from .utils import (
     compute_cif_pxrd_from_structure,
@@ -227,14 +233,15 @@ def plotter(dfs: list[pd.DataFrame], wavelength: float, block_id: int) -> Any:
     return bokeh.embed.json_item(plot, theme=DATALAB_BOKEH_THEME)
 
 
-XRDBlock = PipelineDataBlock.define(
-    "XRDBlock",
+XRDBlockDefaults = DataBlockDefaults(
     blocktype="xrd",
     name="Powder XRD",
     description="Visualise XRD patterns and perform simple baseline corrections.",
     accepted_file_extensions=_accepted_file_extensions,
     defaults={"wavelength": 1.54060},
-    events={"set_wavelength": EventStage(set_wavelength)},
+    multi_file=True,
+)
+xrd_block_pipeline = Pipeline(
     parser=[
         ParserStage(parse_xrdml, ".xrdml"),
         ParserStage(parse_rasx_zip, ".rasx"),
@@ -248,5 +255,9 @@ XRDBlock = PipelineDataBlock.define(
         [ProcessorStage(process_baseline_corrections, list_df_input=True)],
     ],
     plotter=PlotterStage(plotter, list_df_input=True),
-    multi_file=True,
+    events={"set_wavelength": EventStage(set_wavelength)},
 )
+xrd_block = {
+    "default_params": XRDBlockDefaults,
+    "pipeline": xrd_block_pipeline,
+}

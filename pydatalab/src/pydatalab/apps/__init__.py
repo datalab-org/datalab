@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 
 from pydantic.warnings import PydanticDeprecatedSince20
 
+from pydatalab.pipeline_block.block_manager import PipelineBlockManager
+
 if TYPE_CHECKING:
     # This import is required to prevent circular imports for application-specific blocks
     from pydatalab.blocks.base import DataBlock  # noqa
@@ -108,14 +110,27 @@ def load_app_blocks():
 
 
 # legacy datablocks
-BLOCKS = COMMON_BLOCKS + load_app_blocks() + PIPELINE_COMMON_BLOCKS
+BLOCKS = COMMON_BLOCKS + load_app_blocks()
 BLOCK_TYPES: dict[str, type["DataBlock"]] = {block.blocktype: block for block in BLOCKS}
 
+
+def load_pipeline_app_blocks():
+    app_blocks: list[dict] = []
+    try:
+        from pydatalab.apps.xrd import xrd_block
+
+        app_blocks.append(xrd_block)
+    except ImportError as e:
+        _check_error(e)
+
+    return app_blocks
+
+
 # pipeline datablocks
-PIPELINE_BLOCKS = PIPELINE_COMMON_BLOCKS
-PIPELINE_BLOCK_TYPES: dict[str, type["PipelineDataBlock"]] = {
-    block.blocktype: block for block in PIPELINE_BLOCKS
-}
+_PIPELINE_BLOCKS = PIPELINE_COMMON_BLOCKS + load_pipeline_app_blocks()
+block_manager = PipelineBlockManager()
+for block in _PIPELINE_BLOCKS:
+    block_manager.register_block(**block)
 
 
 def load_block_plugins():

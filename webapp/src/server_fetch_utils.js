@@ -1258,7 +1258,11 @@ export async function getBlocksInfos() {
   return fetch_get(`${API_URL}/info/blocks`)
     .then(function (response_json) {
       store.commit("setBlocksInfos", response_json.data);
-      return response_json.data;
+      return fetch_get(`${API_URL}/info/pipelineblocks`).then(function (pipeline_response_json) {
+        const combined_data = response_json.data.concat(pipeline_response_json.data);
+        store.commit("setBlocksInfos", combined_data);
+        return combined_data;
+      });
     })
     .catch((error) => {
       DialogService.error({

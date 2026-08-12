@@ -2,16 +2,17 @@ from pathlib import Path
 
 import pytest
 
-from pydatalab.apps.xrd.blocks import XRDBlock
+from pydatalab.apps.xrd.blocks import xrd_block
+from pydatalab.pipeline_block.block_manager import PipelineBlockManager
 
 XRD_DATA_FILES = list((Path(__file__).parent.parent.parent / "example_data" / "XRD").glob("*"))
 
 
 @pytest.mark.parametrize("f", XRD_DATA_FILES)
 def test_load(f):
-    pipeline = XRDBlock.pipeline.clone()
+    pipeline = xrd_block["pipeline"].clone()
     pipeline.set_caching_for_entire_pipeline(False)
-    if f.suffix in XRDBlock.accepted_file_extensions:
+    if f.suffix in xrd_block["default_params"].accepted_file_extensions:
         _, dfs = pipeline.parser_pass_step(["Null"], None, [f])
         dfs = pipeline.processor_pass_step(
             data={"wavelength": 1.5},
@@ -24,24 +25,32 @@ def test_load(f):
 
 
 def test_event():
-    block = XRDBlock(item_id="test-id")
-    assert block.data["wavelength"] == 1.54060
-    block.process_events({"event_name": "set_wavelength", "wavelength": 1.0})
-    assert block.data["wavelength"] == 1.0
-    block.process_events({"event_name": "set_wavelength", "wavelength": None})
-    assert block.data["wavelength"] == 1.0
-    block.process_events({"event_name": "set_wavelength", "wavelength": -1.0})
-    assert len(block.data["errors"]) == 1
-    assert block.data["wavelength"] == 1.0
+    block_manager = PipelineBlockManager()
+    block_manager.register_block(**xrd_block)
+    block_data = block_manager.create_block_data("xrd", item_id="1")
+    assert block_data["wavelength"] == 1.54060
+    block_manager.process_events(block_data, {"event_name": "set_wavelength", "wavelength": 1.0})
+    assert block_data["wavelength"] == 1.0
+    block_manager.process_events(block_data, {"event_name": "set_wavelength", "wavelength": None})
+    assert block_data["wavelength"] == 1.0
+    block_manager.process_events(block_data, {"event_name": "set_wavelength", "wavelength": -1.0})
+    assert len(block_data["errors"]) == 1
+    assert block_data["wavelength"] == 1.0
 
 
 @pytest.mark.parametrize("f", XRD_DATA_FILES)
 def test_single_plots(f):
-    if f.suffix in XRDBlock.accepted_file_extensions:
-        block = XRDBlock(item_id="test")
-        block.pipeline.set_caching_for_entire_pipeline(False)
-        result = block.pipeline.perform_entire_pipeline(
-            data=block.data,
+    block_manager = PipelineBlockManager()
+    block_manager.register_block(**xrd_block)
+
+    if f.suffix in block_manager._list_of_blocks["xrd"].accepted_file_extensions:
+        block_data = block_manager.create_block_data("xrd", item_id="test")
+
+        pipeline = block_manager._list_of_pipelines["xrd"]
+        pipeline.set_caching_for_entire_pipeline(False)
+
+        result = pipeline.perform_entire_pipeline(
+            data=block_data,
             file_folder="",
             files=[f],
             checksums=["None"],

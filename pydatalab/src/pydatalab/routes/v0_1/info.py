@@ -17,7 +17,7 @@ from pydantic import (
 )
 
 from pydatalab import __version__
-from pydatalab.apps import BLOCK_TYPES
+from pydatalab.apps import BLOCK_TYPES, block_manager
 from pydatalab.config import CONFIG
 from pydatalab.feature_flags import FEATURE_FLAGS, FeatureFlags
 from pydatalab.models import ITEM_SCHEMAS, Person
@@ -159,6 +159,34 @@ def list_block_types():
                         },
                     )
                     for block_type, block in BLOCK_TYPES.items()
+                ],
+                meta=Meta(query=request.query_string.decode() if request.query_string else ""),
+            ).model_dump_json()
+        )
+    )
+
+
+@INFO.route("/info/pipelineblocks", methods=["GET"])
+def list_pipeline_blocks():
+    """Returns a list of all blocks implemented in this server."""
+    return jsonify(
+        json.loads(
+            JSONAPIResponse[dict[str, Any]](
+                data=[
+                    Data(
+                        id=block_type,
+                        type="block_type",
+                        attributes={
+                            "name": getattr(block, "name", ""),
+                            "description": getattr(block, "description", ""),
+                            "version": getattr(block, "version", __version__),
+                            "accepted_file_extensions": getattr(
+                                block, "accepted_file_extensions", []
+                            ),
+                            "multi_file": getattr(block, "multi_file", False),
+                        },
+                    )
+                    for block_type, block in block_manager.get_block_items()
                 ],
                 meta=Meta(query=request.query_string.decode() if request.query_string else ""),
             ).model_dump_json()

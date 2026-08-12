@@ -3,13 +3,14 @@ import json
 import traceback
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import gridfs
 from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_user
 from werkzeug.exceptions import BadRequest, NotFound, NotImplemented
 
-from pydatalab.apps import BLOCK_TYPES
+from pydatalab.apps import BLOCK_TYPES, block_manager
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
 from pydatalab.login import get_by_id
@@ -221,25 +222,7 @@ def _register_cleanup_job(state):
 def _(): ...
 
 
-@BLOCKS.route("/add-data-block/", methods=["POST"])
-@BLOCKS.route("/blocks/", methods=["PUT"])
-def add_data_block():
-    """Call with AJAX to add a block to the sample"""
-
-    request_json = request.get_json()
-
-    # pull out required arguments from json
-    block_type = request_json["block_type"]
-    item_id = request_json["item_id"]
-    insert_index = request_json["index"]
-
-    if block_type not in BLOCK_TYPES:
-        raise NotImplemented(  # noqa
-            f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
-        )
-
-    block = BLOCK_TYPES[block_type](item_id=item_id)
-
+def _legacy_data_block(insert_index, block, item_id):
     if insert_index:
         display_order_update = {
             "$each": [block.block_id],
@@ -280,6 +263,71 @@ def add_data_block():
     )
 
 
+def _pipeline_data_block(insert_index, block_data: "dict[str, Any]", item_id):
+    if insert_index:
+        display_order_update = {
+            "$each": [block_data["block_id"]],
+            "$position": insert_index,
+        }
+    else:
+        display_order_update = block_data["block_id"]
+
+    result = flask_mongo.db.items.update_one(
+        {"item_id": item_id, **get_default_permissions(user_only=True)},
+        {
+            "$push": {"display_order": display_order_update},
+            "$set": {f"blocks_obj.{block_data['block_id']}": block_manager.to_db(block_data)},
+        },
+    )
+
+    if result.modified_count < 1:
+        return (
+            jsonify(
+                status="error",
+                message=f"Update failed. {item_id=} is probably incorrect.",
+            ),
+            400,
+        )
+
+    # get the new display_order:
+    display_order_result = flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=True)}, {"display_order": 1}
+    )
+
+    return jsonify(
+        status="success",
+        new_block_obj=block_manager.to_web(block_data),
+        new_block_insert_index=insert_index
+        if insert_index is None
+        else len(display_order_result["display_order"]) - 1,
+        new_display_order=display_order_result["display_order"],
+    )
+
+
+@BLOCKS.route("/add-data-block/", methods=["POST"])
+@BLOCKS.route("/blocks/", methods=["PUT"])
+def add_data_block():
+    """Call with AJAX to add a block to the sample"""
+
+    request_json = request.get_json()
+
+    # pull out required arguments from json
+    block_type = request_json["block_type"]
+    item_id = request_json["item_id"]
+    insert_index = request_json["index"]
+
+    if block_type not in BLOCK_TYPES and block_type not in block_manager:
+        raise NotImplemented(  # noqa
+            f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
+        )
+    elif block_type in BLOCK_TYPES:
+        block = BLOCK_TYPES[block_type](item_id=item_id)
+        return _legacy_data_block(insert_index, block, item_id)
+    else:
+        block = block_manager.create_block_data(block_type, item_id=item_id)
+        return _pipeline_data_block(insert_index, block, item_id)
+
+
 def _save_block_to_db(block: DataBlock):
     """Save data for a single block within an item to the database,
     overwriting previous data saved there.
@@ -304,36 +352,36 @@ def _save_block_to_db(block: DataBlock):
         )
 
 
-@BLOCKS.route("/update-block/", methods=["POST"])
-@BLOCKS.route("/blocks/", methods=["POST"])
-def update_block():
-    """Updates the server-side data block based on received JSON, including triggering
-    any events associated with the given block type.
+def _save_pipeline_block_to_db(block_data: dict):
+    """Save data for a single block within an item to the database,
+    overwriting previous data saved there.
 
+    Parameters:
+        block_data: The block_data of DataBlock to save.
+        block_type: The type of block to save.
     """
+    updated_block_data = block_manager.to_db(block_data)
+    update = {"$set": {f"blocks_obj.{block_data['block_id']}": updated_block_data}}
 
-    request_json = request.get_json()
-    block_data = request_json["block_data"]
-    event_data = request_json.get("event_data", None)
+    match = {
+        "item_id": block_data["item_id"],
+        f"blocks_obj.{block_data['block_id']}": {"$exists": True},
+        **get_default_permissions(user_only=True),
+    }
+    result = flask_mongo.db.items.update_one(match, update)
 
-    block_type = block_data["blocktype"]
-
-    if block_type not in BLOCK_TYPES:
-        raise NotImplemented(  # noqa: F901
-            f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
+    if result.matched_count != 1:
+        raise BadRequest(
+            f"Failed to save block, likely because item_id ({block_data.get('item_id')}), and/or block_id ({block_data['block_id']}) wasn't found"
         )
 
-    item_id = block_data.get("item_id")
-    if not item_id:
-        raise BadRequest(f"Invalid or missing item_id: {item_id}")
 
-    if not flask_mongo.db.items.find_one(
-        {"item_id": item_id, **get_default_permissions(user_only=True)}
-    ):
-        raise NotFound(f"Item with item_id {item_id} not found or not accessible")
-
-    block = BLOCK_TYPES[block_type].from_web(block_data)
-
+def finalise_update_block_legacy(
+    block_type,
+    block,
+    block_data,
+    event_data=None,
+):
     from pydatalab.config import CONFIG
 
     use_async = block_type in CONFIG.ASYNC_BLOCK_TYPES or getattr(
@@ -406,6 +454,119 @@ def update_block():
             jsonify(status="success", saved_successfully=True, new_block_data=new_block_data),
             200,
         )
+
+
+def finalise_update_block_pipeline(
+    block_type,
+    block,
+    event_data=None,
+):
+    from pydatalab.config import CONFIG
+
+    use_async = block_type in CONFIG.ASYNC_BLOCK_TYPES or block_manager.prefers_async(block)
+    trigger_async = event_data and event_data.get("trigger_async", True) if event_data else True
+
+    if use_async and trigger_async:
+        task_id = str(uuid.uuid4())
+
+        creator_id = current_user.person.immutable_id
+
+        LOGGER.info(
+            "Scheduling asynchronous processing for block %s with task id %s",
+            block["block_id"],
+            task_id,
+        )
+
+        block_task = Task(
+            task_id=task_id,
+            type=TaskType.BLOCK_PROCESSING,
+            creator_id=creator_id,
+            status=TaskStatus.PENDING,
+            spec=BlockProcessingTaskSpec(
+                item_id=block["item_id"],
+                block_id=block["block_id"],
+                stages=[
+                    TaskStage(
+                        timestamp=datetime.now(tz=timezone.utc),
+                        message="Task created and scheduled for asynchronous processing",
+                    )
+                ],
+            ),
+        )
+
+        flask_mongo.db.tasks.insert_one(block_task.model_dump())
+
+        task_scheduler.add_job(
+            func=_process_block_async,
+            args=[task_id, block, event_data, creator_id],
+            job_id=task_id,
+        )
+
+        return (
+            jsonify(
+                status="success",
+                processing_async=True,
+                task_id=task_id,
+                status_url=f"/blocks/{task_id}/status",
+            ),
+            202,
+        )
+    else:
+        if event_data:
+            try:
+                block_manager.process_events(block, event_data)
+            except NotImplementedError:
+                pass
+
+        # Save state from UI
+        _save_pipeline_block_to_db(block)
+
+        # Reload the block with new UI state
+        new_block_data = block_manager.to_web(block)
+
+        # Save results to DB
+        _save_pipeline_block_to_db(block)
+
+        return (
+            jsonify(status="success", saved_successfully=True, new_block_data=new_block_data),
+            200,
+        )
+
+
+@BLOCKS.route("/update-block/", methods=["POST"])
+@BLOCKS.route("/blocks/", methods=["POST"])
+def update_block():
+    """Updates the server-side data block based on received JSON, including triggering
+    any events associated with the given block type.
+
+    """
+
+    request_json = request.get_json()
+    block_data = request_json["block_data"]
+    event_data = request_json.get("event_data", None)
+
+    block_type = block_data["blocktype"]
+
+    if block_type not in BLOCK_TYPES and block_type not in block_manager:
+        raise NotImplemented(  # noqa: F901
+            f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
+        )
+
+    item_id = block_data.get("item_id")
+    if not item_id:
+        raise BadRequest(f"Invalid or missing item_id: {item_id}")
+
+    if not flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=True)}
+    ):
+        raise NotFound(f"Item with item_id {item_id} not found or not accessible")
+
+    if block_type in BLOCK_TYPES:
+        block = BLOCK_TYPES[block_type].from_web(block_data)
+        return finalise_update_block_legacy(block_type, block, block_data, event_data)
+    else:
+        block = block_manager.from_web(block_type, block_data)
+        return finalise_update_block_pipeline(block_type, block, event_data)
 
 
 @BLOCKS.route("/delete-block/", methods=["POST"])

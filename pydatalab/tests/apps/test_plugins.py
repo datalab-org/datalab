@@ -30,9 +30,15 @@ def test_load_insitu_uvvis_plugin():
 def test_load_app_blocks():
     from pydatalab.apps import load_app_blocks
     from pydatalab.apps.echem import CycleBlock
-    from pydatalab.apps.xrd import XRDBlock
 
     app_blocks = load_app_blocks()
 
     assert CycleBlock in app_blocks
-    assert XRDBlock in app_blocks
+
+
+def test_load_pipeline_blocks():
+    from pydatalab.apps import load_pipeline_app_blocks
+    from pydatalab.apps.xrd import xrd_block
+
+    app_blocks = load_pipeline_app_blocks()
+    assert xrd_block in app_blocks
