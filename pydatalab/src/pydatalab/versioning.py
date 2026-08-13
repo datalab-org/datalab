@@ -2,6 +2,7 @@
 
 import datetime
 
+from bson import json_util
 from flask import request
 from flask_login import current_user
 from pydantic import ValidationError
@@ -54,6 +55,30 @@ def apply_protected_fields(restored_data: dict, current_item: dict) -> dict:
             restored_data[field] = current_item[field]
 
     return restored_data
+
+
+MECHANICAL_FIELDS = {
+    "last_modified",
+    "version",
+    "_id",
+    "immutable_id",
+    "refcode",
+    "creators",
+    "groups",
+}
+"""Fields ignored when deciding whether an item's content has changed.
+
+Covers those that change on every save without reflecting a real edit (`last_modified`,
+`version`); identifiers fixed for the life of an item (`_id`, `immutable_id`,
+`refcode`), which cannot legitimately differ between an item and its own snapshot; and
+`creators`/`groups`, which are inlined by joins for display and written inconsistently
+by the creation and save paths -- item creation omits them, `/save-item/` stores
+`groups` as null.
+
+The permissions themselves (`creator_ids` and `group_ids`) are deliberately *not* here:
+a change of ownership is recorded in an item's history like any other edit.
+
+"""
 
 
 def get_next_version_number(refcode: str) -> int:
@@ -130,18 +155,24 @@ def save_version_snapshot(
 
     # Skip creating a new version if content is identical to the last snapshot.
     # Excludes fields that change mechanically on every save and don't reflect real edits.
-    _MECHANICAL_FIELDS = {"last_modified", "version", "_id"}
     last_version = flask_mongo.db.item_versions.find_one(
         {"refcode": refcode}, sort=[("version", -1)]
     )
     if last_version:
-        current_data = {k: v for k, v in item.items() if k not in _MECHANICAL_FIELDS}
-        last_data = {k: v for k, v in last_version["data"].items() if k not in _MECHANICAL_FIELDS}
+        current_data = {k: v for k, v in item.items() if k not in MECHANICAL_FIELDS}
+        last_data = {k: v for k, v in last_version["data"].items() if k not in MECHANICAL_FIELDS}
         if current_data == last_data:
+            LOGGER.debug(
+                "No changes detected for %s, skipping version save: %s", refcode, current_data
+            )
             return {"status": "success", "message": "No changes detected, version not saved."}, 200
 
-    # Atomically get the next version number
-    next_version_number = get_next_version_number(refcode)
+        LOGGER.debug(
+            "Changes detected for %s, saving new version. Old: %s, New: %s",
+            refcode,
+            json_util.dumps(last_data),
+            json_util.dumps(current_data),
+        )
 
     # Extract user information for hybrid storage approach
     user_id = None
@@ -164,7 +195,7 @@ def save_version_snapshot(
 
     version_entry = {
         "refcode": refcode,
-        "version": next_version_number,
+        "version": 1,
         "timestamp": datetime.datetime.now(tz=datetime.timezone.utc),
         "action": action,  # Audit trail: why this version was created
         "user_id": user_id,  # ObjectId for efficient querying
@@ -191,10 +222,15 @@ def save_version_snapshot(
             400,
         )
 
+    # Only now allocate the version number: the counter is persistent and monotonic, so
+    # taking a number before validation burns it whenever validation fails, leaving a
+    # permanent gap in the item's version history.
+    next_version_number = get_next_version_number(refcode)
+
     # Insert validated data (convert to dict and exclude None values)
-    flask_mongo.db.item_versions.insert_one(
-        validated_version.dict(by_alias=True, exclude_none=True)
-    )
+    version_doc = validated_version.dict(by_alias=True, exclude_none=True)
+    version_doc["version"] = next_version_number
+    flask_mongo.db.item_versions.insert_one(version_doc)
     return (
         {"status": "success", "message": "Version saved.", "version": next_version_number},
         200,
