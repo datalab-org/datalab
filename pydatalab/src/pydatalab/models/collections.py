@@ -6,6 +6,11 @@ from pydatalab.models.utils import HumanReadableIdentifier
 
 
 class Collection(Entry, HasOwner, HasBlocks):
+    """A model for representing a group of related items, for example all the samples
+    belonging to one batch or project.
+
+    """
+
     type: str = Field("collections", const="collections", pattern="^collections$")
 
     collection_id: HumanReadableIdentifier = Field(None)

@@ -1,8 +1,23 @@
 {
   "title": "Equipment",
-  "description": "A model for representing an experimental sample.",
+  "description": "A model for representing a piece of equipment.\n\nEquipment represents an instrument or apparatus in the lab, which can be linked to\nthe items measured on it.",
   "type": "object",
   "properties": {
+    "files": {
+      "title": "Files",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/File"
+      }
+    },
+    "file_ObjectIds": {
+      "title": "File Objectids",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "blocks_obj": {
       "title": "Blocks Obj",
       "default": {},
@@ -122,21 +137,6 @@
       "title": "Name",
       "type": "string"
     },
-    "files": {
-      "title": "Files",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/File"
-      }
-    },
-    "file_ObjectIds": {
-      "title": "File Objectids",
-      "default": [],
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
     "status": {
       "default": "working",
       "allOf": [
@@ -166,91 +166,6 @@
     "item_id"
   ],
   "definitions": {
-    "DataBlockResponse": {
-      "title": "DataBlockResponse",
-      "description": "A generic response model for a block, i.e., what is stored in `self.data`\nin the corresponding DataBlock class.\n\nIt is expected but not mandatory that this model will be extended by the specific block type\nwhere possible.",
-      "type": "object",
-      "properties": {
-        "blocktype": {
-          "title": "Blocktype",
-          "type": "string"
-        },
-        "block_id": {
-          "title": "Block Id",
-          "type": "string"
-        },
-        "item_id": {
-          "title": "Item Id",
-          "type": "string"
-        },
-        "collection_id": {
-          "title": "Collection Id",
-          "type": "string"
-        },
-        "title": {
-          "title": "Title",
-          "type": "string"
-        },
-        "freeform_comment": {
-          "title": "Freeform Comment",
-          "type": "string"
-        },
-        "file_id": {
-          "title": "File Id",
-          "type": "string"
-        },
-        "file_ids": {
-          "title": "File Ids",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "errors": {
-          "title": "Errors",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "warnings": {
-          "title": "Warnings",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "b64_encoded_image": {
-          "title": "B64 Encoded Image",
-          "datalab_exclude_from_db": true,
-          "datalab_exclude_from_load": true,
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "bokeh_plot_data": {
-          "title": "Bokeh Plot Data",
-          "datalab_exclude_from_db": true,
-          "datalab_exclude_from_load": true,
-          "type": "object"
-        },
-        "computed": {
-          "title": "Computed",
-          "datalab_exclude_from_load": true,
-          "type": "object"
-        },
-        "metadata": {
-          "title": "Metadata",
-          "datalab_exclude_from_load": true,
-          "type": "object"
-        }
-      },
-      "required": [
-        "blocktype",
-        "block_id"
-      ]
-    },
     "RelationshipType": {
       "title": "RelationshipType",
       "description": "An enumeration of the possible types of relationship between two entries.\n\n```mermaid\nclassDiagram\nclass entryC\nentryC --|> entryA: parent\nentryC ..|> entryD\nentryA <..> entryD: sibling\nentryA --|> entryB : child\n```",
@@ -527,102 +442,6 @@
         }
       }
     },
-    "Collection": {
-      "title": "Collection",
-      "description": "An Entry is an abstract base class for any model that can be\ndeserialized and stored in the database.",
-      "type": "object",
-      "properties": {
-        "blocks_obj": {
-          "title": "Blocks Obj",
-          "default": {},
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/DataBlockResponse"
-          }
-        },
-        "display_order": {
-          "title": "Display Order",
-          "default": [],
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "creator_ids": {
-          "title": "Creator Ids",
-          "default": [],
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "creators": {
-          "title": "Creators",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Person"
-          }
-        },
-        "group_ids": {
-          "title": "Group Ids",
-          "default": [],
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "groups": {
-          "title": "Groups",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Group"
-          }
-        },
-        "type": {
-          "title": "Type",
-          "default": "collections",
-          "const": "collections",
-          "pattern": "^collections$",
-          "type": "string"
-        },
-        "immutable_id": {
-          "title": "Immutable ID",
-          "format": "uuid",
-          "type": "string"
-        },
-        "last_modified": {
-          "title": "Last Modified",
-          "type": "string",
-          "format": "date-time"
-        },
-        "relationships": {
-          "title": "Relationships",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/TypedRelationship"
-          }
-        },
-        "collection_id": {
-          "title": "Collection Id",
-          "minLength": 1,
-          "maxLength": 40,
-          "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
-          "type": "string"
-        },
-        "title": {
-          "title": "Title",
-          "type": "string"
-        },
-        "description": {
-          "title": "Description",
-          "type": "string"
-        },
-        "num_items": {
-          "title": "Num Items",
-          "type": "integer"
-        }
-      }
-    },
     "FileChecksums": {
       "title": "FileChecksums",
       "description": "Content checksums for a file.",
@@ -798,6 +617,187 @@
         "time_added",
         "is_live"
       ]
+    },
+    "DataBlockResponse": {
+      "title": "DataBlockResponse",
+      "description": "A generic response model for a block, i.e., what is stored in `self.data`\nin the corresponding DataBlock class.\n\nIt is expected but not mandatory that this model will be extended by the specific block type\nwhere possible.",
+      "type": "object",
+      "properties": {
+        "blocktype": {
+          "title": "Blocktype",
+          "type": "string"
+        },
+        "block_id": {
+          "title": "Block Id",
+          "type": "string"
+        },
+        "item_id": {
+          "title": "Item Id",
+          "type": "string"
+        },
+        "collection_id": {
+          "title": "Collection Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "freeform_comment": {
+          "title": "Freeform Comment",
+          "type": "string"
+        },
+        "file_id": {
+          "title": "File Id",
+          "type": "string"
+        },
+        "file_ids": {
+          "title": "File Ids",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "errors": {
+          "title": "Errors",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "title": "Warnings",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "b64_encoded_image": {
+          "title": "B64 Encoded Image",
+          "datalab_exclude_from_db": true,
+          "datalab_exclude_from_load": true,
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "bokeh_plot_data": {
+          "title": "Bokeh Plot Data",
+          "datalab_exclude_from_db": true,
+          "datalab_exclude_from_load": true,
+          "type": "object"
+        },
+        "computed": {
+          "title": "Computed",
+          "datalab_exclude_from_load": true,
+          "type": "object"
+        },
+        "metadata": {
+          "title": "Metadata",
+          "datalab_exclude_from_load": true,
+          "type": "object"
+        }
+      },
+      "required": [
+        "blocktype",
+        "block_id"
+      ]
+    },
+    "Collection": {
+      "title": "Collection",
+      "description": "A model for representing a group of related items, for example all the samples\nbelonging to one batch or project.",
+      "type": "object",
+      "properties": {
+        "blocks_obj": {
+          "title": "Blocks Obj",
+          "default": {},
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/DataBlockResponse"
+          }
+        },
+        "display_order": {
+          "title": "Display Order",
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "creator_ids": {
+          "title": "Creator Ids",
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "creators": {
+          "title": "Creators",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Person"
+          }
+        },
+        "group_ids": {
+          "title": "Group Ids",
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "groups": {
+          "title": "Groups",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Group"
+          }
+        },
+        "type": {
+          "title": "Type",
+          "default": "collections",
+          "const": "collections",
+          "pattern": "^collections$",
+          "type": "string"
+        },
+        "immutable_id": {
+          "title": "Immutable ID",
+          "format": "uuid",
+          "type": "string"
+        },
+        "last_modified": {
+          "title": "Last Modified",
+          "type": "string",
+          "format": "date-time"
+        },
+        "relationships": {
+          "title": "Relationships",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TypedRelationship"
+          }
+        },
+        "collection_id": {
+          "title": "Collection Id",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "num_items": {
+          "title": "Num Items",
+          "type": "integer"
+        }
+      }
     },
     "EquipmentStatus": {
       "title": "EquipmentStatus",

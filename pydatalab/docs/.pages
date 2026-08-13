@@ -1,10 +1,16 @@
 nav:
     - index.md
-    - INSTALL.md
-    - deployment.md
-    - config.md
-    - schemas
-    - blocks
-    - plugins.md
-    - roadmap.md
-    - CHANGELOG.md
+    - User guide: https://guide.datalab-org.io
+    - Reference:
+        - Data models: schemas
+        - Data blocks: blocks/reference
+    - Development:
+        - INSTALL.md
+        - plugins.md
+        - Writing data blocks: blocks/index.md
+        - roadmap.md
+    - Deployment:
+        - deployment.md
+        - config.md
+    - About: about.md
+    - Changelog: CHANGELOG.md

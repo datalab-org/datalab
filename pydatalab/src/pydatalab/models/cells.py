@@ -25,7 +25,11 @@ class CellFormat(str, Enum):
 
 
 class Cell(Item):
-    """A model for representing electrochemical cells."""
+    """A model for representing electrochemical cells.
+
+    A cell is an electrochemical device assembled from other items, recording its
+    components and the format it was built in.
+    """
 
     type: str = Field("cells", const="cells", pattern="^cells$")
 

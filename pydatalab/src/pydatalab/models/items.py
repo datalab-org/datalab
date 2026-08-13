@@ -1,11 +1,11 @@
 import abc
 
-from pydantic import Field, validator
+from pydantic import validator
 
 from pydatalab.models.entries import Entry
-from pydatalab.models.files import File
 from pydatalab.models.traits import (
     HasBlocks,
+    HasFiles,
     HasOwner,
     HasRevisionControl,
     IsCollectable,
@@ -13,13 +13,18 @@ from pydatalab.models.traits import (
 from pydatalab.models.utils import (
     HumanReadableIdentifier,
     IsoformatDateTime,
-    PyObjectId,
     Refcode,
 )
 
 
-class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, abc.ABC):
-    """The generic model for data types that will be exposed with their own named endpoints."""
+class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, HasFiles, abc.ABC):
+    """The generic model for data types that will be exposed with their own named endpoints.
+
+    `Item` is the abstract base shared by every physical item type: samples, cells,
+    starting materials and equipment. `item_id` is normally the only required field;
+    the remaining fields are either optional metadata or bookkeeping that the server
+    populates itself.
+    """
 
     refcode: Refcode = None  # type: ignore
     """A globally unique immutable ID comprised of the deployment prefix (e.g., `grey`)
@@ -37,12 +42,6 @@ class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, abc.AB
 
     name: str | None
     """An optional human-readable/usable name for the entry."""
-
-    files: list[File] | None
-    """Any files attached to this sample."""
-
-    file_ObjectIds: list[PyObjectId] = Field([])
-    """Links to object IDs of files stored within the database."""
 
     status: str | None
     """The status of the item, with allowed values defined by the specific item class."""
