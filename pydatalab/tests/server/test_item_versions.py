@@ -1,7 +1,27 @@
 """Tests for item version control endpoints."""
 
+import datetime
+
 import pytest
 from bson import ObjectId
+
+
+@pytest.fixture
+def api_sample(client, default_sample_dict):
+    """Create the conftest's default sample through the API, and clean it up the same
+    way.
+
+    Function-scoped, unlike `insert_default_sample`, because each test needs an item
+    with its own version history. Everything downstream observes the item only over
+    HTTP, so the tests exercise the paths a real client takes.
+    """
+    response = client.post("/new-sample/", json=default_sample_dict)
+    assert response.status_code == 201
+    entry = response.json["sample_list_entry"]
+
+    yield {"item_id": entry["item_id"], "refcode": entry["refcode"].split(":")[1]}
+
+    client.post("/delete-sample/", json={"item_id": entry["item_id"]})
 
 
 @pytest.fixture
@@ -169,7 +189,6 @@ class TestListVersions:
         timezone offset and clients (e.g. JS `Date` parsing) misinterpret it as
         local time.
         """
-        import datetime
 
         from pydatalab.mongo import flask_mongo
 
@@ -1390,3 +1409,145 @@ def test_sample_lifecycle(client, sample_with_version):
     flask_mongo.db.version_counters.delete_one({"refcode": refcode})
 
     print("[TEST] ✓ Lifecycle test completed successfully")
+
+
+# Content-bearing fields on a sample, paired with a value that differs from the
+# `api_sample` fixture. Editing any one of these is a real change and must mint a
+# version.
+CONTENT_FIELDS = [
+    ("name", "A renamed sample"),
+    ("description", "A different description"),
+    ("chemform", "NaCoO2"),
+    ("synthesis_description", "A different synthesis"),
+    ("date", "2025-06-01T00:00:00+00:00"),
+    ("smiles", "CCO"),
+    ("inchi", "InChI=1S/H2O/h1H2"),
+    ("CAS", "7732-18-5"),
+    ("molar_mass", 123.45),
+    ("GHS_codes", "H301"),
+    ("status", "planned"),
+    ("display_order", ["somefakeblockid"]),
+    (
+        "synthesis_constituents",
+        [{"item": {"name": "Inline constituent", "chemform": "H2O"}, "quantity": 1.0, "unit": "g"}],
+    ),
+]
+
+
+class TestWhatMintsAVersion:
+    """Pin down exactly which edits do and do not mint a version, one field at a time.
+
+    Each test saves the item once to establish a baseline, then saves again with a
+    single field altered, so a minted version can only be attributed to that field.
+    """
+
+    @pytest.mark.parametrize("field,new_value", CONTENT_FIELDS)
+    def test_changing_a_field_mints_a_version(self, client, api_sample, field, new_value):
+        """Editing a single content field must mint exactly one new version."""
+        item_data = client.get(f"/get-item-data/{api_sample['item_id']}").json["item_data"]
+
+        response = client.post(
+            "/save-item/", json={"item_id": api_sample["item_id"], "data": dict(item_data)}
+        )
+        assert response.status_code == 200
+        before = len(client.get(f"/items/{api_sample['refcode']}/versions/").json["versions"])
+
+        item_data[field] = new_value
+        response = client.post(
+            "/save-item/", json={"item_id": api_sample["item_id"], "data": dict(item_data)}
+        )
+        assert response.status_code == 200
+
+        versions = client.get(f"/items/{api_sample['refcode']}/versions/").json["versions"]
+        assert len(versions) == before + 1, f"changing {field!r} should have minted a version"
+
+    @pytest.mark.parametrize("field,new_value", CONTENT_FIELDS)
+    def test_resaving_the_same_field_mints_nothing(self, client, api_sample, field, new_value):
+        """Re-submitting a field with an unchanged value must not mint a version.
+
+        This is the inventory-sync case: an agent re-sends the item verbatim every run,
+        and each identical save has to be a no-op.
+        """
+        item_data = client.get(f"/get-item-data/{api_sample['item_id']}").json["item_data"]
+        item_data[field] = new_value
+        client.post("/save-item/", json={"item_id": api_sample["item_id"], "data": dict(item_data)})
+
+        before = len(client.get(f"/items/{api_sample['refcode']}/versions/").json["versions"])
+
+        for _ in range(3):
+            response = client.post(
+                "/save-item/", json={"item_id": api_sample["item_id"], "data": dict(item_data)}
+            )
+            assert response.status_code == 200
+            assert response.json.get("unchanged") is True
+
+        versions = client.get(f"/items/{api_sample['refcode']}/versions/").json["versions"]
+        assert len(versions) == before, f"re-saving an unchanged {field!r} should not mint"
+
+    def test_repeated_identical_saves_do_not_accumulate_versions(self, client, api_sample):
+        """Many identical saves in a row mint at most one version between them."""
+        item_data = client.get(f"/get-item-data/{api_sample['item_id']}").json["item_data"]
+
+        for _ in range(10):
+            response = client.post(
+                "/save-item/", json={"item_id": api_sample["item_id"], "data": dict(item_data)}
+            )
+            assert response.status_code == 200
+
+        versions = client.get(f"/items/{api_sample['refcode']}/versions/").json["versions"]
+        assert len(versions) == 1
+
+    def test_creation_then_identical_save_mints_nothing(self, client, api_sample):
+        """An item saved verbatim right after creation must not mint a second version.
+
+        Creation and `/save-item/` serialise the item differently -- creation omits
+        `groups` and writes a null `immutable_id`, while `/save-item/` writes `groups`
+        as null and `immutable_id` as the item's ObjectId -- so a naive comparison sees
+        a change on every item's first sync after it is created.
+        """
+        item_data = client.get(f"/get-item-data/{api_sample['item_id']}").json["item_data"]
+
+        response = client.post(
+            "/save-item/", json={"item_id": api_sample["item_id"], "data": item_data}
+        )
+        assert response.status_code == 200
+
+        versions = client.get(f"/items/{api_sample['refcode']}/versions/").json["versions"]
+        assert len(versions) == 1, "an unmodified item should still have only its `created` version"
+
+    def test_permission_changes_mint_a_version(self, client, api_sample, admin_user_id):
+        """Changing who owns an item is recorded in its history.
+
+        The permissions route writes to the item directly rather than going through
+        `/save-item/`, so it has to snapshot for itself -- otherwise ownership changes
+        are invisible in the version history.
+        """
+        before = len(client.get(f"/items/{api_sample['refcode']}/versions/").json["versions"])
+
+        response = client.patch(
+            f"/items/{api_sample['refcode']}/permissions",
+            json={"creators": [{"immutable_id": str(admin_user_id)}]},
+        )
+        assert response.status_code == 200
+
+        versions = client.get(f"/items/{api_sample['refcode']}/versions/").json["versions"]
+        assert len(versions) == before + 1, "a permission change should be versioned"
+        assert versions[0]["action"] == "permissions_update"
+
+        latest = client.get(f"/items/{api_sample['refcode']}/versions/{versions[0]['_id']}/").json[
+            "version"
+        ]
+        assert str(admin_user_id) in [str(c) for c in latest["data"]["creator_ids"]]
+
+    def test_unchanged_permissions_mint_nothing(self, client, api_sample, user_id):
+        """Re-submitting the permissions an item already has is a no-op."""
+        before = len(client.get(f"/items/{api_sample['refcode']}/versions/").json["versions"])
+
+        response = client.patch(
+            f"/items/{api_sample['refcode']}/permissions",
+            json={"creators": [{"immutable_id": str(user_id)}]},
+        )
+        assert response.status_code == 200
+
+        versions = client.get(f"/items/{api_sample['refcode']}/versions/").json["versions"]
+        assert len(versions) == before
