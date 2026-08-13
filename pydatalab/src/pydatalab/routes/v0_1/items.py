@@ -1526,7 +1526,7 @@ def restore_version(refcode):
 
     # Update metadata to reflect the restore action
     restored_data["version"] = next_version_number
-    restored_data["last_modified"] = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
+    restored_data["last_modified"] = datetime.datetime.now(tz=datetime.timezone.utc)
 
     # Validate restored data against the item model
     item_type = current_item["type"]
