@@ -1,6 +1,10 @@
 site_name: datalab
 site_description: Documentation for datalab
-site_url: https://docs.datalab-org.io
+# Read the Docs serves each version under its own path (e.g. /en/stable/), and
+# `404.html` is the one page MkDocs builds with absolute asset URLs derived from
+# `site_url` — a bare domain here leaves it pointing at /assets/, which does not
+# exist. `READTHEDOCS_CANONICAL_URL` carries the versioned URL at build time.
+site_url: !ENV [READTHEDOCS_CANONICAL_URL, "https://docs.datalab-org.io"]
 
 theme:
   name: material
@@ -40,6 +44,17 @@ repo_url: https://github.com/datalab-org/datalab
 
 docs_dir: "docs"
 
+# Build-time tooling that lives alongside the docs it supports, rather than being
+# copied into the built site as a static asset.
+exclude_docs: |
+  griffe_extensions.py
+  hooks.py
+  templates/
+  __pycache__/
+
+hooks:
+  - docs/hooks.py
+
 extra:
   social:
     - icon: fontawesome/brands/github
@@ -47,9 +62,15 @@ extra:
 
 markdown_extensions:
   - admonition
+  - attr_list
+  - md_in_html
   - pymdownx.details
   - pymdownx.highlight
   - github-callouts
+  # Enables the :material-*: and :octicons-*: icon shorthands used by the grid cards
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.superfences:
       # Allows mermaid code blocks to be rendered via mermaid.js
       custom_fences:
@@ -61,7 +82,13 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.tasklist
-  - pymdownx.snippets
+  # `base_path` reaches the repo root so that docs pages can pull named sections
+  # out of the README, keeping it the single source for the shared prose.
+  - pymdownx.snippets:
+      base_path:
+        - "docs"
+        - ".."
+      check_paths: true
   - pymdownx.magiclink:
       repo_url_shorthand: true
       hide_protocol: true
@@ -78,6 +105,7 @@ extra_css:
 plugins:
   - mkdocstrings:
       default_handler: python
+      custom_templates: docs/templates
       handlers:
         python:
           inventories:
@@ -87,6 +115,10 @@ plugins:
             extensions:
               - griffe_inherited_docstrings
               - docstring_inheritance.griffe
+              # Surfaces `Field(..., description=...)` as rendered prose; without
+              # this, griffe only sees an opaque `Field(...)` call expression.
+              # Local subclass so that `BaseSettings` models are detected too.
+              - docs/griffe_extensions.py:PydanticSettingsExtension
             show_root_heading: false
             show_root_toc_entry: false
             show_root_full_path: true
@@ -106,7 +138,9 @@ plugins:
             group_by_category: true
             heading_level: 2
             summary:
-              attributes: true
+              # The per-attribute sections below already carry the descriptions
+              # and the cross-linked types, so a summary table just repeats them.
+              attributes: false
               functions: false
               modules: false
             docstring_options:

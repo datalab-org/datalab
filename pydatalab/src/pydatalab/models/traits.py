@@ -8,6 +8,8 @@ from pydatalab.models.utils import Constituent, InlineSubstance, PyObjectId
 
 
 class HasOwner(BaseModel):
+    """Trait mixin for models that record who created them and which groups can access them."""
+
     creator_ids: list[PyObjectId] = Field([])
     """The database IDs of the user(s) who created the item."""
 
@@ -22,6 +24,8 @@ class HasOwner(BaseModel):
 
 
 class HasRevisionControl(BaseModel):
+    """Trait mixin for models that track a revision history of their own state."""
+
     revision: int = 1
     """The revision number of the entry."""
 
@@ -32,7 +36,23 @@ class HasRevisionControl(BaseModel):
     """The version number used by the version control system for tracking snapshots."""
 
 
+class HasFiles(BaseModel):
+    """Trait mixin for models that can have files attached to them."""
+
+    # Imported here rather than at module level to avoid a circular import,
+    # as `models.files` itself depends on this module.
+    from pydatalab.models.files import File
+
+    files: list[File] | None = Field(None)
+    """Any files attached to this item."""
+
+    file_ObjectIds: list[PyObjectId] = Field([])
+    """Links to object IDs of files stored within the database."""
+
+
 class HasBlocks(BaseModel):
+    """Trait mixin for models that can have data blocks attached to them."""
+
     blocks_obj: dict[str, DataBlockResponse] = Field({})
     """A mapping from block ID to block data."""
 

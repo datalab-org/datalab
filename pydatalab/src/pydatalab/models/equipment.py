@@ -7,7 +7,11 @@ from pydatalab.models.utils import (
 
 
 class Equipment(Item):
-    """A model for representing an experimental sample."""
+    """A model for representing a piece of equipment.
+
+    Equipment represents an instrument or apparatus in the lab, which can be linked to
+    the items measured on it.
+    """
 
     type: str = Field("equipment", const="equipment", pattern="^equipment$")
 

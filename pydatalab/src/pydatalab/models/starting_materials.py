@@ -6,10 +6,11 @@ from pydatalab.models.utils import IsoformatDateTime, StartingMaterialsStatus
 
 
 class StartingMaterial(Item, HasSynthesisInfo, HasSubstanceInfo):
-    """A model for representing an experimental sample, based on the connection
-    with cheminventory.net, which mixes container-level and substance-level
-    information.
+    """A model for representing a starting material, i.e., a chemical or precursor held
+    in the lab's inventory, from which samples are made.
 
+    The model mixes container-level and substance-level information and can be used to
+    represent either depending on preference.
     """
 
     type: str = Field(
