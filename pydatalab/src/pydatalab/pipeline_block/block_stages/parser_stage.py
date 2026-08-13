@@ -59,5 +59,5 @@ class ParserStage(BlockStage):
                 data = {}
         if data.get("metadata", None) is None:
             data["metadata"] = {}
-        data["metadata"]["original_filename"] = function_input.name
+        data["metadata"]["original_filenames"] = [function_input.name]
         return df, data

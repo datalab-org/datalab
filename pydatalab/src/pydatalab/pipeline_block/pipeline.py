@@ -15,6 +15,43 @@ from pydatalab.pipeline_block.block_stages import (
     ProcessorStage,
 )
 
+__all__ = ["Pipeline"]
+
+
+def _merge_dictionaries(dict_original: dict, dict_update: dict) -> dict:
+    if dict_update is None:
+        return dict_original
+    for key, value in dict_update.items():
+        if key in dict_original and type(value) is dict and type(dict_original[key]) is dict:
+            _merge_dictionaries(dict_original[key], dict_update[key])
+        elif key in dict_original and type(value) is list and type(dict_original[key]) is list:
+            dict_original[key].extend(dict_update[key])
+        else:
+            dict_original[key] = dict_update[key]
+    return dict_original
+
+
+def _add_output_onto_list(
+    new_checksum, original_checksums: list[str], output_dfs: list[DataFrame], result_df
+):
+    """
+    Adds the output from a BlockStage onto a list.
+    :param new_checksum: The new checksum from the parser
+    :param original_checksums: The original list of checksums
+    :param output_dfs: The list of dataframes to append to.
+    :param result_df: The resulting dataframes to add from the BlockStage.
+    :return: Whether the resulting dataframe was added successfully or not.
+    """
+    if result_df is not None:
+        if type(result_df) is not list:
+            result_df = [result_df]
+        if type(new_checksum) is not list:
+            new_checksum = [new_checksum]
+        output_dfs.extend(result_df)
+        original_checksums.extend(new_checksum)
+        return True
+    return False
+
 
 class Pipeline:
     parser_functions: list[ParserStage]
@@ -113,15 +150,21 @@ class Pipeline:
             self.event_functions["null_event"] = EventStage(self.null_event)
 
     def perform_entire_pipeline(
-        self, data, file_folder: str, files: list[Path | str], checksums: list[str]
+        self, data, file_folder: str | Path, files: list[Path | str], checksums: list[str]
     ):
         """
         Performs an entire complete pipeline with no caching or async operations.
         Used for both testing and single threaded pipelines where caching is not an option.
         """
+        # set up computed and metadata fields
+        data["metadata"] = {}
+        data["computed"] = {}
+        data["temporary_store"] = {}
 
         # First step - pass through parser(s)
-        parser_checksums, parser_output_df = self.parser_pass_step(checksums, file_folder, files)
+        parser_checksums, parser_output_df = self.parser_pass_step(
+            data, checksums, file_folder, files
+        )
         # Second step - pass through the processors
         processor_output = self.processor_pass_step(
             data, file_folder, parser_checksums, parser_output_df
@@ -140,11 +183,20 @@ class Pipeline:
             data["bokeh_plot_data"] = self.plotter_function.perform(processor_output[0], **data)
         else:
             data["bokeh_plot_data"] = self.plotter_function.perform(processor_output, **data)
+        data.pop("temporary_store", None)
         return data
 
     def parser_pass_step(
-        self, checksums: list[str], file_folder: str, files: list[Path | str]
+        self, data, checksums: list[str], file_folder: str | Path, files: list[Path | str]
     ) -> tuple[list[str], list[DataFrame]]:
+        """
+        Performs the parser pass step
+        :param data: Block data to add metadata to.
+        :param checksums: The checksums of the file to parser.
+        :param file_folder: the file folder to store the caches.
+        :param files: The file names to input to the parsers.
+        :return: The checksums and the output from the parsers.
+        """
         parser_output_df: "list[pd.DataFrame]" = []
         parser_checksums: list[str] = []
 
@@ -158,14 +210,13 @@ class Pipeline:
                         file_folder,
                         file,
                     )
+                    data = _merge_dictionaries(data, metadata)
                 except Exception as exc:
                     warnings.warn(f"Could not parse file {file} as data. Error: {exc}")
                 else:
-                    if result is not None:
-                        if type(result) is not list:
-                            result = [result]
-                        parser_output_df.extend(result)
-                        parser_checksums.append(parser_checksum)
+                    if _add_output_onto_list(
+                        parser_checksum, parser_checksums, parser_output_df, result
+                    ):
                         break
             else:
                 LOGGER.warning(
@@ -174,8 +225,20 @@ class Pipeline:
         return parser_checksums, parser_output_df
 
     def processor_pass_step(
-        self, data, file_folder: str, parser_checksums: list[str], parser_output_df: list[DataFrame]
+        self,
+        data,
+        file_folder: str | Path,
+        parser_checksums: list[str],
+        parser_output_df: list[DataFrame],
     ) -> list[DataFrame]:
+        """
+        Performs the processes pass step, by iterating through all the various stages of processor Stages.
+        :param data: the block data to add metadata to.
+        :param file_folder: the file folder to store the caches.
+        :param parser_checksums: the checksums of the output of the parser.
+        :param parser_output_df: the output of the parser pass step.
+        :return: A list of data frames that
+        """
         processor_input_name: str = "files"
         processor_input: list[pd.DataFrame] = parser_output_df
         processor_output: list[pd.DataFrame] = []
@@ -197,11 +260,10 @@ class Pipeline:
                     process_checksum, result, metadata = processor.perform_with_optional_cache(
                         "".join(processor_checksums), file_folder, processor_input, **data
                     )
-                    if result is not None:
-                        if type(result) is not list:
-                            result = [result]
-                        processor_output.extend(result)
-                        output_checksums.extend([process_checksum] * len(result))
+                    _add_output_onto_list(
+                        [process_checksum] * len(result), output_checksums, processor_output, result
+                    )
+                    data = _merge_dictionaries(data, metadata)
             else:
                 LOGGER.info(
                     "Exact match between processors and %s, "
@@ -212,11 +274,10 @@ class Pipeline:
                     process_checksum, result, metadata = processor.perform_with_optional_cache(
                         processor_checksums[i], file_folder, processor_input[i], **data
                     )
-                    if result is not None:
-                        if type(result) is not list:
-                            result = [result]
-                        processor_output.extend(result)
-                        output_checksums.extend([process_checksum] * len(result))
+                    _add_output_onto_list(
+                        [process_checksum] * len(result), output_checksums, processor_output, result
+                    )
+                    data = _merge_dictionaries(data, metadata)
             # Reset variables for next iteration
             processor_input_name = f"output from layer {ind}"
             processor_input = processor_output

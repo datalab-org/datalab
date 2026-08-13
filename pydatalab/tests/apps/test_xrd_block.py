@@ -13,9 +13,10 @@ def test_load(f):
     pipeline = xrd_block["pipeline"].clone()
     pipeline.set_caching_for_entire_pipeline(False)
     if f.suffix in xrd_block["default_params"].accepted_file_extensions:
-        _, dfs = pipeline.parser_pass_step(["Null"], None, [f])
+        block_data = {"wavelength": 1.5, "metadata": {}}
+        _, dfs = pipeline.parser_pass_step(block_data, ["Null"], None, [f])
         dfs = pipeline.processor_pass_step(
-            data={"wavelength": 1.5},
+            data=block_data,
             file_folder="",
             parser_checksums=["Null"],
             parser_output_df=dfs,

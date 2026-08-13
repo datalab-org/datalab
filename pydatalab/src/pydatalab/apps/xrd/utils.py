@@ -195,7 +195,7 @@ def parse_rasx_zip(filename: str) -> pd.DataFrame:
     )
 
 
-def parse_cif_pxrd(filename: "str|pathlib.Path") -> "pd.DataFrame":
+def parse_cif_pxrd(filename: "str|pathlib.Path") -> "Tuple[pd.DataFrame, dict]":
     """Parses a CIF file and returns a pandas DataFrame with columns
     twotheta and intensity.
 
@@ -208,8 +208,8 @@ def parse_cif_pxrd(filename: "str|pathlib.Path") -> "pd.DataFrame":
     if not success:
         raise RuntimeError(f"Failed to parse required information from CIF file {filename}.")
     df = pd.DataFrame()
-    df.attrs["cif_structure"] = structure
-    return df
+    metadata = {"temporary_store": {"cif_structure": {structure}}}
+    return df, metadata
 
 
 def compute_cif_pxrd_from_structure(

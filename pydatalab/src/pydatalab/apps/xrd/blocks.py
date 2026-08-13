@@ -97,11 +97,13 @@ def compute_cif_structure(
     dfs: "list[pd.DataFrame]", wavelength: float
 ) -> tuple[list[DataFrame], dict[Any, Any]]:
     new_dfs: list[pd.DataFrame] = []
-    data_updates = {}
+    data_updates = {"computed": {}}
     peak_data_set = []
     for df in dfs:
         if df.attrs.get("cif_structure", False):
-            new_df, peak_data = compute_cif_pxrd_from_structure(df=df, wavelength=wavelength)
+            new_df, peak_data = compute_cif_pxrd_from_structure(
+                wavelength=wavelength,
+            )
             # Track whether this is a computed PXRD that does not need background subtraction
             data_updates["metadata"]["theoretical"] = True
             peak_data_set.append(peak_data)

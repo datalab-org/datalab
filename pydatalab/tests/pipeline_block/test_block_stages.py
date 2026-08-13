@@ -250,7 +250,7 @@ def test_parser_perform():
     assert "computed" in metadata
     assert "useless_important_values" in metadata["computed"]
     assert metadata["computed"]["useless_important_values"] == 45
-    assert metadata["metadata"]["original_filename"] == "example_file"
+    assert metadata["metadata"]["original_filenames"] == ["example_file"]
 
 
 def test_validate_input_for_parser():

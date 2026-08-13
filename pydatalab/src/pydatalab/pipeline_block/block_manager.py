@@ -236,6 +236,7 @@ class PipelineBlockManager:
         """Returns a JSON serializable dictionary to render the data block on the web."""
         block_errors = []
         block_warnings = []
+        new_data = None
         if pipeline.exists():
             with warnings.catch_warnings(record=True) as captured_warnings:
                 try:
