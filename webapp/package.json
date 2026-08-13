@@ -52,7 +52,7 @@
     "cytoscape-fcose": "^2.2.0",
     "date-fns": "^2.29.3",
     "highlight.js": "^11.11.1",
-    "katex": "^0.18.1",
+    "katex": "^0.18.4",
     "markdown-it": "^14.3.0",
     "mermaid": "^11.16.1",
     "primeicons": "^7.0.0",

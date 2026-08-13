@@ -6501,10 +6501,10 @@ katex@^0.16.45:
   dependencies:
     commander "^8.3.0"
 
-katex@^0.18.1:
-  version "0.18.1"
-  resolved "https://registry.yarnpkg.com/katex/-/katex-0.18.1.tgz#98c3e169ef9196072ec857e893beb88374519014"
-  integrity sha512-Td8GCYSxDAoMhHOlKmCFMJ/hz5qlAAb71n66Dryw9nfCVfumLo7nhuotbvKom/XPADmrYC3O5QR71EPq4DarJQ==
+katex@^0.18.4:
+  version "0.18.4"
+  resolved "https://registry.yarnpkg.com/katex/-/katex-0.18.4.tgz#aa09d0bfbcbab71a9a0f9d420def6c0d0a227a94"
+  integrity sha512-IMPntbRLOU+eu88XDiFKqQ8Akhr9Tv7jDMXqPhjG9SI1JMA4DIgXk4x9k4skJz2NZJXBRbC+2pYBLj9olqcZow==
   dependencies:
     commander "^8.3.0"
 
