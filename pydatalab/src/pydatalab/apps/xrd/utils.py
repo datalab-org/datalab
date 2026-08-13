@@ -213,17 +213,17 @@ def parse_cif_pxrd(filename: "str|pathlib.Path") -> "pd.DataFrame":
 
 
 def compute_cif_pxrd_from_structure(
-    df: "pd.DataFrame", wavelength: "float"
+    wavelength: "float",
+    structure,
 ) -> "tuple[pd.DataFrame, dict]":
     """Given a dataframe with attrs CIF structure it returns a pandas DataFrame with columns
     twotheta and intensity.
     Parameters:
-        df: The dataframe containing the CIF structure.
-        wavelength: The wavelength to pass into the next parser.
+        :param wavelength: The wavelength to pass into the next parser.
+        :param structure: The cif structure.
     """
     from matador.fingerprints.pxrd import PXRD
 
-    structure = df.attrs["cif_structure"]
     if not structure:
         raise ValueError("Cif structure does not exist in this dataframe.")
     pxrd = PXRD(structure, wavelength=wavelength, two_theta_bounds=(5, 60))

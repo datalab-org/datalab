@@ -1,5 +1,10 @@
+import pathlib
+from pathlib import Path
+from unittest.mock import patch
+
 import pandas as pd
 import pytest
+from pandas import Series
 
 from pydatalab.pipeline_block.block_stages import (
     EventStage,
@@ -15,18 +20,30 @@ def none_function(function_input) -> "pd.DataFrame":  # type: ignore
 
 
 stages_with_none_function = [
-    ParserStage(none_function, "*"),
-    ProcessorStage(none_function, False),  # type: ignore
     PlotterStage(none_function),  # type: ignore
-    EventStage(none_function),
+    EventStage(none_function),  # type: ignore
 ]  # type: ignore
 
 
 @pytest.mark.parametrize("stage", stages_with_none_function)
 def test_each_block_response_with_none(stage):
-    input_df = None
-    response = stage.perform(input_df)  # type: ignore
+    input_data = None
+    response = stage.perform(input_data)  # type: ignore
     assert response is None
+
+
+stages_with_none_tuple_function = [
+    ParserStage(none_function, "*"),
+    ProcessorStage(none_function, False),
+]
+
+
+@pytest.mark.parametrize("stage", stages_with_none_tuple_function)
+def test_processor_response_with_none(stage):
+    input_df = None
+    response1, response2 = stage.perform(input_df)  # type: ignore
+    assert response1 is None
+    assert response2 is None
 
 
 cache_stages_with_none = [
@@ -38,9 +55,10 @@ cache_stages_with_none = [
 @pytest.mark.parametrize("stage", cache_stages_with_none)
 def test_each_block_cache_response_with_none(stage):
     input_df = None
-    cache_key, response = stage.perform_with_cache("Nothing", "Nothing", input_df)  # type: ignore
+    cache_key, response, metadata = stage.perform_with_cache("Nothing", "Nothing", input_df)  # type: ignore
     assert response is None
     assert cache_key is None
+    assert metadata is None
 
 
 # Test processor with simple functions that return one dataframe
@@ -56,7 +74,8 @@ def test_processor_doubler():
 
     expected_d = {"a": [2, 14, 16, 18, 4], "b": [4, 18, 6, 8, 10], "c": [6, 12, 10, 6, 12]}
     expected_df = pd.DataFrame(data=expected_d)
-    pd.testing.assert_frame_equal(expected_df, result)
+    pd.testing.assert_frame_equal(expected_df, result[0])
+    assert result[1] is None
 
 
 def create_extra_column(function_input: "pd.DataFrame") -> "pd.DataFrame":
@@ -77,7 +96,8 @@ def test_processor_create_extra_column():
         "New column": [58, 112, 39, 108, 94],
     }
     expected_df = pd.DataFrame(data=expected_d)
-    pd.testing.assert_frame_equal(expected_df, result)
+    pd.testing.assert_frame_equal(expected_df, result[0])
+    assert result[1] is None
 
 
 # testing inputting multiple dfs into processors and retrieving multiple dfs
@@ -107,9 +127,82 @@ def test_processor_input_multiple_dfs():
         "New column": [117, 117, 65, 155, 133],
     }
     exp_dfs = [pd.DataFrame(data=exp_d1), pd.DataFrame(data=exp_d2)]
-    assert type(result) is list
-    pd.testing.assert_frame_equal(exp_dfs[0], result[0])
-    pd.testing.assert_frame_equal(exp_dfs[1], result[1])
+    assert type(result[0]) is list
+    pd.testing.assert_frame_equal(exp_dfs[0], result[0][0])
+    pd.testing.assert_frame_equal(exp_dfs[1], result[0][1])
+    assert result[1] is None
+
+
+def sample_function_returns_metadata(function_input):
+    return None, {
+        "Hello": "This is a sample test output metadata",
+        "Metadata": {"Some random value": 5, "Some new random value": 6},
+        "Computed": {
+            "Best thing ever": [1, 2, 3, 4, 5],
+            "Another set of values": [6, 7, 8, 9, 10, 11, 12, 13],
+        },
+    }
+
+
+stages_with_sample_function_returns_metadata = [
+    ParserStage(sample_function_returns_metadata, "*"),  # type: ignore
+    ProcessorStage(sample_function_returns_metadata, False),
+]
+
+
+@pytest.mark.parametrize("stage", stages_with_sample_function_returns_metadata)
+def test_metadata_return_from_stage(stage):
+    result, metadata = stage.perform(Path("None"))  # type : ignore
+    assert result is None
+    assert "Hello" in metadata
+    assert "Metadata" in metadata
+    assert "Computed" in metadata
+    assert metadata["Hello"] == "This is a sample test output metadata"
+    assert "Some random value" in metadata["Metadata"]
+    assert "Some new random value" in metadata["Metadata"]
+    assert metadata["Metadata"]["Some random value"] == 5
+    assert metadata["Metadata"]["Some new random value"] == 6
+    assert "Best thing ever" in metadata["Computed"]
+    assert "Another set of values" in metadata["Computed"]
+    assert metadata["Computed"]["Best thing ever"] == [1, 2, 3, 4, 5]
+    assert metadata["Computed"]["Another set of values"] == [6, 7, 8, 9, 10, 11, 12, 13]
+
+
+def doubler_function_with_metadata(function_input: "pd.DataFrame") -> "tuple[pd.DataFrame, dict]":
+    return function_input.mul(2), {
+        "Metadata": {"Operation": "Doubler"},
+        "Computed": {
+            "C Maximum Value": max(function_input["c"].mul(2)),
+            "C Minimum Value": min(function_input["c"].mul(2)),
+        },
+    }
+
+
+def test_processor_stage_using_perform_with_cache():
+    stage = ProcessorStage(doubler_function_with_metadata, list_df_input=False)
+    function_input = {"a": [9, 7, 1, 9, 2], "b": [2, 9, 11, 4, 5], "c": [3, 6, 5, 12, 6]}
+    with patch("pandas.DataFrame.to_parquet") as mock_to_parquet:
+        cache_key, result, metadata = stage.perform_with_cache(
+            upstream_cache_key="upstream_key",
+            folder=Path("tmp_path"),
+            function_input=pd.DataFrame(data=function_input),
+        )
+        mock_to_parquet.assert_called_once()
+        assert (Path("tmp_path") / f"{cache_key}.parquet") == mock_to_parquet.call_args[0][0]
+        function_output = {
+            "a": [18, 14, 2, 18, 4],
+            "b": [4, 18, 22, 8, 10],
+            "c": [6, 12, 10, 24, 12],
+        }
+        pd.testing.assert_frame_equal(pd.DataFrame(function_output), result)
+        assert "Metadata" in metadata
+        assert "Computed" in metadata
+        assert "Operation" in metadata["Metadata"]
+        assert metadata["Metadata"]["Operation"] == "Doubler"
+        assert "C Maximum Value" in metadata["Computed"]
+        assert "C Minimum Value" in metadata["Computed"]
+        assert metadata["Computed"]["C Maximum Value"] == 24
+        assert metadata["Computed"]["C Minimum Value"] == 6
 
 
 def empty_test_function(df: pd.DataFrame, arg1: int, arg2: int) -> pd.DataFrame:
@@ -125,3 +218,44 @@ def test_input_args():
     assert arg_check_2 is False
     arg_check_3 = stage.check_args(["arg4", "arg6", "arg1", "arg2"])
     assert arg_check_3 is True
+
+
+def empty_parser_function(path_name: str | pathlib.Path):
+    df = pd.DataFrame()
+    df = pd.DataFrame(
+        [[path_name]],
+        index=Series([0]),
+        columns=Series(
+            [
+                "special path name",
+            ]
+        ),
+    )
+    data = {}
+    data["metadata"] = {}
+    data["metadata"]["useless_values"] = 1
+    data["computed"] = {}
+    data["computed"]["useless_important_values"] = 45
+    return df, data
+
+
+def test_parser_perform():
+    stage = ParserStage(empty_parser_function, ["*"])
+    df, metadata = stage.perform(Path("example_file"))
+    assert "special path name" in df
+    assert df.loc[0]["special path name"] == Path("example_file")
+    assert "metadata" in metadata
+    assert "useless_values" in metadata["metadata"]
+    assert metadata["metadata"]["useless_values"] == 1
+    assert "computed" in metadata
+    assert "useless_important_values" in metadata["computed"]
+    assert metadata["computed"]["useless_important_values"] == 45
+    assert metadata["metadata"]["original_filename"] == "example_file"
+
+
+def test_validate_input_for_parser():
+    stage = ParserStage(empty_parser_function, [".csv", ".exe"])
+    assert stage.validate_input(Path("hello.csv")) == True
+    assert stage.validate_input(Path("instagram.exe")) == True
+    assert stage.validate_input(Path("example_file")) == False
+    assert stage.validate_input(Path("Also_should_fail.cs")) == False

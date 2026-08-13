@@ -5,6 +5,7 @@ from typing import Any
 import bokeh
 import numpy as np
 import pandas as pd
+from pandas import DataFrame
 from scipy.signal import medfilt
 
 from pydatalab.blocks.base import generate_js_callback_single_float_parameter
@@ -19,7 +20,6 @@ from pydatalab.pipeline_block.block_stages import (
 
 from ...logger import LOGGER
 from ...pipeline_block.pipeline import Pipeline
-from .models import PeakInformation
 from .utils import (
     compute_cif_pxrd_from_structure,
     parse_bruker_brml,
@@ -93,25 +93,30 @@ def brute_csv_parse(location: "Path | str") -> "pd.DataFrame":
     return df
 
 
-def compute_cif_structure(dfs: "list[pd.DataFrame]", wavelength: float) -> "list[pd.DataFrame]":
+def compute_cif_structure(
+    dfs: "list[pd.DataFrame]", wavelength: float
+) -> tuple[list[DataFrame], dict[Any, Any]]:
     new_dfs: list[pd.DataFrame] = []
+    data_updates = {}
+    peak_data_set = []
     for df in dfs:
         if df.attrs.get("cif_structure", False):
             new_df, peak_data = compute_cif_pxrd_from_structure(df=df, wavelength=wavelength)
             # Track whether this is a computed PXRD that does not need background subtraction
-            new_df.attrs = df.attrs | new_df.attrs
-            new_df.attrs["theoretical"] = True
-            new_df.attrs["peak_data"] = peak_data
+            data_updates["metadata"]["theoretical"] = True
+            peak_data_set.append(peak_data)
             df = new_df
         new_dfs.append(df)
-    return new_dfs
+    data_updates["computed"]["peak_data"] = peak_data_set
+    return new_dfs, data_updates
 
 
-def read_raw_file(location: "str") -> pd.DataFrame:
+def read_raw_file(location: "str") -> tuple[DataFrame, dict[Any, Any]]:
     df, metadata = parse_bruker_raw(location)
+    returned_metadata = {}
     if wavelength := metadata.get("wavelength", None):
-        df.attrs["wavelength"] = wavelength
-    return df
+        returned_metadata["wavelength"] = wavelength
+    return df, returned_metadata
 
 
 # Process functions
@@ -158,17 +163,18 @@ def _calc_baselines_and_normalize(
     return df
 
 
-def process_baseline_corrections(dfs: list[pd.DataFrame], wavelength) -> list[pd.DataFrame]:
+def process_baseline_corrections(
+    dfs: list[pd.DataFrame], wavelength, metadata
+) -> list[pd.DataFrame]:
     result_dfs = []
     peak_information = {}
     for ind, df in enumerate(dfs):
         df = df.rename(columns={"twotheta": "2θ (°)"})
 
         # if no wavelength (or invalid wavelength) is passed, don't convert to Q and d
-        df_wavelength = df.attrs.get("wavelength", wavelength)
-        if df_wavelength:
+        if wavelength:
             try:
-                df["Q (Å⁻¹)"] = 4 * np.pi / df_wavelength * np.sin(np.deg2rad(df["2θ (°)"]) / 2)
+                df["Q (Å⁻¹)"] = 4 * np.pi / wavelength * np.sin(np.deg2rad(df["2θ (°)"]) / 2)
                 df["d (Å)"] = 2 * np.pi / df["Q (Å⁻¹)"]
             except (ValueError, ZeroDivisionError):
                 pass
@@ -188,19 +194,15 @@ def process_baseline_corrections(dfs: list[pd.DataFrame], wavelength) -> list[pd
                 warnings.filterwarnings("ignore", category=warning_type, message=message)
 
             y_option_df = _calc_baselines_and_normalize(
-                df["2θ (°)"], df["intensity"], theoretical=df.attrs.get("theoretical", False)
+                df["2θ (°)"], df["intensity"], theoretical=metadata.get("theoretical", False)
             )
-        attributes = df.attrs
+
         df = pd.concat([df, y_option_df], axis=1)
-        df.attrs = attributes
-        df.index.name = df.attrs.get("original_filename", "unknown") + (
-            " (theoretical)" if df.attrs.get("theoretical", False) else ""
+        df.index.name = metadata.get("original_filename", "unknown") + (
+            " (theoretical)" if metadata.get("theoretical", False) else ""
         )
         df.attrs["y_options"] = ["intensity"] + list(y_option_df.columns)
-        peak_data = df.attrs.get("peak_data", {})
-        peak_information[str(df.attrs["original_filename"])] = PeakInformation(
-            **peak_data
-        ).model_dump()
+
         df["normalized intensity (staggered)"] += ind
 
         result_dfs.append(df)

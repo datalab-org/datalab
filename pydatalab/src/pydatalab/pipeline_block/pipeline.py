@@ -153,7 +153,7 @@ class Pipeline:
             for parser in self.parser_functions:
                 LOGGER.info("Processing file %s", file)
                 try:
-                    parser_checksum, result = parser.perform_with_optional_cache(
+                    parser_checksum, result, metadata = parser.perform_with_optional_cache(
                         checksums[index],
                         file_folder,
                         file,
@@ -194,7 +194,7 @@ class Pipeline:
                     len(processor_group),
                 )
                 for processor in processor_group:
-                    process_checksum, result = processor.perform_with_optional_cache(
+                    process_checksum, result, metadata = processor.perform_with_optional_cache(
                         "".join(processor_checksums), file_folder, processor_input, **data
                     )
                     if result is not None:
@@ -209,7 +209,7 @@ class Pipeline:
                     processor_input_name,
                 )
                 for i, processor in enumerate(processor_group):
-                    process_checksum, result = processor.perform_with_optional_cache(
+                    process_checksum, result, metadata = processor.perform_with_optional_cache(
                         processor_checksums[i], file_folder, processor_input[i], **data
                     )
                     if result is not None:
