@@ -16,6 +16,7 @@ class VersionAction(str, Enum):
     AUTO_SAVE = "auto_save"
     RESTORED = "restored"
     AGENT_SAVE = "agent_save"
+    PERMISSIONS_UPDATE = "permissions_update"
 
 
 class ItemVersion(BaseModel):

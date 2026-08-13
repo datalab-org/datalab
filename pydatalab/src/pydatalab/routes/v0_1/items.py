@@ -995,6 +995,21 @@ def _process_item_permissions(
             400,
         )
 
+    # Record the new ownership in the item's history as a version
+    version_response, version_status = save_version_snapshot(
+        refcode, action=VersionAction.PERMISSIONS_UPDATE
+    )
+    if version_status != 200:
+        LOGGER.error(
+            "Failed to save version for item %s after updating permissions: %s",
+            refcode,
+            version_response,
+        )
+    elif "version" in version_response:
+        flask_mongo.db.items.update_one(
+            {"refcode": refcode}, {"$set": {"version": version_response["version"]}}
+        )
+
     return {"status": "success"}, 200
 
 
