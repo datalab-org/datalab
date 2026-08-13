@@ -2,7 +2,6 @@
 
 import datetime
 
-from bson import json_util
 from flask import request
 from flask_login import current_user
 from pydantic import ValidationError
@@ -166,13 +165,6 @@ def save_version_snapshot(
                 "No changes detected for %s, skipping version save: %s", refcode, current_data
             )
             return {"status": "success", "message": "No changes detected, version not saved."}, 200
-
-        LOGGER.debug(
-            "Changes detected for %s, saving new version. Old: %s, New: %s",
-            refcode,
-            json_util.dumps(last_data),
-            json_util.dumps(current_data),
-        )
 
     # Extract user information for hybrid storage approach
     user_id = None

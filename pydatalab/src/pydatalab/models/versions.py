@@ -32,11 +32,7 @@ class ItemVersion(BaseModel):
     timestamp: datetime = Field(
         ..., description="When this version was created (ISO format with timezone)"
     )
-    action: VersionAction = Field(
-        ...,
-        description="The action that triggered this version: 'created' (item creation), "
-        "'manual_save' (user save), 'auto_save' (system save), or 'restored' (version restore)",
-    )
+    action: VersionAction = Field(..., description="The action that triggered this version.")
     user_id: PyObjectId | None = Field(
         None, description="User's ObjectId for efficient querying and indexing"
     )

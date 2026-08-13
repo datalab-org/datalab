@@ -1499,14 +1499,14 @@ export async function restoreItemVersion(refcode, versionId) {
     });
 }
 
-export async function compareItemVersions(refcode, baseVersion, targetVersion) {
-  var url = new URL(`${API_URL}/items/${refcode}/versions/compare`);
-  url.searchParams.append("base", baseVersion);
-  url.searchParams.append("target", targetVersion);
+export async function compareItemVersions(refcode, versionId1, versionId2) {
+  var url = new URL(`${API_URL}/items/${refcode}/compare-versions/`);
+  url.searchParams.append("v1", versionId1);
+  url.searchParams.append("v2", versionId2);
 
   return fetch_get(url)
     .then(function (response_json) {
-      return response_json.comparison;
+      return response_json.diff;
     })
     .catch((error) => {
       DialogService.error({
