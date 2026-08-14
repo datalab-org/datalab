@@ -3,6 +3,7 @@ import os
 import pathlib
 import time
 from typing import Any
+from urllib.parse import urlparse
 from uuid import uuid4
 
 from dotenv import dotenv_values
@@ -92,11 +93,79 @@ def create_app(
             "proxy is configured to honour the X-Accel-Redirect header."
         )
 
-    CORS(
-        app,
-        resources={r"/*": {"origins": "*"}},
-        supports_credentials=True,
-    )
+    # datalab serves two kinds of client, which need different CORS treatment:
+    #
+    #   - the first-party web app, which authenticates with an ambient session cookie.
+    #     Cookies are attached by the browser without the caller doing anything, so
+    #     this origin must be named explicitly, and is taken from `APP_URL`.
+    #   - third-party apps, which authenticate with a `DATALAB-API-KEY` header. That
+    #     is an explicit credential that a browser will never attach on its own, so
+    #     the API can be opened to any origin provided cookies are *not* allowed.
+    #
+    # Only the first regime is restricted; the public API stays reachable from
+    # anywhere via the fallback handler below.
+    # Registered *before* `CORS()` deliberately: Flask runs `after_request` handlers
+    # in reverse registration order, and flask-cors bails out if the response already
+    # carries an `Access-Control-Allow-Origin`. Registering this first means it runs
+    # last, i.e. only fills in the wildcard for requests flask-cors declined to match.
+    @app.after_request
+    def add_public_api_cors_headers(response):
+        """Apply open, cookie-less CORS to any request not already handled as a
+        credentialed origin, so that API-key clients can call the API from anywhere.
+
+        Requests from any other origin that *do* carry cookies receive a wildcard
+        `Access-Control-Allow-Origin`, which browsers reject for credentialed
+        requests - which is the intent: the session cookie is never exposed to them.
+
+        """
+        if "Access-Control-Allow-Origin" in response.headers:
+            return response
+
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, DATALAB-API-KEY"
+        # The response varies by origin, since the `APP_URL` origin gets a different
+        # header set; without this a shared cache could serve the wrong one.
+        response.headers.add("Vary", "Origin")
+        return response
+
+    def _credentialed_cors_origin() -> str | None:
+        """The single origin allowed to make cookie-authenticated cross-origin
+        requests, derived from the configured web app URL.
+
+        Returns:
+            The `scheme://host[:port]` origin of `APP_URL`, or `None` if it is unset
+            or malformed.
+
+        """
+        if not CONFIG.APP_URL:
+            return None
+
+        parsed = urlparse(CONFIG.APP_URL)
+        if parsed.scheme and parsed.netloc:
+            return f"{parsed.scheme}://{parsed.netloc}"
+
+        LOGGER.warning("Ignoring malformed `APP_URL` for credentialed CORS: %s", CONFIG.APP_URL)
+        return None
+
+    credentialed_origin = _credentialed_cors_origin()
+    if credentialed_origin:
+        CORS(
+            app,
+            resources={r"/*": {"origins": [credentialed_origin]}},
+            supports_credentials=True,
+        )
+    else:
+        # No `APP_URL`, so no origin is trusted with an ambient session: the API stays
+        # reachable by API-key clients via the wildcard fallback above, and same-origin
+        # web apps are unaffected since CORS never applies to them. `feature_flags`
+        # already warns about `APP_URL` being unset, which also affects login
+        # redirects, notification emails and export provenance.
+        LOGGER.info(
+            "`APP_URL` is not set, so no origin is permitted to make cookie-authenticated "
+            "requests. Set it to the URL of the associated web app if that app is served "
+            "from a different origin than this API."
+        )
 
     # Override the default provider with a version that can handle ObjectIDs and returns isofromat dates
     app.json = BSONProvider(app)
