@@ -7,7 +7,6 @@ import subprocess
 import time
 import typing
 
-import tomlkit
 from invoke import Collection, task
 
 if typing.TYPE_CHECKING:
@@ -183,6 +182,8 @@ def install(_, dev=True):
     and pyproject.toml.
 
     """
+
+    import tomlkit
 
     plugin_cfg = PLUGINS_TOML_PATH
 

@@ -1,3 +1,4 @@
+import datetime
 import functools
 import pprint
 import random
@@ -170,6 +171,9 @@ class DataBlock:
             "block_id": self.block_id,
             **self.defaults,
         }
+
+        if "created_at" not in self.data:
+            self.data["created_at"] = datetime.datetime.now(tz=datetime.timezone.utc)
 
         # convert ObjectId file_ids to string to make handling them easier when sending to and from web
         if "file_id" in self.data:

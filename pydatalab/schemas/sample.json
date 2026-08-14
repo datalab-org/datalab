@@ -307,6 +307,11 @@
           "title": "Block Id",
           "type": "string"
         },
+        "created_at": {
+          "title": "Created At",
+          "type": "string",
+          "format": "date-time"
+        },
         "item_id": {
           "title": "Item Id",
           "type": "string"

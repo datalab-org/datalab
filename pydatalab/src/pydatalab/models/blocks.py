@@ -1,3 +1,5 @@
+import datetime
+
 from pydantic import BaseModel, Field
 
 from pydatalab.models.utils import JSON_ENCODERS, PyObjectId
@@ -16,6 +18,9 @@ class DataBlockResponse(BaseModel):
 
     block_id: str
     """A shorthand random ID for the block."""
+
+    created_at: datetime.datetime | None = None
+    """When the block was created, in UTC."""
 
     item_id: str | None = None
     """The item that the block is attached to, if any."""
