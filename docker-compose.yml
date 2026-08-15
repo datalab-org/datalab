@@ -40,6 +40,10 @@ services:
       - backend
     environment:
       - PYDATALAB_MONGO_URI=mongodb://database:27017/datalabvue
+      # Passed through from the host env or `.env` when set, and omitted entirely
+      # when not, so that a real deployment can set `APP_URL` in its config file.
+      # CI relies on this to point the API at the origin Cypress drives the app from.
+      - PYDATALAB_APP_URL
       - WEB_CONCURRENCY=4
       - GUNICORN_CMD_ARGS=--timeout 120 --graceful-timeout 90
       - PORT=5001
