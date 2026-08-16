@@ -180,7 +180,7 @@ class ServerConfig(BaseSettings):
 
     REMOTE_FILESYSTEMS: list[RemoteFilesystem] = Field(
         [],
-        descripton="A list of dictionaries describing remote filesystems to be accessible from the server.",
+        description="A list of dictionaries describing remote filesystems to be accessible from the server.",
     )
 
     REMOTE_CACHE_MAX_AGE: int = Field(

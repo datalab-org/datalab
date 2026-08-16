@@ -40,6 +40,10 @@ services:
       - backend
     environment:
       - PYDATALAB_MONGO_URI=mongodb://database:27017/datalabvue
+      # Passed through from the host env or `.env` when set, and omitted entirely
+      # when not, so that a real deployment can set `APP_URL` in its config file.
+      # CI relies on this to point the API at the origin Cypress drives the app from.
+      - PYDATALAB_APP_URL
       - WEB_CONCURRENCY=4
       - GUNICORN_CMD_ARGS=--timeout 120 --graceful-timeout 90
       - PORT=5001
@@ -97,6 +101,9 @@ services:
     environment:
       - PYDATALAB_MONGO_URI=mongodb://database-dev:27017/datalabvue
       - PYDATALAB_FILE_DIRECTORY=/app/files
+      # `app-dev` is always served on 8081, so default to it rather than making
+      # every developer set this by hand to be able to log in.
+      - PYDATALAB_APP_URL=${PYDATALAB_APP_URL:-http://localhost:8081}
 
   app-dev:
     profiles: ["dev"]
