@@ -12,8 +12,8 @@ exclude-newer-span = "P1W"
 
 [options.exclude-newer-package]
 datalab-org-galvani = false
-navani = false
 nmrglue = false
+navani = false
 datalab-app-plugin-insitu = false
 datalab-app-plugin-xps = false
 matador-db = false

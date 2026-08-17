@@ -77,10 +77,7 @@ apps = [
     "matador-db ~= 0.12",
 ]
 
-app-plugins-git = [
-    "datalab-app-plugin-insitu",
-    "datalab-app-plugin-xps",
-]
+app-plugins-git = ["datalab-app-plugin-insitu", "datalab-app-plugin-xps"]
 
 chat = [
     # Hard upper pin on langchain is 0.3 as pydantic is not supported
@@ -136,8 +133,17 @@ dev = [
 [tool.uv]
 # Do not allow installing third-party deps that are very young
 exclude-newer = "1 week"
-# But allow deps we manage ourselves to be newer
-exclude-newer-package = { "navani" = false, "datalab-org-galvani" = false, "datalab-app-plugin-insitu" = false, "datalab-app-plugin-xps" = false, "matador-db" = false }
+
+# But allow deps we manage ourselves to be newer,
+# or specific exceptions for safe deps where we want
+# to make a release for a latest version (e.g., nmrglue)
+[tool.uv.exclude-newer-package]
+nmrglue = false # TODO: remove in September 2026 after cooldown for nmrglue 0.12
+navani = false
+datalab-org-galvani = false
+datalab-app-plugin-insitu = false
+datalab-app-plugin-xps = false
+matador-db = false
 
 [tool.uv.sources]
 datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git", rev = "v0.4.1" }
