@@ -150,28 +150,37 @@
       </div>
       <slot name="controls"></slot>
 
-      <div class="mt-2 mb-2">
-        <button
-          class="btn btn-sm btn-outline-secondary"
-          :disabled="!hasMetadata"
+      <div v-if="hasMetadata" class="mt-2 mb-2">
+        <span
+          class="metadata-toggle d-inline-flex align-items-center"
+          role="button"
+          tabindex="0"
+          :aria-expanded="metadataShown ? 'true' : 'false'"
           @click="metadataShown = !metadataShown"
+          @keyup.enter="metadataShown = !metadataShown"
         >
-          {{ metadataShown ? "Hide metadata" : "Show metadata" }}
-        </button>
+          <font-awesome-icon
+            :icon="['fas', 'chevron-right']"
+            fixed-width
+            class="collapse-arrow-sm mr-1"
+            :class="{ rotated: metadataShown }"
+          />
+          Metadata
+        </span>
       </div>
 
       <div v-if="$slots.plot || hasMetadata" class="row mt-2">
         <div
           :class="
             hasMetadata && metadataShown
-              ? 'col-xl-9 col-lg-9 col-md-12'
+              ? 'col-xl-8 col-lg-8 col-md-12'
               : 'col-xl-9 col-lg-10 col-md-11 mx-auto'
           "
         >
           <slot name="plot"></slot>
         </div>
 
-        <div v-if="hasMetadata && metadataShown" class="col-xl-3 col-lg-3 col-md-12">
+        <div v-if="hasMetadata && metadataShown" class="col-xl-4 col-lg-4 col-md-12">
           <slot name="metadata" :metadata="block.metadata">
             <MetadataViewer :metadata="block.metadata" />
           </slot>
@@ -225,8 +234,20 @@ export default {
       isErrorsExpanded: true,
       isWarningsExpanded: true,
       isStagesExpanded: false,
-      metadataShown: false,
+      metadataShown: true,
     };
+  },
+  watch: {
+    // Showing or hiding the metadata panel changes the width of the plot
+    // column. Bokeh lays its plots out once and only recomputes on a window
+    // resize, so without this the plot stays at its old width and is clipped
+    // until the user happens to resize the browser.
+    metadataShown() {
+      this.notifyLayoutChange();
+    },
+    hasMetadata() {
+      this.notifyLayoutChange();
+    },
   },
   computed: {
     block() {
@@ -283,6 +304,15 @@ export default {
     document.removeEventListener("block-event", this.handleBokehEvent);
   },
   methods: {
+    notifyLayoutChange() {
+      // Wait for the DOM update and then for the browser to apply the new
+      // column widths, otherwise Bokeh re-measures against the old layout.
+      this.$nextTick(() => {
+        window.requestAnimationFrame(() => {
+          window.dispatchEvent(new Event("resize"));
+        });
+      });
+    },
     formatStageTime(timestamp) {
       const d = new Date(timestamp);
       return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -467,6 +497,16 @@ ul {
   -webkit-transform: rotate(90deg);
   -moz-transform: rotate(90deg);
   transform: rotate(90deg);
+}
+
+.metadata-toggle {
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.metadata-toggle:hover {
+  color: #004175;
 }
 
 .collapse-arrow-sm {
