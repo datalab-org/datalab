@@ -5,6 +5,7 @@ import pytest
 from bson import ObjectId
 
 from pydatalab.apps import BLOCK_TYPES, BLOCKS
+from pydatalab.apps.xrd import xrd_block
 from pydatalab.pipeline_block.block_manager import PipelineBlockManager
 
 
@@ -542,6 +543,7 @@ def test_xrd_block_lifecycle(admin_client, client, user_id, default_sample_dict,
     assert web_block.get("errors") is None
 
     block_manager = PipelineBlockManager()
+    block_manager.register_block(**xrd_block)
     block_data = block_manager.from_web("xrd", web_block)
     db = block_manager.to_db(block_data)
     # 'computed' keys should be dropped when loading from web

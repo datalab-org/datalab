@@ -24,6 +24,7 @@ class ProcessorStage(BlockStage):
         list_df_input: bool = False,
         caching: bool = True,
         accepted_data: list[str] | None = None,
+        file_extension: str | list[str] = "*",
     ):
         super().__init__(
             function,
@@ -31,6 +32,7 @@ class ProcessorStage(BlockStage):
             accepted_data=accepted_data,
             stage=Stage.PROCESSOR,
             caching=caching,
+            file_extension=file_extension,
         )
 
     def perform(
@@ -48,6 +50,10 @@ class ProcessorStage(BlockStage):
         if type(function_input) is not list and self.list_df_input:
             LOGGER.warning("Invalid input type for processor stage, forcing the input to be a list")
             function_input = [function_input]
+        elif type(function_input) is list and not self.list_df_input:
+            raise ValueError(
+                "Invalid input type for processor stage, input type should not be a list"
+            )
         result = self.function(function_input, **data)
         if type(result) is tuple:
             df, data = result

@@ -75,7 +75,7 @@ def load_other(location: Path | str) -> "pd.DataFrame":
 
 
 blocktype = "tabularPipeline"
-name = "Tabular Data Block Pipeline"
+name = "Tabular Data Block pipeline"
 description = "This block will load tabular data from common plain text files and Excel-like spreadsheets and allow you to create simple scatter plots of the columns within."
 
 EXCEL_LIKE_EXTENSIONS: tuple[str, ...] = (".xls", ".xlsx", ".xlsm", ".xlsb", ".odf", ".ods", ".odt")

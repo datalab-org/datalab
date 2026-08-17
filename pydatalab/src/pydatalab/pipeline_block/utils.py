@@ -54,3 +54,22 @@ def generate_random_id():
         "abcdefghijklmnopqrstuvwxyz0123456789", k=14
     )
     return "".join(randlist)
+
+
+def merge_dictionaries(dict_original: dict, dict_update: dict) -> dict:
+    """
+    Merge two dictionaries together.
+    :param dict_original: original dictionary that is operated on in place.
+    :param dict_update: dict specifying the updates to happen.
+    :return: returns the original dictionary with updates applied.
+    """
+    if dict_update is None:
+        return dict_original
+    for key, value in dict_update.items():
+        if key in dict_original and type(value) is dict and type(dict_original[key]) is dict:
+            merge_dictionaries(dict_original[key], dict_update[key])
+        elif key in dict_original and type(value) is list and type(dict_original[key]) is list:
+            dict_original[key].extend(dict_update[key])
+        else:
+            dict_original[key] = dict_update[key]
+    return dict_original

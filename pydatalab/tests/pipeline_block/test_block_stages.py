@@ -55,7 +55,10 @@ cache_stages_with_none = [
 @pytest.mark.parametrize("stage", cache_stages_with_none)
 def test_each_block_cache_response_with_none(stage):
     input_df = None
-    cache_key, response, metadata = stage.perform_with_cache("Nothing", "Nothing", input_df)  # type: ignore
+    dict_result = stage.perform_with_cache("Nothing", "Nothing", input_df)  # type: ignore
+    cache_key = dict_result.get("upstream_cache_key", "Not None")
+    response = dict_result.get("function_input", "Not None")
+    metadata = dict_result.get("data", "Not None")
     assert response is None
     assert cache_key is None
     assert metadata is None
@@ -182,11 +185,14 @@ def test_processor_stage_using_perform_with_cache():
     stage = ProcessorStage(doubler_function_with_metadata, list_df_input=False)
     function_input = {"a": [9, 7, 1, 9, 2], "b": [2, 9, 11, 4, 5], "c": [3, 6, 5, 12, 6]}
     with patch("pandas.DataFrame.to_parquet") as mock_to_parquet:
-        cache_key, result, metadata = stage.perform_with_cache(
+        dictionary = stage.perform_with_cache(
             upstream_cache_key="upstream_key",
             folder=Path("tmp_path"),
             function_input=pd.DataFrame(data=function_input),
         )
+        cache_key = dictionary.get("upstream_cache_key", "Nothing")
+        result = dictionary.get("function_input", "Nothing")
+        metadata = dictionary.get("data", "Nothing")
         mock_to_parquet.assert_called_once()
         assert (Path("tmp_path") / f"{cache_key}.parquet") == mock_to_parquet.call_args[0][0]
         function_output = {
@@ -259,3 +265,30 @@ def test_validate_input_for_parser():
     assert stage.validate_input(Path("instagram.exe")) == True
     assert stage.validate_input(Path("example_file")) == False
     assert stage.validate_input(Path("Also_should_fail.cs")) == False
+
+
+def test_should_not_be_able_to_pass_list_to_processor_with_list_disabled():
+    stage = ProcessorStage(lambda df: df, False)
+    with pytest.raises(ValueError) as value_error_info:
+        result = stage.perform([pd.DataFrame(), pd.DataFrame()])
+    assert "Invalid input type for processor stage, input type should not be a list" in str(
+        value_error_info.value
+    )
+
+
+def test_processor_validate_input_non_list_df():
+    stage = ProcessorStage(lambda df: df, False)
+    assert stage.validate_input(None) == False
+    assert stage.validate_input(pd.DataFrame()) == False
+    assert stage.validate_input([pd.DataFrame({"A": [1, 2, 3, 4]})]) == False
+    assert stage.validate_input(pd.DataFrame({"A": [1, 2, 3, 4, 5, 6, 7, 8, 9]})) == True
+
+
+def test_processor_validate_input_list_df():
+    stage = ProcessorStage(lambda df: df, True)
+    assert stage.validate_input(None) == False
+    assert stage.validate_input(pd.DataFrame()) == False
+    assert (
+        stage.validate_input(pd.DataFrame({"A": [1, 2, 3]})) == True
+    )  # We would then coerce it into a list.
+    assert stage.validate_input([pd.DataFrame({"A": [1, 2, 3]})]) == True

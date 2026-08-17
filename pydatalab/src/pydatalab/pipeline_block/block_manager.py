@@ -38,7 +38,7 @@ def get_datablock_params_from_string(func):
 
 def get_pipeline_params(func):
     def wrapper(self, data: dict, *args, **kwargs):
-        pipeline = self._list_of_pipelines.get(data["blocktype"], None)
+        pipeline = self._list_of_pipelines.get(data.get("blocktype", None), None)
         if pipeline is None:
             LOGGER.warning("This pipeline does not exist")
             return None

@@ -59,6 +59,32 @@ class BlockStage(ABC):
     caching: bool = False
     """Whether the stage performs caching or not"""
 
+    file_extension: list[str]
+    """The valid file extension for this parser"""
+
+    def __init__(
+        self,
+        function,
+        list_df_input: bool = False,
+        accepted_data=None,
+        stage: Stage = Stage.DEFAULT,
+        caching: bool = caching,
+        file_extension: list[str] | str = "*",
+    ):
+        self.function = function
+        self.accepts_data = accepted_data
+        self.stage = stage
+        self.caching = caching
+        if accepted_data is None:
+            self.compute_expected_data()
+        self.list_df_input = list_df_input
+        if type(file_extension) is str:
+            self.file_extension = [file_extension]
+        elif type(file_extension) is list:
+            self.file_extension = file_extension
+        else:
+            raise TypeError("file_extension must be str or list")
+
     def compute_expected_data(self) -> None:
         self.accepted_data = list(inspect.signature(self.function).parameters.keys())[1:]
 
@@ -106,30 +132,38 @@ class BlockStage(ABC):
         return original_result, metadata
 
     def perform_with_optional_cache(
-        self,
-        upstream_cache_key,
-        folder,
-        function_input: Any,
-        *args: tuple[Any, ...],
-        **kwargs: dict[str, Any],
-    ) -> tuple[Any, Any, Any]:
-        if self.caching:
-            return self.perform_with_cache(
-                upstream_cache_key, folder, function_input, *args, **kwargs
-            )
+        self, upstream_cache_key, folder, function_input: Any, data: dict[str, Any]
+    ) -> dict[Any, Any]:
+        if self.caching and not (self.stage == Stage.PLOTTER or self.stage == Stage.EVENT):
+            return self.perform_with_cache(upstream_cache_key, folder, function_input, **data)
         else:
-            result = self.perform(function_input, *args, **kwargs)
+            result = self.perform(function_input, **data)
             if type(result) is tuple:
-                return "None", result[0], result[1]
+                return {
+                    "upstream_cache_key": "None",
+                    "folder": folder,
+                    "function_input": result[0],
+                    "data": result[1],
+                }
             else:
-                return "None", result, None
+                return {
+                    "upstream_cache_key": "None",
+                    "folder": folder,
+                    "function_input": result,
+                    "data": None,
+                }
 
     def perform_with_cache(
         self, upstream_cache_key, folder: Path, function_input: Any, *args: Any, **kwargs: Any
-    ) -> "tuple[str, pd.DataFrame | list[pd.DataFrame], list[dict]]| tuple[None, None, None]":
+    ) -> "dict[str, Any]":
         if not self.validate_input(function_input):
             LOGGER.info("This input is not valid for this %s stage", self.stage)
-            return None, None, None
+            return {
+                "upstream_cache_key": None,
+                "folder": None,
+                "function_input": None,
+                "data": None,
+            }
         LOGGER.info("Performing %s stage with cache.", self.stage)
         if self.stage == Stage.PLOTTER:
             raise ValueError("Plotter Stage is not cached")
@@ -152,23 +186,12 @@ class BlockStage(ABC):
             resulting_data = _load_from_cache(file_name)
         else:
             resulting_data = self._create_and_save_to_cache(file_name, function_input, args, kwargs)
-        return cache_key, resulting_data[0], resulting_data[1]
-
-    def __init__(
-        self,
-        function,
-        list_df_input: bool = False,
-        accepted_data=None,
-        stage: Stage = Stage.DEFAULT,
-        caching: bool = caching,
-    ):
-        self.function = function
-        self.accepts_data = accepted_data
-        self.stage = stage
-        self.caching = caching
-        if accepted_data is None:
-            self.compute_expected_data()
-        self.list_df_input = list_df_input
+        return {
+            "upstream_cache_key": cache_key,
+            "folder": folder,
+            "function_input": resulting_data[0],
+            "data": resulting_data[1],
+        }
 
     @abstractmethod
     def perform(self, function_input: Any, *args: Any, **kwargs: Any) -> Any:

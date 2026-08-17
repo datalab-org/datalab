@@ -20,6 +20,7 @@ from pydatalab.pipeline_block.block_stages import (
 
 from ...logger import LOGGER
 from ...pipeline_block.pipeline import Pipeline
+from .models import PeakInformation
 from .utils import (
     compute_cif_pxrd_from_structure,
     parse_bruker_brml,
@@ -93,24 +94,37 @@ def brute_csv_parse(location: "Path | str") -> "pd.DataFrame":
     return df
 
 
-def compute_cif_structure(
-    dfs: "list[pd.DataFrame]", wavelength: float
-) -> tuple[list[DataFrame], dict[Any, Any]]:
-    new_dfs: list[pd.DataFrame] = []
-    data_updates = {"computed": {}}
+def process_cif_pattern(
+    dfs: list[pd.DataFrame], wavelength: float, metadata: dict
+) -> tuple[list[pd.DataFrame], dict[Any, Any]]:
+    """The .cif-specific counterpart to `process_baseline_corrections`.
+
+    Computes a theoretical PXRD pattern from each parsed CIF structure at the
+    current wavelength, then runs it through the same baseline-correction/
+    normalization step used for measured patterns (with `theoretical=True` so
+    that the noise-free computed pattern is not background-subtracted).
+    """
     peak_data_set = []
-    for df in dfs:
-        if df.attrs.get("cif_structure", False):
-            new_df, peak_data = compute_cif_pxrd_from_structure(
-                wavelength=wavelength,
-            )
-            # Track whether this is a computed PXRD that does not need background subtraction
-            data_updates["metadata"]["theoretical"] = True
-            peak_data_set.append(peak_data)
-            df = new_df
-        new_dfs.append(df)
-    data_updates["computed"]["peak_data"] = peak_data_set
-    return new_dfs, data_updates
+    pattern_dfs = []
+    for structure in dfs:
+        pattern_df, peak_data = compute_cif_pxrd_from_structure(
+            wavelength=wavelength,
+            structure=structure,
+        )
+        pattern_dfs.append(pattern_df)
+        peak_data_set.append(PeakInformation(**peak_data).model_dump())
+
+    # Track whether this is a computed PXRD that does not need background subtraction
+    cif_metadata = dict(metadata)
+    cif_metadata["theoretical"] = True
+
+    result_dfs, data_updates = process_baseline_corrections(pattern_dfs, wavelength, cif_metadata)
+
+    data_updates = {
+        "metadata": {"theoretical": True},
+        "computed": {"peak_data": peak_data_set},
+    }
+    return result_dfs, data_updates
 
 
 def read_raw_file(location: "str") -> tuple[DataFrame, dict[Any, Any]]:
@@ -167,9 +181,8 @@ def _calc_baselines_and_normalize(
 
 def process_baseline_corrections(
     dfs: list[pd.DataFrame], wavelength, metadata
-) -> list[pd.DataFrame]:
+) -> tuple[list[pd.DataFrame], dict]:
     result_dfs = []
-    peak_information = {}
     for ind, df in enumerate(dfs):
         df = df.rename(columns={"twotheta": "2θ (°)"})
 
@@ -208,11 +221,8 @@ def process_baseline_corrections(
         df["normalized intensity (staggered)"] += ind
 
         result_dfs.append(df)
-
-    # data["computed"] = {}
-    # data["computed"]["peak_data"] = peak_information
-
-    return result_dfs
+    metadata = {"computed": {"peak_data": []}}
+    return result_dfs, metadata
 
 
 def plotter(dfs: list[pd.DataFrame], wavelength: float, block_id: int) -> Any:
@@ -255,8 +265,14 @@ xrd_block_pipeline = Pipeline(
         ParserStage(brute_csv_parse, "*"),
     ],
     processor=[
-        [ProcessorStage(compute_cif_structure, list_df_input=True)],
-        [ProcessorStage(process_baseline_corrections, list_df_input=True)],
+        # The .cif branch must be listed before the catch-all non-.cif branch: both
+        # match .cif files (the latter via its wildcard "*" extension), and files are
+        # claimed by the first matching branch, so ordering here determines which
+        # branch actually processes .cif files.
+        [
+            ProcessorStage(process_cif_pattern, list_df_input=True, file_extension=".cif"),
+            ProcessorStage(process_baseline_corrections, list_df_input=True),
+        ],
     ],
     plotter=PlotterStage(plotter, list_df_input=True),
     events={"set_wavelength": EventStage(set_wavelength)},

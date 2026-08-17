@@ -25,13 +25,9 @@ class ParserStage(BlockStage):
         :param function: takes the function to call. Can be a function taking in a path on its own or with a dict.
         :param file_extension: The file extension for this parser stage, * indicates that this parser attempts to parse all files.
         """
-        super().__init__(function, stage=Stage.PARSER, caching=caching)
-        if type(file_extension) is str:
-            self.file_extension = [file_extension]
-        elif type(file_extension) is list:
-            self.file_extension = file_extension
-        else:
-            raise TypeError("file_extension must be str or list")
+        super().__init__(
+            function, stage=Stage.PARSER, caching=caching, file_extension=file_extension
+        )
 
     def validate_input(self, path: pathlib.Path) -> bool:
         """
