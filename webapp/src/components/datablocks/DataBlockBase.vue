@@ -172,7 +172,9 @@
         </div>
 
         <div v-if="hasMetadata && metadataShown" class="col-xl-3 col-lg-3 col-md-12">
-          <MetadataViewer :metadata="block.metadata" />
+          <slot name="metadata" :metadata="block.metadata">
+            <MetadataViewer :metadata="block.metadata" />
+          </slot>
         </div>
       </div>
 
