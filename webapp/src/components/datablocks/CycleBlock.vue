@@ -73,25 +73,25 @@
             "
           />
           <span id="list-of-cycles" class="pl-3 pt-2">Showing cycles: {{ parsedCycles }}</span>
-          <a
-            type="button"
-            class="btn btn-default btn-sm ml-2"
-            aria-label="Toggle description of cycle selection"
-            @click="showCyclesDescription = !showCyclesDescription"
-          >
-            ?
-          </a>
+          <StyledTooltip anchor-class="info-anchor" :delay="300" pinnable>
+            <template #anchor>
+              <font-awesome-icon
+                :icon="['fas', 'info-circle']"
+                class="info-icon"
+                role="button"
+                tabindex="0"
+                aria-label="Toggle description of cycle selection"
+              />
+            </template>
+            <template #content>
+              Specify which cycles to plot. Use commas to separate individual cycles and hyphens for
+              ranges. Leave empty or type 'all' to plot all cycles.
+            </template>
+          </StyledTooltip>
         </div>
 
         <div v-if="cycle_num_error" class="alert alert-danger mt-2 mx-auto">
           {{ cycle_num_error }}
-        </div>
-
-        <div v-show="showCyclesDescription" class="alert alert-info mt-2 mx-auto">
-          <p>
-            Specify which cycles to plot. Use commas to separate individual cycles and hyphens for
-            ranges. Leave empty or type 'all' to plot all cycles.
-          </p>
         </div>
       </div>
 
@@ -151,14 +151,21 @@
             @change="isReplotButtonDisplayed = true"
           />
           <label for="s_spline"> <span>Spline fit:</span> {{ -s_spline }} </label>
-          <a
-            type="button"
-            class="btn btn-default btn-sm ml-2"
-            aria-label="Toggle description of spline fit"
-            @click="showDescription1 = !showDescription1"
-          >
-            ?
-          </a>
+          <StyledTooltip anchor-class="info-anchor" :delay="300" pinnable>
+            <template #anchor>
+              <font-awesome-icon
+                :icon="['fas', 'info-circle']"
+                class="info-icon"
+                role="button"
+                tabindex="0"
+                aria-label="Toggle description of spline fit"
+              />
+            </template>
+            <template #content>
+              Smoothing parameter that determines how close the spline fits to the real data. Larger
+              values result in a smoother fit with decreased detail.
+            </template>
+          </StyledTooltip>
         </div>
         <div class="col-md slider" style="max-width: 250px">
           <input
@@ -172,28 +179,24 @@
             @change="isReplotButtonDisplayed = true"
           />
           <label for="win_size_1"> <span>Window Size 1:</span> {{ win_size_1 }} </label>
-          <a
-            type="button"
-            class="btn btn-default btn-sm ml-2"
-            aria-label="Toggle description of window size"
-            @click="showDescription2 = !showDescription2"
-          >
-            ?
-          </a>
+          <StyledTooltip anchor-class="info-anchor" :delay="300" pinnable>
+            <template #anchor>
+              <font-awesome-icon
+                :icon="['fas', 'info-circle']"
+                class="info-icon"
+                role="button"
+                tabindex="0"
+                aria-label="Toggle description of window size"
+              />
+            </template>
+            <template #content>
+              Window size for the Savitzky-Golay filter to apply to the derivatives.
+            </template>
+          </StyledTooltip>
         </div>
         <button v-show="isReplotButtonDisplayed" class="btn btn-default my-4" @click="updateBlock">
           Recalculate
         </button>
-      </div>
-
-      <div v-show="showDescription1" class="alert alert-info">
-        <p>
-          Smoothing parameter that determines how close the spline fits to the real data. Larger
-          values result in a smoother fit with decreased detail.
-        </p>
-      </div>
-      <div v-show="showDescription2" class="alert alert-info">
-        <p>Window size for the Savitzky-Golay filter to apply to the derivatives.</p>
       </div>
 
       <div class="row mt-2">
@@ -214,6 +217,7 @@ import FileSelectDropdown from "@/components/FileSelectDropdown";
 import FileMultiSelect from "@/components/FileMultiSelect";
 import BokehPlot from "@/components/BokehPlot";
 import CollapsibleComparisonFileSelect from "@/components/CollapsibleComparisonFileSelect";
+import StyledTooltip from "@/components/StyledTooltip";
 
 import { updateBlockFromServer } from "@/server_fetch_utils.js";
 import { createComputedSetterForBlockField } from "@/field_utils.js";
@@ -232,6 +236,7 @@ export default {
     FileMultiSelect,
     BokehPlot,
     CollapsibleComparisonFileSelect,
+    StyledTooltip,
   },
   props: {
     item_id: {
@@ -257,9 +262,6 @@ export default {
       cyclesString: "",
 
       // UI state for tooltips and plot display (toggled by the "?" buttons)
-      showCyclesDescription: false,
-      showDescription1: false,
-      showDescription2: false,
       bokehPlotLimitedWidth: true,
       isReplotButtonDisplayed: false,
 
@@ -549,7 +551,24 @@ export default {
 }
 
 .slider span {
-  border-bottom: 2px dotted #0c5460;
   text-decoration: none;
+}
+
+/* Keep the icon centred against the input rather than stretching with the
+   flex row of `.input-group`, which left it sitting high next to the label. */
+::v-deep(.info-anchor) {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  margin-left: 0.5rem;
+}
+
+/* Matches the info icon used in the block header (see TooltipIcon.vue) */
+.info-icon {
+  cursor: pointer;
+}
+
+.info-icon:hover {
+  color: cornflowerblue;
 }
 </style>
