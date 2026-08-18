@@ -12,6 +12,7 @@ from pydatalab.config import CONFIG
 from pydatalab.pipeline_block.base import DataBlockDefaults
 from pydatalab.pipeline_block.block_manager import PipelineBlockManager, _perform_operations
 from pydatalab.pipeline_block.block_stages import ParserStage, PlotterStage, ProcessorStage
+from pydatalab.pipeline_block.block_stages.abstract_stage import BlockStage
 from pydatalab.pipeline_block.pipeline import Pipeline
 from pydatalab.pipeline_block.pipeline.pipeline import _add_output_onto_list
 from pydatalab.pipeline_block.utils import (
@@ -133,18 +134,18 @@ def test_merge_dictionaries():
 
 
 def test_merge_dictionaries_with_sets_in():
-    dict_original = {"list1": {1, 2, 3, 4}}
-    dict_update = {"list1": {5, 6, 7, 8, 9}}
+    dict_original = {"original_filenames": [1, 2, 3, 4]}
+    dict_update = {"original_filenames": [5, 6, 7, 8, 9]}
     result = merge_dictionaries(dict_original, dict_update)
-    assert "list1" in result
-    assert result["list1"] == {1, 2, 3, 4, 5, 6, 7, 8, 9}
+    assert "original_filenames" in result
+    assert result["original_filenames"] == [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
 
 def test_add_output_onto_list_should_return_false_when_inputting_none():
     original_checksums = []
     output_dfs = []
     result = _add_output_onto_list(None, original_checksums, output_dfs, None)
-    assert result == False
+    assert not result
     assert original_checksums == []
     assert output_dfs == []
 

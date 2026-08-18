@@ -48,7 +48,14 @@ def get_pipeline_params(func):
     return wrapper
 
 
-def _perform_operations(block, pipeline, data):
+def _perform_operations(block: DataBlockDefaults, pipeline: Pipeline, data: dict):
+    """
+    Performs the file selection logic for the pipeline and then calls the pipeline `perform_entire_pipeline`.
+    :param block: The default parameters for the datablock.
+    :param pipeline: The pipeline instance that operates on the block.
+    :param data: The data for the datablock.
+    :return: The new data for the datablock.
+    """
 
     # First step - retrieve the file(s)
     if ("file_id" not in data) and ("file_ids" not in data):

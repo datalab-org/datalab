@@ -167,14 +167,18 @@ class Pipeline:
                     files.pop(index)
                     checksums.pop(index)
             leaf.register_files_and_execute(leaf_files, leaf_checksums, file_folder, data)
+
         result = graph_output.get_result()
         data = merge_dictionaries(data, result["data"])
-        if "original_filenames" in data["metadata"]:
-            data["metadata"]["original_filenames"] = list(data["metadata"]["original_filenames"])
+
         data["bokeh_plot_data"] = result.get("function_input", None)
+        if data["bokeh_plot_data"] is None or data["bokeh_plot_data"] == []:
+            data["bokeh_plot_data"] = {}
+            raise ValueError("This pipeline did not return any proper plot data.")
+
         return data
 
-    def clone(self) -> "pipeline":
+    def clone(self) -> "Pipeline":
         clone = copy.copy(self)
         clone.parser_functions = list(self.parser_functions)
         clone.processor_functions = [list(group) for group in self.processor_functions]

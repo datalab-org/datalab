@@ -40,6 +40,8 @@ def _load_from_cache(file_name) -> tuple[list[Any], list[dict]]:
         returned_dfs.append(df)
         order.append(row["Index"])
     returned_dfs = [x for _, x in sorted(zip(order, returned_dfs), key=lambda p: p[0])]
+    if len(returned_dfs) == 1:
+        returned_dfs = returned_dfs[0]
     return returned_dfs, metadata
 
 

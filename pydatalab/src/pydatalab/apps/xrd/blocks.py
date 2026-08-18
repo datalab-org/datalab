@@ -213,7 +213,7 @@ def process_baseline_corrections(
             )
 
         df = pd.concat([df, y_option_df], axis=1)
-        df.index.name = metadata.get("original_filename", "unknown") + (
+        df.index.name = list(metadata.get("original_filenames", "unknown"))[ind] + (
             " (theoretical)" if metadata.get("theoretical", False) else ""
         )
         df.attrs["y_options"] = ["intensity"] + list(y_option_df.columns)

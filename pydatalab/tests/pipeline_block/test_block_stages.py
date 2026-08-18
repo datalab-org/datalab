@@ -237,8 +237,7 @@ def empty_parser_function(path_name: str | pathlib.Path):
             ]
         ),
     )
-    data = {}
-    data["metadata"] = {}
+    data: dict = {"metadata": {}}
     data["metadata"]["useless_values"] = 1
     data["computed"] = {}
     data["computed"]["useless_important_values"] = 45
@@ -256,21 +255,21 @@ def test_parser_perform():
     assert "computed" in metadata
     assert "useless_important_values" in metadata["computed"]
     assert metadata["computed"]["useless_important_values"] == 45
-    assert metadata["metadata"]["original_filenames"] == {"example_file"}
+    assert metadata["metadata"]["original_filenames"] == ["example_file"]
 
 
 def test_validate_input_for_parser():
     stage = ParserStage(empty_parser_function, [".csv", ".exe"])
-    assert stage.validate_input(Path("hello.csv")) == True
-    assert stage.validate_input(Path("instagram.exe")) == True
-    assert stage.validate_input(Path("example_file")) == False
-    assert stage.validate_input(Path("Also_should_fail.cs")) == False
+    assert stage.validate_input(Path("hello.csv"))
+    assert stage.validate_input(Path("instagram.exe"))
+    assert not stage.validate_input(Path("example_file"))
+    assert not stage.validate_input(Path("Also_should_fail.cs"))
 
 
 def test_should_not_be_able_to_pass_list_to_processor_with_list_disabled():
     stage = ProcessorStage(lambda df: df, False)
     with pytest.raises(ValueError) as value_error_info:
-        result = stage.perform([pd.DataFrame(), pd.DataFrame()])
+        _ = stage.perform([pd.DataFrame(), pd.DataFrame()])
     assert "Invalid input type for processor stage, input type should not be a list" in str(
         value_error_info.value
     )
@@ -278,17 +277,17 @@ def test_should_not_be_able_to_pass_list_to_processor_with_list_disabled():
 
 def test_processor_validate_input_non_list_df():
     stage = ProcessorStage(lambda df: df, False)
-    assert stage.validate_input(None) == False
-    assert stage.validate_input(pd.DataFrame()) == False
-    assert stage.validate_input([pd.DataFrame({"A": [1, 2, 3, 4]})]) == False
-    assert stage.validate_input(pd.DataFrame({"A": [1, 2, 3, 4, 5, 6, 7, 8, 9]})) == True
+    assert not stage.validate_input(None)
+    assert not stage.validate_input(pd.DataFrame())
+    assert not stage.validate_input([pd.DataFrame({"A": [1, 2, 3, 4]})])
+    assert stage.validate_input(pd.DataFrame({"A": [1, 2, 3, 4, 5, 6, 7, 8, 9]}))
 
 
 def test_processor_validate_input_list_df():
     stage = ProcessorStage(lambda df: df, True)
-    assert stage.validate_input(None) == False
-    assert stage.validate_input(pd.DataFrame()) == False
-    assert (
-        stage.validate_input(pd.DataFrame({"A": [1, 2, 3]})) == True
+    assert not stage.validate_input(None)
+    assert not stage.validate_input(pd.DataFrame())
+    assert stage.validate_input(
+        pd.DataFrame({"A": [1, 2, 3]})
     )  # We would then coerce it into a list.
-    assert stage.validate_input([pd.DataFrame({"A": [1, 2, 3]})]) == True
+    assert stage.validate_input([pd.DataFrame({"A": [1, 2, 3]})])
