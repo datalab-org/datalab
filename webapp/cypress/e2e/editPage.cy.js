@@ -325,7 +325,7 @@ describe("Edit Page", () => {
 
     cy.get('[data-testid="add-block-button-top"]').click();
     cy.get('[data-testid="add-block-dropdown"]').contains("Media").click();
-    cy.findAllByText("Select a file:").eq(0).should("exist");
+    cy.findAllByText("Select a file").eq(0).should("exist");
     cy.get("select.file-select-dropdown").eq(0).select(test_fname);
 
     // Check that the img with id "media-block-img" is present
@@ -342,7 +342,7 @@ describe("Edit Page", () => {
 
     cy.get('[data-testid="add-block-button-top"]').click();
     cy.get('[data-testid="add-block-dropdown"]').contains("Media").click();
-    cy.findAllByText("Select a file:").eq(1).should("exist");
+    cy.findAllByText("Select a file").eq(1).should("exist");
     cy.get("select.file-select-dropdown").eq(1).select(test_fname);
 
     // Check that the SVG is displayed
@@ -368,7 +368,7 @@ describe("Edit Page", () => {
 
     cy.get('[data-testid="add-block-button-top"]').click();
     cy.get('[data-testid="add-block-dropdown"]').contains("Raman spectroscopy").click();
-    cy.findAllByText("Select a file:").eq(2).should("exist");
+    cy.findAllByText("Select a file").eq(2).should("exist");
     cy.get("select.file-select-dropdown")
       .eq(2)
       .select("example_data_raman_labspec_raman_example.txt");
@@ -431,7 +431,7 @@ describe("Edit Page", () => {
 
     cy.wait(1000);
     cy.get(".data-block").should("exist");
-    cy.findAllByText("Select a file:").should("exist");
+    cy.findAllByText("Select a file").should("exist");
   });
 
   it("Verifies bottom and top 'Add a block' dropdowns work independently", () => {
