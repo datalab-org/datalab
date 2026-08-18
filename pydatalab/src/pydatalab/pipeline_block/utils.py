@@ -68,8 +68,8 @@ def merge_dictionaries(dict_original: dict, dict_update: dict) -> dict:
     for key, value in dict_update.items():
         if key in dict_original and type(value) is dict and type(dict_original[key]) is dict:
             merge_dictionaries(dict_original[key], dict_update[key])
-        elif key in dict_original and type(value) is list and type(dict_original[key]) is list:
-            dict_original[key].extend(dict_update[key])
+        elif key in dict_original and type(value) is set and type(dict_original[key]) is set:
+            dict_original[key] = dict_original[key].union(dict_update[key])
         else:
             dict_original[key] = dict_update[key]
     return dict_original

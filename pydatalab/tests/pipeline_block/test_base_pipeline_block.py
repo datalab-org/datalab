@@ -132,12 +132,12 @@ def test_merge_dictionaries():
     assert result["metadata"]["file_type"] == ".json"
 
 
-def test_merge_dictionaries_with_lists_in():
-    dict_original = {"list1": [1, 2, 3, 4]}
-    dict_update = {"list1": [5, 6, 7, 8, 9]}
+def test_merge_dictionaries_with_sets_in():
+    dict_original = {"list1": {1, 2, 3, 4}}
+    dict_update = {"list1": {5, 6, 7, 8, 9}}
     result = merge_dictionaries(dict_original, dict_update)
     assert "list1" in result
-    assert result["list1"] == [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    assert result["list1"] == {1, 2, 3, 4, 5, 6, 7, 8, 9}
 
 
 def test_add_output_onto_list_should_return_false_when_inputting_none():
@@ -367,6 +367,8 @@ def test_perform_entire_pipeline_without_mocks_with_metadata():
     assert "another big number" in data_result
     assert data_result["another big number"] == 16
     assert "metadata" in data_result
+    assert "original_filenames" in data_result["metadata"]
+    assert data_result["metadata"]["original_filenames"] == ["File One.csv"]
     assert "parser" in data_result["metadata"]
     assert data_result["metadata"]["parser"] == "data"
     assert "computed" in data_result
@@ -432,10 +434,19 @@ def test_perform_entire_pipeline_with_specific_processor_file_file_types():
         ],
         checksums=["TEST.csvchecksum", "TEST.binchecksum", "TEST.txtchecksum", "TEST.exechecksum"],
     )
+    assert "metadata" in data_result
+    assert "original_filenames" in data_result["metadata"]
+    assert set(data_result["metadata"]["original_filenames"]) == {
+        "Route_through_one.csv",
+        "Route_through_two.bin",
+        "Route_through_one.txt",
+        "Route_through_two.exe",
+    }
     assert "bokeh_plot_data" in data_result
     assert "computed" in data_result
     assert "quad_data" in data_result["computed"]
     assert "treble_data" in data_result["computed"]
+
     pd.testing.assert_frame_equal(
         data_result["computed"]["quad_data"], pd.DataFrame({"a": [12, 20, 4], "b": [32, 4, 60]})
     )

@@ -77,7 +77,6 @@ class PipelineNode:
         :param function_input: The input to the stage function
         :return: Nothing
         """
-        print(function_input)
         if type(function_input) is not list:
             function_input = [function_input]
         self.total_input.extend(function_input)

@@ -169,6 +169,8 @@ class Pipeline:
             leaf.register_files_and_execute(leaf_files, leaf_checksums, file_folder, data)
         result = graph_output.get_result()
         data = merge_dictionaries(data, result["data"])
+        if "original_filenames" in data["metadata"]:
+            data["metadata"]["original_filenames"] = list(data["metadata"]["original_filenames"])
         data["bokeh_plot_data"] = result.get("function_input", None)
         return data
 
