@@ -65,7 +65,7 @@ block_manager.register_block(**CSV_DATABLOCK)
 
 ### How to create without relying on default stages?
 Now the above example relies on the fact that `Pipeline` has a default `ProcessorStage` and a default `PlotterStage`.
-If a developer wants to unlock the full functionality of the `Pipeline` for more advanced functionality
+If a developer wants to unlock the full functionality of the `Pipeline` for more advanced data processing.
 then it is recommended to use custom versions of `ProcessorStage` and `PlotterStage`.
 The following is an example of how this can be done for our custom csv parser:
 
@@ -143,7 +143,7 @@ the pipeline would then autopopulate this parameter with the value from the dict
 **Anything returned in the state dict must be JSON-serializable.** It gets cached to disk via `json.dumps`, so avoid
 types like `set` with the suggestion being to use `list`s instead.
 
-### Pipeline detail
+### Pipeline complexity
 The pipeline functions like a graph created from the parser, processors, and plotters which past in as parameters in the
 pipeline `__init__` function, for example the code below:
 
