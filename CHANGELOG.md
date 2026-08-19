@@ -4,6 +4,31 @@
 > Release candidates and other pre-releases are not included in this changelog; there may be more
 recent changes described in the [release notes on GitHub](https://github.com/datalab-org/datalab/releases).
 
+## v0.7.5 (August 2026)
+
+This is expected to be the final release in the 0.7.x series. It includes:
+
+- Several dependency updates for both JS and Python.
+- The option to enable stricter CORS rules in the API.
+- Improvements to the diff display in the item versioning UI.
+- An improved metadata viewer that all datablocks can use.
+- An overhaul of the documentation pages, including a new [user guide](https://guide.datalab-org.io).
+
+We expect to release an alpha of 0.8.x soon with an overhaul for Pydantic v2 and ask that all future developments are based on that.
+
+### What's Changed
+
+* Update and fix latest Python sub-deps by @github-actions[bot] in https://github.com/datalab-org/datalab/pull/1996
+* Tweaks to suppress new warnings after JS updates, lock primevue by @ml-evs in https://github.com/datalab-org/datalab/pull/2003
+* Add stricter CORS rules when `APP_URL` is configured by @ml-evs in https://github.com/datalab-org/datalab/pull/2017
+* Improvements to item versioning UI by @ml-evs in https://github.com/datalab-org/datalab/pull/2011
+* Bump nmrglue to 0.12 by @ml-evs in https://github.com/datalab-org/datalab/pull/2021
+* Add `MetadataViewer` option on all blocks by @ml-evs in https://github.com/datalab-org/datalab/pull/2022
+* Docs refresh and link out to new user guide by @ml-evs in https://github.com/datalab-org/datalab/pull/2013
+
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.4...v0.7.5
+
 ## v0.7.4 (August 2026)
 
 This patch release adds a series of quality-of-life improvements, principally:
