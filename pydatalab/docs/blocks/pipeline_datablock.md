@@ -1,5 +1,6 @@
 # Pipeline datablock
 This page presents the pipeline datablock, an automatically cacheable base datablock with file management built in.
+
 ## Why?
 The base datablock allows developers to do a lot very freely, but it lacks any structure and requires the developer to
 repeat simple actions across datablocks (e.g. caching and file extension checking). This leads to repeated code,
@@ -231,7 +232,7 @@ Pipeline datablocks are treated on the server level in a very different way. Dif
 - `routes/v0_1/blocks.py` treats Pipeline datablocks differently compared to standard datablocks. Pipeline datablocks are
 treated as dictionaries which are then passed around functions in the `PipelineBlockManager` (`block_manager`).
 - Integrated automatic caching.
-- Creating pipeline datablocks is completely different.
+- Creating pipeline datablocks is completely different (As documented [here](#how-to-create-a-pipeline-datablock)).
 
 ## Testing
 Test patterns for pipeline datablocks live in `pydatalab/tests/pipeline_block/` — see `test_base_pipeline_block.py`
