@@ -166,6 +166,10 @@ We are available for consultations on setting up and managing *datalab* deployme
 
 ## Contributions
 
+Bug reports, feature requests and pull requests are all welcome.
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for how to get started, what we expect from a
+contribution, and our policy on AI-assisted changes.
+
 <!-- --8<-- [start:credits] -->
 This software was conceived and developed by:
 
