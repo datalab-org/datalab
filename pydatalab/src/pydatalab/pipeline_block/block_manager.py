@@ -105,7 +105,6 @@ class PipelineBlockManager:
     def __init__(self):
         self._list_of_blocks: dict[str, DataBlockDefaults] = {}
         self._list_of_pipelines: dict[str, Pipeline] = {}
-        pass
 
     def register_block(self, pipeline: Pipeline, default_params: DataBlockDefaults):
         """Registers a new block with the given default parameters and the given pipeline."""

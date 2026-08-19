@@ -114,16 +114,19 @@ def process_cif_pattern(
         pattern_dfs.append(pattern_df)
         peak_data_set.append(PeakInformation(**peak_data).model_dump())
 
-    # Track whether this is a computed PXRD that does not need background subtraction
+    # Track whether this is a computed PXRD that does not need background subtraction.
+    # This is passed as a local copy of `metadata` rather than being read from the block's
+    # own state, since only this (.cif) branch is theoretical -- the shared, cached
+    # `process_baseline_corrections` step must not have its behaviour altered globally.
     cif_metadata = dict(metadata)
     cif_metadata["theoretical"] = True
 
     result_dfs, data_updates = process_baseline_corrections(pattern_dfs, wavelength, cif_metadata)
 
-    data_updates = {
-        "metadata": {"theoretical": True},
-        "computed": {"peak_data": peak_data_set},
-    }
+    # Override the peak/theoretical info computed above; keep the `y_options`/`df_labels`
+    # updates returned by `process_baseline_corrections`.
+    data_updates["metadata"] = {"theoretical": True}
+    data_updates["computed"] = {"peak_data": peak_data_set}
     return result_dfs, data_updates
 
 
@@ -180,9 +183,12 @@ def _calc_baselines_and_normalize(
 
 
 def process_baseline_corrections(
-    dfs: list[pd.DataFrame], wavelength, metadata
+    dfs: list[pd.DataFrame], wavelength: float, metadata: dict
 ) -> tuple[list[pd.DataFrame], dict]:
+    theoretical = metadata.get("theoretical", False)
     result_dfs = []
+    labels = []
+    y_options: list[str] = []
     for ind, df in enumerate(dfs):
         df = df.rename(columns={"twotheta": "2θ (°)"})
 
@@ -209,28 +215,49 @@ def process_baseline_corrections(
                 warnings.filterwarnings("ignore", category=warning_type, message=message)
 
             y_option_df = _calc_baselines_and_normalize(
-                df["2θ (°)"], df["intensity"], theoretical=metadata.get("theoretical", False)
+                df["2θ (°)"], df["intensity"], theoretical=theoretical
             )
 
         df = pd.concat([df, y_option_df], axis=1)
-        df.index.name = list(metadata.get("original_filenames", "unknown"))[ind] + (
-            " (theoretical)" if metadata.get("theoretical", False) else ""
+
+        # NB: these used to be stashed on `df.attrs`/`df.index.name`, but the on-disk
+        # cache round-trips every dataframe through Arrow/feather, which drops `.attrs`
+        # entirely and rejects a non-default index (raises on a set `.index.name`). So
+        # instead they're returned as part of the (JSON-serializable, cached-safe) state
+        # dict, and consumed further downstream in `plotter()`, which is never cached.
+        labels.append(
+            list(metadata.get("original_filenames", "unknown"))[ind]
+            + (" (theoretical)" if theoretical else "")
         )
-        df.attrs["y_options"] = ["intensity"] + list(y_option_df.columns)
+        y_options = ["intensity"] + list(y_option_df.columns)
 
         df["normalized intensity (staggered)"] += ind
 
         result_dfs.append(df)
-    metadata = {"computed": {"peak_data": []}}
-    return result_dfs, metadata
+    data_updates = {
+        "computed": {"peak_data": []},
+        "y_options": y_options,
+        "df_labels": labels,
+    }
+    return result_dfs, data_updates
 
 
-def plotter(dfs: list[pd.DataFrame], wavelength: float, block_id: int) -> Any:
+def plotter(
+    dfs: list[pd.DataFrame],
+    wavelength: float,
+    block_id: int,
+    y_options: list[str],
+    df_labels: list[str],
+) -> Any:
+    # Re-attach the per-file labels computed upstream (see `process_baseline_corrections`)
+    # by keying the plot input on them, rather than relying on `df.attrs`/`df.index.name`,
+    # which do not survive the dataframes potentially having been loaded from cache.
+    labeled_dfs = dict(zip(df_labels, dfs)) if df_labels and len(df_labels) == len(dfs) else dfs
     plot = selectable_axes_plot(
-        dfs,
+        labeled_dfs,
         x_options=["2θ (°)", "Q (Å⁻¹)", "d (Å)"],
         y_default="normalized intensity (staggered)" if len(dfs) > 1 else "normalized intensity",
-        y_options=dfs[0].attrs["y_options"],
+        y_options=y_options,
         plot_line=True,
         plot_points=True,
         point_size=3,
