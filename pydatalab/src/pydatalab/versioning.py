@@ -219,10 +219,14 @@ def save_version_snapshot(
     # permanent gap in the item's version history.
     next_version_number = get_next_version_number(refcode)
 
-    # Insert validated data (convert to dict and exclude None values)
-    version_doc = validated_version.dict(by_alias=True, exclude_none=True)
+    # Insert validated data, but restore the original item dict into 'data' so that
+    # None-valued fields are not stripped by model_dump(exclude_none=True) recursing into it.
+    version_doc = validated_version.model_dump(exclude_none=True)
+    version_doc["data"] = item
     version_doc["version"] = next_version_number
+
     flask_mongo.db.item_versions.insert_one(version_doc)
+
     return (
         {"status": "success", "message": "Version saved.", "version": next_version_number},
         200,

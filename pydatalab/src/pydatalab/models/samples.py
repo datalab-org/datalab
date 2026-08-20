@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import Field
 
 from pydatalab.models.items import Item
@@ -12,7 +14,7 @@ class Sample(Item, HasSynthesisInfo, HasSubstanceInfo):
     and connected to other items.
     """
 
-    type: str = Field("samples", const="samples", pattern="^samples$")
+    type: Literal["samples"] = "samples"
 
     status: SampleStatus = Field(default=SampleStatus.ACTIVE)
     """The status of the sample, indicating its current state."""

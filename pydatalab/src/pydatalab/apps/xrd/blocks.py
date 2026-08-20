@@ -264,7 +264,7 @@ class XRDBlock(DataBlock):
                 pattern_df.attrs["wavelength"] = (
                     f"{self.data.get('wavelength', self.defaults['wavelength'])} Å"
                 )
-                peak_information[str(f["immutable_id"])] = PeakInformation(**peak_data).dict()
+                peak_information[str(f["immutable_id"])] = PeakInformation(**peak_data).model_dump()
                 if len(all_files) > 1:
                     pattern_df["normalized intensity (staggered)"] += ind
                 pattern_dfs.append(pattern_df)
