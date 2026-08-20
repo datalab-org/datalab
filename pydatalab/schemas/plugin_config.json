@@ -1,96 +1,130 @@
 {
-  "title": "PluginConfigModel",
+  "$defs": {
+    "ToolSection": {
+      "properties": {
+        "uv": {
+          "$ref": "#/$defs/UvSection",
+          "default": {
+            "sources": {}
+          }
+        }
+      },
+      "title": "ToolSection",
+      "type": "object"
+    },
+    "UvSection": {
+      "properties": {
+        "sources": {
+          "additionalProperties": {
+            "$ref": "#/$defs/UvSource"
+          },
+          "default": {},
+          "title": "Sources",
+          "type": "object"
+        }
+      },
+      "title": "UvSection",
+      "type": "object"
+    },
+    "UvSource": {
+      "description": "A single entry under `[tool.uv.sources]` in plugins.toml.",
+      "properties": {
+        "git": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git"
+        },
+        "rev": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rev"
+        },
+        "branch": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Branch"
+        },
+        "tag": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tag"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "editable": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Editable"
+        }
+      },
+      "title": "UvSource",
+      "type": "object"
+    }
+  },
   "description": "The schema for the top-level plugins.toml file.",
-  "type": "object",
   "properties": {
     "dependencies": {
-      "title": "Dependencies",
       "default": [],
-      "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "title": "Dependencies",
+      "type": "array"
     },
     "tool": {
-      "title": "Tool",
+      "$ref": "#/$defs/ToolSection",
       "default": {
         "uv": {
           "sources": {}
         }
-      },
-      "allOf": [
-        {
-          "$ref": "#/definitions/ToolSection"
-        }
-      ]
+      }
     }
   },
-  "additionalProperties": false,
-  "definitions": {
-    "UvSource": {
-      "title": "UvSource",
-      "description": "A single entry under `[tool.uv.sources]` in plugins.toml.",
-      "type": "object",
-      "properties": {
-        "git": {
-          "title": "Git",
-          "type": "string"
-        },
-        "rev": {
-          "title": "Rev",
-          "type": "string"
-        },
-        "branch": {
-          "title": "Branch",
-          "type": "string"
-        },
-        "tag": {
-          "title": "Tag",
-          "type": "string"
-        },
-        "path": {
-          "title": "Path",
-          "type": "string"
-        },
-        "editable": {
-          "title": "Editable",
-          "type": "boolean"
-        }
-      },
-      "additionalProperties": false
-    },
-    "UvSection": {
-      "title": "UvSection",
-      "type": "object",
-      "properties": {
-        "sources": {
-          "title": "Sources",
-          "default": {},
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/UvSource"
-          }
-        }
-      },
-      "additionalProperties": false
-    },
-    "ToolSection": {
-      "title": "ToolSection",
-      "type": "object",
-      "properties": {
-        "uv": {
-          "title": "Uv",
-          "default": {
-            "sources": {}
-          },
-          "allOf": [
-            {
-              "$ref": "#/definitions/UvSection"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    }
-  }
+  "title": "PluginConfigModel",
+  "type": "object"
 }

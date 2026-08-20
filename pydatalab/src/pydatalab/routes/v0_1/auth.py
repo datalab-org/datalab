@@ -5,7 +5,6 @@ with their local accounts.
 """
 
 import datetime
-import json
 import os
 import re
 import secrets
@@ -504,7 +503,7 @@ def find_user_with_identity(
 
         if verify and not person.identities[identity_index].verified:
             flask_mongo.db.users.update_one(
-                {"_id": person.immutable_id},
+                {"_id": ObjectId(person.immutable_id)},
                 {"$set": {f"identities.{identity_index}.verified": True}},
             )
 
@@ -556,7 +555,7 @@ def find_create_or_modify_user(
             RuntimeError: If the update was unsuccessful.
 
         """
-        update = {"$push": {"identities": identity.dict()}}
+        update = {"$push": {"identities": identity.model_dump()}}
         if use_display_name and identity and identity.display_name:
             update["$set"] = {"display_name": identity.display_name}
 
@@ -1057,7 +1056,7 @@ def redirect_to_ui(blueprint, token):  # pylint: disable=unused-argument
 def get_authenticated_user_info():
     """Returns metadata associated with the currently authenticated user."""
     if current_user.is_authenticated:
-        current_user_response = json.loads(current_user.person.json())
+        current_user_response = current_user.person.model_dump(mode="json")
         current_user_response["role"] = current_user.role.value
         return jsonify(current_user_response), 200
     else:
@@ -1085,7 +1084,7 @@ def generate_user_api_key():
         version=1,
     )
 
-    flask_mongo.db.api_keys.insert_one(access_key.dict())
+    flask_mongo.db.api_keys.insert_one(access_key.model_dump())
     return jsonify({"key": new_key, "name": request_json["name"]}), 200
 
 

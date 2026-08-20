@@ -10,7 +10,6 @@ from pydantic import BaseModel
 from pymongo.errors import ConnectionFailure
 
 from pydatalab.logger import LOGGER
-from pydatalab.models import ITEM_MODELS
 
 __all__ = (
     "flask_mongo",
@@ -26,6 +25,9 @@ __all__ = (
     "GROUPS_FTS_FIELDS",
     "generate_heuristic_regex_search",
     "build_search_pipeline",
+    "creators_lookup",
+    "groups_lookup",
+    "files_lookup",
 )
 
 flask_mongo = PyMongo()
@@ -34,20 +36,77 @@ flask_mongo = PyMongo()
 """One-liner that pulls all non-semantic string fields out of all item
 models implemented for this server.
 """
-ITEMS_FTS_FIELDS: set[str] = set().union(
-    *(
-        {
-            f
-            for f, p in model.schema(by_alias=False)["properties"].items()
-            if (
-                p.get("type") == "string"
-                and p.get("format") not in ("date-time", "uuid")
-                and f != "type"
-            )
-        }
-        for model in ITEM_MODELS.values()
-    )
-)
+
+
+def creators_lookup() -> dict:
+    return {
+        "from": "users",
+        "let": {"creator_ids": "$creator_ids"},
+        "pipeline": [
+            {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$creator_ids", []]}]}}},
+            {"$addFields": {"__order": {"$indexOfArray": ["$$creator_ids", "$_id"]}}},
+            {"$sort": {"__order": 1}},
+            {"$project": {"_id": 1, "display_name": 1, "gravatar_hash": 1}},
+        ],
+        "as": "creators",
+    }
+
+
+def groups_lookup() -> dict:
+    return {
+        "from": "groups",
+        "let": {"group_ids": "$group_ids"},
+        "pipeline": [
+            {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$group_ids", []]}]}}},
+            {"$addFields": {"__order": {"$indexOfArray": ["$$group_ids", "$_id"]}}},
+            {"$sort": {"__order": 1}},
+            {"$project": {"_id": 1, "display_name": 1, "group_id": 1}},
+        ],
+        "as": "groups",
+    }
+
+
+def files_lookup() -> dict:
+    return {
+        "from": "files",
+        "localField": "file_ObjectIds",
+        "foreignField": "_id",
+        "as": "files",
+    }
+
+
+@lru_cache(maxsize=1)
+def get_items_fts_fields() -> set[str]:
+    """Get all string fields from item models for full-text search."""
+    from pydatalab.models import ITEM_MODELS
+
+    fields = set()
+
+    for model_name, model in ITEM_MODELS.items():
+        schema = model.model_json_schema(by_alias=False)
+
+        model_fields = set()
+        for f, p in schema.get("properties", {}).items():
+            if f == "type":
+                continue
+
+            if p.get("type") == "string" and p.get("format") not in ("date-time", "uuid"):
+                model_fields.add(f)
+            elif "anyOf" in p:
+                for option in p["anyOf"]:
+                    if option.get("type") == "string" and option.get("format") not in (
+                        "date-time",
+                        "uuid",
+                    ):
+                        model_fields.add(f)
+                        break
+
+        fields.update(model_fields)
+
+    return fields
+
+
+ITEMS_FTS_FIELDS: set[str] = set()
 
 USERS_FTS_FIELDS: set[str] = {"identities.name", "display_name", "contact_email"}
 """Fields to search for users."""
@@ -148,7 +207,7 @@ def insert_pydantic_model_fork_safe(model: BaseModel, collection: str) -> str:
     """Inserts a Pydantic model into chosen collection, returning the inserted ID."""
     return (
         get_database()[collection]
-        .insert_one(model.dict(by_alias=True, exclude_none=True))
+        .insert_one(model.model_dump(by_alias=False, exclude_none=True))
         .inserted_id
     )
 
@@ -167,7 +226,6 @@ def _get_active_mongo_client(timeoutMS: int = 1000) -> pymongo.MongoClient:
 
     """
     from pydatalab.config import CONFIG
-    from pydatalab.logger import LOGGER
 
     try:
         client = pymongo.MongoClient(
@@ -234,6 +292,14 @@ def create_default_indices(
         A list of messages returned by each `create_index` call.
 
     """
+
+    global ITEMS_FTS_FIELDS
+
+    if not ITEMS_FTS_FIELDS:
+        ITEMS_FTS_FIELDS = get_items_fts_fields()
+
+    if not ITEMS_FTS_FIELDS:
+        raise ValueError("Cannot create text indices: no fields available for full-text search")
 
     if client is None:
         client = _get_active_mongo_client()

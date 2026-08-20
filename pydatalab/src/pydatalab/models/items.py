@@ -1,11 +1,11 @@
 import abc
 
-from pydantic import validator
+from pydantic import field_validator
 
 from pydatalab.models.entries import Entry
+from pydatalab.models.files import HasFiles
 from pydatalab.models.traits import (
     HasBlocks,
-    HasFiles,
     HasOwner,
     HasRevisionControl,
     IsCollectable,
@@ -26,27 +26,26 @@ class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, HasFil
     populates itself.
     """
 
-    refcode: Refcode = None  # type: ignore
-    """A globally unique immutable ID comprised of the deployment prefix (e.g., `grey`)
-    and a locally unique string, ideally created with some consistent scheme.
-    """
+    refcode: Refcode | None = None
+    """A globally unique immutable ID comprised of the deployment prefix (e.g., `grey`) and a locally unique string, ideally created with some consistent scheme."""
 
     item_id: HumanReadableIdentifier
     """A locally unique, human-readable identifier for the entry. This ID is mutable."""
 
-    description: str | None
+    description: str | None = None
     """A description of the item, either in plain-text or a markup language."""
 
-    date: IsoformatDateTime | None
+    date: IsoformatDateTime | None = None
     """A relevant 'creation' timestamp for the entry (e.g., purchase date, synthesis date)."""
 
-    name: str | None
+    name: str | None = None
     """An optional human-readable/usable name for the entry."""
 
-    status: str | None
+    status: str | None = None
     """The status of the item, with allowed values defined by the specific item class."""
 
-    @validator("refcode", pre=True, always=True)
+    @field_validator("refcode", mode="before")
+    @classmethod
     def refcode_validator(cls, v):
         """Generate a refcode if not provided."""
 
