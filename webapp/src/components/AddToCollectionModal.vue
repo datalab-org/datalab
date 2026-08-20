@@ -1,6 +1,10 @@
 <template>
   <form class="modal-enclosure" data-testid="add-to-collection-form" @submit.prevent="submitForm">
-    <Modal :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)">
+    <Modal
+      :model-value="modelValue"
+      @update:model-value="$emit('update:modelValue', $event)"
+      @submit="submitForm"
+    >
       <template #header> Add to collections </template>
       <template #body>
         <div class="form-row">
