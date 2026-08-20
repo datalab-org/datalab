@@ -70,6 +70,10 @@ def list_remote_directories():
             400,
         )
 
+    from pydatalab.logger import LOGGER
+
+    LOGGER.debug("Delving into remote directories with invalidate_cache=%s", invalidate_cache)
+
     all_directory_structures = get_directory_structures(
         CONFIG.REMOTE_FILESYSTEMS, invalidate_cache=invalidate_cache
     )
