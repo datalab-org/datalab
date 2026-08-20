@@ -53,7 +53,7 @@ class BlockStage(ABC):
     """Generic function to call"""
 
     accepted_data: list[str] = []
-    """Whether the parser accepts a data dictionary"""
+    """The list of data the stage accepts from the data dictionary"""
 
     list_df_input: bool
     """Whether the stage takes lists of dfs or just an individual df"""

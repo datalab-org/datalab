@@ -20,13 +20,20 @@ class ParserStage(BlockStage):
         function: "Callable[[str|pathlib.Path], tuple[pd.DataFrame, dict]|pd.DataFrame]",
         file_extension: list[str] | str,
         caching=True,
+        accepted_data: list[str] | None = None,
     ):
         """
         :param function: takes the function to call. Can be a function taking in a path on its own or with a dict.
         :param file_extension: The file extension for this parser stage, * indicates that this parser attempts to parse all files.
+        :param caching: Whether to use caching or not
+        :param accepted_data: The list of accepted data, that the parser stage accepts.
         """
         super().__init__(
-            function, stage=Stage.PARSER, caching=caching, file_extension=file_extension
+            function,
+            stage=Stage.PARSER,
+            caching=caching,
+            file_extension=file_extension,
+            accepted_data=accepted_data,
         )
 
     def validate_input(self, path: pathlib.Path) -> bool:

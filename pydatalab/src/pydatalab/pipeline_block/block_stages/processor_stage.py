@@ -26,6 +26,14 @@ class ProcessorStage(BlockStage):
         accepted_data: list[str] | None = None,
         file_extension: str | list[str] = "*",
     ):
+        """
+        Sets up a processor stage
+        :param function: The function that the stage calls when it performs the stage.
+        :param list_df_input: Whether the function operates on a list of dataframes or a single dataframe. If it operates on a single dataframe, it will be run multiple times for a list of dataframes.
+        :param caching: Whether to perform caching or not.
+        :param accepted_data: What data from the base datablock does the processor stage expect (if this is left as none it is automatically inferred from the function).
+        :param file_extension: The file extension/(s) that the processor would expect.
+        """
         super().__init__(
             function,
             list_df_input,
@@ -56,8 +64,8 @@ class ProcessorStage(BlockStage):
             )
         result = self.function(function_input, **data)
         if type(result) is tuple:
-            df, data = result
+            df, data = result  # type: ignore
         else:
-            df = result
-            data = None
+            df = result  # type: ignore
+            data = None  # type: ignore
         return df, data
