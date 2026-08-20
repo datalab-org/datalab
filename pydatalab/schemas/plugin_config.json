@@ -1,7 +1,6 @@
 {
   "$defs": {
     "ToolSection": {
-      "additionalProperties": false,
       "properties": {
         "uv": {
           "$ref": "#/$defs/UvSection",
@@ -14,7 +13,6 @@
       "type": "object"
     },
     "UvSection": {
-      "additionalProperties": false,
       "properties": {
         "sources": {
           "additionalProperties": {
@@ -29,7 +27,6 @@
       "type": "object"
     },
     "UvSource": {
-      "additionalProperties": false,
       "description": "A single entry under `[tool.uv.sources]` in plugins.toml.",
       "properties": {
         "git": {
@@ -109,7 +106,6 @@
       "type": "object"
     }
   },
-  "additionalProperties": false,
   "description": "The schema for the top-level plugins.toml file.",
   "properties": {
     "dependencies": {
