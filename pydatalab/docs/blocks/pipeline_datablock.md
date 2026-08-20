@@ -140,6 +140,8 @@ Stages can also have parameters named after keys in the datablock state, for exa
 is stored in the main datablock, then you could have a processor with the definition:
 `def wavelength_processor(df: pd.DataFrame, wavelength: float)`
 the pipeline would then autopopulate this parameter with the value from the dictionary (e.g. `data["wavelength"]`).
+This is done dynamically via introspection, though can also be done manually by specifying what the `accepted_data`
+argument of the stage.
 
 **Anything returned in the state dict must be JSON-serializable.** It gets cached to disk via `json.dumps`, so avoid
 types like `set` with the suggestion being to use `list`s instead.
@@ -205,6 +207,18 @@ graph LR
 
     combiner --> plotter["PlotterStage"]
 ```
+### Caching
+Caching is on by default for parsers and processors though is not currently support by event stages or plotter stages.
+
+Caching can be toggled using the `caching` parameter when initialising a parser or processor stage.
+Caching for an entire pipeline can be toggled using the `set_caching_for_entire_pipeline` function which accepts a
+`boolean` value (`True`= caching enabled, `False`= caching disabled).
+
+Caching works by creating a hash key based on the:
+- upstream cache key
+- the passed in parameter values
+- the name of the stage (e.g. `Parser` and `Processor`)
+- the name of function the stage runs
 
 ### Parser routing when there are multiple parsers
 `Pipeline(parser=...)` also accepts a `list[ParserStage]`. When a block is given multiple files, each file is routed
