@@ -218,8 +218,10 @@ Caching works by creating a hash key based on the:
 - upstream cache key
 - the passed in parameter values
 - the name of the stage (e.g. `Parser` and `Processor`)
-- the name of function the stage runs
+- the name of the function the stage runs.
 
+Then the cache key is then passed forward to the next stage along. In the case multiple stages are passed into one stage.
+Their cache keys are combined.
 ### Parser routing when there are multiple parsers
 `Pipeline(parser=...)` also accepts a `list[ParserStage]`. When a block is given multiple files, each file is routed
 to the **first** registered parser whose `file_extension` matches it — a parser can declare `file_extension="*"` to
