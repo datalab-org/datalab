@@ -8,6 +8,7 @@ env:
   PUBLISH_UPDATE_BRANCH: main
   GIT_USER_NAME: datalab developers
   GIT_USER_EMAIL: "dev@datalab-org.io"
+  MIN_PYTHON_VERSION: "3.11"
 
 jobs:
 
@@ -30,10 +31,10 @@ jobs:
         fetch-depth: 0
         ref: ${{ env.PUBLISH_UPDATE_BRANCH }}
 
-    - name: Set up Python 3.11
+    - name: Set up minimum Python
       uses: actions/setup-python@v7
       with:
-        python-version: '3.11'
+        python-version: ${{ env.MIN_PYTHON_VERSION }}
 
     - name: Build source distribution
       working-directory: "./pydatalab"
