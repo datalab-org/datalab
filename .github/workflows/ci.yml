@@ -60,8 +60,7 @@ jobs:
       fail-fast: false
       max-parallel: 2
       matrix:
-        python-version:
-          - ${{ env.MIN_PYTHON_VERSION }}
+        python-version: ["3.11"]
 
     steps:
       - uses: actions/checkout@v7
@@ -96,7 +95,7 @@ jobs:
           uv run pytest -rs --cov=pydatalab --cov-report=term --cov-report=xml -vvv ./tests
 
       - name: Upload coverage to Codecov
-        if: matrix.python-version == ${{ env.MIN_PYTHON_VERSION }}  && github.repository == 'datalab-org/datalab'
+        if: matrix.python-version == env.MIN_PYTHON_VERSION && github.repository == 'datalab-org/datalab'
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
