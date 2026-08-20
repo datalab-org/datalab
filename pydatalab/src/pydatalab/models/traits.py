@@ -7,13 +7,12 @@ from pydatalab.models.people import Group, Person
 from pydatalab.models.utils import BaseModel, Constituent, InlineSubstance, PyObjectId
 
 if TYPE_CHECKING:
-    from pydatalab.models.files import File
+    pass
 
 __all__ = (
     "HasOwner",
     "HasRevisionControl",
     "HasBlocks",
-    "HasFiles",
     "IsCollectable",
     "HasSynthesisInfo",
     "HasSubstanceInfo",
@@ -47,16 +46,6 @@ class HasRevisionControl(BaseModel):
 
     version: int = 1
     """The version number used by the version control system for tracking snapshots."""
-
-
-class HasFiles(BaseModel):
-    """Trait mixin for models that can have files attached to them."""
-
-    files: list["File"] | None = None
-    """Any files attached to this item."""
-
-    file_ObjectIds: list[PyObjectId] = Field(default_factory=list)
-    """Links to object IDs of files stored within the database."""
 
 
 class HasBlocks(BaseModel):

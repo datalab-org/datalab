@@ -3,13 +3,9 @@ import abc
 from pydantic import field_validator
 
 from pydatalab.models.entries import Entry
-
-# Importing `files` here resolves the deferred `File` annotation on `HasFiles`
-# before any `Item` subclass is built.
-from pydatalab.models.files import File  # noqa: F401
+from pydatalab.models.files import HasFiles
 from pydatalab.models.traits import (
     HasBlocks,
-    HasFiles,
     HasOwner,
     HasRevisionControl,
     IsCollectable,
