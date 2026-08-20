@@ -5,6 +5,7 @@ on:
 
 env:
   UV_VERSION: "0.11.8"
+  MIN_PYTHON_VERSION: "3.11"
 
 jobs:
   licensing-checks:
@@ -19,10 +20,10 @@ jobs:
         fetch-depth: 0
         ref: ${{ env.PUBLISH_UPDATE_BRANCH }}
 
-    - name: Set up Python 3.11
+    - name: Set up minimum Python
       uses: actions/setup-python@v7
       with:
-        python-version: '3.11'
+        python-version: ${{ env.MIN_PYTHON_VERSION }}
 
     - name: Set up uv
       uses: astral-sh/setup-uv@v7

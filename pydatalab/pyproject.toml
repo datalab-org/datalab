@@ -8,14 +8,13 @@ authors = [{ name = "datalab development team", email = "dev@datalab-org.io" }]
 dynamic = ["version"]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Information Technology",
     "Topic :: Scientific/Engineering",
 ]
 
-requires-python = ">= 3.10, < 3.12"
+requires-python = ">= 3.11, < 3.12"
 
 dependencies = [
     "bokeh ~= 2.4, < 3.0",
@@ -97,7 +96,7 @@ follow_imports = "skip"
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "Q", "DTZ", "S", "G"]
