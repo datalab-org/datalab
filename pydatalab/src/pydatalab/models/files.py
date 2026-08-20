@@ -2,10 +2,9 @@ from typing import Any, Literal
 
 from pydantic import Field
 
-from pydatalab.models import traits
 from pydatalab.models.entries import Entry
 from pydatalab.models.traits import HasOwner, HasRevisionControl
-from pydatalab.models.utils import BaseModel, IsoformatDateTime
+from pydatalab.models.utils import BaseModel, IsoformatDateTime, PyObjectId
 
 
 class FileChecksums(BaseModel):
@@ -74,7 +73,11 @@ class File(Entry, HasOwner, HasRevisionControl):
     """Content checksums (MD5 and SHA-256) of the file."""
 
 
-# `traits.HasFiles` cannot import `File` at module scope (this module needs the
-# traits at class-definition time), so inject it and resolve the forward ref here.
-traits.File = File  # type: ignore[misc]
-traits.HasFiles.model_rebuild()
+class HasFiles(BaseModel):
+    """Trait mixin for models that can have files attached to them."""
+
+    files: list["File"] | None = None
+    """Any files attached to this item."""
+
+    file_ObjectIds: list[PyObjectId] = Field(default_factory=list)
+    """Links to object IDs of files stored within the database."""
