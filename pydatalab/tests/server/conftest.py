@@ -7,6 +7,7 @@ from flask.testing import FlaskClient
 
 from pydatalab.models import Cell, Collection, Equipment, Sample, StartingMaterial
 from pydatalab.models.people import AccountStatus
+from pydatalab.mongo import flask_mongo
 
 TEST_DATABASE_NAME = "__datalab-testing__"
 
@@ -73,6 +74,7 @@ def app_config(secret_key, files_directory):
         "MAIL_DEBUG": True,
         "MAIL_SUPPRESS_SEND": True,
         "MAIL_PASSWORD": "test",
+        "EXTRA_LOCATIONS": ["Cambridge > Lab 1 > Location A", "Cambridge > Lab 2"],
         # Set to 10 MB to check that larger files fail; this should be larger than all of our example files.
         # Elsewhere, we can generate an artificial large file to check that it fails.
         "MAX_CONTENT_LENGTH": 10 * 1000**2,
@@ -643,6 +645,24 @@ def _insert_and_cleanup_item_from_model(model):
     flask_mongo.db.items.insert_one(model.model_dump(exclude_unset=False))
     yield model
     flask_mongo.db.items.delete_one({"refcode": model.refcode})
+
+
+@pytest.fixture(scope="function", name="item_creator")
+def fixture_item_creator():
+    ref_codes_to_remove = []
+
+    def _insert_item_from_model(model):
+        from pydatalab.models.utils import generate_unique_refcode
+        from pydatalab.mongo import flask_mongo
+
+        refcode = generate_unique_refcode()
+        model.refcode = refcode
+        flask_mongo.db.items.insert_one(model.model_dump(exclude_unset=False))
+        ref_codes_to_remove.append(refcode)
+        return model
+
+    yield _insert_item_from_model
+    flask_mongo.db.items.delete_many({"refcode": {"$in": ref_codes_to_remove}})
 
 
 @pytest.fixture(scope="module", name="insert_default_sample")
