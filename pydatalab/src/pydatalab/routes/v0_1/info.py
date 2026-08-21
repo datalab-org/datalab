@@ -8,6 +8,7 @@ from functools import lru_cache
 
 from flask import Blueprint, jsonify, request
 from pydantic import AnyUrl, BaseModel, Field, validator
+from werkzeug.exceptions import NotFound
 
 from pydatalab import __version__
 from pydatalab.apps import BLOCK_TYPES
@@ -202,9 +203,7 @@ def list_supported_types():
 def get_schema_type(item_type):
     """Returns the schema of the given type."""
     if item_type not in SCHEMAS:
-        return jsonify(
-            {"status": "error", "detail": f"Item type {item_type} not found for this deployment"}
-        ), 404
+        raise NotFound(f"Item type {item_type} not found for this deployment")
 
     return jsonify(
         json.loads(
