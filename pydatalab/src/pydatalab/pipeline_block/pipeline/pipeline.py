@@ -102,6 +102,11 @@ class Pipeline:
         self.plotter_function = plotter_function
 
     def set_caching_for_entire_pipeline(self, caching: bool) -> None:
+        """
+        Sets the caching parameter for all the stages.
+        :param caching: Whether to cache or not.
+        :return: None
+        """
         for parser in self.parser_functions:
             parser.caching = caching
         for stages in self.processor_functions:
@@ -112,6 +117,14 @@ class Pipeline:
         return self.plotter_function or self.processor_functions or self.parser_functions
 
     def __init__(self, parser=None, processor=None, plotter=None, events=None):
+        """
+        Initialises a pipeline with parsers, processors, plotters, and events.
+        :param parser: list of ParserStages, there is no default parser.
+        :param processor: There are two options for processor either just a ProcessorStage
+        or a 2D list of ProcessorStages where each sublist is an individual stage (i.e. they are parallel in the graph).
+        :param plotter: Only accepts a PlotterStage, this is the last node on the pipeline graph
+        :param events: A list of EventStages, these should receive event values and modify the block state accordingly.
+        """
         if not parser:
             # TODO default parser
             parser = []
@@ -143,8 +156,13 @@ class Pipeline:
         self, data, file_folder: str | Path, files: list[Path | str], checksums: list[str]
     ):
         """
-        Performs an entire complete pipeline with no caching or async operations.
-        Used for both testing and single threaded pipelines where caching is not an option.
+         Performs the pipeline, by creating the Pipeline graph using PipelineNodes and executing it.
+         The graph is disposed off after use.
+        :param data: The block data to augment.
+        :param file_folder: The folder to put cache files.
+        :param files: The paths of all the files.
+        :param checksums: The checksums of all the files.
+        :return: The augmented block data.
         """
         # set up computed and metadata fields
         data["metadata"] = {}

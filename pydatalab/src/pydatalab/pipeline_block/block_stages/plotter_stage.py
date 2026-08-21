@@ -21,6 +21,12 @@ class PlotterStage(BlockStage):
         list_df_input: bool = False,
         accepted_data: list[str] | None = None,
     ):
+        """
+        Initialises the plotter stage
+        :param function: The function the plotter stage performs.
+        :param list_df_input: Whether the function accepts a list of dataframes.
+        :param accepted_data: The list of data the stage accepts from the base datablock.
+        """
         super().__init__(
             function, list_df_input=list_df_input, accepted_data=accepted_data, stage=Stage.PLOTTER
         )

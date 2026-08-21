@@ -19,8 +19,22 @@ field has a default, but the ones you'll usually want to set are: `blocktype`, `
 2. A `Pipeline` object for the datablock.
 
 The `Pipeline` consists of four types of `BlockStage`:
+1. `ParserStage` responsible for reading in file data.
+2. `ProcessorStage` processing dataframes.
+3. `Plotterstage` plots dataframes.
+4. `EventStage` similar to the events structure in pre-existing blocks, updates the block data from event.
+
+### General stage options
+- `function`: The function the stage performs
+- `list_df_input`: Whether the function accepts a list of dataframes (more info [here](#list_df_input))
+- `caching`: Whether the stage should be cached (more info: [here](#caching))
+  - (caching only happens for processors and parsers)
+- `accepted_data`: The data from the base data block that this function accepts. (more info: [here](#dataflow-from-and-to-the-underlying-datablock))
+  - By default, this is populated from the function definition.
+- `file_extension`: What file extensions this parser/processor supports.
+### Specific stage options
 1. `ParserStage`: parses a single file (a `pathlib.Path`) and returns a `pd.DataFrame`, or a `(pd.DataFrame, dict)`
-tuple if it also wants to update the block's state (see [Advanced functionality](#advanced-functionality)).
+tuple if it also wants to update the block's state.
 2. `ProcessorStage`: processes a `pd.DataFrame` or `list[pd.DataFrame]` (depending on `list_df_input`, see below)
 and returns a `pd.DataFrame` or `list[pd.DataFrame]`, optionally paired with a state-update `dict`.
 3. `PlotterStage`: turns a `pd.DataFrame` or `list[pd.DataFrame]` into whatever the frontend needs to render a plot
@@ -28,6 +42,7 @@ and returns a `pd.DataFrame` or `list[pd.DataFrame]`, optionally paired with a s
 4. `EventStage`: updates the state of the datablock in response to a named frontend event (e.g. a widget changing
 value). Unlike the other stages it doesn't operate on a dataframe — it's handed the block's data `dict` directly.
 
+### Simple pipeline
 A simple example to create a pipeline datablock that could process `.csv` files would be this:
 
 ````python
@@ -130,7 +145,7 @@ that needs to see all files at once (useful if there is a calibration file).
 Setting this flag to the wrong value is a common source of failures: a stage with `list_df_input=False` will
 reject a `list` input (see `validate_input` on `ProcessorStage`/`ParserStage`), which can surface as an empty plot.
 
-### Advanced functionality
+### Dataflow from and to the underlying datablock
 All stages apart from the `EventStage` can also return a `dict` (as the second element of a tuple) that will be
 merged into the main datablock dictionary and thus update the block state. Two nested keys are treated specially by
 the pipeline: `metadata` (e.g. parser-supplied info like `original_filenames`) and `computed` (values derived during
