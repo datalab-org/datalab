@@ -13,7 +13,6 @@ from pydatalab.pipeline_block.block_manager import PipelineBlockManager
 if TYPE_CHECKING:
     # This import is required to prevent circular imports for application-specific blocks
     from pydatalab.blocks.base import DataBlock  # noqa
-    from pydatalab.pipeline_block.base import PipelineDataBlock
 
 from pydatalab.blocks import COMMON_BLOCKS
 from pydatalab.pipeline_block import PIPELINE_COMMON_BLOCKS

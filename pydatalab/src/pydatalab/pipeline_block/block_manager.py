@@ -74,7 +74,7 @@ def _perform_operations(block: DataBlockDefaults, pipeline: Pipeline, data: dict
     if len(file_ids) == 0:
         return None
 
-    files: list[Path] = []
+    files: list[Path | str] = []
     checksums: list[str] = []
 
     # Check extension and append the Path object into a list

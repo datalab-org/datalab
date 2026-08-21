@@ -16,7 +16,6 @@ from pydatalab.pipeline_block.block_stages import (
 
 __all__ = ["Pipeline"]
 
-from pydatalab.pipeline_block.block_stages.abstract_stage import BlockStage
 from pydatalab.pipeline_block.pipeline.pipeline_node import FileInputLeaf, OutputRoot
 from pydatalab.pipeline_block.utils import merge_dictionaries
 
@@ -168,14 +167,14 @@ class Pipeline:
         data["metadata"] = {}
         data["computed"] = {}
 
-        pipeline_graph: list[list[BlockStage]] = [self.parser_functions]
+        pipeline_graph: list[Any] = [self.parser_functions]
         pipeline_graph.extend(self.processor_functions)
         pipeline_graph.append([self.plotter_function])
 
         graph_output = OutputRoot()
         entry_point_leaves: list[FileInputLeaf] = graph_output.add_pipeline(pipeline_graph)
         for leaf in entry_point_leaves:
-            leaf_files = []
+            leaf_files: list[str | Path] = []
             leaf_checksums = []
             for index in range(len(files) - 1, -1, -1):
                 file = files[index]

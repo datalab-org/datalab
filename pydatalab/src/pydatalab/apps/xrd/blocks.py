@@ -130,7 +130,7 @@ def process_cif_pattern(
     return result_dfs, data_updates
 
 
-def read_raw_file(location: "str") -> tuple[DataFrame, dict[Any, Any]]:
+def read_raw_file(location: "str|Path") -> tuple[DataFrame, dict[Any, Any]]:
     df, metadata = parse_bruker_raw(location)
     returned_metadata = {}
     if wavelength := metadata.get("wavelength", None):

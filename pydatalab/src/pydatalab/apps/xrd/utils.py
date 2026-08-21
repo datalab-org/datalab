@@ -19,7 +19,7 @@ class XrdmlParseError(Exception):
     pass
 
 
-def parse_xrdml(filename: str) -> pd.DataFrame:
+def parse_xrdml(filename: str | Path) -> pd.DataFrame:
     """Parses an XRDML file and returns a pandas DataFrame with columns
     twotheta and intensity.
 
@@ -151,7 +151,7 @@ def toXY(intensities: list[float], start: float, end: float) -> str:
     return "".join(xylines)
 
 
-def parse_rasx_zip(filename: str) -> pd.DataFrame:
+def parse_rasx_zip(filename: str | Path) -> pd.DataFrame:
     """Parses an RASX zip file and returns a pandas DataFrame with columns
     twotheta and intensity.
 
@@ -265,7 +265,7 @@ def compute_cif_pxrd(filename: str, wavelength: float) -> tuple[pd.DataFrame, di
     return df, peak_data
 
 
-def parse_bruker_raw(filename: str) -> tuple[pd.DataFrame, dict]:
+def parse_bruker_raw(filename: str | Path) -> tuple[pd.DataFrame, dict]:
     """Reads a Bruker RAW file and returns a pandas DataFrame with columns
     twotheta and intensity, vendored and adapted from GSAS-II.
 
@@ -642,7 +642,7 @@ def parse_bruker_raw(filename: str) -> tuple[pd.DataFrame, dict]:
     ), metadata
 
 
-def parse_bruker_brml(filename: str) -> pd.DataFrame:
+def parse_bruker_brml(filename: str | Path) -> pd.DataFrame:
     """Reads a Bruker BRML file (zipped XML) and returns a pandas DataFrame with columns
     twotheta and intensity.
 

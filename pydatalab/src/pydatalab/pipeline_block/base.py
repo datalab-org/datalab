@@ -19,7 +19,7 @@ class DataBlockDefaults(BaseModel):
     """A longer description outlining the purpose and capability
     of the block."""
 
-    accepted_file_extensions: tuple[str, ...] | None = ()
+    accepted_file_extensions: tuple[str, ...] = ()
     """A list of file extensions that the block will attempt to read."""
 
     defaults: dict[str, Any] = {}
