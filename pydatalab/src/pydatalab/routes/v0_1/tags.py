@@ -6,6 +6,7 @@ from bson.errors import InvalidId
 from flask import Blueprint, abort, jsonify, request
 from flask_login import current_user
 from pydantic import ValidationError
+from werkzeug.exceptions import BadRequest, Conflict, Forbidden, NotFound, Unauthorized
 
 from pydatalab.feature_flags import FEATURE_FLAGS
 from pydatalab.logger import logged_route
@@ -107,39 +108,24 @@ def create_tag():
 
     name = data.get("name")
     if not name:
-        return jsonify(status="error", message="A tag name is required."), 400
+        raise BadRequest("A tag name is required.")
 
     try:
         scope = AccessScope(data.get("scope") or AccessScope.USER.value)
     except ValueError:
-        return (
-            jsonify(status="error", message=f"Invalid tag scope {data.get('scope')!r}."),
-            400,
-        )
+        raise BadRequest(f"Invalid tag scope {data.get('scope')!r}.")
 
     if scope == AccessScope.GLOBAL:
         if not _is_admin():
-            return (
-                jsonify(status="error", message="Only administrators can create global tags."),
-                403,
-            )
+            raise Forbidden("Only administrators can create global tags.")
         owner = None
     else:
         owner = _current_user_id()
         if owner is None:
-            return (
-                jsonify(
-                    status="error",
-                    message="You must be logged in to create a user-defined tag.",
-                ),
-                401,
-            )
+            raise Unauthorized("You must be logged in to create a user-defined tag.")
 
     if _name_conflict_exists(name, scope, owner):
-        return (
-            jsonify(status="error", message=f"A tag named {name!r} already exists."),
-            409,  # 409: Conflict
-        )
+        raise Conflict(f"A tag named {name!r} already exists.")
 
     try:
         tag = Tag(
@@ -151,10 +137,7 @@ def create_tag():
             last_modified=datetime.datetime.now(datetime.timezone.utc).isoformat(),
         )
     except ValidationError as error:
-        return (
-            jsonify(status="error", message="Unable to create the tag.", output=str(error)),
-            400,
-        )
+        raise BadRequest(f"Unable to create the tag: {error}")
 
     tag.immutable_id = insert_pydantic_model_fork_safe(tag, "tags")
 
@@ -186,7 +169,7 @@ def search_tags():
     nresults = request.args.get("nresults", default=100, type=int)
 
     if not query:
-        return jsonify({"status": "error", "message": "No query provided."}), 400
+        raise BadRequest("No query provided.")
 
     pipeline = build_search_pipeline(
         query, TAGS_FTS_FIELDS, _usable_tags_filter(_current_user_id())
@@ -219,30 +202,21 @@ def save_tag(tag_id):
     """
     object_id = _parse_object_id(tag_id)
     if object_id is None:
-        return jsonify(status="error", message=f"Invalid tag ID {tag_id!r}."), 400
+        raise BadRequest(f"Invalid tag ID {tag_id!r}.")
 
     request_json = request.get_json()
     updated_data = request_json.get("data")
 
     if not updated_data:
-        return (
-            jsonify(status="error", message="No data provided to update the tag with."),
-            400,  # 400: Bad Request
-        )
+        raise BadRequest("No data provided to update the tag with.")
 
     tag = flask_mongo.db.tags.find_one({"_id": object_id})
 
     if not tag:
-        return (
-            jsonify(status="error", message=f"Unable to find a tag with ID {tag_id!r}."),
-            404,
-        )
+        raise NotFound(f"Unable to find a tag with ID {tag_id!r}.")
 
     if not _authorize_tag_write(tag):
-        return (
-            jsonify(status="error", message="You are not allowed to modify this tag."),
-            403,
-        )
+        raise Forbidden("You are not allowed to modify this tag.")
 
     # Identity, scope and ownership are not editable through this endpoint.
     for key in ("_id", "immutable_id", "type", "scope", "owner"):
@@ -256,27 +230,14 @@ def save_tag(tag_id):
         if _name_conflict_exists(
             updated_data["name"], scope, tag.get("owner"), exclude_id=object_id
         ):
-            return (
-                jsonify(
-                    status="error",
-                    message=f"A tag named {updated_data['name']!r} already exists.",
-                ),
-                409,
-            )
+            raise Conflict(f"A tag named {updated_data['name']!r} already exists.")
 
     tag.update(updated_data)
 
     try:
         tag = Tag(**tag).model_dump(exclude={"immutable_id"})
     except ValidationError as exc:
-        return (
-            jsonify(
-                status="error",
-                message=f"Unable to update tag {tag_id!r} with new data {updated_data}.",
-                output=str(exc),
-            ),
-            400,
-        )
+        raise BadRequest(f"Unable to update tag {tag_id!r} with new data {updated_data}: {exc}")
 
     result = flask_mongo.db.tags.update_one({"_id": object_id}, {"$set": tag})
 
@@ -302,21 +263,15 @@ def delete_tag(tag_id: str):
     """
     object_id = _parse_object_id(tag_id)
     if object_id is None:
-        return jsonify(status="error", message=f"Invalid tag ID {tag_id!r}."), 400
+        raise BadRequest(f"Invalid tag ID {tag_id!r}.")
 
     tag = flask_mongo.db.tags.find_one({"_id": object_id})
 
     if not tag:
-        return (
-            jsonify(status="error", message=f"No tag found with ID {tag_id!r}."),
-            404,
-        )
+        raise NotFound(f"No tag found with ID {tag_id!r}.")
 
     if not _authorize_tag_write(tag):
-        return (
-            jsonify(status="error", message="You are not allowed to delete this tag."),
-            403,
-        )
+        raise Forbidden("You are not allowed to delete this tag.")
 
     flask_mongo.db.tags.delete_one({"_id": object_id})
 
