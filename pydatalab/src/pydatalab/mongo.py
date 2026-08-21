@@ -112,19 +112,18 @@ def resolve_tags_for_docs(docs: list[dict]) -> None:
             if isinstance(tag, dict):
                 match = resolved.get(ObjectId(tag["immutable_id"]))
                 # Referenced tag no longer exists: drop it silently.
-                if match is None:
-                    continue
-                resolved_tags.append(
-                    {
-                        "type": "tags",
-                        "immutable_id": str(match["_id"]),
-                        "name": match.get("name"),
-                        "description": match.get("description"),
-                        "color": match.get("color"),
-                        # `scope` lets the UI mark user-defined tags distinctly.
-                        "scope": match.get("scope"),
-                    }
-                )
+                if match is not None:
+                    resolved_tags.append(
+                        {
+                            "type": "tags",
+                            "immutable_id": str(match["_id"]),
+                            "name": match.get("name"),
+                            "description": match.get("description"),
+                            "color": match.get("color"),
+                            # `scope` lets the UI mark user-defined tags distinctly.
+                            "scope": match.get("scope"),
+                        }
+                    )
         doc["tags"] = resolved_tags
 
 
