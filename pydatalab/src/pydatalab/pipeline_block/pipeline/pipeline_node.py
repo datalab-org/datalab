@@ -37,7 +37,7 @@ class PipelineNode:
     def __init__(self, stage: BlockStage, parent_node, number_of_inputs: int) -> None:
         self.stage: BlockStage = stage
         self.parent_node: PipelineNode = parent_node  # parent of this Node
-        self.total_input = []
+        self.total_input: list = []
         self.number_of_inputs = number_of_inputs
         self.output: Any = None
 
@@ -84,6 +84,7 @@ class PipelineNode:
         self.send_output_if_enough_data()
 
     def send_output_if_enough_data(self):
+        """If there is enough data this triggers the BlockStage function and registers the input with the parent."""
         if len(self.total_input) >= self.number_of_inputs:
             LOGGER.debug(
                 "Firing %s, with function name: %s",
@@ -118,19 +119,38 @@ class PipelineNode:
     def get_input_file_type(self):
         return set(self.stage.file_extension)
 
-    def add_pipeline(self, stage_list: list[list[BlockStage]]) -> list:
+    def add_pipeline(self, stage_list: list[list[BlockStage]], consumed_types=None) -> list:
+        """
+        Recursively constructs a graph given a 2D Block stages,
+        where the flow is from the first subarray to the last subarray
+        :param consumed_types: the set of file types that already have existing paths
+        :param stage_list: The list of BlockStages to create the pipeline graph from
+        :return: The list of FileInputLeaf entrypoints.
+        """
+        if consumed_types is None:
+            consumed_types = set()
         if len(stage_list) == 0:
             self.number_of_inputs = 1
             return [FileInputLeaf(parent_node=self, file_input_type=self.get_input_file_type())]
         endpoints = []
         for stage in stage_list[-1]:
+            stage_file_extensions = set(stage.file_extension)
             if (
-                set(stage.file_extension).issuperset(self.get_input_file_type())
+                stage_file_extensions.issuperset(self.get_input_file_type())
                 or "*" in self.get_input_file_type()
-            ):
+            ) and (stage_file_extensions & consumed_types) == set({}):
+                print(
+                    f"file extension: {stage.file_extension}, consumed file extensions: {consumed_types}"
+                )
+                # Prepare next node and pass the rest of the graph +
                 next_node = PipelineNode(stage, self, 0)
-                endpoints.extend(next_node.add_pipeline(stage_list[:-1]))
+                endpoints.extend(next_node.add_pipeline(stage_list[:-1], consumed_types))
+                # Increase number of inputs for this graph
                 self.number_of_inputs += 1
+                # Mark this file extension as being consumed
+                if "*" not in stage.file_extension:
+                    print(stage.file_extension)
+                    consumed_types = consumed_types | stage_file_extensions
         return endpoints
 
 
@@ -167,7 +187,7 @@ class OutputRoot:
         self.output = []
         self.number_of_inputs = 0
 
-    def register_input(self, function_input: dict[str, Any]) -> None:
+    def register_input(self, function_input: Any) -> None:
         if type(function_input) is not list:
             function_input = [function_input]
         self.output.extend(function_input)
