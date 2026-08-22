@@ -55,11 +55,20 @@ class Cell(Item):
     """The molar mass of the active material, in g/mol. Will be inferred from the chemical formula, or can be supplied if it cannot be supplied"""
 
     positive_electrode: list[CellComponent] = Field(default_factory=list)
+    """The components of the positive electrode (cathode) of the cell."""
+
     negative_electrode: list[CellComponent] = Field(default_factory=list)
+    """The components of the negative electrode (anode) of the cell."""
+
     electrolyte: list[CellComponent] = Field(default_factory=list)
+    """The components of the electrolyte of the cell."""
+
     active_ion: str | None = None
     """The active ion species."""
+
     active_ion_charge: float = 1
+    """The charge of the active ion species."""
+
     status: CellStatus = Field(default=CellStatus.ACTIVE)
     """The status of the cells, indicating its current state."""
 
