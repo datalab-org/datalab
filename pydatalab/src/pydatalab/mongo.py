@@ -440,6 +440,22 @@ def create_default_indices(
         "refcode", unique=True, name="unique refcode counter", background=background
     )
 
+    # Block storage indexes. `block_id` is only effectively unique (random,
+    # historically unique within a single item), so is not a unique index.
+    ret += db.blocks.create_index("block_id", name="block ID", background=background)
+    ret += db.blocks.create_index("blocktype", name="block type", background=background)
+    ret += db.blocks.create_index("creator_ids", name="block creators", background=background)
+    ret += db.blocks.create_index("group_ids", name="block groups", background=background)
+    ret += db.block_versions.create_index(
+        [("block_immutable_id", pymongo.ASCENDING), ("version", pymongo.DESCENDING)],
+        unique=True,
+        name="block immutable ID and version",
+        background=background,
+    )
+    ret += db.block_versions.create_index(
+        "block_id", name="block version block ID", background=background
+    )
+
     return ret
 
 
