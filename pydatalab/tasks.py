@@ -29,10 +29,12 @@ def load_plugin_schema():
     need them. A JSON Schema generated from the returned model is emitted to
     `pydatalab/schemas/plugin_config.json` by `invoke dev.generate-schemas`.
     """
-    from pydantic import BaseModel, model_validator
+    from pydantic import BaseModel, ConfigDict, model_validator
 
     class UvSource(BaseModel):
         """A single entry under `[tool.uv.sources]` in plugins.toml."""
+
+        model_config = ConfigDict(extra="forbid")
 
         git: str | None = None
         rev: str | None = None
@@ -53,13 +55,19 @@ def load_plugin_schema():
             return values
 
     class UvSection(BaseModel):
+        model_config = ConfigDict(extra="forbid")
+
         sources: dict[str, UvSource] = {}
 
     class ToolSection(BaseModel):
+        model_config = ConfigDict(extra="forbid")
+
         uv: UvSection = UvSection()
 
     class PluginConfigModel(BaseModel):
         """The schema for the top-level plugins.toml file."""
+
+        model_config = ConfigDict(extra="forbid")
 
         dependencies: list[str] = []
         tool: ToolSection = ToolSection()
