@@ -8,6 +8,7 @@ from pydatalab.models.items import Item
 from pydatalab.models.people import Person
 from pydatalab.models.samples import Sample
 from pydatalab.models.starting_materials import StartingMaterial
+from pydatalab.models.tags import Tag
 from pydatalab.models.versions import ItemVersion
 
 
@@ -38,6 +39,7 @@ __all__ = (
     "Cell",
     "Collection",
     "Equipment",
+    "Tag",
     "ItemVersion",
     "ITEM_MODELS",
     "ITEM_SCHEMAS",
