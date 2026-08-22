@@ -3,6 +3,7 @@ import UserBubble from "@/components/UserBubble.vue";
 import StyledTooltip from "@/components/StyledTooltip.vue";
 import PrimeVue from "primevue/config";
 import { createStore } from "vuex";
+import "bootstrap/dist/css/bootstrap.css";
 
 const IsoDatetimeToDate = (value) => {
   if (!value) return "";
@@ -155,6 +156,74 @@ describe("SampleTable Component Tests", () => {
     cy.get('[data-testid="search-input"]').should("exist");
   });
 
+  it("lays out the Sample action buttons responsively", () => {
+    const actionButtons = [
+      '[data-testid="add-item-button"]',
+      '[data-testid="batch-item-button"]',
+      '[data-testid="scan-qr-button"]',
+    ].join(", ");
+
+    cy.viewport(375, 720);
+    cy.get(actionButtons).should(($buttons) => {
+      const tops = [...$buttons].map((button) => Math.round(button.getBoundingClientRect().top));
+      const widths = [...$buttons].map((button) =>
+        Math.round(button.getBoundingClientRect().width),
+      );
+
+      expect(new Set(tops).size).to.equal(3);
+      expect(new Set(widths).size).to.equal(1);
+    });
+
+    cy.viewport(600, 720);
+    cy.get(actionButtons).should(($buttons) => {
+      const tops = [...$buttons].map((button) => Math.round(button.getBoundingClientRect().top));
+      expect(new Set(tops).size).to.equal(1);
+    });
+  });
+
+  it("keeps the table rows in place when selecting an item", () => {
+    cy.viewport(1280, 720);
+
+    let initialRowTop;
+    let actionsRight;
+
+    cy.get('[data-testid="selection-summary"]').should("contain.text", "Number of items: 6");
+    cy.get('[data-testid="selected-dropdown"]').should("not.exist");
+
+    cy.get(".p-datatable-tbody > tr")
+      .first()
+      .then(($row) => {
+        initialRowTop = $row[0].getBoundingClientRect().top;
+      });
+
+    cy.get(".p-datatable-tbody > tr").first().find("input[type='checkbox']").click({ force: true });
+
+    cy.get('[data-testid="selection-summary"]').should("contain.text", "1 item selected");
+    cy.get('[data-testid="selected-dropdown"]')
+      .should("contain.text", "Actions")
+      .then(($button) => {
+        actionsRight = $button[0].getBoundingClientRect().right;
+      });
+    cy.get(".p-datatable-tbody > tr")
+      .first()
+      .should(($row) => {
+        expect($row[0].getBoundingClientRect().top).to.equal(initialRowTop);
+      });
+
+    cy.get(".p-datatable-tbody > tr").eq(1).find("input[type='checkbox']").click({ force: true });
+
+    cy.get('[data-testid="selection-summary"]').should("contain.text", "2 items selected");
+    cy.get('[data-testid="selected-dropdown"]').should(($button) => {
+      expect($button[0].getBoundingClientRect().right).to.equal(actionsRight);
+    });
+
+    cy.get(".p-datatable-tbody > tr").first().find("input[type='checkbox']").click({ force: true });
+    cy.get(".p-datatable-tbody > tr").eq(1).find("input[type='checkbox']").click({ force: true });
+
+    cy.get('[data-testid="selection-summary"]').should("contain.text", "Number of items: 6");
+    cy.get('[data-testid="selected-dropdown"]').should("not.exist");
+  });
+
   it("renders the table with correct headers", () => {
     const headers = [
       "", //checkbox
@@ -261,6 +330,7 @@ describe("SampleTable Component Tests", () => {
   it("performs global search correctly", () => {
     cy.get('[data-testid="search-input"]').type("Sample 1");
     cy.get(".p-datatable-tbody tr").should("have.length", 1);
+    cy.get('[data-testid="selection-summary"]').should("contain.text", "Number of items: 1");
     cy.get(".p-datatable-tbody tr").eq(0).should("contain.text", "Sample 1");
 
     cy.get('[data-testid="search-input"]').clear();
@@ -271,10 +341,12 @@ describe("SampleTable Component Tests", () => {
     cy.get('[data-testid="search-input"]').clear();
     cy.get('[data-testid="search-input"]').type("Cell");
     cy.get(".p-datatable-tbody tr").should("have.length", 3);
+    cy.get('[data-testid="selection-summary"]').should("contain.text", "Number of items: 3");
     cy.get(".p-datatable-tbody tr").eq(0).should("contain.text", "Cell 1");
 
     cy.get('[data-testid="search-input"]').clear();
     cy.get(".p-datatable-tbody tr").should("have.length", 6);
+    cy.get('[data-testid="selection-summary"]').should("contain.text", "Number of items: 6");
   });
 
   it("sorts columns correctly", () => {
@@ -710,12 +782,14 @@ describe("SampleTable Component Tests", () => {
     cy.get(".p-datatable-filter-overlay").find(".p-inputtext").type("sample");
     cy.get(".p-datatable-filter-overlay").findByText("Apply").click();
     cy.get(".p-datatable-tbody tr").should("have.length", 3);
+    cy.get('[data-testid="selection-summary"]').should("contain.text", "Number of items: 3");
 
     cy.get(".p-datatable-thead th").eq(1).find(".p-datatable-column-filter-button").click();
     cy.get(".p-datatable-filter-overlay").find(".p-inputtext").clear();
     cy.get(".p-datatable-filter-overlay").find(".p-inputtext").type("sample1");
     cy.get(".p-datatable-filter-overlay").findByText("Apply").click();
     cy.get(".p-datatable-tbody tr").should("have.length", 1);
+    cy.get('[data-testid="selection-summary"]').should("contain.text", "Number of items: 1");
     cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(1).should("contain.text", "sample1");
   });
 

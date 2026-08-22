@@ -1,8 +1,8 @@
 <template>
   <Navbar />
 
-  <div id="tableContainer" class="container-fluid">
-    <div class="w-100 px-5 mx-auto">
+  <div id="tableContainer" class="container-fluid px-1 px-sm-3">
+    <div class="w-100 px-0 px-sm-5 mx-auto">
       <EquipmentTable />
     </div>
   </div>
