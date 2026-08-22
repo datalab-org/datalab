@@ -1522,6 +1522,7 @@
       "title": "Characteristic Molar Mass"
     },
     "positive_electrode": {
+      "description": "The components of the positive electrode (cathode) of the cell.",
       "items": {
         "$ref": "#/$defs/CellComponent"
       },
@@ -1529,6 +1530,7 @@
       "type": "array"
     },
     "negative_electrode": {
+      "description": "The components of the negative electrode (anode) of the cell.",
       "items": {
         "$ref": "#/$defs/CellComponent"
       },
@@ -1536,6 +1538,7 @@
       "type": "array"
     },
     "electrolyte": {
+      "description": "The components of the electrolyte of the cell.",
       "items": {
         "$ref": "#/$defs/CellComponent"
       },
@@ -1557,6 +1560,7 @@
     },
     "active_ion_charge": {
       "default": 1,
+      "description": "The charge of the active ion species.",
       "title": "Active Ion Charge",
       "type": "number"
     }
