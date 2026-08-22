@@ -282,17 +282,19 @@ its importance when deploying a datalab instance.""",
         description="The desired backup configuration.",
     )
 
-    @model_validator(mode="before")
-    @classmethod
-    def validate_cache_ages(cls, values):
-        min_age = values.get("REMOTE_CACHE_MIN_AGE")
-        max_age = values.get("REMOTE_CACHE_MAX_AGE")
+    @model_validator(mode="after")
+    def validate_cache_ages(self):
+        """Check the cache ages after parsing, so that the defaults are covered even
+        when only one of the two values is set explicitly.
+        """
+        min_age = self.REMOTE_CACHE_MIN_AGE
+        max_age = self.REMOTE_CACHE_MAX_AGE
 
-        if min_age is not None and max_age is not None and min_age > max_age:
+        if min_age > max_age:
             raise RuntimeError(
                 f"The maximum cache age must be greater than the minimum cache age: min {min_age=}, max {max_age=}"
             )
-        return values
+        return self
 
     @field_validator("SECRET_KEY", mode="before")
     @classmethod
@@ -349,13 +351,18 @@ its importance when deploying a datalab instance.""",
             )
         return v
 
-    @model_validator(mode="before")
-    @classmethod
-    def deactivate_backup_strategies_during_testing(cls, values):
-        if values.get("TESTING"):
-            for name in values.get("BACKUP_STRATEGIES", {}):
-                values["BACKUP_STRATEGIES"][name].active = False
-        return values
+    @model_validator(mode="after")
+    def deactivate_backup_strategies_during_testing(self):
+        """Disable every backup strategy when running in testing mode.
+
+        This runs after parsing so that the default strategies are covered (defaults
+        never appear in the raw input) and so that strategies loaded from a config
+        file are `BackupStrategy` instances rather than plain dicts.
+        """
+        if self.TESTING and self.BACKUP_STRATEGIES:
+            for strategy in self.BACKUP_STRATEGIES.values():
+                strategy.active = False
+        return self
 
     @field_validator("LOG_FILE", mode="before")
     @classmethod
