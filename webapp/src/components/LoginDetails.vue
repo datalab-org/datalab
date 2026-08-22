@@ -1,6 +1,6 @@
 <template>
   <template v-if="user != null">
-    <div class="dropdown">
+    <div v-on-click-outside="() => (isUserDropdownVisible = false)" class="dropdown">
       <button
         id="userDropdown"
         class="btn dropdown-toggle border"
@@ -41,9 +41,10 @@
     </div>
   </template>
   <template v-else>
-    <div class="dropdown">
+    <div v-on-click-outside="() => (isLoginDropdownVisible = false)" class="dropdown">
       <button
         id="loginDropdown"
+        data-testid="login-dropdown-button"
         class="btn border dropdown-toggle"
         type="button"
         data-toggle="dropdown"
@@ -55,6 +56,7 @@
       </button>
       <div
         v-show="isLoginDropdownVisible"
+        data-testid="login-dropdown-menu"
         class="dropdown-menu"
         style="display: block"
         aria-labelledby="loginButton"
@@ -74,8 +76,12 @@ import UserBubbleLogin from "@/components/UserBubbleLogin.vue";
 import { getUserInfo, getInfo } from "@/server_fetch_utils.js";
 import UserDropdown from "@/components/UserDropdown.vue";
 import LoginDropdown from "@/components/LoginDropdown.vue";
+import { vOnClickOutside } from "@vueuse/components";
 
 export default {
+  directives: {
+    onClickOutside: vOnClickOutside,
+  },
   components: {
     UserBubbleLogin,
     UserDropdown,
