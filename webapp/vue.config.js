@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 const customAboutPath = path.resolve(__dirname, "public/custom/components/CustomAbout.vue");
+const customLoginInfoPath = path.resolve(__dirname, "public/custom/components/CustomLoginInfo.vue");
 
 module.exports = {
   transpileDependencies: ["mermaid"],
@@ -39,6 +40,16 @@ module.exports = {
     if (fs.existsSync(customAboutPath)) {
       plugins.push(
         new NormalModuleReplacementPlugin(/\/components\/CustomAbout\.vue$/, customAboutPath),
+      );
+    }
+
+    // If a deployment provides a custom CustomLoginInfo.vue, use it instead of the skeleton
+    if (fs.existsSync(customLoginInfoPath)) {
+      plugins.push(
+        new NormalModuleReplacementPlugin(
+          /\/components\/CustomLoginInfo\.vue$/,
+          customLoginInfoPath,
+        ),
       );
     }
 

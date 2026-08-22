@@ -1,19 +1,8 @@
 <template>
   <div class="login-container">
     <div class="welcome-section">
-      <h1 style="font-size: 4rem">Welcome to Datalab</h1>
-      <p>datalab is a place to store experimental data and the connections between them.</p>
-      <p>
-        datalab is open source (MIT license) and development occurs on GitHub at
-        <a href="https://github.com/datalab-org/datalab"
-          ><font-awesome-icon :icon="['fab', 'github']" />&nbsp;datalab-org/datalab</a
-        >
-        with documentation available on
-        <a href="https://the-datalab.readthedocs.io"
-          ><font-awesome-icon icon="book" />&nbsp;ReadTheDocs</a
-        >.
-      </p>
-      <router-link to="/about" class="btn btn-default">Learn More</router-link>
+      <CustomLoginInfo v-if="customLoginInfoHasContent" />
+      <LoginInfo v-else />
     </div>
 
     <div class="login-options">
@@ -33,9 +22,28 @@
         <img v-else class="logo-banner" :src="logo_url" />
       </div>
 
-      <!-- <pre style="white-space: pre-wrap">{{ ASCII }}</pre> -->
-      <div class="login-button">
+      <div v-if="!userInfoLoaded" class="text-muted text-center">
+        <font-awesome-icon icon="spinner" spin /> Loading...
+      </div>
+
+      <div v-else-if="currentUser != null" class="login-button logged-in-options text-center">
+        <div>
+          <h2 class="logged-in-title">You are already logged in</h2>
+          <p class="text-muted mb-0">
+            Signed in as <strong>{{ currentUserDisplayName }}</strong>
+          </p>
+        </div>
+        <button type="button" class="btn btn-default btn-login p-3" @click="goToApp">
+          <font-awesome-icon icon="home" /> Go to app
+        </button>
+        <a type="button" class="btn btn-default btn-login p-3" :href="apiUrl + '/logout'">
+          <font-awesome-icon icon="sign-out-alt" /> Logout
+        </a>
+      </div>
+
+      <div v-else class="login-button">
         <a
+          v-if="showUnavailableAuthMechanisms || showGitHub"
           type="button"
           :class="{ disabled: !showGitHub }"
           class="btn btn-default btn-login p-3"
@@ -45,6 +53,7 @@
           <font-awesome-icon :icon="['fab', 'github']" /> Login via GitHub
         </a>
         <a
+          v-if="showUnavailableAuthMechanisms || showORCID"
           type="button"
           :class="{ disabled: !showORCID }"
           class="btn btn-default btn-login p-3"
@@ -54,6 +63,27 @@
           <font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Login via ORCID
         </a>
         <a
+          v-if="showUnavailableAuthMechanisms || showGoogle"
+          type="button"
+          :class="{ disabled: !showGoogle }"
+          class="btn btn-default btn-login p-3"
+          aria-label="Login via Google"
+          :href="apiUrl + '/login/google'"
+        >
+          <font-awesome-icon :icon="['fab', 'google']" /> Login via Google
+        </a>
+        <a
+          v-if="showUnavailableAuthMechanisms || showMicrosoft"
+          type="button"
+          :class="{ disabled: !showMicrosoft }"
+          class="btn btn-default btn-login p-3"
+          aria-label="Login via Microsoft"
+          :href="apiUrl + '/login/microsoft'"
+        >
+          <font-awesome-icon :icon="['fab', 'microsoft']" /> Login via Microsoft
+        </a>
+        <a
+          v-if="showUnavailableAuthMechanisms || showEmail"
           type="button"
           :class="{ disabled: !showEmail }"
           class="btn btn-default btn-login p-3"
@@ -62,6 +92,9 @@
         >
           <font-awesome-icon :icon="['fa', 'envelope']" /> Login via email
         </a>
+        <div v-if="noAuthMechanismsAvailable" class="text-muted text-center">
+          No login methods are currently available. Please contact the admin of this datalab server.
+        </div>
       </div>
     </div>
   </div>
@@ -69,12 +102,16 @@
 </template>
 
 <script>
+import CustomLoginInfo from "@/components/CustomLoginInfo.vue";
+import LoginInfo from "@/components/LoginInfo.vue";
 import GetEmailModal from "@/components/GetEmailModal.vue";
-import { getInfo } from "@/server_fetch_utils.js";
-import { API_URL, LOGO_URL, HOMEPAGE_URL } from "@/resources.js";
+import { getAuthMechanisms, getUserInfo } from "@/server_fetch_utils.js";
+import { API_URL, LOGO_URL, HOMEPAGE_URL, LOGIN_HIDE_UNAVAILABLE_AUTH } from "@/resources.js";
 
 export default {
   components: {
+    CustomLoginInfo,
+    LoginInfo,
     GetEmailModal,
   },
   data() {
@@ -83,28 +120,62 @@ export default {
       apiUrl: API_URL,
       logo_url: LOGO_URL,
       homepage_url: HOMEPAGE_URL,
-      ASCII: `
-              oooo              o8              o888             oooo
-           ooooo888    ooooooo o888oo  ooooooo    888   ooooooo    888ooooo
-         888    888    ooooo888 888    ooooo888   888   ooooo888   888    888
-         888    888  888    888 888  888    888   888 888    888   888    888
-           88ooo888o  88ooo88 8o 888o 88ooo88 8o o888o 88ooo88 8o o888ooo88
-      `,
+      authMechanisms: null,
+      currentUser: null,
+      userInfoLoaded: false,
     };
   },
   computed: {
+    customLoginInfoHasContent() {
+      return CustomLoginInfo.hasContent !== false;
+    },
+    showUnavailableAuthMechanisms() {
+      return !LOGIN_HIDE_UNAVAILABLE_AUTH;
+    },
     showGitHub() {
-      return this.$store.state.serverInfo?.features?.auth_mechanisms?.github ?? false;
+      return this.authMechanisms?.github ?? false;
     },
     showORCID() {
-      return this.$store.state.serverInfo?.features?.auth_mechanisms?.orcid ?? false;
+      return this.authMechanisms?.orcid ?? false;
+    },
+    showGoogle() {
+      return this.authMechanisms?.google ?? false;
+    },
+    showMicrosoft() {
+      return this.authMechanisms?.microsoft ?? false;
     },
     showEmail() {
-      return this.$store.state.serverInfo?.features?.auth_mechanisms?.email ?? false;
+      return this.authMechanisms?.email ?? false;
+    },
+    noAuthMechanismsAvailable() {
+      return this.authMechanisms != null && !Object.values(this.authMechanisms).some(Boolean);
+    },
+    currentUserDisplayName() {
+      return (
+        this.currentUser?.display_name ||
+        this.currentUser?.name ||
+        this.currentUser?.email ||
+        "this account"
+      );
     },
   },
   async mounted() {
-    getInfo();
+    try {
+      this.currentUser = await getUserInfo();
+    } finally {
+      this.userInfoLoaded = true;
+    }
+
+    try {
+      this.authMechanisms = await getAuthMechanisms();
+    } catch {
+      this.authMechanisms = {};
+    }
+  },
+  methods: {
+    goToApp() {
+      window.location.href = "/samples";
+    },
   },
 };
 </script>
@@ -125,7 +196,8 @@ export default {
   justify-content: center;
   text-align: center;
   align-items: center;
-  background-color: lightblue;
+  background-color: var(--login-welcome-background, lightblue);
+  color: var(--login-welcome-color, inherit);
 }
 
 .login-options {
@@ -136,6 +208,8 @@ export default {
   justify-content: center;
   gap: 1rem;
   padding: 2rem;
+  background-color: var(--login-options-background, transparent);
+  color: var(--login-options-color, inherit);
 }
 
 .login-button {
@@ -143,6 +217,15 @@ export default {
   flex-direction: column;
   width: 50%;
   gap: 2em;
+}
+
+.logged-in-options {
+  gap: 1.25rem;
+}
+
+.logged-in-title {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .logo-container {
