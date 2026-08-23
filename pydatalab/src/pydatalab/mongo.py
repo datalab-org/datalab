@@ -19,7 +19,7 @@ __all__ = (
     "insert_pydantic_model_fork_safe",
     "gravatar_hash_for",
     "run_startup_migrations",
-    "ITEMS_FTS_FIELDS",
+    "get_items_fts_fields",
     "USERS_FTS_FIELDS",
     "COLLECTIONS_FTS_FIELDS",
     "GROUPS_FTS_FIELDS",
@@ -105,8 +105,6 @@ def get_items_fts_fields() -> set[str]:
 
     return fields
 
-
-ITEMS_FTS_FIELDS: set[str] = set()
 
 USERS_FTS_FIELDS: set[str] = {"identities.name", "display_name", "contact_email"}
 """Fields to search for users."""
@@ -293,12 +291,9 @@ def create_default_indices(
 
     """
 
-    global ITEMS_FTS_FIELDS
+    items_fts_fields = get_items_fts_fields()
 
-    if not ITEMS_FTS_FIELDS:
-        ITEMS_FTS_FIELDS = get_items_fts_fields()
-
-    if not ITEMS_FTS_FIELDS:
+    if not items_fts_fields:
         raise ValueError("Cannot create text indices: no fields available for full-text search")
 
     if client is None:
@@ -325,7 +320,7 @@ def create_default_indices(
 
     ret += create_or_recreate_text_index(
         db.items,
-        ITEMS_FTS_FIELDS,
+        items_fts_fields,
         weights={"refcode": 3, "item_id": 3, "name": 3, "chemform": 3},
     )
 
