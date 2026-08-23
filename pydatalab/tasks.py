@@ -286,11 +286,9 @@ def change_user_role(_, display_name: str, role: str):
     from pydatalab.models.utils import UserRole
     from pydatalab.mongo import _get_active_mongo_client
 
-    role = UserRole(role.lower())
-
     try:
-        role = getattr(UserRole, role.upper())
-    except AttributeError:
+        role = UserRole(role.lower())
+    except ValueError:
         raise SystemExit(f"Invalid role: {role!r}. Must be one of {UserRole.__members__}") from None
 
     matches = list(
