@@ -17,7 +17,7 @@ class Collection(Entry, HasOwner, HasBlocks):
 
     type: Literal["collections"] = "collections"
 
-    collection_id: HumanReadableIdentifier
+    collection_id: HumanReadableIdentifier | None = None
     """A short human-readable/usable name for the collection."""
 
     title: str | None = None
