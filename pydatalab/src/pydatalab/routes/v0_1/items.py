@@ -1658,42 +1658,6 @@ def save_item():
                     ]
                     updated_data["collections"] = inaccessible
 
-    existing_item = flask_mongo.db.items.find_one({"item_id": item_id})
-    if existing_item:
-        existing_relationships = existing_item.get("relationships", [])
-        non_collection_relationships = [
-            rel for rel in existing_relationships if rel.get("type") != "collections"
-        ]
-
-        collection_relationships = []
-        for coll in updated_data.get("collections", []):
-            immutable_id = coll.get("immutable_id")
-            collection_id = coll.get("collection_id")
-
-            if immutable_id:
-                if isinstance(immutable_id, str):
-                    from bson import ObjectId
-
-                    immutable_id = ObjectId(immutable_id)
-            elif collection_id:
-                collection_doc = flask_mongo.db.collections.find_one(
-                    {"collection_id": collection_id}
-                )
-                if collection_doc:
-                    immutable_id = collection_doc["_id"]
-
-            if immutable_id:
-                collection_relationships.append(
-                    {
-                        "relation": None,
-                        "immutable_id": immutable_id,
-                        "type": "collections",
-                        "description": "Is a member of",
-                    }
-                )
-
-        updated_data["relationships"] = non_collection_relationships + collection_relationships
-
     item_type = item["type"]
 
     preserve_relationships = "collections" not in updated_data
@@ -1708,10 +1672,8 @@ def save_item():
             exclude={"collections", "creators", "immutable_id"},
         )
 
-    except ValidationError:
-        raise BadRequest(
-            f"Unable to update item {item_id=} ({item_type=}) with new data {updated_data}"
-        )
+    except ValidationError as exc:
+        raise BadRequest(f"Unable to update item {item_id=} ({item_type=}): {exc}")
 
     if preserve_relationships and original_relationships is not None:
         item["relationships"] = original_relationships
