@@ -323,10 +323,10 @@ describe("Edit Page", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
 
-    cy.get('[data-testid="add-block-button-top"]').click();
-    cy.get('[data-testid="add-block-dropdown"]').contains("Media").click();
-    cy.findAllByText("Select a file").eq(0).should("exist");
-    cy.get("select.file-select-dropdown").eq(0).select(test_fname);
+    cy.addBlockFromTopDropdown("Media").within(() => {
+      cy.findByText("Select a file").should("exist");
+      cy.get("select.file-select-dropdown").select(test_fname);
+    });
 
     // Check that the img with id "media-block-img" is present
     cy.get('img[data-testid="media-block-img"]').should("exist");
@@ -340,10 +340,10 @@ describe("Edit Page", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
 
-    cy.get('[data-testid="add-block-button-top"]').click();
-    cy.get('[data-testid="add-block-dropdown"]').contains("Media").click();
-    cy.findAllByText("Select a file").eq(1).should("exist");
-    cy.get("select.file-select-dropdown").eq(1).select(test_fname);
+    cy.addBlockFromTopDropdown("Media").within(() => {
+      cy.findByText("Select a file").should("exist");
+      cy.get("select.file-select-dropdown").select(test_fname);
+    });
 
     // Check that the SVG is displayed
     cy.get(".svg-wrapper").should("exist");
@@ -366,12 +366,10 @@ describe("Edit Page", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
 
-    cy.get('[data-testid="add-block-button-top"]').click();
-    cy.get('[data-testid="add-block-dropdown"]').contains("Raman spectroscopy").click();
-    cy.findAllByText("Select a file").eq(2).should("exist");
-    cy.get("select.file-select-dropdown")
-      .eq(2)
-      .select("example_data_raman_labspec_raman_example.txt");
+    cy.addBlockFromTopDropdown("Raman spectroscopy").within(() => {
+      cy.findByText("Select a file").should("exist");
+      cy.get("select.file-select-dropdown").select("example_data_raman_labspec_raman_example.txt");
+    });
     cy.contains("label", "X axis").should("exist");
     cy.contains("label", "Y axis").should("exist");
   });
