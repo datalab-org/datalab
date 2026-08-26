@@ -222,6 +222,7 @@ export default {
             component: BlocksIconCounter,
             props: (row) => ({ count: row.nblocks, blockInfo: row.blocks }),
           },
+          getValue: (row) => row.nblocks,
         },
         {
           field: "nfiles",

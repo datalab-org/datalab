@@ -102,6 +102,40 @@
 
         <div class="dropdown">
           <button
+            data-testid="export-csv-button"
+            class="btn btn-default"
+            type="button"
+            aria-label="Export table to CSV"
+            title="Export table to CSV"
+            aria-haspopup="true"
+            :aria-expanded="isExportDropdownVisible"
+            @click="isExportDropdownVisible = !isExportDropdownVisible"
+          >
+            <font-awesome-icon icon="file-export" />
+          </button>
+          <div
+            v-show="isExportDropdownVisible"
+            class="dropdown-menu dropdown-menu-right"
+            style="display: block"
+          >
+            <a data-testid="export-all-button" class="dropdown-item" @click="emitExport('all')">
+              Export all rows
+            </a>
+            <a
+              v-if="itemsSelected.length > 0"
+              data-testid="export-selected-button"
+              class="dropdown-item"
+              @click="emitExport('selected')"
+            >
+              Export {{ itemsSelected.length }} selected row{{
+                itemsSelected.length > 1 ? "s" : ""
+              }}
+            </a>
+          </div>
+        </div>
+
+        <div class="dropdown">
+          <button
             data-testid="table-settings-button"
             class="btn btn-default"
             type="button"
@@ -386,12 +420,14 @@ export default {
     "users-data-changed",
     "bulk-invalidate-tokens",
     "bulk-delete-groups",
+    "export-csv",
   ],
   data() {
     return {
       localFilters: { ...this.filters },
       isSelectedDropdownVisible: false,
       isSettingsDropdownVisible: false,
+      isExportDropdownVisible: false,
       isDeletingItems: false,
       itemCount: 0,
       showBulkChangeRoleModal: false,
@@ -471,6 +507,10 @@ export default {
         this.$emit("remove-selected-items-from-collection");
       }
       this.isSelectedDropdownVisible = false;
+    },
+    emitExport(scope) {
+      this.$emit("export-csv", scope);
+      this.isExportDropdownVisible = false;
     },
     async removeItemsFromCollection(refcodes) {
       try {

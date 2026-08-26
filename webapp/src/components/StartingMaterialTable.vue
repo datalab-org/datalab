@@ -186,6 +186,7 @@ export default {
             component: BlocksIconCounter,
             props: (row) => ({ count: row.nblocks, blockInfo: row.blocks }),
           },
+          getValue: (row) => row.nblocks,
           filter: {
             component: MultiSelectFilter,
             componentProps: { optionLabel: "label", placeholder: "Select block types" },
