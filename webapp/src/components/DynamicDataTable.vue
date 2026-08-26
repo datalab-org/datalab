@@ -142,6 +142,7 @@
             placeholder="Any"
             class="d-flex w-full"
             :filter="true"
+            append-to="self"
             @click.stop
           >
             <template #option="slotProps">
@@ -190,6 +191,7 @@
             placeholder="Any"
             class="d-flex w-full"
             :filter="true"
+            append-to="self"
             @click.stop
           >
             <template #option="slotProps">
@@ -225,6 +227,7 @@
             placeholder="Select item types"
             class="d-flex w-full"
             :filter="true"
+            append-to="self"
             @click.stop
           >
           </MultiSelect>
@@ -238,6 +241,7 @@
             placeholder="Select block types"
             class="d-flex w-full"
             :filter="true"
+            append-to="self"
             @click.stop
           >
             <template #option="slotProps">
@@ -270,6 +274,7 @@
             placeholder="Select status"
             class="d-flex w-full"
             :filter="true"
+            append-to="self"
             @click.stop
           >
             <template #option="slotProps">
@@ -304,6 +309,7 @@
             placeholder="Any"
             class="d-flex w-full"
             :filter="true"
+            append-to="self"
             @click.stop
           >
             <template #value="slotProps">
@@ -331,6 +337,7 @@
               option-value="value"
               placeholder="Select filter type"
               class="w-full"
+              append-to="self"
               @change="handleDateFilterModeChange(column.field)"
             />
 
@@ -344,6 +351,7 @@
               :manual-input="false"
               :hide-on-range-selection="true"
               style="width: 100%"
+              append-to="self"
             />
 
             <DatePicker
@@ -354,6 +362,7 @@
               :show-button-bar="true"
               :manual-input="false"
               style="width: 100%"
+              append-to="self"
             />
           </div>
         </template>
@@ -368,6 +377,7 @@
             placeholder="Any"
             class="p-column-filter"
             show-clear
+            append-to="self"
           >
             <template #option="slotProps">
               <UserStatusCell :status="slotProps.option" />
@@ -389,6 +399,7 @@
             placeholder="Any"
             class="p-column-filter"
             show-clear
+            append-to="self"
           >
             <template #option="slotProps">
               <RoleBadge :role="slotProps.option" />
@@ -412,6 +423,7 @@
             class="p-column-filter"
             :max-selected-labels="1"
             :filter="true"
+            append-to="self"
           >
             <template #option="slotProps">
               <div class="flex items-center">
@@ -444,6 +456,7 @@
             placeholder="Any"
             class="p-column-filter"
             show-clear
+            append-to="self"
           >
             <template #option="slotProps">
               <TokenStatusCell :active="slotProps.option.active" />
@@ -469,6 +482,7 @@
             placeholder="Select item types"
             class="d-flex w-full"
             :filter="true"
+            append-to="self"
             @click.stop
           >
           </MultiSelect>
@@ -482,6 +496,7 @@
               option-label="label"
               option-value="value"
               class="mb-2 w-full"
+              append-to="self"
               @change="handleDateFilterModeChange('created_at')"
             />
             <DatePicker
@@ -492,6 +507,7 @@
               placeholder="Select date"
               class="w-full"
               show-button-bar
+              append-to="self"
               @date-select="onDateRangeSelect"
             />
           </div>
@@ -508,6 +524,7 @@
             placeholder="Any"
             class="d-flex w-full"
             :filter="true"
+            append-to="self"
             @click.stop
           >
             <template #option="slotProps">
