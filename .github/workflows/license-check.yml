@@ -18,7 +18,6 @@ jobs:
       with:
         submodules: true
         fetch-depth: 0
-        ref: ${{ env.PUBLISH_UPDATE_BRANCH }}
 
     - name: Set up minimum Python
       uses: actions/setup-python@v7
