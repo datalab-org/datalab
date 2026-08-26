@@ -359,16 +359,26 @@ jobs:
           cache: "yarn"
           cache-dependency-path: ./webapp/yarn.lock
 
+      # Installing separately from the test run keeps `NODE_ENV` off the
+      # install, where yarn v1 would read it as `--production` and skip the
+      # devDependencies (Cypress included).
+      - name: Install dependencies
+        uses: cypress-io/github-action@v7
+        with:
+          working-directory: ./webapp
+          runTests: false
+
       - name: Run component tests
         uses: cypress-io/github-action@v7
         with:
           working-directory: ./webapp
+          install: false
           record: ${{ github.repository == 'datalab-org/datalab' }}
           component: true
           publish-summary: false
           browser: ${{ matrix.browser-backend }}
-          group: "Component tests (${{ matrix.browser-backend }})"
         env:
+          NODE_ENV: "production"
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
 
   liccheck:
