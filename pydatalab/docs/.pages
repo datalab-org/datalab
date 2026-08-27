@@ -9,7 +9,7 @@ nav:
         - Code of conduct: CODE_OF_CONDUCT.md
         - INSTALL.md
         - plugins.md
-        - Writing data blocks: blocks/index.md
+        - Writing data blocks: blocks
         - roadmap.md
     - Deployment:
         - deployment.md
