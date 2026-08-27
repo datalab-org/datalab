@@ -6,6 +6,7 @@ from flask import Blueprint, jsonify, request
 from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.results import InsertOneResult, UpdateResult
+from werkzeug.exceptions import BadRequest, Conflict, NotFound, Unauthorized
 
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER, logged_route
@@ -59,15 +60,7 @@ def get_collection(collection_id):
         doc = None
 
     if not doc or (not current_user.is_authenticated and not CONFIG.TESTING):
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": f"No matching collection {collection_id=} with current authorization.",
-                }
-            ),
-            404,
-        )
+        raise NotFound(f"No matching collection {collection_id=} with current authorization.")
 
     collection = Collection(**doc)
 
@@ -101,14 +94,7 @@ def create_collection():
     starting_members = data.get("starting_members", [])
 
     if not current_user.is_authenticated and not CONFIG.TESTING:
-        return (
-            dict(
-                status="error",
-                message="Unable to create new collection without user authentication.",
-                collection_id=data.get("collection_id"),
-            ),
-            401,
-        )
+        raise Unauthorized("Unable to create new collection without user authentication.")
 
     if copy_from_id:
         raise NotImplementedError("Copying collections is not yet implemented.")
@@ -140,13 +126,8 @@ def create_collection():
 
     # check to make sure that item_id isn't taken already
     if flask_mongo.db.collections.find_one({"collection_id": data["collection_id"]}):
-        return (
-            dict(
-                status="error",
-                message=f"collection_id_validation_error: {data['collection_id']!r} already exists in database.",
-                collection_id=data["collection_id"],
-            ),
-            409,  # 409: Conflict
+        raise Conflict(
+            f"collection_id_validation_error: {data['collection_id']!r} already exists in database."
         )
 
     data["last_modified"] = data.get(
@@ -267,13 +248,7 @@ def save_collection(collection_id):
     )
 
     if not collection:
-        return (
-            jsonify(
-                status="error",
-                message=f"Unable to find item with appropriate permissions and {collection_id=}.",
-            ),
-            400,
-        )
+        raise NotFound(f"Unable to find item with appropriate permissions and {collection_id=}.")
 
     collection.update(updated_data)
 
@@ -320,15 +295,7 @@ def update_collection_permissions(collection_id: str):
     )  # type: ignore
 
     if not current_collection:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": f"No valid collection found with the given {collection_id=}.",
-                }
-            ),
-            401,
-        )
+        raise NotFound(f"No valid collection found with the given {collection_id=}.")
 
     current_creator_ids = current_collection["creator_ids"]
 
@@ -360,45 +327,21 @@ def update_collection_permissions(collection_id: str):
         ]
 
     if not groups_requested and not creators_requested:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": "No valid creator or group IDs found in the request.",
-                }
-            ),
-            400,
-        )
+        raise BadRequest("No valid creator or group IDs found in the request.")
 
     if creator_ids:
         found_creator_ids = [
             d for d in flask_mongo.db.users.find({"_id": {"$in": creator_ids}}, {"_id": 1})
         ]  # type: ignore
         if len(found_creator_ids) != len(creator_ids):
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": "One or more creator IDs not found in the database.",
-                    }
-                ),
-                400,
-            )
+            raise BadRequest("One or more creator IDs not found in the database.")
 
     if group_ids:
         found_group_ids = [
             d for d in flask_mongo.db.groups.find({"_id": {"$in": group_ids}}, {"_id": 1})
         ]  # type: ignore
         if len(found_group_ids) != len(group_ids):
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": "One or more group IDs not found in the database.",
-                    }
-                ),
-                400,
-            )
+            raise BadRequest("One or more group IDs not found in the database.")
 
     if creator_ids and creators_requested:
         current_user_id = current_user.person.immutable_id
@@ -437,12 +380,9 @@ def update_collection_permissions(collection_id: str):
     )
 
     if result.matched_count != 1:
-        return jsonify(
-            {
-                "status": "error",
-                "message": "Failed to update permissions: collection not found or insufficient permissions.",
-            }
-        ), 400
+        raise NotFound(
+            "Failed to update permissions: collection not found or insufficient permissions."
+        )
 
     return jsonify({"status": "success"}), 200
 
@@ -462,14 +402,8 @@ def delete_collection(collection_id: str):
                 }
             )
             if result.deleted_count != 1:
-                return (
-                    jsonify(
-                        {
-                            "status": "error",
-                            "message": f"Authorization required to attempt to delete collection with {collection_id=} from the database.",
-                        }
-                    ),
-                    401,
+                raise NotFound(
+                    f"No valid collection found with {collection_id=} and current authorization."
                 )
 
             # If successful, remove collection from all matching items relationships
@@ -518,7 +452,7 @@ def search_collections():
     nresults = request.args.get("nresults", default=100, type=int)
 
     if not query:
-        return jsonify({"status": "error", "message": "No query provided."}), 400
+        raise BadRequest("No query provided.")
 
     permissions = get_default_permissions(user_only=False)
     pipeline = build_search_pipeline(query, COLLECTIONS_FTS_FIELDS, permissions)
@@ -551,17 +485,17 @@ def add_items_to_collection(collection_id):
     )
 
     if not collection:
-        return jsonify({"error": "Collection not found"}), 404
+        raise NotFound("Collection not found")
 
     if not refcodes:
-        return jsonify({"error": "No item provided"}), 400
+        raise BadRequest("No item provided")
 
     item_count = flask_mongo.db.items.count_documents(
         {"refcode": {"$in": refcodes}, **get_default_permissions()}
     )
 
     if item_count == 0:
-        return jsonify({"error": "No matching items found"}), 404
+        raise NotFound("No matching items found")
 
     update_result = flask_mongo.db.items.update_many(
         {"refcode": {"$in": refcodes}, **get_default_permissions()},
@@ -580,7 +514,7 @@ def add_items_to_collection(collection_id):
     )
 
     if update_result.matched_count == 0:
-        return (jsonify({"status": "error", "message": "Unable to add to collection."}), 400)
+        raise BadRequest("Unable to add to collection.")
 
     if update_result.modified_count == 0:
         return (
@@ -606,10 +540,10 @@ def remove_items_from_collection(collection_id):
     )
 
     if not collection:
-        return jsonify({"error": "Collection not found"}), 404
+        raise NotFound("Collection not found")
 
     if not refcodes:
-        return jsonify({"error": "No refcodes provided"}), 400
+        raise BadRequest("No refcodes provided")
 
     update_result = flask_mongo.db.items.update_many(
         {"refcode": {"$in": refcodes}, **get_default_permissions()},
@@ -624,7 +558,7 @@ def remove_items_from_collection(collection_id):
     )
 
     if update_result.matched_count == 0:
-        return jsonify({"status": "error", "message": "No matching items found."}), 404
+        raise NotFound("No matching items found.")
 
     elif update_result.matched_count != len(refcodes):
         return jsonify(

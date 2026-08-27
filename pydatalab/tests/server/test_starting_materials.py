@@ -235,7 +235,7 @@ def test_starting_material_permissions(
         json={"item_id": default_starting_material_dict["item_id"]},
     )
 
-    assert response.status_code == 401
+    assert response.status_code == 404
 
     # Check that the admin can delete a starting material that has no user
     response = admin_client.post(

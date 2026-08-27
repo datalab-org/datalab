@@ -159,7 +159,7 @@ def get_user_activity(user_id):
     """Get activity data for a specific user (creation dates)."""
 
     if str(current_user.person.immutable_id) != user_id and current_user.role != "admin":
-        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+        raise Forbidden("User not allowed to view this activity.")
 
     months = int(request.args.get("months", 12))
 
@@ -207,7 +207,7 @@ def search_users():
     nresults = request.args.get("nresults", default=100, type=int)
 
     if not query:
-        return jsonify({"status": "error", "message": "No query provided."}), 400
+        raise BadRequest("No query provided.")
 
     pipeline = build_search_pipeline(query, USERS_FTS_FIELDS, permissions=None)
     pipeline.append({"$limit": nresults})
