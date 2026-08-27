@@ -1352,3 +1352,106 @@ def test_get_item_with_malformed_stored_constituent_returns_500(client, database
         assert response.json["status"] == "error"
     finally:
         database.items.delete_one({"item_id": bad_doc["item_id"]})
+
+
+@pytest.mark.dependency(depends=["test_create_collections"])
+def test_save_item_collection_change_preserves_other_relationships(
+    client, database, default_collection
+):
+    """Check that changing an item's collections via `/save-item/` retargets only the
+    collection relationships, leaving other relationships intact.
+    """
+    collection_dict = json.loads(default_collection.model_dump_json())
+    collection_dict["collection_id"] = "test_collection_rels_a"
+    response = client.put("/collections", json={"data": collection_dict})
+    assert response.status_code == 201, response.json
+    collection_a_id = database.collections.find_one({"collection_id": "test_collection_rels_a"})[
+        "_id"
+    ]
+
+    collection_dict = json.loads(default_collection.model_dump_json())
+    collection_dict["collection_id"] = "test_collection_rels_b"
+    response = client.put("/collections", json={"data": collection_dict})
+    assert response.status_code == 201, response.json
+    collection_b_id = database.collections.find_one({"collection_id": "test_collection_rels_b"})[
+        "_id"
+    ]
+
+    response = client.post("/new-sample/", json={"item_id": "rels_parent", "type": "samples"})
+    assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "item_id": "rels_child",
+            "type": "samples",
+            "synthesis_constituents": [
+                {"item": {"item_id": "rels_parent", "type": "samples"}, "quantity": None}
+            ],
+            "collections": [{"collection_id": "test_collection_rels_a"}],
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    item = database.items.find_one({"item_id": "rels_child"})
+    assert [r["immutable_id"] for r in item["relationships"] if r["type"] == "collections"] == [
+        collection_a_id
+    ]
+    assert [
+        r["item_id"]
+        for r in item["relationships"]
+        if r["relation"] == RelationshipType.PARENT.value
+    ] == ["rels_parent"]
+
+    # Saving without a `collections` key must leave collection membership untouched
+    response = client.get("/get-item-data/rels_child")
+    assert response.status_code == 200, response.json
+    updated_data = response.json["item_data"]
+    updated_data.pop("collections", None)
+    updated_data["description"] = "no collections key in this payload"
+    response = client.post("/save-item/", json={"data": updated_data, "item_id": "rels_child"})
+    assert response.status_code == 200, response.json
+
+    item = database.items.find_one({"item_id": "rels_child"})
+    assert [r["immutable_id"] for r in item["relationships"] if r["type"] == "collections"] == [
+        collection_a_id
+    ]
+    assert [
+        r["item_id"]
+        for r in item["relationships"]
+        if r["relation"] == RelationshipType.PARENT.value
+    ] == ["rels_parent"]
+
+    # Swapping collection A for B must retarget the collection relationship only
+    response = client.get("/get-item-data/rels_child")
+    assert response.status_code == 200, response.json
+    updated_data = response.json["item_data"]
+    updated_data["collections"] = [{"collection_id": "test_collection_rels_b"}]
+    response = client.post("/save-item/", json={"data": updated_data, "item_id": "rels_child"})
+    assert response.status_code == 200, response.json
+
+    item = database.items.find_one({"item_id": "rels_child"})
+    assert [r["immutable_id"] for r in item["relationships"] if r["type"] == "collections"] == [
+        collection_b_id
+    ]
+    assert [
+        r["item_id"]
+        for r in item["relationships"]
+        if r["relation"] == RelationshipType.PARENT.value
+    ] == ["rels_parent"]
+
+    # Clearing collections must drop every collection relationship, but only those
+    response = client.get("/get-item-data/rels_child")
+    assert response.status_code == 200, response.json
+    updated_data = response.json["item_data"]
+    updated_data["collections"] = []
+    response = client.post("/save-item/", json={"data": updated_data, "item_id": "rels_child"})
+    assert response.status_code == 200, response.json
+
+    item = database.items.find_one({"item_id": "rels_child"})
+    assert [r for r in item["relationships"] if r["type"] == "collections"] == []
+    assert [
+        r["item_id"]
+        for r in item["relationships"]
+        if r["relation"] == RelationshipType.PARENT.value
+    ] == ["rels_parent"]
