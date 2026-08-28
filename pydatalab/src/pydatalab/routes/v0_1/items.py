@@ -19,7 +19,11 @@ from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS, ItemVersion, flagged_summary_fields
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
-from pydatalab.models.utils import InlineSubstance, generate_unique_refcode
+from pydatalab.models.utils import (
+    InlineSubstance,
+    construct_location_hierarchy,
+    generate_unique_refcode,
+)
 from pydatalab.models.versions import (
     CompareVersionsQuery,
     RestoreVersionRequest,
@@ -1860,14 +1864,10 @@ def get_locations_for_items():
 
     locations |= CONFIG.PREDEFINED_LOCATIONS
 
-    nested_locations = {}
-    for location_locators in locations:
-        comprising_locations = location_locators.split(">")
-        curr_dict = nested_locations
-        for location in comprising_locations:
-            location = location.strip()
-            if location not in curr_dict:
-                curr_dict[location] = {}
-            curr_dict = curr_dict[location]
+    try:
+        nested_locations = construct_location_hierarchy(locations)
+    except Exception as exc:
+        LOGGER.error("Error constructing location hierarchy for %s: %s", locations, exc)
+        nested_locations = {}
 
     return jsonify({"flat_locations": list(locations), "nested_locations": nested_locations}), 200

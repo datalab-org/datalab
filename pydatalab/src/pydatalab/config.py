@@ -375,6 +375,15 @@ its importance when deploying a datalab instance.""",
                 strategy.active = False
         return self
 
+    @field_validator("PREDEFINED_LOCATIONS", mode="before")
+    @classmethod
+    def check_predefined_locations(cls, v):
+        """Checks that predefined locations can be parsed hierarchically."""
+        from pydatalab.models.utils import construct_location_hierarchy
+
+        construct_location_hierarchy(v)
+        return v
+
     @field_validator("LOG_FILE", mode="before")
     @classmethod
     def make_missing_log_directory(cls, v):

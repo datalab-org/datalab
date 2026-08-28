@@ -104,6 +104,59 @@ def test_location_endpoint_with_spaced_signs(client, item_creator, user_id):
     assert "Shelf 1" in response.json["nested_locations"]["Lab 2"]
 
 
+def test_location_endpoint_with_bad_segments(client, item_creator):
+    """Tests that malformed locations (e.g., double >) do not break endpoint."""
+
+    locations = [
+        "Lab 1 >> Shelf 2",
+        "Building A > Lab 1 > Shelf 3",
+        "Shelf 3",
+        ">>>>>>>>>>",
+        "<<<<",
+    ]
+
+    for ind, loc in enumerate(locations):
+        item_creator(Cell(**{"item_id": f"test_cell_{ind + 99}", "location": loc}))
+
+    # expected_nest = {"Lab 1": ["Shelf 2"], "Building A": {"Lab 1": ["Shelf 3"], "Shelf 3": {}}}
+
+    response = client.get("/locations")
+    assert response.status_code == 200
+    assert "flat_locations" in response.json
+
+    assert set(response.json["flat_locations"]).issuperset(locations)
+    assert "nested_locations" in response.json
+    assert all(k in response.json["nested_locations"] for k in ["Lab 1", "Building A", "Shelf 3"])
+    assert response.json["nested_locations"]["Building A"]["Lab 1"] == {"Shelf 3": {}}
+    assert response.json["nested_locations"]["Shelf 3"] == {}
+    assert response.json["nested_locations"]["Lab 1"] == {"Shelf 2": {}}
+
+
+def test_location_endpoint_with_duplicated_segments(client, item_creator):
+    """Tests that duplicated segments appearing at different levels
+    are treated as separate things.
+
+    """
+
+    locations = ["Lab 1 > Shelf 2", "Building A > Lab 1 > Shelf 3", "Shelf 3"]
+
+    for ind, loc in enumerate(locations):
+        item_creator(Cell(**{"item_id": f"test_cell_{ind + 99}", "location": loc}))
+
+    # expected_nest = {"Lab 1": ["Shelf 2"], "Building A": {"Lab 1": ["Shelf 3"], "Shelf 3": {}}}
+
+    response = client.get("/locations")
+    assert response.status_code == 200
+    assert "flat_locations" in response.json
+
+    assert set(response.json["flat_locations"]).issuperset(locations)
+    assert "nested_locations" in response.json
+    assert all(k in response.json["nested_locations"] for k in ["Lab 1", "Building A", "Shelf 3"])
+    assert response.json["nested_locations"]["Building A"]["Lab 1"] == {"Shelf 3": {}}
+    assert response.json["nested_locations"]["Shelf 3"] == {}
+    assert response.json["nested_locations"]["Lab 1"] == {"Shelf 2": {}}
+
+
 def test_location_endpoint_with_single_non_nested_location(client, item_creator, user_id):
     item_creator(
         Cell(
@@ -123,7 +176,7 @@ def test_location_endpoint_with_single_non_nested_location(client, item_creator,
 
 
 def test_regression_test_against_overwriting_problem(client, item_creator, user_id):
-    # test ensures that items don't get over (i.e. Position A should not get overwritten)
+    # test ensures that items don't get overwritten (i.e. Position A should not get overwritten)
     item_creator(
         Cell(
             **{
