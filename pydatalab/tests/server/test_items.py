@@ -50,174 +50,20 @@ def test_location_endpoint_server_defaults(client, item_creator, user_id):
 
 
 def test_location_endpoint(client, item_creator, user_id):
-    item_creator(
-        Cell(
-            **{
-                "item_id": "test_cell0",
-                "name": "test cell",
-                "date": "1970-02-01",
-                "negative_electrode": [
-                    {
-                        "item": {"item_id": "test", "type": "starting_materials"},
-                        "quantity": 2.0,
-                        "unit": "mg",
-                    },
-                    {
-                        "item": {"item_id": "test_carbon", "chemform": "C", "type": "samples"},
-                        "quantity": 2.0,
-                        "unit": "mg",
-                    },
-                ],
-                "positive_electrode": [
-                    {
-                        "item": {
-                            "item_id": "test_cathode",
-                            "chemform": "LiCoO2",
-                            "type": "samples",
-                        },
-                        "quantity": 2000,
-                        "unit": "kg",
-                    }
-                ],
-                "electrolyte": [
-                    {"item": {"name": "inlined reference"}, "quantity": 100, "unit": "ml"}
-                ],
-                "cell_format": "swagelok",
-                "type": "cells",
-                "creator_ids": [user_id],
-                "Location": "Place1>Place2>Place3",
-            }
-        )
-    )
-    item_creator(
-        Cell(
-            **{
-                "item_id": "test_cell_2",
-                "name": "test cell",
-                "date": "1970-02-01",
-                "negative_electrode": [
-                    {
-                        "item": {"item_id": "test", "type": "starting_materials"},
-                        "quantity": 5.0,
-                        "unit": "mg",
-                    },
-                    {
-                        "item": {"item_id": "test_carbon", "chemform": "C", "type": "samples"},
-                        "quantity": 1.0,
-                        "unit": "mg",
-                    },
-                ],
-                "positive_electrode": [
-                    {
-                        "item": {
-                            "item_id": "test_cathode",
-                            "chemform": "LiCoO2",
-                            "type": "samples",
-                        },
-                        "quantity": 500,
-                        "unit": "kg",
-                    }
-                ],
-                "electrolyte": [
-                    {"item": {"name": "inlined reference"}, "quantity": 10, "unit": "ml"}
-                ],
-                "cell_format": "swagelok",
-                "type": "cells",
-                "creator_ids": [user_id],
-                "Location": "Place1>Place2",
-            }
-        )
-    )
-    item_creator(
-        Cell(
-            **{
-                "item_id": "test_cell_3",
-                "name": "test cell",
-                "date": "1970-02-01",
-                "negative_electrode": [
-                    {
-                        "item": {"item_id": "test", "type": "starting_materials"},
-                        "quantity": 5.0,
-                        "unit": "mg",
-                    },
-                    {
-                        "item": {"item_id": "test_carbon", "chemform": "C", "type": "samples"},
-                        "quantity": 1.0,
-                        "unit": "mg",
-                    },
-                ],
-                "positive_electrode": [
-                    {
-                        "item": {
-                            "item_id": "test_cathode",
-                            "chemform": "LiCoO2",
-                            "type": "samples",
-                        },
-                        "quantity": 500,
-                        "unit": "kg",
-                    }
-                ],
-                "electrolyte": [
-                    {"item": {"name": "inlined reference"}, "quantity": 10, "unit": "ml"}
-                ],
-                "cell_format": "swagelok",
-                "type": "cells",
-                "creator_ids": [user_id],
-                "Location": "Place4>Place5>Place6",
-            }
-        )
-    )
-    item_creator(
-        Cell(
-            **{
-                "item_id": "test_cell_4",
-                "name": "test cell",
-                "date": "1970-02-01",
-                "negative_electrode": [
-                    {
-                        "item": {"item_id": "test", "type": "starting_materials"},
-                        "quantity": 5.0,
-                        "unit": "mg",
-                    },
-                    {
-                        "item": {"item_id": "test_carbon", "chemform": "C", "type": "samples"},
-                        "quantity": 1.0,
-                        "unit": "mg",
-                    },
-                ],
-                "positive_electrode": [
-                    {
-                        "item": {
-                            "item_id": "test_cathode",
-                            "chemform": "LiCoO2",
-                            "type": "samples",
-                        },
-                        "quantity": 500,
-                        "unit": "kg",
-                    }
-                ],
-                "electrolyte": [
-                    {"item": {"name": "inlined reference"}, "quantity": 10, "unit": "ml"}
-                ],
-                "cell_format": "swagelok",
-                "type": "cells",
-                "creator_ids": [user_id],
-                "Location": "Place1>Place7>Place8",
-            }
-        )
-    )
+    locations = [
+        "Place1>Place2>Place3",
+        "Place1>Place2",
+        "Place4>Place5>Place6",
+        "Place1>Place7>Place8",
+    ]
+    for ind, loc in enumerate(locations):
+        cell = Cell(**{"item_id": f"test_cell_{ind + 10}", "location": loc})
+        item_creator(cell)
+
     response = client.get("/locations")
     assert response.status_code == 200
     assert "flat_locations" in response.json
-
-    assert set(response.json["flat_locations"]).issuperset(
-        {
-            "Place1>Place2>Place3",
-            "Place1>Place2",
-            "Place4>Place5>Place6",
-            "Place1>Place7>Place8",
-        }
-    )
+    assert set(response.json["flat_locations"]).issuperset(set(locations))
 
     # non-flat checks
     assert "nested_locations" in response.json
@@ -233,174 +79,21 @@ def test_location_endpoint(client, item_creator, user_id):
 
 
 def test_location_endpoint_with_spaced_signs(client, item_creator, user_id):
-    item_creator(
-        Cell(
-            **{
-                "item_id": "test_cell0",
-                "name": "test cell",
-                "date": "1970-02-01",
-                "negative_electrode": [
-                    {
-                        "item": {"item_id": "test", "type": "starting_materials"},
-                        "quantity": 2.0,
-                        "unit": "mg",
-                    },
-                    {
-                        "item": {"item_id": "test_carbon", "chemform": "C", "type": "samples"},
-                        "quantity": 2.0,
-                        "unit": "mg",
-                    },
-                ],
-                "positive_electrode": [
-                    {
-                        "item": {
-                            "item_id": "test_cathode",
-                            "chemform": "LiCoO2",
-                            "type": "samples",
-                        },
-                        "quantity": 2000,
-                        "unit": "kg",
-                    }
-                ],
-                "electrolyte": [
-                    {"item": {"name": "inlined reference"}, "quantity": 100, "unit": "ml"}
-                ],
-                "cell_format": "swagelok",
-                "type": "cells",
-                "creator_ids": [user_id],
-                "Location": "Lab 1 > Shelf 2",
-            }
-        )
-    )
-    item_creator(
-        Cell(
-            **{
-                "item_id": "test_cell_2",
-                "name": "test cell",
-                "date": "1970-02-01",
-                "negative_electrode": [
-                    {
-                        "item": {"item_id": "test", "type": "starting_materials"},
-                        "quantity": 5.0,
-                        "unit": "mg",
-                    },
-                    {
-                        "item": {"item_id": "test_carbon", "chemform": "C", "type": "samples"},
-                        "quantity": 1.0,
-                        "unit": "mg",
-                    },
-                ],
-                "positive_electrode": [
-                    {
-                        "item": {
-                            "item_id": "test_cathode",
-                            "chemform": "LiCoO2",
-                            "type": "samples",
-                        },
-                        "quantity": 500,
-                        "unit": "kg",
-                    }
-                ],
-                "electrolyte": [
-                    {"item": {"name": "inlined reference"}, "quantity": 10, "unit": "ml"}
-                ],
-                "cell_format": "swagelok",
-                "type": "cells",
-                "creator_ids": [user_id],
-                "Location": "Lab 1 > Shelf 3",
-            }
-        )
-    )
-    item_creator(
-        Cell(
-            **{
-                "item_id": "test_cell_3",
-                "name": "test cell",
-                "date": "1970-02-01",
-                "negative_electrode": [
-                    {
-                        "item": {"item_id": "test", "type": "starting_materials"},
-                        "quantity": 5.0,
-                        "unit": "mg",
-                    },
-                    {
-                        "item": {"item_id": "test_carbon", "chemform": "C", "type": "samples"},
-                        "quantity": 1.0,
-                        "unit": "mg",
-                    },
-                ],
-                "positive_electrode": [
-                    {
-                        "item": {
-                            "item_id": "test_cathode",
-                            "chemform": "LiCoO2",
-                            "type": "samples",
-                        },
-                        "quantity": 500,
-                        "unit": "kg",
-                    }
-                ],
-                "electrolyte": [
-                    {"item": {"name": "inlined reference"}, "quantity": 10, "unit": "ml"}
-                ],
-                "cell_format": "swagelok",
-                "type": "cells",
-                "creator_ids": [user_id],
-                "Location": "Lab 2 > Shelf 1",
-            }
-        )
-    )
-    item_creator(
-        Cell(
-            **{
-                "item_id": "test_cell_4",
-                "name": "test cell",
-                "date": "1970-02-01",
-                "negative_electrode": [
-                    {
-                        "item": {"item_id": "test", "type": "starting_materials"},
-                        "quantity": 5.0,
-                        "unit": "mg",
-                    },
-                    {
-                        "item": {"item_id": "test_carbon", "chemform": "C", "type": "samples"},
-                        "quantity": 1.0,
-                        "unit": "mg",
-                    },
-                ],
-                "positive_electrode": [
-                    {
-                        "item": {
-                            "item_id": "test_cathode",
-                            "chemform": "LiCoO2",
-                            "type": "samples",
-                        },
-                        "quantity": 500,
-                        "unit": "kg",
-                    }
-                ],
-                "electrolyte": [
-                    {"item": {"name": "inlined reference"}, "quantity": 10, "unit": "ml"}
-                ],
-                "cell_format": "swagelok",
-                "type": "cells",
-                "creator_ids": [user_id],
-                "Location": "Lab 1 > Shelf 2 > Position A",
-            }
-        )
-    )
+    locations = [
+        "Lab 1 > Shelf 2",
+        "Lab 1 > Shelf 3",
+        "Lab 2 > Shelf 1",
+        "Lab 1 > Shelf 2 > Position A",
+    ]
+    for ind, loc in enumerate(locations):
+        cell = Cell(**{"item_id": f"test_cell_{ind + 20}", "location": loc})
+        item_creator(cell)
+
     response = client.get("/locations")
     assert response.status_code == 200
     assert "flat_locations" in response.json
 
-    assert set(response.json["flat_locations"]).issuperset(
-        {
-            "Lab 1 > Shelf 2",
-            "Lab 1 > Shelf 3",
-            "Lab 2 > Shelf 1",
-            "Lab 1 > Shelf 2 > Position A",
-        }
-    )
+    assert set(response.json["flat_locations"]).issuperset(set(locations))
     assert "nested_locations" in response.json
     assert "Lab 1" in response.json["nested_locations"]
     assert "Shelf 2" in response.json["nested_locations"]["Lab 1"]
@@ -416,38 +109,7 @@ def test_location_endpoint_with_single_non_nested_location(client, item_creator,
         Cell(
             **{
                 "item_id": "test_cell_4",
-                "name": "test cell",
-                "date": "1970-02-01",
-                "negative_electrode": [
-                    {
-                        "item": {"item_id": "test", "type": "starting_materials"},
-                        "quantity": 5.0,
-                        "unit": "mg",
-                    },
-                    {
-                        "item": {"item_id": "test_carbon", "chemform": "C", "type": "samples"},
-                        "quantity": 1.0,
-                        "unit": "mg",
-                    },
-                ],
-                "positive_electrode": [
-                    {
-                        "item": {
-                            "item_id": "test_cathode",
-                            "chemform": "LiCoO2",
-                            "type": "samples",
-                        },
-                        "quantity": 500,
-                        "unit": "kg",
-                    }
-                ],
-                "electrolyte": [
-                    {"item": {"name": "inlined reference"}, "quantity": 10, "unit": "ml"}
-                ],
-                "cell_format": "swagelok",
-                "type": "cells",
-                "creator_ids": [user_id],
-                "Location": "Lab 1",
+                "location": "Lab 1",
             }
         )
     )
@@ -466,38 +128,7 @@ def test_regression_test_against_overwriting_problem(client, item_creator, user_
         Cell(
             **{
                 "item_id": "test_cell_4",
-                "name": "test cell",
-                "date": "1970-02-01",
-                "negative_electrode": [
-                    {
-                        "item": {"item_id": "test", "type": "starting_materials"},
-                        "quantity": 5.0,
-                        "unit": "mg",
-                    },
-                    {
-                        "item": {"item_id": "test_carbon", "chemform": "C", "type": "samples"},
-                        "quantity": 1.0,
-                        "unit": "mg",
-                    },
-                ],
-                "positive_electrode": [
-                    {
-                        "item": {
-                            "item_id": "test_cathode",
-                            "chemform": "LiCoO2",
-                            "type": "samples",
-                        },
-                        "quantity": 500,
-                        "unit": "kg",
-                    }
-                ],
-                "electrolyte": [
-                    {"item": {"name": "inlined reference"}, "quantity": 10, "unit": "ml"}
-                ],
-                "cell_format": "swagelok",
-                "type": "cells",
-                "creator_ids": [user_id],
-                "Location": "Cambridge > Lab 6 > Shelf 2 > Position A",
+                "location": "Cambridge > Lab 6 > Shelf 2 > Position A",
             }
         )
     )
@@ -505,38 +136,7 @@ def test_regression_test_against_overwriting_problem(client, item_creator, user_
         Cell(
             **{
                 "item_id": "test_cell0",
-                "name": "test cell",
-                "date": "1970-02-01",
-                "negative_electrode": [
-                    {
-                        "item": {"item_id": "test", "type": "starting_materials"},
-                        "quantity": 2.0,
-                        "unit": "mg",
-                    },
-                    {
-                        "item": {"item_id": "test_carbon", "chemform": "C", "type": "samples"},
-                        "quantity": 2.0,
-                        "unit": "mg",
-                    },
-                ],
-                "positive_electrode": [
-                    {
-                        "item": {
-                            "item_id": "test_cathode",
-                            "chemform": "LiCoO2",
-                            "type": "samples",
-                        },
-                        "quantity": 2000,
-                        "unit": "kg",
-                    }
-                ],
-                "electrolyte": [
-                    {"item": {"name": "inlined reference"}, "quantity": 100, "unit": "ml"}
-                ],
-                "cell_format": "swagelok",
-                "type": "cells",
-                "creator_ids": [user_id],
-                "Location": "Cambridge > Lab 6 > Shelf 1",
+                "location": "Cambridge > Lab 6 > Shelf 1",
             }
         )
     )
