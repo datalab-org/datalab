@@ -1852,6 +1852,10 @@ def get_access_token_info(refcode: str):
 
 @ITEMS.route("/locations", methods=["GET"])
 def get_locations_for_items():
+    """List all distinct locations that the current user has access to, whether via
+    items at those locations, or pre-defined locations for the overall deployment.
+
+    """
     locations = set(
         flask_mongo.db.items.distinct(
             "location",
@@ -1870,4 +1874,9 @@ def get_locations_for_items():
         LOGGER.error("Error constructing location hierarchy for %s: %s", locations, exc)
         nested_locations = {}
 
-    return jsonify({"flat_locations": list(locations), "nested_locations": nested_locations}), 200
+    return jsonify(
+        {
+            "data": {"flat_locations": list(locations), "nested_locations": nested_locations},
+            "status": "success",
+        }
+    ), 200

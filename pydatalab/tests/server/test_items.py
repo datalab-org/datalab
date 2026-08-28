@@ -34,19 +34,17 @@ def test_fts_fields():
 def test_location_endpoint_server_defaults(client, item_creator, user_id):
     response = client.get("/locations")
     assert response.status_code == 200
-    assert "flat_locations" in response.json
 
-    assert set(response.json["flat_locations"]).issuperset(
+    assert set(response.json["data"]["flat_locations"]).issuperset(
         {"Cambridge > Lab 1 > Location A", "Cambridge > Lab 2"}
     )
 
     # non-flat checks
-    assert "nested_locations" in response.json
-    assert response.json["nested_locations"] is not None
-    assert "Cambridge" in response.json["nested_locations"]
-    assert "Lab 1" in response.json["nested_locations"]["Cambridge"]
-    assert "Lab 2" in response.json["nested_locations"]["Cambridge"]
-    assert "Location A" in response.json["nested_locations"]["Cambridge"]["Lab 1"]
+    assert response.json["data"]["nested_locations"] is not None
+    assert "Cambridge" in response.json["data"]["nested_locations"]
+    assert "Lab 1" in response.json["data"]["nested_locations"]["Cambridge"]
+    assert "Lab 2" in response.json["data"]["nested_locations"]["Cambridge"]
+    assert "Location A" in response.json["data"]["nested_locations"]["Cambridge"]["Lab 1"]
 
 
 def test_location_endpoint(client, item_creator, user_id):
@@ -62,20 +60,18 @@ def test_location_endpoint(client, item_creator, user_id):
 
     response = client.get("/locations")
     assert response.status_code == 200
-    assert "flat_locations" in response.json
-    assert set(response.json["flat_locations"]).issuperset(set(locations))
+    assert set(response.json["data"]["flat_locations"]).issuperset(set(locations))
 
     # non-flat checks
-    assert "nested_locations" in response.json
-    assert response.json["nested_locations"] is not None
-    assert "Place4" in response.json["nested_locations"]
-    assert "Place5" in response.json["nested_locations"]["Place4"]
-    assert "Place6" in response.json["nested_locations"]["Place4"]["Place5"]
-    assert "Place1" in response.json["nested_locations"]
-    assert "Place2" in response.json["nested_locations"]["Place1"]
-    assert "Place7" in response.json["nested_locations"]["Place1"]
-    assert "Place3" in response.json["nested_locations"]["Place1"]["Place2"]
-    assert "Place8" in response.json["nested_locations"]["Place1"]["Place7"]
+    assert response.json["data"]["nested_locations"] is not None
+    assert "Place4" in response.json["data"]["nested_locations"]
+    assert "Place5" in response.json["data"]["nested_locations"]["Place4"]
+    assert "Place6" in response.json["data"]["nested_locations"]["Place4"]["Place5"]
+    assert "Place1" in response.json["data"]["nested_locations"]
+    assert "Place2" in response.json["data"]["nested_locations"]["Place1"]
+    assert "Place7" in response.json["data"]["nested_locations"]["Place1"]
+    assert "Place3" in response.json["data"]["nested_locations"]["Place1"]["Place2"]
+    assert "Place8" in response.json["data"]["nested_locations"]["Place1"]["Place7"]
 
 
 def test_location_endpoint_with_spaced_signs(client, item_creator, user_id):
@@ -91,17 +87,15 @@ def test_location_endpoint_with_spaced_signs(client, item_creator, user_id):
 
     response = client.get("/locations")
     assert response.status_code == 200
-    assert "flat_locations" in response.json
 
-    assert set(response.json["flat_locations"]).issuperset(set(locations))
-    assert "nested_locations" in response.json
-    assert "Lab 1" in response.json["nested_locations"]
-    assert "Shelf 2" in response.json["nested_locations"]["Lab 1"]
-    assert "Shelf 3" in response.json["nested_locations"]["Lab 1"]
-    assert "Position A" in response.json["nested_locations"]["Lab 1"]["Shelf 2"]
+    assert set(response.json["data"]["flat_locations"]).issuperset(set(locations))
+    assert "Lab 1" in response.json["data"]["nested_locations"]
+    assert "Shelf 2" in response.json["data"]["nested_locations"]["Lab 1"]
+    assert "Shelf 3" in response.json["data"]["nested_locations"]["Lab 1"]
+    assert "Position A" in response.json["data"]["nested_locations"]["Lab 1"]["Shelf 2"]
 
-    assert "Lab 2" in response.json["nested_locations"]
-    assert "Shelf 1" in response.json["nested_locations"]["Lab 2"]
+    assert "Lab 2" in response.json["data"]["nested_locations"]
+    assert "Shelf 1" in response.json["data"]["nested_locations"]["Lab 2"]
 
 
 def test_location_endpoint_with_bad_segments(client, item_creator):
@@ -122,14 +116,14 @@ def test_location_endpoint_with_bad_segments(client, item_creator):
 
     response = client.get("/locations")
     assert response.status_code == 200
-    assert "flat_locations" in response.json
 
-    assert set(response.json["flat_locations"]).issuperset(locations)
-    assert "nested_locations" in response.json
-    assert all(k in response.json["nested_locations"] for k in ["Lab 1", "Building A", "Shelf 3"])
-    assert response.json["nested_locations"]["Building A"]["Lab 1"] == {"Shelf 3": {}}
-    assert response.json["nested_locations"]["Shelf 3"] == {}
-    assert response.json["nested_locations"]["Lab 1"] == {"Shelf 2": {}}
+    assert set(response.json["data"]["flat_locations"]).issuperset(locations)
+    assert all(
+        k in response.json["data"]["nested_locations"] for k in ["Lab 1", "Building A", "Shelf 3"]
+    )
+    assert response.json["data"]["nested_locations"]["Building A"]["Lab 1"] == {"Shelf 3": {}}
+    assert response.json["data"]["nested_locations"]["Shelf 3"] == {}
+    assert response.json["data"]["nested_locations"]["Lab 1"] == {"Shelf 2": {}}
 
 
 def test_location_endpoint_with_duplicated_segments(client, item_creator):
@@ -147,14 +141,14 @@ def test_location_endpoint_with_duplicated_segments(client, item_creator):
 
     response = client.get("/locations")
     assert response.status_code == 200
-    assert "flat_locations" in response.json
 
-    assert set(response.json["flat_locations"]).issuperset(locations)
-    assert "nested_locations" in response.json
-    assert all(k in response.json["nested_locations"] for k in ["Lab 1", "Building A", "Shelf 3"])
-    assert response.json["nested_locations"]["Building A"]["Lab 1"] == {"Shelf 3": {}}
-    assert response.json["nested_locations"]["Shelf 3"] == {}
-    assert response.json["nested_locations"]["Lab 1"] == {"Shelf 2": {}}
+    assert set(response.json["data"]["flat_locations"]).issuperset(locations)
+    assert all(
+        k in response.json["data"]["nested_locations"] for k in ["Lab 1", "Building A", "Shelf 3"]
+    )
+    assert response.json["data"]["nested_locations"]["Building A"]["Lab 1"] == {"Shelf 3": {}}
+    assert response.json["data"]["nested_locations"]["Shelf 3"] == {}
+    assert response.json["data"]["nested_locations"]["Lab 1"] == {"Shelf 2": {}}
 
 
 def test_location_endpoint_with_single_non_nested_location(client, item_creator, user_id):
@@ -168,11 +162,9 @@ def test_location_endpoint_with_single_non_nested_location(client, item_creator,
     )
     response = client.get("/locations")
     assert response.status_code == 200
-    assert "flat_locations" in response.json
 
-    assert set(response.json["flat_locations"]).issuperset({"Lab 1"})
-    assert "nested_locations" in response.json
-    assert "Lab 1" in response.json["nested_locations"]
+    assert set(response.json["data"]["flat_locations"]).issuperset({"Lab 1"})
+    assert "Lab 1" in response.json["data"]["nested_locations"]
 
 
 def test_regression_test_against_overwriting_problem(client, item_creator, user_id):
@@ -196,17 +188,17 @@ def test_regression_test_against_overwriting_problem(client, item_creator, user_
 
     response = client.get("/locations")
     assert response.status_code == 200
-    assert "flat_locations" in response.json
 
-    assert set(response.json["flat_locations"]).issuperset(
+    assert set(response.json["data"]["flat_locations"]).issuperset(
         {
             "Cambridge > Lab 6 > Shelf 1",
             "Cambridge > Lab 6 > Shelf 2 > Position A",
         }
     )
-    assert "nested_locations" in response.json
-    assert "Cambridge" in response.json["nested_locations"]
-    assert "Lab 6" in response.json["nested_locations"]["Cambridge"]
-    assert "Shelf 1" in response.json["nested_locations"]["Cambridge"]["Lab 6"]
-    assert "Shelf 2" in response.json["nested_locations"]["Cambridge"]["Lab 6"]
-    assert "Position A" in response.json["nested_locations"]["Cambridge"]["Lab 6"]["Shelf 2"]
+    assert "Cambridge" in response.json["data"]["nested_locations"]
+    assert "Lab 6" in response.json["data"]["nested_locations"]["Cambridge"]
+    assert "Shelf 1" in response.json["data"]["nested_locations"]["Cambridge"]["Lab 6"]
+    assert "Shelf 2" in response.json["data"]["nested_locations"]["Cambridge"]["Lab 6"]
+    assert (
+        "Position A" in response.json["data"]["nested_locations"]["Cambridge"]["Lab 6"]["Shelf 2"]
+    )
