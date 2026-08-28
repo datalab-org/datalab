@@ -12,6 +12,10 @@ suite) opts in by listing their dotted paths in ``CUSTOM_ITEM_MODELS``::
 Once registered they are served through the generic item endpoints
 (``/new-sample/``, ``/items/<refcode>``, ``/save-item/``) and advertised at
 ``/info/types`` with no further code.
+
+Note that the types declared below are deliberately *not* namespaced: they are
+rewritten at registration time, so they are served as ``_my_samples`` and
+``_my_items``.
 """
 
 from typing import Literal
@@ -38,7 +42,7 @@ class MySample(Sample):
     """An example custom sample type with a couple of extra fields, including a
     nested object, demonstrating top-level schema extension of a built-in."""
 
-    type: Literal["_my_samples"] = "_my_samples"  # type: ignore[assignment]
+    type: Literal["my_samples"] = "my_samples"  # type: ignore[assignment]
 
     drying_time: float | None = Field(
         None, json_schema_extra={"datalab_include_field_in_summary": True}
@@ -53,7 +57,7 @@ class MyItem(Item):
     """An example wholly custom item type (not sample-derived) with custom
     'dimension' fields."""
 
-    type: Literal["_my_items"] = "_my_items"  # type: ignore[assignment]
+    type: Literal["my_items"] = "my_items"  # type: ignore[assignment]
 
     width: float | None = Field(None, json_schema_extra={"datalab_include_field_in_summary": True})
     """An example custom dimension (mm), surfaced in list views."""

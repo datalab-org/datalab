@@ -73,7 +73,8 @@ uv sync --all-extras --dev
 Beyond data blocks, a deployment can register **custom item types**: new top-level item models that are served through the same generic endpoints as the built-in `samples`, `cells`, `starting_materials` and `equipment` types, and advertised at `/info/types`.
 
 A custom item type is a subclass either of an existing item model (to extend it) or of the base `Item` model (for a wholly new type).
-At a minimum, it **must** declare its own `type` literal, which must not collide with a built-in type and must begin with an underscore, reserving the un-prefixed namespace for built-in types:
+At a minimum, it **must** declare its own `type` literal, which must not collide with a built-in type.
+Custom types are namespaced with a leading underscore, reserving the un-prefixed namespace for built-in types; a type that does not already have one has it added at registration (so `my_samples` is served as `_my_samples`):
 
 ```python
 from typing import Literal
@@ -84,7 +85,7 @@ from pydatalab.models.samples import Sample
 
 
 class MySample(Sample):
-    type: Literal["_my_samples"] = "_my_samples"
+    type: Literal["my_samples"] = "my_samples"
 
     drying_time: float | None = Field(
         None,
