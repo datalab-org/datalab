@@ -245,5 +245,5 @@ class HasSubstanceInfo(BaseModel):
 
 
 class HasLocation(BaseModel):
-    location: str | None = Field(alias="Location")
+    location: str | None = Field(None)
     """The place where the item is located."""
