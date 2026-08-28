@@ -1,0 +1,62 @@
+services:
+  api:
+    networks:
+      tools:
+        aliases:
+          - datalab-api
+
+  api-dev:
+    networks:
+      tools:
+        aliases:
+          - datalab-api
+
+  jupyterhub:
+    image: ${DATALAB_JUPYTER_IMAGE:-datalab-jupyter:0.1.0}
+    build:
+      context: https://github.com/Matgenix/datalab-jupyter.git
+    depends_on:
+      api:
+        condition: service_healthy
+        required: false
+      api-dev:
+        condition: service_healthy
+        required: false
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - datalab-jupyter-data:/srv/jupyterhub
+    ports:
+      - "${DATALAB_JUPYTER_BIND_ADDRESS:-127.0.0.1}:${DATALAB_JUPYTER_PORT:-8000}:8000"
+    networks:
+      tools:
+        aliases:
+          - datalab-jupyter
+    environment:
+      - DATALAB_JUPYTER_API_URL=${DATALAB_JUPYTER_API_URL:-http://datalab-api:5001}
+      - DATALAB_JUPYTER_DOCKER_NETWORK=${DATALAB_JUPYTER_DOCKER_NETWORK:-${COMPOSE_PROJECT_NAME:-datalab}_tools}
+      - DATALAB_JUPYTER_CONNECT_IP=${DATALAB_JUPYTER_CONNECT_IP:-datalab-jupyter}
+      - DATALAB_JUPYTER_VOLUME_PREFIX=${DATALAB_JUPYTER_VOLUME_PREFIX:-${COMPOSE_PROJECT_NAME:-datalab}-jupyter}
+      - DATALAB_JUPYTER_SINGLEUSER_IMAGE=${DATALAB_JUPYTER_SINGLEUSER_IMAGE:-${DATALAB_JUPYTER_IMAGE:-datalab-jupyter:0.1.0}}
+      - DATALAB_JUPYTER_CLIENT_ID
+      - DATALAB_JUPYTER_CLIENT_SECRET
+      - DATALAB_JUPYTER_PUBLIC_URL
+      - DATALAB_JUPYTER_CPU_LIMIT
+      - DATALAB_JUPYTER_MEM_LIMIT
+      - DATALAB_JUPYTER_START_TIMEOUT
+      - DATALAB_JUPYTER_IDLE_TIMEOUT
+      - DATALAB_JUPYTER_MAX_AGE
+      - PYDATALAB_APP_URL
+    healthcheck:
+      test: ["CMD", "datalab-jupyter-healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  tools:
+    driver: bridge
+
+volumes:
+  datalab-jupyter-data:

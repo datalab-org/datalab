@@ -198,19 +198,35 @@ datalab-jupyter = { git = "https://github.com/Matgenix/datalab-jupyter.git" }
 Run `uv run invoke dev.install` from `pydatalab/`. Production deployments
 should use a versioned Git or package source.
 
+If JupyterLab is not needed, do not install `datalab-jupyter` and do not include
+the companion Compose file described below. The normal datalab deployment then
+creates no Hub container, tools network, Jupyter volume, or Docker-socket mount.
+
 ### Compose-managed JupyterHub
 
-Build the companion image once, configure matching client credentials in the
-root environment, and start the fixed `jupyterhub` Compose profile alongside
-either the production or development profile:
+Configure matching client credentials in the root environment and explicitly
+combine the base Compose file with `docker-compose.jupyter.yml`. Including this
+companion file is what enables the managed Hub; no additional Jupyter profile
+is needed:
 
 ```shell
-docker build -t datalab-jupyter:0.1.0 https://github.com/Matgenix/datalab-jupyter.git
 export DATALAB_JUPYTER_CLIENT_ID=datalab-jupyter
 export DATALAB_JUPYTER_CLIENT_SECRET="$(openssl rand -hex 32)"
-docker compose --profile prod --profile jupyterhub up --wait
-docker compose --profile dev --profile jupyterhub up --wait
+docker compose -f docker-compose.yml -f docker-compose.jupyter.yml \
+  --profile prod up --build --wait
+docker compose -f docker-compose.yml -f docker-compose.jupyter.yml \
+  --profile dev up --build --wait
 ```
+
+Use the same files for later Compose operations, including shutdown:
+
+```shell
+docker compose -f docker-compose.yml -f docker-compose.jupyter.yml \
+  --profile dev down
+```
+
+If the companion file is omitted from `down`, Compose does not know about the
+Hub service and may leave it running with the tools network still in use.
 
 Production and development profiles are alternatives and should not be run
 simultaneously. Docker Compose 2.20 or newer is required for the optional
@@ -306,7 +322,8 @@ client.
 ### External JupyterHub
 
 Set `DATALAB_JUPYTER_EXTERNAL_URL` to use an independently deployed
-Hub. The local `jupyterhub` Compose profile is then unnecessary. The external
+Hub. In that case, run the normal base Compose file without
+`docker-compose.jupyter.yml`; no local Hub is created. The external
 administrator owns TLS, proxying, availability, spawning, storage, quotas,
 culling, and the user-server image.
 
