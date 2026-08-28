@@ -70,10 +70,10 @@ uv sync --all-extras --dev
 
 ## Custom item types
 
-Beyond data blocks, a deployment can register **custom item types** new top-level item models that are served through the same generic endpoints as the built-in `samples`, `cells`, `starting_materials` and `equipment` types, and advertised at `/info/types`.
+Beyond data blocks, a deployment can register **custom item types**: new top-level item models that are served through the same generic endpoints as the built-in `samples`, `cells`, `starting_materials` and `equipment` types, and advertised at `/info/types`.
 
 A custom item type is a subclass either of an existing item model (to extend it) or of the base `Item` model (for a wholly new type).
-At a minimum, it **must** declare its own unique `type` literal (this should be treated as namespaced the per-deployment to avoid collisions):
+At a minimum, it **must** declare its own `type` literal, which must not collide with a built-in type and must begin with an underscore, reserving the un-prefixed namespace for built-in types:
 
 ```python
 from typing import Literal
@@ -84,7 +84,7 @@ from pydatalab.models.samples import Sample
 
 
 class MySample(Sample):
-    type: Literal["my_samples"] = "my_samples"
+    type: Literal["_my_samples"] = "_my_samples"
 
     drying_time: float | None = Field(
         None,
@@ -117,15 +117,33 @@ There are two ways to register a custom item type, both of which run at server s
     }
     ```
 
-Custom types must use a `type` value that does not collide with a built-in type.
 Fields tagged with `json_schema_extra={"datalab_include_field_in_summary": True}` are additionally included in item list/summary responses.
 A worked example of both a `Sample` subclass and a standalone `Item` subclass lives at `pydatalab/src/pydatalab/models/_example_custom.py`.
 
-Eventually, such item types will allow for rich descriptions of unitful quantites, semantic annotations and URIs for fields, and cross-linking between items via custom relationships.
+### What belongs in a custom item type
+
+Custom item types are for metadata that describes the item itself, and in particular for values recorded for *every* item of that type:
+
+- **Intrinsic properties of the thing**: dimensions, a supplier batch number, an electrode loading.
+- **Input parameters of how it was made**: the settings of a synthesis or fabrication step (temperature, duration, atmosphere).
+- **High-level results that are always measured**: a single summary number per item — a capacity, a purity, a yield.
+
+Data with one value per file, per scan or per cycle belongs in a [data block](blocks/index.md) instead: a block can be attached many times, whereas a field exists exactly once per item.
+Similarly, anything with its own identity or provenance (a precursor batch, a piece of equipment) is better modelled as its own item and linked via a relationship.
+As a rule of thumb, if you would want to *filter* the item list by it, it is a field on the item type; if you would want to *plot* it, it is probably block data.
+
+!!! note "Extending nested fields is future work"
+    Custom types can add new fields, including nested models of their own, but
+    extending the structured fields that built-in models already define (e.g.
+    adding a field to the entries of `synthesis_constituents`) is not yet
+    supported.
 
 !!! warning "Backend-only for now"
-    Custom item type support is currently backend-only: the web UI does not yet
-    render bespoke fields or provide tailored create/edit forms for custom types.
+    The web UI does not yet render bespoke fields or provide tailored
+    create/edit forms for custom types, so custom fields are readable and
+    writable through the API but do not appear in item detail pages.
+
+Eventually, such item types will allow for rich descriptions of unitful quantites, semantic annotations and URIs for fields, and cross-linking between items via custom relationships.
 
 ## Plugin installation
 
