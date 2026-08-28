@@ -263,6 +263,12 @@ its importance when deploying a datalab instance.""",
         description="A list of dotted import paths ('package.module:ClassName') to custom `Item` subclasses to register as additional item types served through the generic item endpoints, e.g. ['mypackage.models:MySample']. Each model must declare its own unique `type` literal.",
     )
 
+    PREDEFINED_LOCATIONS: set[str] = Field(
+        default_factory=set,
+        description="A list of additional lab locations to populate in the /locations endpoint that will be suggested globally for autocompletion. Use '>' to indicate location hierarchy",
+        examples=[["Lab A > Cupboard B > Shelf C"]],
+    )
+
     BACKUP_STRATEGIES: dict[str, BackupStrategy] | None = Field(
         {
             "daily-snapshots": BackupStrategy(
