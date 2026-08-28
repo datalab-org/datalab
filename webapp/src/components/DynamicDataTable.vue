@@ -54,6 +54,7 @@
           @open-qr-scanner-modal="qrScannerModalIsOpen = true"
           @open-create-collection-modal="createCollectionModalIsOpen = true"
           @open-create-equipment-modal="createEquipmentModalIsOpen = true"
+          @open-create-tag-modal="$emit('open-create-tag-modal')"
           @open-add-to-collection-modal="addToCollectionModalIsOpen = true"
           @open-batch-share-modal="batchShareModalIsOpen = true"
           @delete-selected-items="deleteSelectedItems"
@@ -214,6 +215,41 @@
                   </span>
                 </template>
                 <span v-else class="text-gray-400">Any</span>
+              </div>
+            </template>
+          </MultiSelect>
+        </template>
+
+        <template v-else-if="column.filter && column.field === 'tags'" #filter="">
+          <MultiSelect
+            v-model="filters[column.field].constraints[0].value"
+            :options="tagFilterOptions"
+            option-label="name"
+            placeholder="Any"
+            class="d-flex w-100"
+            :filter="true"
+            filter-placeholder="Search all tags"
+            :reset-filter-on-hide="true"
+            :virtual-scroller-options="{ itemSize: 38 }"
+            @click.stop
+          >
+            <template #option="slotProps">
+              <div class="d-flex align-items-center">
+                <TagBadge :tag="slotProps.option.value" />
+              </div>
+            </template>
+            <template #value="slotProps">
+              <div class="d-flex flex-wrap align-items-center">
+                <template v-if="slotProps.value && slotProps.value.length">
+                  <span
+                    v-for="option in slotProps.value"
+                    :key="option.key"
+                    class="d-inline-flex align-items-center mr-1"
+                  >
+                    <TagBadge :tag="option.value" />
+                  </span>
+                </template>
+                <span v-else class="text-muted">Any</span>
               </div>
             </template>
           </MultiSelect>
@@ -628,6 +664,12 @@ import GroupIdCell from "@/components/GroupIdCell.vue";
 import GroupMembersCell from "@/components/GroupMembersCell.vue";
 import GroupActionsCell from "@/components/GroupActionsCell.vue";
 
+import TagBadge from "@/components/TagBadge.vue";
+import TagScopeBadge from "@/components/TagScopeBadge.vue";
+import TagActionsCell from "@/components/TagActionsCell.vue";
+import TagList from "@/components/TagList.vue";
+import { getTags } from "@/server_fetch_utils.js";
+
 import { formatDistanceToNow } from "date-fns";
 import { parseUTCDate } from "@/field_utils.js";
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
@@ -679,6 +721,10 @@ export default {
     GroupIdCell,
     GroupMembersCell,
     GroupActionsCell,
+    TagBadge,
+    TagScopeBadge,
+    TagActionsCell,
+    TagList,
   },
   props: {
     columns: {
@@ -719,6 +765,8 @@ export default {
     "edit-group",
     "group-deleted",
     "groups-data-changed",
+    "open-create-tag-modal",
+    "edit-tag",
   ],
   data() {
     return {
@@ -770,6 +818,10 @@ export default {
           operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: "exactBlockMatch" }],
         },
+        tags: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: "exactTagMatch" }],
+        },
         status: {
           operator: FilterOperator.OR,
           constraints: [{ value: null, matchMode: "exactStatusMatch" }],
@@ -819,6 +871,10 @@ export default {
           constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
         },
         description: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+        },
+        name: {
           operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
         },
@@ -912,6 +968,21 @@ export default {
 
       return Array.from(blockTypesMap.values());
     },
+    tagFilterOptions() {
+      // The full set of tags.
+      return (this.$store.state.tag_list || [])
+        .map((tag) => ({
+          key: this.tagFilterKey(tag),
+          name: tag.name,
+          value: tag,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    },
+    hasTagFilterColumn() {
+      // Whether this table offers a tags filter column. Used to trigger
+      // the fetch of that list.
+      return (this.columns || []).some((column) => column.field === "tags" && column.filter);
+    },
     uniqueStringValues() {
       const fields = ["location", "supplier"];
       return Object.fromEntries(
@@ -981,6 +1052,7 @@ export default {
         collections: "collection-table",
         startingMaterials: "starting_materials-table",
         equipment: "equipment-table",
+        tags: "tags-table",
       };
       return dataTestIdMap[this.dataType] || "default-table";
     },
@@ -1001,6 +1073,16 @@ export default {
         return [];
       }
       return this.$store.state.groups_list || [];
+    },
+  },
+  watch: {
+    hasTagFilterColumn: {
+      // Fetch the global tag list as soon as a tags filter column becomes available.
+      // To cover the case where the column is enabled after the page is loaded.
+      immediate: true,
+      handler() {
+        this.fetchTagsForFilter();
+      },
     },
   },
   created() {
@@ -1154,6 +1236,27 @@ export default {
       }
 
       return value.some((itemBlock) => itemBlock.blocktype === filterValue.blocktype);
+    });
+    FilterService.register("exactTagMatch", (value, filterValue) => {
+      if (
+        filterValue === null ||
+        filterValue === undefined ||
+        (Array.isArray(filterValue) && filterValue.length === 0)
+      ) {
+        return true;
+      }
+
+      if (!value || !Array.isArray(value)) {
+        return false;
+      }
+
+      const selectedTags = Array.isArray(filterValue) ? filterValue : [filterValue];
+      const filter = this.filters.tags;
+      const isAnd = filter && filter.operator === FilterOperator.AND;
+      const matchesSelectedTag = (selectedTag) =>
+        value.some((itemTag) => this.tagsMatch(itemTag, selectedTag.value || selectedTag));
+
+      return isAnd ? selectedTags.every(matchesSelectedTag) : selectedTags.some(matchesSelectedTag);
     });
 
     const exactStringMatch = (value, filterValue) => {
@@ -1309,7 +1412,7 @@ export default {
       });
     },
     goToEditPage(event) {
-      if (this.dataType === "users" || this.dataType === "groups") {
+      if (this.dataType === "users" || this.dataType === "groups" || this.dataType === "tags") {
         return;
       }
       const row = event.data;
@@ -1355,16 +1458,26 @@ export default {
       }
     },
     getComponentListeners(componentName) {
-      // Only the group actions cell emits these; binding them on every body cell
+      // Only the group/tag actions cells emit these; binding them on every body cell
       // makes Vue warn about extraneous listeners on components that render a
       // fragment root (e.g. FormattedCollectionName).
-      if (componentName !== "GroupActionsCell") {
-        return {};
+      if (componentName === "GroupActionsCell") {
+        return {
+          "edit-group": (group) => this.$emit("edit-group", group),
+          "group-deleted": () => this.$emit("group-deleted"),
+        };
       }
-      return {
-        "edit-group": (group) => this.$emit("edit-group", group),
-        "group-deleted": () => this.$emit("group-deleted"),
-      };
+      if (componentName === "TagActionsCell") {
+        return {
+          "edit-tag": (tag) => this.$emit("edit-tag", tag),
+        };
+      }
+      if (componentName === "TagList") {
+        return {
+          "tag-click": (tag) => this.filterByTag(tag),
+        };
+      }
+      return {};
     },
     getComponentProps(componentName, data) {
       const propsConfig = {
@@ -1453,6 +1566,21 @@ export default {
           group: data,
           allGroups: data.allGroups || [],
         },
+        TagBadge: {
+          tag: data,
+        },
+        TagScopeBadge: {
+          tag: data,
+        },
+        TagActionsCell: {
+          tag: data,
+        },
+        TagList: {
+          tags: "tags",
+          maxVisible: { value: 2 },
+          // Tags are click-to-filter only where a tag filter column exists.
+          clickable: { value: this.hasTagFilterColumn },
+        },
       };
 
       const config = propsConfig[componentName] || {};
@@ -1492,6 +1620,51 @@ export default {
       }
 
       return props;
+    },
+    tagFilterKey(tag) {
+      if (tag?.immutable_id) {
+        return `tag-${tag.immutable_id}`;
+      }
+      if (tag?.name) {
+        return `tag-name-${tag.name}`;
+      }
+      return null;
+    },
+    tagFilterLabel(tag) {
+      return tag?.name || "";
+    },
+    tagsMatch(itemTag, selectedTag) {
+      const itemKey = this.tagFilterKey(itemTag);
+      const selectedKey = this.tagFilterKey(selectedTag);
+      if (itemKey && selectedKey) {
+        return itemKey === selectedKey;
+      }
+      return this.tagFilterLabel(itemTag) === this.tagFilterLabel(selectedTag);
+    },
+    fetchTagsForFilter() {
+      // Populate the global tag list (the tag filter's options) once, if this table has a
+      // tags filter column. Called from the `hasTagFilterColumn` watcher.
+      if (this.hasTagFilterColumn && this.$store.state.tag_list === null) {
+        getTags();
+      }
+    },
+    filterByTag(tag) {
+      // Clicking a tag in a row replaces the tags filter with just that tag, so the
+      // table shows only items carrying it.
+      const tagsFilter = this.filters.tags;
+      if (!tagsFilter || !tagsFilter.constraints) {
+        return;
+      }
+      const option = { key: this.tagFilterKey(tag), name: tag.name, value: tag };
+      // Replace the `filters` reference so the DataTable reliably re-applies the
+      // menu-mode filter.
+      this.filters = {
+        ...this.filters,
+        tags: {
+          ...tagsFilter,
+          constraints: [{ ...tagsFilter.constraints[0], value: [option] }],
+        },
+      };
     },
     isFilterActive(field) {
       const filter = this.filters[field];
