@@ -56,10 +56,10 @@ def test_custom_types_listed_in_info_types(client, custom_item_models):
     assert response.status_code == 200
 
     types = {entry["id"] for entry in response.json["data"]}
-    assert "my_samples" in types
-    assert "my_items" in types
+    assert "_my_samples" in types
+    assert "_my_items" in types
 
-    sample_schema = client.get("/info/types/my_samples", follow_redirects=True).json["data"][
+    sample_schema = client.get("/info/types/_my_samples", follow_redirects=True).json["data"][
         "attributes"
     ]["schema"]
     properties = sample_schema["properties"]
@@ -70,7 +70,7 @@ def test_custom_types_listed_in_info_types(client, custom_item_models):
     # The summary flag is carried through into the schema.
     assert properties["drying_time"].get("datalab_include_field_in_summary") is True
 
-    item_schema = client.get("/info/types/my_items", follow_redirects=True).json["data"][
+    item_schema = client.get("/info/types/_my_items", follow_redirects=True).json["data"][
         "attributes"
     ]["schema"]
     assert "width" in item_schema["properties"]
@@ -84,7 +84,7 @@ def test_create_and_read_custom_sample(client, custom_item_models):
         "/new-sample/",
         json={
             "new_sample_data": {
-                "type": "my_samples",
+                "type": "_my_samples",
                 "item_id": "custom-sample-1",
                 "drying_time": 3.5,
                 "custom_properties": {"batch": "B7", "purity": 0.95},
@@ -93,12 +93,12 @@ def test_create_and_read_custom_sample(client, custom_item_models):
     )
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
-    assert response.json["sample_list_entry"]["type"] == "my_samples"
+    assert response.json["sample_list_entry"]["type"] == "_my_samples"
 
     response = client.get("/get-item-data/custom-sample-1")
     assert response.status_code == 200, response.json
     item_data = response.json["item_data"]
-    assert item_data["type"] == "my_samples"
+    assert item_data["type"] == "_my_samples"
     assert item_data["drying_time"] == 3.5
     assert item_data["custom_properties"]["batch"] == "B7"
     assert item_data["custom_properties"]["purity"] == 0.95
@@ -110,7 +110,7 @@ def test_create_wholly_custom_item(client, custom_item_models):
         "/new-sample/",
         json={
             "new_sample_data": {
-                "type": "my_items",
+                "type": "_my_items",
                 "item_id": "custom-item-1",
                 "width": 12.0,
                 "height": 4.0,
@@ -123,9 +123,73 @@ def test_create_wholly_custom_item(client, custom_item_models):
     response = client.get("/get-item-data/custom-item-1")
     assert response.status_code == 200, response.json
     item_data = response.json["item_data"]
-    assert item_data["type"] == "my_items"
+    assert item_data["type"] == "_my_items"
     assert item_data["width"] == 12.0
     assert item_data["height"] == 4.0
+
+
+def test_custom_type_as_synthesis_constituent(client, custom_item_models):
+    """A custom sample-derived type can be used as a synthesis constituent of
+    another item, since the allowed constituent types are resolved from the live
+    item registry rather than a fixed enum."""
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "_my_samples",
+                "item_id": "custom-constituent-1",
+                "name": "A custom precursor",
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "samples",
+                "item_id": "sample-with-custom-constituent",
+                "synthesis_constituents": [
+                    {
+                        "item": {"item_id": "custom-constituent-1", "type": "_my_samples"},
+                        "quantity": 1.0,
+                        "unit": "g",
+                    }
+                ],
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.get("/get-item-data/sample-with-custom-constituent")
+    assert response.status_code == 200, response.json
+    item_data = response.json["item_data"]
+    assert item_data["synthesis_constituents"][0]["item"]["item_id"] == "custom-constituent-1"
+
+    # The constituent should also have been turned into a parent relationship
+    parents = [
+        relationship
+        for relationship in item_data["relationships"]
+        if relationship["relation"] == "parent"
+    ]
+    assert len(parents) == 1
+    assert parents[0]["item_id"] == "custom-constituent-1"
+
+
+def test_equipment_rejected_as_synthesis_constituent(client):
+    """Types without substance information (e.g. `equipment`) remain invalid as
+    synthesis constituents."""
+    from pydantic import ValidationError
+
+    from pydatalab.models.utils import Constituent
+
+    with pytest.raises(ValidationError, match="`type` must be one of"):
+        Constituent(
+            item={"item_id": "some-equipment", "type": "equipment"},
+            quantity=1.0,
+            unit="g",
+        )
 
 
 def test_unknown_custom_type_rejected(client, custom_item_models):
@@ -140,7 +204,8 @@ def test_unknown_custom_type_rejected(client, custom_item_models):
 
 def test_bad_custom_item_type_rejected():
     """A custom model is rejected at registration time if it reuses a reserved
-    built-in `type`, or if it is not an `Item` subclass at all."""
+    built-in `type`, declares an un-namespaced `type`, or is not an `Item`
+    subclass at all."""
     from typing import Literal
 
     from pydatalab.models import register_item_model
@@ -152,6 +217,13 @@ def test_bad_custom_item_type_rejected():
 
     with pytest.raises(ValueError, match="reserved built-in type"):
         register_item_model(ClashingSample)
+
+    class UnNamespacedSample(Sample):
+        # Declares its own type, but without the required leading underscore.
+        type: Literal["my_samples"] = "my_samples"  # type: ignore[assignment]
+
+    with pytest.raises(ValueError, match="un-namespaced type"):
+        register_item_model(UnNamespacedSample)
 
     # Anything that is not an `Item` subclass is also rejected.
     with pytest.raises(TypeError):
