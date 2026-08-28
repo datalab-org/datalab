@@ -1667,7 +1667,9 @@ def save_item():
     item_id = str(request_json["item_id"])
     updated_data = request_json["data"]
 
-    # These keys should not be updated here and cannot be modified by the user through this endpoint
+    # These keys should not be updated here and cannot be modified by the user through this endpoint.
+    # `blocks` is not a field of any item model at all: it is a flattened copy of `blocks_obj`
+    # sent by the webapp, and is dropped here rather than being silently ignored by the model.
     for k in (
         "_id",
         "file_ObjectIds",
@@ -1679,6 +1681,7 @@ def save_item():
         "item_id",
         "relationships",
         "last_modified",
+        "blocks",
     ):
         if k in updated_data:
             del updated_data[k]
