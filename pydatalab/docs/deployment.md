@@ -182,17 +182,17 @@ docker compose --file docker-compose.prod.yml --profile prod up
 
 JupyterLab is supplied by the independently maintained
 [`datalab-jupyter`](https://github.com/Matgenix/datalab-jupyter) component. Its
-`[plugin]` extra is installed in the Datalab API, while its `[hub]` and
+`[plugin]` extra is installed in the datalab API, while its `[hub]` and
 `[server]` extras can run in either the managed image or an independently
 administered JupyterHub deployment.
 
-For local development, add the ignored checkout to the root `plugins.toml`:
+For development, add the Git repository to the root `plugins.toml`:
 
 ```toml
 dependencies = ["datalab-jupyter[plugin]"]
 
 [tool.uv.sources]
-datalab-jupyter = { path = "dev-repos/datalab-jupyter", editable = true }
+datalab-jupyter = { git = "https://github.com/Matgenix/datalab-jupyter.git" }
 ```
 
 Run `uv run invoke dev.install` from `pydatalab/`. Production deployments
@@ -205,7 +205,7 @@ root environment, and start the fixed `jupyterhub` Compose profile alongside
 either the production or development profile:
 
 ```shell
-docker build -t datalab-jupyter:0.1.0 dev-repos/datalab-jupyter
+docker build -t datalab-jupyter:0.1.0 https://github.com/Matgenix/datalab-jupyter.git
 export DATALAB_JUPYTER_CLIENT_ID=datalab-jupyter
 export DATALAB_JUPYTER_CLIENT_SECRET="$(openssl rand -hex 32)"
 docker compose --profile prod --profile jupyterhub up --wait
@@ -311,7 +311,7 @@ administrator owns TLS, proxying, availability, spawning, storage, quotas,
 culling, and the user-server image.
 
 Install `datalab-jupyter[hub]` in the external Hub and
-`datalab-jupyter[server]` in its user image, then configure the matching Datalab
+`datalab-jupyter[server]` in its user image, then configure the matching datalab
 API URL, client ID, and client secret. The integration
 exchanges a single-use launch code for a temporary current-user tool access
 token and passes it only to that user's notebook container. The external

@@ -34,19 +34,19 @@ export default {
   },
   data() {
     return {
-      isLoaded: false,
+      graphData: null,
+      isLoading: true,
     };
   },
-  computed: {
-    graphData() {
-      return this.$store.state.itemGraphData;
-    },
-    isLoading() {
-      return this.$store.state.itemGraphIsLoading;
-    },
-  },
   mounted() {
-    getItemGraph();
+    this.isLoading = true;
+    getItemGraph()
+      .then((graphData) => {
+        this.graphData = graphData;
+      })
+      .finally(() => {
+        this.isLoading = false;
+      });
   },
 };
 </script>

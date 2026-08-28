@@ -8,6 +8,7 @@ from hashlib import sha512
 from typing import Any
 
 from bson import ObjectId
+from flask import g
 from flask_login import LoginManager, UserMixin
 
 from pydatalab.models import Person
@@ -100,11 +101,6 @@ class LoginUser(UserMixin):
             self.role = user.role
 
 
-def get_by_id_cached(user_id):
-    """Cached version of get_by_id."""
-    return get_by_id(user_id)
-
-
 def groups_lookup() -> dict:
     return {
         "from": "groups",
@@ -119,7 +115,7 @@ def groups_lookup() -> dict:
 
 
 def get_by_id(
-    user_id: str,
+    user_id: str | ObjectId,
     auth_method: AuthMethod = AuthMethod.BROWSER_SESSION,
 ) -> LoginUser | None:
     """Lookup the user database ID and create a new `LoginUser`
@@ -153,7 +149,12 @@ def get_by_id(
     else:
         role = role["role"]
 
-    return LoginUser(_id=user_id, data=Person(**user), role=UserRole(role), auth_method=auth_method)
+    return LoginUser(
+        _id=str(user_id),
+        data=Person(**user),
+        role=UserRole(role),
+        auth_method=auth_method,
+    )
 
 
 def get_by_api_key(api_credential: str) -> LoginUser | None:
@@ -162,10 +163,28 @@ def get_by_api_key(api_credential: str) -> LoginUser | None:
     The bearer value may be a permanent API key or a tool access token.
     """
 
-    hash = sha512(api_credential.encode("utf-8")).hexdigest()
-    user = flask_mongo.db.api_keys.find_one({"hash": hash}, projection={"hash": 0})
-    if user:
-        return get_by_id(str(user["_id"]), auth_method=AuthMethod.PERMANENT_API_KEY)
+    key_hash = sha512(api_credential.encode("utf-8")).hexdigest()
+    user = flask_mongo.db.api_keys.find_one(
+        {"hash": key_hash, "type": "api_key"},
+        projection={"name": 0, "_id": 0, "digest": 0},
+    )
+    if user and user.get("user", False):
+        return get_by_id(str(user["user"]), auth_method=AuthMethod.PERMANENT_API_KEY)
+
+    legacy_user = flask_mongo.db.api_keys.find_one(
+        {
+            "hash": key_hash,
+            "user_id": {"$exists": False},
+            "name": {"$exists": False},
+            "digest": {"$exists": False},
+            "type": {"$exists": False},
+        }
+    )
+    if legacy_user:
+        return get_by_id(
+            str(legacy_user["_id"]),
+            auth_method=AuthMethod.PERMANENT_API_KEY,
+        )
 
     from pydatalab.tools.grants import get_tool_access_token_user_id
 
@@ -194,12 +213,14 @@ LOGIN_MANAGER: LoginManager = LoginManager()
 @LOGIN_MANAGER.user_loader
 def load_user(user_id: str) -> LoginUser | None:
     """Looks up the currently authenticated user and returns a `LoginUser` model."""
-    return get_by_id_cached(str(user_id))
+    g.api_key_session = False
+    return get_by_id(str(user_id))
 
 
 @LOGIN_MANAGER.request_loader
 def request_loader(request) -> LoginUser | None:
     api_credential = request.headers.get("DATALAB-API-KEY", None)
     if api_credential:
+        g.api_key_session = True
         return get_by_api_key(str(api_credential))
     return None

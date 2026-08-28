@@ -393,7 +393,7 @@ def selectable_axes_plot(
             df_temp = df_
 
         if labels:
-            orig = labels[ind]
+            orig = str(labels[ind])
         else:
             if hasattr(df_temp, "attrs") and "original_filename" in df_temp.attrs:
                 orig = df_temp.attrs["original_filename"] if len(df) > 1 else ""
@@ -402,11 +402,13 @@ def selectable_axes_plot(
 
         original_labels_list.append(orig)
 
-    legend_labels = (
-        generate_unique_labels(original_labels_list)
-        if len(df) > 1 and use_unique_labels
-        else original_labels_list
-    )
+    legend_labels = original_labels_list
+    if len(df) > 1 and use_unique_labels:
+        try:
+            legend_labels = generate_unique_labels(original_labels_list)
+        except Exception:
+            legend_labels = original_labels_list
+
     plot_columns = []
 
     for ind, df_ in enumerate(df):

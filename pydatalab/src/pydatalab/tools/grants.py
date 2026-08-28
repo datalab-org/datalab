@@ -87,7 +87,7 @@ class BoundToolLaunchGrantIssuer(ToolLaunchGrantIssuer):
                 "tool_id": self.tool_id,
                 "client_id": client_id,
                 "purpose": _TOOL_LAUNCH_PURPOSE,
-                "selection": self.selection.dict() if self.selection else None,
+                "selection": self.selection.model_dump() if self.selection else None,
                 "created_at": created_at,
                 "expires_at": created_at + timedelta(seconds=lifetime_seconds),
             }
@@ -123,7 +123,7 @@ def _consume_launch_code(
         return None
     try:
         selection_data = grant.get("selection")
-        selection = ItemSelection.parse_obj(selection_data) if selection_data else None
+        selection = ItemSelection.model_validate(selection_data) if selection_data else None
     except (TypeError, ValueError):
         return None
     return _ConsumedLaunchGrant(user_id=str(grant["user_id"]), selection=selection)
@@ -144,7 +144,7 @@ def issue_tool_selection_code(
             "user_id": ObjectId(user_id),
             "tool_id": tool_id,
             "purpose": _TOOL_SELECTION_PURPOSE,
-            "selection": selection.dict(),
+            "selection": selection.model_dump(),
             "created_at": created_at,
             "expires_at": created_at + timedelta(seconds=TOOL_SELECTION_LIFETIME_SECONDS),
         }
@@ -191,7 +191,7 @@ def consume_tool_selection_code(
     if grant is None:
         return None
     try:
-        return ItemSelection.parse_obj(grant["selection"])
+        return ItemSelection.model_validate(grant["selection"])
     except (KeyError, TypeError, ValueError):
         return None
 

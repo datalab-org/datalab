@@ -58,7 +58,7 @@
               class="small text-danger"
               :data-testid="`tool-unsupported-${tool.id}`"
             >
-              This tool requires a newer version of the datalab web application.
+              This tool has an unsupported frontend configuration.
             </p>
 
             <button

@@ -1,10 +1,8 @@
 """Current-user catalog and launch routes for tools."""
 
-import json
-
 from flask import Blueprint, current_app, jsonify, request
 from flask_login import current_user
-from pydantic import AnyHttpUrl, ValidationError, parse_obj_as
+from pydantic import AnyHttpUrl, TypeAdapter, ValidationError
 
 from pydatalab.logger import LOGGER
 from pydatalab.login import is_browser_session_user, is_tool_access_token_user
@@ -102,13 +100,13 @@ def list_tools():
             Data(
                 id=provider.id,
                 type="tool",
-                attributes=Attributes(**provider.metadata.dict()),
+                attributes=Attributes(**provider.metadata.model_dump(mode="json")),
             )
             for provider in _registry().available_for(context)
         ],
-        meta=Meta(query=request.query_string),
+        meta=Meta(query=request.query_string.decode() if request.query_string else ""),
     )
-    catalog_response = jsonify(json.loads(response.json()))
+    catalog_response = jsonify(response.model_dump(mode="json"))
     catalog_response.headers["Cache-Control"] = "private, no-store"
     return catalog_response, 200
 
@@ -147,7 +145,7 @@ def launch_tool(tool_id: str):
         if isinstance(provider.metadata.ui, StandaloneToolUI):
             if not isinstance(result, str):
                 raise TypeError("Standalone tool launches must return an HTTP(S) URL")
-            launch_data["url"] = str(parse_obj_as(AnyHttpUrl, result))
+            launch_data["url"] = str(TypeAdapter(AnyHttpUrl).validate_python(result))
         elif result is not None:
             raise TypeError("In-app tool launches must return None")
     except Exception:

@@ -24,6 +24,7 @@
       :default-graph-style="'elk-stress'"
       :show-options="false"
       :default-show-blocks="false"
+      :include-blocks="false"
     />
   </div>
 </template>
@@ -40,16 +41,38 @@ export default {
   props: {
     item_id: { type: String, required: true },
   },
-  computed: {
-    graphData() {
-      return this.$store.state.itemGraphData;
-    },
-    isLoading() {
-      return this.$store.state.itemGraphIsLoading;
-    },
+  data() {
+    return {
+      graphData: null,
+      isLoading: true,
+    };
   },
   mounted() {
-    getItemGraph({ item_id: this.item_id });
+    // Defer the graph fetch (and subsequent layout) until the browser is
+    // idle, so it does not compete with the initial item and block loads
+    const load = () => {
+      this.isLoading = true;
+      getItemGraph({ item_id: this.item_id })
+        .then((graphData) => {
+          this.graphData = graphData;
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
+    };
+    if (window.requestIdleCallback) {
+      this.idleCallbackId = window.requestIdleCallback(load, { timeout: 2000 });
+    } else {
+      this.idleTimeoutId = setTimeout(load, 200);
+    }
+  },
+  beforeUnmount() {
+    if (this.idleCallbackId && window.cancelIdleCallback) {
+      window.cancelIdleCallback(this.idleCallbackId);
+    }
+    if (this.idleTimeoutId) {
+      clearTimeout(this.idleTimeoutId);
+    }
   },
 };
 </script>

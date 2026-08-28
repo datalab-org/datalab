@@ -1203,20 +1203,14 @@ export async function addRemoteFileToSample(file_entry, item_id) {
 }
 
 /**
- * Fetches an item graph from the API with optional store updates
+ * Fetches an item graph from the API
  * @param {Object} options - Configuration options
  * @param {string|null} options.item_id - The item ID to fetch graph for
  * @param {string|null} options.collection_id - The collection ID to filter by
  * @param {number} options.max_depth - Maximum depth for related items (default: 1)
- * @param {boolean} options.updateStore - Whether to update Vuex store (default: true)
- * @returns {Promise<Object|void>} Returns graph data if updateStore is false, void otherwise
+ * @returns {Promise<Object>} Returns graph data ({ nodes, edges })
  */
-export async function getItemGraph({
-  item_id = null,
-  collection_id = null,
-  max_depth = 1,
-  updateStore = true,
-} = {}) {
+export async function getItemGraph({ item_id = null, collection_id = null, max_depth = 1 } = {}) {
   // Short-circuit and do not send request if user is not logged in
   if (!(await waitForUserAuth())) return;
 
@@ -1239,26 +1233,11 @@ export async function getItemGraph({
   const urlParams = new URLSearchParams(window.location.search);
   const accessToken = urlParams.get("at");
 
-  if (updateStore) {
-    store.commit("setItemGraphIsLoading", true);
-  }
-
   return fetch_get(url)
     .then(function (response_json) {
-      const graphData = { nodes: response_json.nodes, edges: response_json.edges };
-
-      if (updateStore) {
-        store.commit("setItemGraph", graphData);
-        store.commit("setItemGraphIsLoading", false);
-      }
-
-      return graphData;
+      return { nodes: response_json.nodes, edges: response_json.edges };
     })
     .catch((error) => {
-      if (updateStore) {
-        store.commit("setItemGraphIsLoading", false);
-      }
-
       if (!accessToken) {
         DialogService.error({
           title: "Graph Retrieval Failed",
@@ -1270,12 +1249,12 @@ export async function getItemGraph({
     });
 }
 
-export async function requestNewAPIKey() {
+export async function requestNewAPIKey(name) {
   try {
-    const response_json = await fetch_get(`${API_URL}/get-api-key/`);
+    const response_json = await fetch_post(`${API_URL}/api-keys`, { name });
 
     if (response_json.key) {
-      return response_json.key;
+      return response_json;
     } else {
       DialogService.error({
         title: "API Key Request Failed",
@@ -1288,7 +1267,33 @@ export async function requestNewAPIKey() {
       title: "API Key Request Failed",
       message: "Failed to retrieve new API key. Please try again later or report this issue.",
     });
-    throw new Error(`Failed to request new API key: ${error.message}`);
+    throw new Error(`Failed to request new API key: ${error.message || error}`);
+  }
+}
+
+export async function getAPIKeys() {
+  try {
+    const response_json = await fetch_get(`${API_URL}/api-keys`);
+    return response_json.api_keys || [];
+  } catch (error) {
+    DialogService.error({
+      title: "Unable to Fetch API Keys",
+      message: `Failed to fetch API keys: ${error.message || error}`,
+    });
+    return [];
+  }
+}
+
+export async function deleteAPIKey(id) {
+  try {
+    await fetch_delete(`${API_URL}/api-keys/${id}`);
+    return true;
+  } catch (error) {
+    DialogService.error({
+      title: "Unable to Delete API Key",
+      message: `Failed to delete API key: ${error.message || error}`,
+    });
+    return false;
   }
 }
 
@@ -1532,14 +1537,14 @@ export async function restoreItemVersion(refcode, versionId) {
     });
 }
 
-export async function compareItemVersions(refcode, baseVersion, targetVersion) {
-  var url = new URL(`${API_URL}/items/${refcode}/versions/compare`);
-  url.searchParams.append("base", baseVersion);
-  url.searchParams.append("target", targetVersion);
+export async function compareItemVersions(refcode, versionId1, versionId2) {
+  var url = new URL(`${API_URL}/items/${refcode}/compare-versions/`);
+  url.searchParams.append("v1", versionId1);
+  url.searchParams.append("v2", versionId2);
 
   return fetch_get(url)
     .then(function (response_json) {
-      return response_json.comparison;
+      return response_json.diff;
     })
     .catch((error) => {
       DialogService.error({

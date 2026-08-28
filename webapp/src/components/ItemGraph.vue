@@ -114,7 +114,7 @@
       </div>
     </div>
   </div>
-  <div id="cy" ref="cyContainer" v-bind="$attrs" />
+  <div id="cy" ref="cyContainer" v-bind="$attrs" :data-layout-running="layoutIsRunning" />
 </template>
 
 <script>
@@ -150,6 +150,8 @@ const layoutOptions = {
     animationDuration: 300,
     elk: {
       algorithm: "stress",
+      // ELK has no way to cap layout time (maxSimulationTime), so bound the run with an iteration limit
+      "elk.stress.iterationLimit": 1000,
     },
   },
   cola: {
@@ -157,12 +159,14 @@ const layoutOptions = {
     animate: "end",
     animationDuration: 300,
     centerGraph: false,
+    maxSimulationTime: 4000,
   },
   euler: {
     name: "euler",
     animate: "end",
     animationDuration: 300,
     pull: 0.002,
+    maxSimulationTime: 4000,
   },
   fcose: {
     name: "fcose",
@@ -195,6 +199,13 @@ export default {
     defaultShowBlocks: {
       type: Boolean,
       default: false,
+    },
+    // When false, block nodes are stripped from the graph data before the
+    // cytoscape instance is created, so they cost nothing during layout
+    // (unlike defaultShowBlocks, which only hides them)
+    includeBlocks: {
+      type: Boolean,
+      default: true,
     },
   },
   data() {
@@ -256,6 +267,12 @@ export default {
       this.generateCyNetworkPlot();
     }
   },
+  beforeUnmount() {
+    this.stopLayout();
+    if (this.cy) {
+      this.cy.destroy();
+    }
+  },
   methods: {
     removeItemFromGraph(event) {
       const itemToIgnore = event[event.length - 1];
@@ -274,10 +291,14 @@ export default {
       }
     },
     updateAndRunLayout() {
-      this.layout && this.layout.stop();
+      this.stopLayout();
       this.layoutIsRunning = true;
       this.layout = this.cy.layout(layoutOptions[this.graphStyle]);
       this.layout.run();
+    },
+    stopLayout() {
+      this.layout && this.layout.stop();
+      this.layout = null;
     },
     generateCyNetworkPlot() {
       if (!this.graphData) {
@@ -288,13 +309,26 @@ export default {
         console.warn("Cytoscape container not ready");
         return;
       }
-      const nodeIds = new Set((this.graphData.nodes || []).map((n) => n.data.id));
+      // Destroy any previous instance so its (possibly still-running) layout
+      // does not keep going headlessly after losing the container.
+      if (this.cy) {
+        this.stopLayout();
+        this.cy.destroy();
+      }
+
+      // Filter nodes based on whether blocks are requested
+      let nodes = this.graphData.nodes || [];
+      if (!this.includeBlocks) {
+        nodes = nodes.filter((n) => n.data.type !== "blocks");
+      }
+      const nodeIds = new Set(nodes.map((n) => n.data.id));
+      // also drops any edges to filtered-out block nodes
       const validEdges = (this.graphData.edges || []).filter(
         (e) => nodeIds.has(e.data.source) && nodeIds.has(e.data.target),
       );
       this.cy = cytoscape({
         container: this.$refs.cyContainer,
-        elements: { nodes: this.graphData.nodes || [], edges: validEdges },
+        elements: { nodes: nodes, edges: validEdges },
         userPanningEnabled: true,
         minZoom: 0.05,
         maxZoom: 1,
@@ -341,7 +375,10 @@ export default {
             },
           },
         ],
-        layout: layoutOptions[this.graphStyle],
+        // The real layout is run further down, once the layout event handlers
+        // are attached; synchronous layouts (e.g. random) would otherwise
+        // finish before the handlers exist, leaving layoutIsRunning stuck
+        layout: { name: "preset" },
       });
 
       // set colors of each of the nodes by type
@@ -375,6 +412,8 @@ export default {
         // box (with a little padding) so nothing overflows the visible area.
         this.cy.fit(undefined, 20);
       });
+
+      this.updateAndRunLayout();
 
       // tapdragover and tapdragout are mouseover and mouseout events
       // that also work with touch screens

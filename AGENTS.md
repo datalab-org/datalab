@@ -8,6 +8,7 @@ This file provides guidance to coding agents when working with code in this repo
 - **Extend tests, don't modify existing assertions.** When adding new functionality, add new assertions or new test functions rather than changing existing expected values. If existing test values must change, do so deliberately and explain the reason.
 - **Work incrementally and retain backwards-compatibility** datalab is deployed in production and used by multiple users. Avoid making large changes that break existing functionality. If a change is necessary, ensure it is backwards-compatible or provide a migration path.
 - **Document new features** Rather than relying solely on comments, also update the README.md, INSTALL.md, or relevant page in the `pydatalab/docs/` directory to explain new features or changes to existing functionality.
+- **Most new domain code should be added in plugins** rather than in the core `apps/` directory. This allows for easier maintenance and avoids bloating the core codebase with domain-specific functionality. See `pydatalab/docs/plugins.md` for plugin development guidance.
 
 ## Project Overview
 
@@ -143,7 +144,7 @@ Plugins extend the server with new `DataBlock` classes via a Python entry point,
 
 ### Python
 - Formatting: ruff (line length 100) via pre-commit
-- Type hints: Required, using Pydantic v1 models
+- Type hints: Required, using Pydantic v2 models
 - Logging: Use `pydatalab.logger.LOGGER`
 - Tests: pytest with fixtures in `conftest.py` files
 

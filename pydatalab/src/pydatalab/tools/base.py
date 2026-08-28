@@ -3,11 +3,19 @@
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import ClassVar, Literal, Protocol
+from typing import ClassVar, Literal, Protocol, Self
 from urllib.parse import urlsplit
 
 from flask import Blueprint
-from pydantic import BaseModel, Field, StrictInt, StrictStr, root_validator, validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictInt,
+    StrictStr,
+    field_validator,
+    model_validator,
+)
 
 TOOL_ENTRYPOINT_SEGMENT_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 TOOL_ACTION_ID_PATTERN = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
@@ -15,9 +23,7 @@ _ToolOpenMode = Literal["same_tab", "new_tab"]
 
 
 class _ImmutableToolModel(BaseModel):
-    class Config:
-        allow_mutation = False
-        extra = "forbid"
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
 
 class ItemTableSelectionAction(_ImmutableToolModel):
@@ -30,20 +36,23 @@ class ItemTableSelectionAction(_ImmutableToolModel):
     min_items: StrictInt = 1
     max_items: StrictInt = 100
 
-    @validator("id")
+    @field_validator("id")
+    @classmethod
     def id_is_lowercase_slug(cls, value):
         if not TOOL_ACTION_ID_PATTERN.fullmatch(value):
             raise ValueError("Tool action IDs must be lowercase hyphenated slugs")
         return value
 
-    @validator("label")
+    @field_validator("label")
+    @classmethod
     def label_is_non_empty(cls, value):
         value = value.strip()
         if not value:
             raise ValueError("Tool action labels must not be empty")
         return value
 
-    @validator("tables")
+    @field_validator("tables")
+    @classmethod
     def tables_are_non_empty_and_unique(cls, value):
         if not value:
             raise ValueError("Tool actions must declare at least one table")
@@ -51,16 +60,11 @@ class ItemTableSelectionAction(_ImmutableToolModel):
             raise ValueError("Tool action tables must not contain duplicates")
         return value
 
-    @root_validator
-    def selection_limits_are_valid(cls, values):
-        minimum = values.get("min_items")
-        maximum = values.get("max_items")
-        if minimum is not None and maximum is not None:
-            if minimum < 1 or maximum > 100 or minimum > maximum:
-                raise ValueError(
-                    "Tool action limits must satisfy 1 <= min_items <= max_items <= 100"
-                )
-        return values
+    @model_validator(mode="after")
+    def selection_limits_are_valid(self) -> Self:
+        if self.min_items < 1 or self.max_items > 100 or self.min_items > self.max_items:
+            raise ValueError("Tool action limits must satisfy 1 <= min_items <= max_items <= 100")
+        return self
 
 
 class ItemSelection(_ImmutableToolModel):
@@ -69,13 +73,15 @@ class ItemSelection(_ImmutableToolModel):
     action_id: str
     item_refcodes: tuple[StrictStr, ...]
 
-    @validator("action_id")
+    @field_validator("action_id")
+    @classmethod
     def action_id_is_lowercase_slug(cls, value):
         if not TOOL_ACTION_ID_PATTERN.fullmatch(value):
             raise ValueError("Tool action IDs must be lowercase hyphenated slugs")
         return value
 
-    @validator("item_refcodes")
+    @field_validator("item_refcodes")
+    @classmethod
     def item_refcodes_are_non_empty_and_unique(cls, value):
         if not value:
             raise ValueError("An item selection must contain at least one refcode")
@@ -116,7 +122,8 @@ class InAppToolUI(BaseToolUI):
     entrypoint: str = "frontend/tool.js"
     sdk_version: Literal[1] = 1
 
-    @validator("entrypoint")
+    @field_validator("entrypoint")
+    @classmethod
     def entrypoint_is_namespaced_relative_path(cls, value):
         parsed = urlsplit(value)
         segments = value.split("/")
@@ -152,7 +159,8 @@ class ToolMetadata(_ImmutableToolModel):
     )
     launch_actions: tuple[ItemTableSelectionAction, ...] = ()
 
-    @validator("launch_actions")
+    @field_validator("launch_actions")
+    @classmethod
     def launch_action_ids_are_unique(cls, value):
         action_ids = [action.id for action in value]
         if len(action_ids) != len(set(action_ids)):

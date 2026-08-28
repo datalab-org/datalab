@@ -26,8 +26,6 @@ export default createStore({
     updatingDelayed: {},
     remoteDirectoryTree: {},
     remoteDirectoryTreeSecondsSinceLastUpdate: null,
-    itemGraphData: null,
-    itemGraphIsLoading: false,
     remoteDirectoryTreeIsLoading: false,
     fileSelectModalIsOpen: false,
     currentUserDisplayName: null,
@@ -373,14 +371,8 @@ export default createStore({
     setRemoteDirectoryTreeIsLoading(state, isLoading) {
       state.remoteDirectoryTreeIsLoading = isLoading;
     },
-    setItemGraph(state, payload) {
-      state.itemGraphData = payload;
-    },
     setCurrentUserInfoLoading(state, isLoading) {
       state.currentUserInfoLoading = isLoading;
-    },
-    setItemGraphIsLoading(state, isLoading) {
-      state.itemGraphIsLoading = isLoading;
     },
     setBlocksInfos(state, blocksInfos) {
       blocksInfos.forEach((info) => {

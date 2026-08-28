@@ -3,7 +3,10 @@
 
 """
 
+import warnings
 from typing import TYPE_CHECKING
+
+from pydantic.warnings import PydanticDeprecatedSince20
 
 if TYPE_CHECKING:
     # This import is required to prevent circular imports for application-specific blocks
@@ -116,7 +119,13 @@ def load_block_plugins():
 
     block_plugins: dict[str, type[DataBlock]] = {}
     for entry_point in entry_points(group="pydatalab.apps.plugins"):
-        block = entry_point.load()
+        # Plugins may not yet be migrated to pydantic v2, so tolerate the v2
+        # deprecation warnings their models emit at import time (e.g. extra `Field`
+        # kwargs like `datalab_exclude_*`) rather than letting them error out plugin
+        # loading. datalab's own deprecations are still surfaced as errors.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", PydanticDeprecatedSince20)
+            block = entry_point.load()
 
         if not issubclass(block, DataBlock):
             raise ValueError(f"Plugin {block} must be a subclass of DataBlock")

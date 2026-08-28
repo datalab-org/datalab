@@ -60,8 +60,7 @@ class ToolRegistry:
                 f"Tool entry point {entry_point_name!r} does not match provider ID {provider.id!r}"
             )
         if provider.id in self._providers:
-            LOGGER.error("Ignoring duplicate tool provider ID %r", provider.id)
-            return
+            raise ValueError(f"Duplicate tool provider ID {provider.id!r}")
 
         self._providers[provider.id] = provider
 
