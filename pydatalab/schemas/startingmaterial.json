@@ -1326,6 +1326,19 @@
       "title": "File Objectids",
       "type": "array"
     },
+    "location": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The place where the item is located.",
+      "title": "Location"
+    },
     "blocks_obj": {
       "additionalProperties": {
         "$ref": "#/$defs/DataBlockResponse"
@@ -1633,19 +1646,6 @@
       "default": null,
       "description": "Supplier or manufacturer of the chemical.",
       "title": "Supplier"
-    },
-    "location": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "description": "The place where the container is located.",
-      "title": "Location"
     },
     "comment": {
       "anyOf": [

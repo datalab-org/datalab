@@ -44,9 +44,6 @@ class StartingMaterial(Item, HasSynthesisInfo, HasSubstanceInfo):
     supplier: str | None = Field(None, alias="Supplier")
     """Supplier or manufacturer of the chemical."""
 
-    location: str | None = Field(None, alias="Location")
-    """The place where the container is located."""
-
     comment: str | None = Field(None, alias="Comments")
     """Any additional comments or notes about the container."""
 

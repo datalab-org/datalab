@@ -263,6 +263,12 @@ its importance when deploying a datalab instance.""",
         description="A list of dotted import paths ('package.module:ClassName') to custom `Item` subclasses to register as additional item types served through the generic item endpoints, e.g. ['mypackage.models:MySample']. Each model must declare its own unique `type` literal.",
     )
 
+    PREDEFINED_LOCATIONS: set[str] = Field(
+        default_factory=set,
+        description="A list of additional lab locations to populate in the /locations endpoint that will be suggested globally for autocompletion. Use '>' to indicate location hierarchy",
+        examples=[["Lab A > Cupboard B > Shelf C"]],
+    )
+
     BACKUP_STRATEGIES: dict[str, BackupStrategy] | None = Field(
         {
             "daily-snapshots": BackupStrategy(
@@ -368,6 +374,15 @@ its importance when deploying a datalab instance.""",
             for strategy in self.BACKUP_STRATEGIES.values():
                 strategy.active = False
         return self
+
+    @field_validator("PREDEFINED_LOCATIONS", mode="before")
+    @classmethod
+    def check_predefined_locations(cls, v):
+        """Checks that predefined locations can be parsed hierarchically."""
+        from pydatalab.models.utils import construct_location_hierarchy
+
+        construct_location_hierarchy(v)
+        return v
 
     @field_validator("LOG_FILE", mode="before")
     @classmethod

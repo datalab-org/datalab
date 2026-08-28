@@ -19,7 +19,11 @@ from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS, ItemVersion, flagged_summary_fields
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
-from pydatalab.models.utils import InlineSubstance, generate_unique_refcode
+from pydatalab.models.utils import (
+    InlineSubstance,
+    construct_location_hierarchy,
+    generate_unique_refcode,
+)
 from pydatalab.models.versions import (
     CompareVersionsQuery,
     RestoreVersionRequest,
@@ -1844,3 +1848,35 @@ def get_access_token_info(refcode: str):
         ), 200
     else:
         return jsonify({"status": "success", "has_token": False}), 200
+
+
+@ITEMS.route("/locations", methods=["GET"])
+def get_locations_for_items():
+    """List all distinct locations that the current user has access to, whether via
+    items at those locations, or pre-defined locations for the overall deployment.
+
+    """
+    locations = set(
+        flask_mongo.db.items.distinct(
+            "location",
+            {
+                "location": {"$ne": None},
+                **get_default_permissions(user_only=False),
+            },
+        )
+    )
+
+    locations |= CONFIG.PREDEFINED_LOCATIONS
+
+    try:
+        nested_locations = construct_location_hierarchy(locations)
+    except Exception as exc:
+        LOGGER.error("Error constructing location hierarchy for %s: %s", locations, exc)
+        nested_locations = {}
+
+    return jsonify(
+        {
+            "data": {"flat_locations": list(locations), "nested_locations": nested_locations},
+            "status": "success",
+        }
+    ), 200
