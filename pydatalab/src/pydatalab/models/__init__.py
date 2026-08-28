@@ -100,6 +100,15 @@ def register_item_model(model: type[Item]) -> None:
             "custom types must declare their own unique `type` literal."
         )
 
+    if not item_type.startswith("_"):
+        raise ValueError(
+            f"Custom item model {model.__name__!r} declares the un-namespaced type {item_type!r}; "
+            "custom types must be namespaced with a leading underscore, e.g. '_my_samples'. "
+            "This reserves the un-prefixed namespace for built-in types and allows a future "
+            "release to rewrite custom types into a per-deployment namespace "
+            "(e.g. '_exmpl:my_samples') without a migration."
+        )
+
     existing = ITEM_MODELS.get(item_type)
     if existing is not None and existing is not model:
         raise ValueError(
@@ -109,6 +118,23 @@ def register_item_model(model: type[Item]) -> None:
 
     ITEM_MODELS[item_type] = model
     ITEM_SCHEMAS[item_type] = model.model_json_schema(by_alias=False)
+
+
+def constituent_item_types() -> set[str]:
+    """Return the set of registered item types that may be referenced as a
+    constituent of another item (e.g. in `synthesis_constituents`).
+
+    An item can be a constituent if its model carries substance information
+    (i.e. mixes in `HasSubstanceInfo`), which is true of the built-in `samples`
+    and `starting_materials` types and of any custom item type that opts in.
+    This is computed from the live registry on each call, so custom item types
+    registered at startup are included.
+    """
+    from pydatalab.models.traits import HasSubstanceInfo
+
+    return {
+        item_type for item_type, model in ITEM_MODELS.items() if issubclass(model, HasSubstanceInfo)
+    }
 
 
 def flagged_summary_fields(types) -> list[str]:
@@ -170,4 +196,5 @@ __all__ = (
     "refresh_item_models",
     "load_custom_item_models",
     "flagged_summary_fields",
+    "constituent_item_types",
 )
