@@ -3,9 +3,14 @@ import { DEFAULT_TAG_COLOR } from "@/resources.js";
 import { createStore } from "vuex";
 
 // Mount the modal closed, then open it by flipping `modelValue` so the Modal's open watcher
-// (and the form's populate/reset watcher) fire as they do in the app. Returns the test-utils
-// wrapper aliased as "wrapper" for emitted assertions. `role` sets the current user's role
-// (the modal offers the "global" scope only to admins).
+// (and the form's populate/reset watcher) fire as they do in the app. `role` sets the current
+// user's role (the modal offers the "global" scope only to admins).
+//
+// Emitted events are observed through spies passed as listener props (aliased "tagCreated",
+// "tagUpdated" and "updateModelValue") rather than through the test-utils `wrapper.emitted()`
+// recorder: `emitted()` is fed by Vue's devtools hook, which is compiled out of production
+// builds, and CI runs the component specs with NODE_ENV=production. Listener props are called
+// by `emit()` itself, so they record events in either build mode.
 //
 // Note: component tests run without the app's global Bootstrap CSS, so the Modal's backdrop
 // overlays the dialog (no .modal z-index). We use { force: true } on interactions to bypass
@@ -18,13 +23,16 @@ function mountAndOpen({ tag = null, role = "user" } = {}) {
   });
   return cy
     .mount(TagFormModal, {
-      props: { modelValue: false, tag },
+      props: {
+        modelValue: false,
+        tag,
+        onTagCreated: cy.spy().as("tagCreated"),
+        onTagUpdated: cy.spy().as("tagUpdated"),
+        "onUpdate:modelValue": cy.spy().as("updateModelValue"),
+      },
       global: { plugins: [store] },
     })
-    .then(({ wrapper }) => {
-      cy.wrap(wrapper).as("wrapper");
-      return wrapper.setProps({ modelValue: true });
-    });
+    .then(({ wrapper }) => wrapper.setProps({ modelValue: true }));
 }
 
 describe("TagFormModal.vue", () => {
@@ -55,11 +63,9 @@ describe("TagFormModal.vue", () => {
             scope: "user",
           },
         });
-      cy.get("@wrapper").should((wrapper) => {
-        expect(wrapper.emitted("tag-created")).to.have.length(1);
-        // The modal asks its parent to close on success.
-        expect(wrapper.emitted("update:modelValue").at(-1)).to.deep.equal([false]);
-      });
+      cy.get("@tagCreated").should("have.been.calledOnce");
+      // The modal asks its parent to close on success.
+      cy.get("@updateModelValue").its("lastCall.args").should("deep.equal", [false]);
     });
 
     it("lets an admin create a global tag", () => {
@@ -90,9 +96,8 @@ describe("TagFormModal.vue", () => {
       cy.wait("@create");
       cy.get(".form-error").should("contain", "already exists");
       // The modal stays open on a conflict.
-      cy.get("@wrapper").should((wrapper) => {
-        expect(wrapper.emitted("tag-created")).to.be.undefined;
-      });
+      cy.get("@tagCreated").should("not.have.been.called");
+      cy.get("@updateModelValue").should("not.have.been.called");
     });
   });
 
@@ -116,9 +121,7 @@ describe("TagFormModal.vue", () => {
       cy.get('input[type="submit"]').click({ force: true });
 
       cy.wait("@updateTag").its("request.body.data.name").should("equal", "new-name");
-      cy.get("@wrapper").should((wrapper) => {
-        expect(wrapper.emitted("tag-updated")).to.have.length(1);
-      });
+      cy.get("@tagUpdated").should("have.been.calledOnce");
     });
   });
 });
