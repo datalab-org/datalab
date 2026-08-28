@@ -14,5 +14,6 @@ nav:
     - Deployment:
         - deployment.md
         - config.md
+        - SECURITY.md
     - About: about.md
     - Changelog: CHANGELOG.md
