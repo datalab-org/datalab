@@ -751,6 +751,30 @@ def test_create_collections(client, default_collection, database):
 
 
 @pytest.mark.dependency(depends=["test_create_collections"])
+def test_create_collection_with_additional_creators(client, default_collection):
+    """`additional_creators` is consumed by the endpoint to populate `creator_ids` and is
+    not a field of `Collection` itself, so it must not be passed through to the model.
+
+    Kept explicit so the payload stays valid if unknown fields are rejected outright in
+    the future, rather than relying on them being silently ignored.
+    """
+    collection_id = "test_collection_creators"
+    data = json.loads(default_collection.model_dump_json())
+    data.update({"collection_id": collection_id, "additional_creators": None})
+
+    response = client.put("/collections", json={"data": data})
+    assert response.status_code == 201, response.json
+    assert "additional_creators" not in response.json["data"]
+
+    response = client.get(f"/collections/{collection_id}")
+    assert response.status_code == 200, response.json
+    assert "additional_creators" not in response.json["data"]
+
+    # Remove it again so that the collection counts asserted by later tests still hold.
+    assert client.delete(f"/collections/{collection_id}").status_code == 200
+
+
+@pytest.mark.dependency(depends=["test_create_collections"])
 def test_items_added_to_existing_collection(client, default_collection, default_sample_dict):
     # Create a new item that is inside the default collection by passing collection_id
     new_id = "testing_collection_insert_by_id"

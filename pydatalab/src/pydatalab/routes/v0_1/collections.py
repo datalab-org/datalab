@@ -97,7 +97,9 @@ def create_collection():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     data = request_json.get("data", {})
     copy_from_id = request_json.get("copy_from_collection_id", None)
-    starting_members = data.get("starting_members", [])
+    starting_members = data.pop("starting_members", [])
+    # Consumed below to populate `creator_ids`; not a field of `Collection` itself.
+    additional_creators = data.pop("additional_creators", None)
 
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
@@ -124,8 +126,8 @@ def create_collection():
             }
         ]
 
-    if data.get("additional_creators"):
-        for c in data["additional_creators"]:
+    if additional_creators:
+        for c in additional_creators:
             creator_id = c.get("_id") or c.get("immutable_id")
             if creator_id:
                 data["creator_ids"].append(ObjectId(creator_id))

@@ -400,7 +400,6 @@ def fixture_default_collection():
         **{
             "collection_id": "test_collection",
             "title": "My Test Collection",
-            "date": "1970-02-02",
             "type": "collections",
         }
     )
