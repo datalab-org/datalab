@@ -971,29 +971,29 @@ export function updateCollectionPermissions(collection_id, creators = null, grou
 export function saveItem(item_id) {
   var item_data = store.state.all_item_data[item_id];
 
-  let blocks = [];
-  let keysToExclude = ["bokeh_plot_data", "computed", "metadata", "b64_encoded_image"];
+  // Strip large and server-authoritative data out of the blocks before saving, but make
+  // sure to preserve them in the store. The server ignores these keys on the way in
+  // (they are either recomputed or restored from the stored block state), so sending
+  // them only inflates the request.
+  const keysToExclude = [
+    "bokeh_plot_data",
+    "b64_encoded_image",
+    "computed",
+    "processed",
+    "metadata",
+  ];
 
-  // Strip large data from blocks before saving, but make
-  // sure to preserve them in the store
-  if (item_data.blocks_obj) {
-    for (const block_id in item_data.blocks_obj) {
-      blocks.push(
-        Object.fromEntries(
-          Object.entries(item_data.blocks_obj[block_id]).filter(
-            ([key]) => !keysToExclude.includes(key),
-          ),
-        ),
-      );
-    }
-  }
-
-  item_data.blocks = blocks;
+  const blocks_obj = Object.fromEntries(
+    Object.entries(item_data.blocks_obj || {}).map(([block_id, block]) => [
+      block_id,
+      Object.fromEntries(Object.entries(block).filter(([key]) => !keysToExclude.includes(key))),
+    ]),
+  );
 
   store.commit("setItemSaved", { item_id: item_id, isSaved: false });
   fetch_post(`${API_URL}/save-item/`, {
     item_id: item_id,
-    data: item_data,
+    data: { ...item_data, blocks_obj: blocks_obj },
   })
     .then(function (response_json) {
       if (response_json.status === "success") {
