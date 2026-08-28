@@ -14,6 +14,7 @@ types into other test modules.
 import copy
 
 import pytest
+from pydantic import ValidationError
 
 EXAMPLE_CUSTOM_MODELS = [
     "pydatalab.models._example_custom:MySample",
@@ -204,8 +205,7 @@ def test_unknown_custom_type_rejected(client, custom_item_models):
 
 def test_bad_custom_item_type_rejected():
     """A custom model is rejected at registration time if it reuses a reserved
-    built-in `type`, declares an un-namespaced `type`, or is not an `Item`
-    subclass at all."""
+    built-in `type`, or is not an `Item` subclass at all."""
     from typing import Literal
 
     from pydatalab.models import register_item_model
@@ -217,13 +217,6 @@ def test_bad_custom_item_type_rejected():
 
     with pytest.raises(ValueError, match="reserved built-in type"):
         register_item_model(ClashingSample)
-
-    class UnNamespacedSample(Sample):
-        # Declares its own type, but without the required leading underscore.
-        type: Literal["my_samples"] = "my_samples"  # type: ignore[assignment]
-
-    with pytest.raises(ValueError, match="un-namespaced type"):
-        register_item_model(UnNamespacedSample)
 
     # Anything that is not an `Item` subclass is also rejected.
     with pytest.raises(TypeError):
@@ -253,3 +246,81 @@ def test_extra_fields_on_builtin_sample_are_ignored(client):
     assert item_data["type"] == "samples"
     assert "drying_time" not in item_data
     assert "custom_properties" not in item_data
+
+
+def test_un_namespaced_type_is_namespaced_in_place():
+    """A custom model declaring an un-namespaced `type` is registered under the
+    namespaced type, with the declaring class itself rewritten so that directly
+    constructed instances agree with the registry."""
+    from typing import Literal
+
+    from pydatalab.models import ITEM_MODELS, ITEM_SCHEMAS, register_item_model
+    from pydatalab.models.samples import Sample
+
+    class UnNamespacedSample(Sample):
+        # Declares its own type, but without the leading underscore.
+        type: Literal["needs_namespacing"] = "needs_namespacing"  # type: ignore[assignment]
+
+    try:
+        register_item_model(UnNamespacedSample)
+
+        assert "_needs_namespacing" in ITEM_MODELS
+        assert "needs_namespacing" not in ITEM_MODELS
+        # The declaring class is registered, not a synthesised subclass.
+        assert ITEM_MODELS["_needs_namespacing"] is UnNamespacedSample
+        assert (
+            ITEM_SCHEMAS["_needs_namespacing"]["properties"]["type"]["default"]
+            == "_needs_namespacing"
+        )
+
+        # Instances constructed directly by plugin code carry the namespaced type...
+        item = UnNamespacedSample(item_id="namespaced-in-place")
+        assert item.type == "_needs_namespacing"
+        assert item.model_dump()["type"] == "_needs_namespacing"
+        assert isinstance(item, Sample)
+
+        # ...and the original, un-namespaced literal is no longer accepted.
+        with pytest.raises(ValidationError):
+            UnNamespacedSample(item_id="namespaced-in-place", type="needs_namespacing")
+
+        # Rewriting the subclass must not disturb the built-in it inherits from.
+        assert Sample.model_fields["type"].default == "samples"
+        assert Sample(item_id="still-a-sample").type == "samples"
+
+        # Registration is idempotent: a second call must not double-prefix.
+        register_item_model(UnNamespacedSample)
+        assert "__needs_namespacing" not in ITEM_MODELS
+    finally:
+        ITEM_MODELS.pop("_needs_namespacing", None)
+        ITEM_SCHEMAS.pop("_needs_namespacing", None)
+
+
+def test_refresh_item_models_ignores_custom_types(custom_item_models):
+    """`refresh_item_models` rebuilds only the built-in entries: it must neither
+    drop registered custom types nor rediscover them (and their un-namespaced
+    `type` literals) through the `Item` subclass walk."""
+    from typing import Literal
+
+    from pydatalab.models import ITEM_MODELS, ITEM_SCHEMAS, refresh_item_models
+    from pydatalab.models.samples import Sample
+
+    class NeverRegisteredSample(Sample):
+        """An un-namespaced subclass that is defined but never registered, e.g. a
+        custom model that has merely been imported."""
+
+        type: Literal["never_registered"] = "never_registered"  # type: ignore[assignment]
+
+    refresh_item_models()
+
+    # A merely-imported subclass is not registered by the refresh, so its
+    # un-namespaced type cannot sneak into the registry.
+    assert "never_registered" not in ITEM_MODELS
+    assert "never_registered" not in ITEM_SCHEMAS
+
+    assert "samples" in ITEM_MODELS
+    # Registered custom types survive the refresh...
+    assert "_my_samples" in ITEM_MODELS
+    assert "_my_samples" in ITEM_SCHEMAS
+    # ...and are not re-registered under the un-namespaced type they declare.
+    assert "my_samples" not in ITEM_MODELS
+    assert "my_items" not in ITEM_MODELS
