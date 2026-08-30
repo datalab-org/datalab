@@ -111,6 +111,12 @@ const convertDocToMarkdown = (doc) => {
             case "underline":
               text = `<u>${text}</u>`;
               break;
+            case "subscript":
+              text = `<sub>${text}</sub>`;
+              break;
+            case "superscript":
+              text = `<sup>${text}</sup>`;
+              break;
             case "link":
               text = `[${text}](${mark.attrs.href})`;
               break;
@@ -186,7 +192,24 @@ const convertDocToMarkdown = (doc) => {
       case "image": {
         const src = node.attrs?.src || "";
         const alt = node.attrs?.alt || "";
-        markdown += `![${alt}](${src})`;
+        const width = node.attrs?.width;
+        const height = node.attrs?.height;
+        const fileId = node.attrs?.fileId;
+        const fileName = node.attrs?.fileName;
+        if (width || height || fileId) {
+          // Markdown can express neither image dimensions nor the id of the
+          // attached file an image came from, so fall back to raw HTML rather
+          // than losing them when round-tripping through Markdown mode.
+          const extraAttrs = [
+            width ? ` width="${escapeAttr(width)}"` : "",
+            height ? ` height="${escapeAttr(height)}"` : "",
+            fileId ? ` data-file-id="${escapeAttr(fileId)}"` : "",
+            fileName ? ` data-file-name="${escapeAttr(fileName)}"` : "",
+          ].join("");
+          markdown += `<img src="${escapeAttr(src)}" alt="${escapeAttr(alt)}"${extraAttrs}>`;
+        } else {
+          markdown += `![${alt}](${src})`;
+        }
         break;
       }
 
@@ -642,6 +665,19 @@ export const MarkdownToggle = Extension.create({
             commands.setContent(parseMarkdownToHTML(storage.markdownContent));
             storage.markdownMode = false;
           }
+          return true;
+        },
+
+      /**
+       * Leave Markdown mode without writing the Markdown back into the
+       * document. Used when the Markdown was never edited, so that merely
+       * looking at it cannot rewrite the document through the (lossy)
+       * Markdown converter.
+       */
+      cancelMarkdownView:
+        () =>
+        ({ editor }) => {
+          editor.storage.markdownToggle.markdownMode = false;
           return true;
         },
 

@@ -51,6 +51,7 @@
       <label id="synthesis-procedure-label" class="subheading">Procedure</label>
       <TiptapInline
         v-model="CellPreparationDescription"
+        :item_id="item_id"
         aria-labelledby="synthesis-procedure-label"
       />
     </div>

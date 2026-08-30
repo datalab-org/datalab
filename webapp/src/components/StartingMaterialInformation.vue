@@ -100,7 +100,11 @@
     </div>
 
     <label class="mr-2">Description</label>
-    <TiptapInline v-model="ItemDescription" data-testid="item-description"></TiptapInline>
+    <TiptapInline
+      v-model="ItemDescription"
+      :item_id="item_id"
+      data-testid="item-description"
+    ></TiptapInline>
 
     <TableOfContents
       class="mb-3"

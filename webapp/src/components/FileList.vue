@@ -7,7 +7,13 @@
           <a @click="deleteFile($event, file_id)">
             <font-awesome-icon icon="times" fixed-width class="delete-file-button" />
           </a>
-          <a class="filelink" target="_blank" :href="getFileUrl(file_id, file.name)">
+          <a
+            class="filelink"
+            target="_blank"
+            :href="getFileUrl(file_id, file.name)"
+            draggable="true"
+            @dragstart="startFileDrag($event, file_id, file.name)"
+          >
             {{ file.name }}
           </a>
           <span v-if="getFileSize(file)" class="file-size">
@@ -78,6 +84,7 @@
 import { DialogService } from "@/services/DialogService";
 
 import { deleteFileFromSample } from "@/server_fetch_utils";
+import { FILE_DRAG_MIME } from "@/editor/files.js";
 import { formatDistance } from "date-fns";
 
 export default {
@@ -102,6 +109,14 @@ export default {
     },
   },
   methods: {
+    startFileDrag(event, file_id, filename) {
+      // Give the editors an unambiguous payload; without it a dragged anchor
+      // arrives as bare text and gets autolinked into nonsense. See datalab#2048.
+      event.dataTransfer.setData(FILE_DRAG_MIME, JSON.stringify({ file_id, name: filename }));
+      event.dataTransfer.setData("text/uri-list", this.getFileUrl(file_id, filename));
+      event.dataTransfer.setData("text/plain", this.getFileUrl(file_id, filename));
+      event.dataTransfer.effectAllowed = "copy";
+    },
     getFileUrl(file_id, filename) {
       const baseUrl = `${this.$API_URL}/files/${file_id}/${filename}`;
       return this.adminSuperUserMode ? `${baseUrl}?sudo=1` : baseUrl;

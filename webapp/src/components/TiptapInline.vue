@@ -97,6 +97,13 @@
       :is-editing="editingMermaid"
       @save="handleMermaidSave"
     />
+
+    <ImageFileSelectModal
+      v-if="item_id"
+      v-model="showImageFileModal"
+      :item_id="item_id"
+      @select="insertImageFromFile"
+    />
   </div>
 </template>
 
@@ -105,8 +112,9 @@ import { Editor, EditorContent, Extension } from "@tiptap/vue-3";
 import { Plugin } from "prosemirror-state";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
-import Image from "@tiptap/extension-image";
-import Link from "@tiptap/extension-link";
+import { DatalabImage } from "@/editor/nodes/DatalabImage";
+import { DatalabFileLink } from "@/editor/marks/DatalabFileLink";
+import { DatalabFileDrop } from "@/editor/extensions/DatalabFileDrop";
 import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Color } from "@tiptap/extension-color";
@@ -114,10 +122,15 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import Highlight from "@tiptap/extension-highlight";
 import Typography from "@tiptap/extension-typography";
 import Mathematics from "@tiptap/extension-mathematics";
+import TextAlign from "@tiptap/extension-text-align";
+import Subscript from "@tiptap/extension-subscript";
+import Superscript from "@tiptap/extension-superscript";
 import "katex/dist/katex.min.css";
 
 import { MermaidNode } from "@/editor/nodes/MermaidNode";
 import MermaidModal from "@/components/MermaidModal.vue";
+import ImageFileSelectModal from "@/components/ImageFileSelectModal.vue";
+import { datalabFileUrl } from "@/editor/files.js";
 
 import { CrossReferenceNode } from "@/editor/nodes/CrossReferenceNode";
 import { CrossReferenceInputRule } from "@/editor/extensions/CrossReferenceInputRule";
@@ -125,13 +138,15 @@ import { CrossReferenceInputRule } from "@/editor/extensions/CrossReferenceInput
 import { MarkdownToggle } from "@/editor/extensions/MarkdownToggle";
 
 export default {
-  components: { EditorContent, MermaidModal },
+  components: { EditorContent, MermaidModal, ImageFileSelectModal },
   inheritAttrs: false,
 
   props: {
     modelValue: { type: String, default: "" },
     placeholder: { type: String, default: "Add a description" },
     inline: { type: Boolean, default: true },
+    // Optional: when set, images can be inserted from the item's attached files.
+    item_id: { type: String, default: null },
   },
 
   emits: ["update:modelValue"],
@@ -150,10 +165,12 @@ export default {
       handleDocumentClick: null,
       handleCrossRefClick: null,
       showMermaidModal: false,
+      showImageFileModal: false,
       mermaidDraft: "",
       editingMermaid: false,
       markdownMode: false,
       markdownContent: "",
+      markdownSnapshot: "",
     };
   },
 
@@ -214,6 +231,22 @@ export default {
               isActive: (ed) => ed.isActive("strike"),
               isDisabled: (ed) => !ed.can().chain().focus().toggleStrike().run(),
             },
+            {
+              name: "subscript",
+              icon: "subscript",
+              title: "Subscript",
+              command: (ed) => ed.chain().focus().toggleSubscript().run(),
+              isActive: (ed) => ed.isActive("subscript"),
+              isDisabled: (ed) => !ed.can().chain().focus().toggleSubscript().run(),
+            },
+            {
+              name: "superscript",
+              icon: "superscript",
+              title: "Superscript",
+              command: (ed) => ed.chain().focus().toggleSuperscript().run(),
+              isActive: (ed) => ed.isActive("superscript"),
+              isDisabled: (ed) => !ed.can().chain().focus().toggleSuperscript().run(),
+            },
           ],
         },
         {
@@ -267,6 +300,39 @@ export default {
               title: "Normal text",
               command: (ed) => ed.chain().focus().setParagraph().run(),
               isActive: (ed) => ed.isActive("paragraph"),
+            },
+          ],
+        },
+        {
+          name: "align",
+          buttons: [
+            {
+              name: "alignLeft",
+              icon: "align-left",
+              title: "Align left",
+              command: (ed) => ed.chain().focus().setTextAlign("left").run(),
+              isActive: (ed) => ed.isActive({ textAlign: "left" }),
+            },
+            {
+              name: "alignCenter",
+              icon: "align-center",
+              title: "Centre",
+              command: (ed) => ed.chain().focus().setTextAlign("center").run(),
+              isActive: (ed) => ed.isActive({ textAlign: "center" }),
+            },
+            {
+              name: "alignRight",
+              icon: "align-right",
+              title: "Align right",
+              command: (ed) => ed.chain().focus().setTextAlign("right").run(),
+              isActive: (ed) => ed.isActive({ textAlign: "right" }),
+            },
+            {
+              name: "alignJustify",
+              icon: "align-justify",
+              title: "Justify",
+              command: (ed) => ed.chain().focus().setTextAlign("justify").run(),
+              isActive: (ed) => ed.isActive({ textAlign: "justify" }),
             },
           ],
         },
@@ -373,9 +439,20 @@ export default {
               isActive: (ed) => ed.isActive("link"),
             },
             {
+              name: "imageFromFiles",
+              icon: "file-image",
+              title: "Insert image from attached files",
+              // Only meaningful when the editor knows which item it belongs to;
+              // collections, for instance, have no attached files.
+              isVisible: () => Boolean(this.item_id),
+              command: () => {
+                this.showImageFileModal = true;
+              },
+            },
+            {
               name: "image",
               icon: "image",
-              title: "Add Image",
+              title: "Add image by URL",
               command: () => this.addImage(),
             },
             {
@@ -455,9 +532,15 @@ export default {
       extensions: [
         StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] } }),
         Underline,
-        Image.configure({
+        DatalabImage.configure({
           inline: true,
           allowBase64: true,
+          resize: {
+            enabled: true,
+            minWidth: 32,
+            minHeight: 32,
+            alwaysPreserveAspectRatio: true,
+          },
         }),
         Extension.create({
           name: "customTab",
@@ -551,7 +634,13 @@ export default {
             ];
           },
         }),
-        Link.configure({
+        // Alignment is stored on the block node, not the image: an inline image
+        // sits inside a paragraph, so aligning that paragraph moves the image.
+        TextAlign.configure({ types: ["heading", "paragraph"] }),
+        Subscript,
+        Superscript,
+        DatalabFileDrop,
+        DatalabFileLink.configure({
           openOnClick: false,
           HTMLAttributes: { target: "_blank", rel: "noopener noreferrer" },
         }),
@@ -724,6 +813,16 @@ export default {
       if (url === "") this.editor.chain().focus().extendMarkRange("link").unsetLink().run();
       else this.editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
     },
+    insertImageFromFile({ fileId, fileName }) {
+      // Store the file id alongside the URL so the src can be rebuilt if this
+      // deployment's API host ever changes. See DatalabImage.
+      this.editor
+        .chain()
+        .focus()
+        .setImage({ src: datalabFileUrl(fileId, fileName), alt: fileName })
+        .updateAttributes("image", { fileId, fileName })
+        .run();
+    },
     addImage() {
       const url = window.prompt("Image URL");
       if (url) this.editor.chain().focus().setImage({ src: url }).run();
@@ -773,13 +872,14 @@ export default {
     },
     toggleMarkdownView() {
       if (this.markdownMode) {
+        this.editor.commands.toggleMarkdownView();
         this.markdownContent = this.editor.commands.getMarkdownContent();
-        if (!this.markdownContent) {
-          this.editor.commands.toggleMarkdownView();
-          this.markdownContent = this.editor.commands.getMarkdownContent();
-        }
+        this.markdownSnapshot = this.markdownContent;
+      } else if (this.markdownContent === this.markdownSnapshot) {
+        this.editor.commands.cancelMarkdownView();
       } else {
-        this.applyMarkdownChanges();
+        this.editor.commands.updateMarkdownContent(this.markdownContent);
+        this.editor.commands.toggleMarkdownView();
       }
     },
     applyMarkdownChanges() {
@@ -862,5 +962,39 @@ export default {
 :deep(.ProseMirror mark) {
   background-color: #fff3cd;
   padding: 2px 0;
+}
+
+/* Pasted images render at natural size and can overflow the editor. */
+:deep(.ProseMirror img) {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ResizableNodeView renders handles as bare absolutely-positioned divs with no
+   dimensions, so they are invisible and ungrabbable until sized here. */
+:deep(.ProseMirror [data-resize-handle]) {
+  width: 10px;
+  height: 10px;
+  margin: -5px;
+  background-color: #fff;
+  border: 1px solid #007bff;
+  border-radius: 2px;
+  opacity: 0;
+}
+
+:deep(.ProseMirror [data-resize-handle="top-left"]),
+:deep(.ProseMirror [data-resize-handle="bottom-right"]) {
+  cursor: nwse-resize;
+}
+
+:deep(.ProseMirror [data-resize-handle="top-right"]),
+:deep(.ProseMirror [data-resize-handle="bottom-left"]) {
+  cursor: nesw-resize;
+}
+
+/* Reveal on hover and while dragging — the pointer can leave the image mid-drag. */
+:deep(.ProseMirror [data-resize-container]:hover [data-resize-handle]),
+:deep(.ProseMirror [data-resize-container][data-resize-state="true"] [data-resize-handle]) {
+  opacity: 1;
 }
 </style>

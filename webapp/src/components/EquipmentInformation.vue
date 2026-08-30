@@ -69,7 +69,11 @@
       </div>
     </div>
     <label id="equip-description-label" class="mr-2">Description</label>
-    <TiptapInline v-model="ItemDescription" aria-labelledby="equip-description-label" />
+    <TiptapInline
+      v-model="ItemDescription"
+      :item_id="item_id"
+      aria-labelledby="equip-description-label"
+    />
 
     <TableOfContents
       class="mb-3"
