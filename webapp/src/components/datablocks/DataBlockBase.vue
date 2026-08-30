@@ -188,7 +188,11 @@
       </div>
 
       <slot></slot>
-      <TiptapInline v-model="BlockDescription" data-testid="block-description"></TiptapInline>
+      <TiptapInline
+        v-model="BlockDescription"
+        :item_id="item_id"
+        data-testid="block-description"
+      ></TiptapInline>
     </div>
   </div>
 </template>

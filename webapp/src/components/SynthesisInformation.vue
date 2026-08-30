@@ -27,6 +27,7 @@
       <span id="synthesis-procedure-label" class="subheading ml-2">Procedure</span>
       <TiptapInline
         v-model="SynthesisDescription"
+        :item_id="item_id"
         aria-labelledby="synthesis-procedure-label"
       ></TiptapInline>
     </div>

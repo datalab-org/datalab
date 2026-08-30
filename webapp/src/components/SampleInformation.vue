@@ -57,7 +57,11 @@
     <div class="row">
       <div class="col">
         <label id="samp-description-label">Description</label>
-        <TiptapInline v-model="SampleDescription" aria-labelledby="samp-description-label" />
+        <TiptapInline
+          v-model="SampleDescription"
+          :item_id="item_id"
+          aria-labelledby="samp-description-label"
+        />
       </div>
     </div>
 

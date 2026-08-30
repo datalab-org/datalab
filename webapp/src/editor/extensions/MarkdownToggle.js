@@ -194,14 +194,19 @@ const convertDocToMarkdown = (doc) => {
         const alt = node.attrs?.alt || "";
         const width = node.attrs?.width;
         const height = node.attrs?.height;
-        if (width || height) {
-          // Markdown has no syntax for image dimensions, so fall back to raw HTML
-          // to avoid losing a resize when round-tripping through Markdown mode.
-          const sizeAttrs = [
+        const fileId = node.attrs?.fileId;
+        const fileName = node.attrs?.fileName;
+        if (width || height || fileId) {
+          // Markdown can express neither image dimensions nor the id of the
+          // attached file an image came from, so fall back to raw HTML rather
+          // than losing them when round-tripping through Markdown mode.
+          const extraAttrs = [
             width ? ` width="${escapeAttr(width)}"` : "",
             height ? ` height="${escapeAttr(height)}"` : "",
+            fileId ? ` data-file-id="${escapeAttr(fileId)}"` : "",
+            fileName ? ` data-file-name="${escapeAttr(fileName)}"` : "",
           ].join("");
-          markdown += `<img src="${escapeAttr(src)}" alt="${escapeAttr(alt)}"${sizeAttrs}>`;
+          markdown += `<img src="${escapeAttr(src)}" alt="${escapeAttr(alt)}"${extraAttrs}>`;
         } else {
           markdown += `![${alt}](${src})`;
         }

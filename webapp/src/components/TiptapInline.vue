@@ -97,6 +97,13 @@
       :is-editing="editingMermaid"
       @save="handleMermaidSave"
     />
+
+    <ImageFileSelectModal
+      v-if="item_id"
+      v-model="showImageFileModal"
+      :item_id="item_id"
+      @select="insertImageFromFile"
+    />
   </div>
 </template>
 
@@ -105,7 +112,7 @@ import { Editor, EditorContent, Extension } from "@tiptap/vue-3";
 import { Plugin } from "prosemirror-state";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
-import Image from "@tiptap/extension-image";
+import { DatalabImage } from "@/editor/nodes/DatalabImage";
 import Link from "@tiptap/extension-link";
 import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -121,6 +128,8 @@ import "katex/dist/katex.min.css";
 
 import { MermaidNode } from "@/editor/nodes/MermaidNode";
 import MermaidModal from "@/components/MermaidModal.vue";
+import ImageFileSelectModal from "@/components/ImageFileSelectModal.vue";
+import { datalabFileUrl } from "@/editor/nodes/DatalabImage";
 
 import { CrossReferenceNode } from "@/editor/nodes/CrossReferenceNode";
 import { CrossReferenceInputRule } from "@/editor/extensions/CrossReferenceInputRule";
@@ -128,13 +137,15 @@ import { CrossReferenceInputRule } from "@/editor/extensions/CrossReferenceInput
 import { MarkdownToggle } from "@/editor/extensions/MarkdownToggle";
 
 export default {
-  components: { EditorContent, MermaidModal },
+  components: { EditorContent, MermaidModal, ImageFileSelectModal },
   inheritAttrs: false,
 
   props: {
     modelValue: { type: String, default: "" },
     placeholder: { type: String, default: "Add a description" },
     inline: { type: Boolean, default: true },
+    // Optional: when set, images can be inserted from the item's attached files.
+    item_id: { type: String, default: null },
   },
 
   emits: ["update:modelValue"],
@@ -153,6 +164,7 @@ export default {
       handleDocumentClick: null,
       handleCrossRefClick: null,
       showMermaidModal: false,
+      showImageFileModal: false,
       mermaidDraft: "",
       editingMermaid: false,
       markdownMode: false,
@@ -426,9 +438,20 @@ export default {
               isActive: (ed) => ed.isActive("link"),
             },
             {
+              name: "imageFromFiles",
+              icon: "file-image",
+              title: "Insert image from attached files",
+              // Only meaningful when the editor knows which item it belongs to;
+              // collections, for instance, have no attached files.
+              isVisible: () => Boolean(this.item_id),
+              command: () => {
+                this.showImageFileModal = true;
+              },
+            },
+            {
               name: "image",
               icon: "image",
-              title: "Add Image",
+              title: "Add image by URL",
               command: () => this.addImage(),
             },
             {
@@ -508,7 +531,7 @@ export default {
       extensions: [
         StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] } }),
         Underline,
-        Image.configure({
+        DatalabImage.configure({
           inline: true,
           allowBase64: true,
           resize: {
@@ -787,6 +810,16 @@ export default {
       if (url === null) return;
       if (url === "") this.editor.chain().focus().extendMarkRange("link").unsetLink().run();
       else this.editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+    },
+    insertImageFromFile({ fileId, fileName }) {
+      // Store the file id alongside the URL so the src can be rebuilt if this
+      // deployment's API host ever changes. See DatalabImage.
+      this.editor
+        .chain()
+        .focus()
+        .setImage({ src: datalabFileUrl(fileId, fileName), alt: fileName })
+        .updateAttributes("image", { fileId, fileName })
+        .run();
     },
     addImage() {
       const url = window.prompt("Image URL");

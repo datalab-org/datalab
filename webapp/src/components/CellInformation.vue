@@ -98,6 +98,7 @@
             <label id="cell-description-label">Description</label>
             <TiptapInline
               v-model="SampleDescription"
+              :item_id="item_id"
               aria-labelledby="cell-description-label"
             ></TiptapInline>
           </div>
