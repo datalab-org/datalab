@@ -32,6 +32,7 @@
     "@tiptap/extension-mathematics": "^3.29.2",
     "@tiptap/extension-placeholder": "^3.29.2",
     "@tiptap/extension-table": "^3.29.2",
+    "@tiptap/extension-text-align": "3.29.2",
     "@tiptap/extension-text-style": "^3.29.2",
     "@tiptap/extension-typography": "^3.29.2",
     "@tiptap/extension-underline": "^3.29.2",
