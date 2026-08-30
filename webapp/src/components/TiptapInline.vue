@@ -458,6 +458,12 @@ export default {
         Image.configure({
           inline: true,
           allowBase64: true,
+          resize: {
+            enabled: true,
+            minWidth: 32,
+            minHeight: 32,
+            alwaysPreserveAspectRatio: true,
+          },
         }),
         Extension.create({
           name: "customTab",
@@ -862,5 +868,39 @@ export default {
 :deep(.ProseMirror mark) {
   background-color: #fff3cd;
   padding: 2px 0;
+}
+
+/* Pasted images render at natural size and can overflow the editor. */
+:deep(.ProseMirror img) {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ResizableNodeView renders handles as bare absolutely-positioned divs with no
+   dimensions, so they are invisible and ungrabbable until sized here. */
+:deep(.ProseMirror [data-resize-handle]) {
+  width: 10px;
+  height: 10px;
+  margin: -5px;
+  background-color: #fff;
+  border: 1px solid #007bff;
+  border-radius: 2px;
+  opacity: 0;
+}
+
+:deep(.ProseMirror [data-resize-handle="top-left"]),
+:deep(.ProseMirror [data-resize-handle="bottom-right"]) {
+  cursor: nwse-resize;
+}
+
+:deep(.ProseMirror [data-resize-handle="top-right"]),
+:deep(.ProseMirror [data-resize-handle="bottom-left"]) {
+  cursor: nesw-resize;
+}
+
+/* Reveal on hover and while dragging — the pointer can leave the image mid-drag. */
+:deep(.ProseMirror [data-resize-container]:hover [data-resize-handle]),
+:deep(.ProseMirror [data-resize-container][data-resize-state="true"] [data-resize-handle]) {
+  opacity: 1;
 }
 </style>
