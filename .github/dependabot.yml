@@ -71,6 +71,11 @@ updates:
       update-types:
         - minor
         - patch
+  ignore:
+    # BokehJS must stay in lockstep with the `bokeh` Python dependency, which is
+    # pinned below 3.0 above.
+    - dependency-name: "@bokeh/bokehjs"
+      versions: [ ">=3" ]
 - package-ecosystem: docker
   directories:
     - ".docker/app"
