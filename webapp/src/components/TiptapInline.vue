@@ -114,6 +114,7 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import Highlight from "@tiptap/extension-highlight";
 import Typography from "@tiptap/extension-typography";
 import Mathematics from "@tiptap/extension-mathematics";
+import TextAlign from "@tiptap/extension-text-align";
 import "katex/dist/katex.min.css";
 
 import { MermaidNode } from "@/editor/nodes/MermaidNode";
@@ -268,6 +269,39 @@ export default {
               title: "Normal text",
               command: (ed) => ed.chain().focus().setParagraph().run(),
               isActive: (ed) => ed.isActive("paragraph"),
+            },
+          ],
+        },
+        {
+          name: "align",
+          buttons: [
+            {
+              name: "alignLeft",
+              icon: "align-left",
+              title: "Align left",
+              command: (ed) => ed.chain().focus().setTextAlign("left").run(),
+              isActive: (ed) => ed.isActive({ textAlign: "left" }),
+            },
+            {
+              name: "alignCenter",
+              icon: "align-center",
+              title: "Centre",
+              command: (ed) => ed.chain().focus().setTextAlign("center").run(),
+              isActive: (ed) => ed.isActive({ textAlign: "center" }),
+            },
+            {
+              name: "alignRight",
+              icon: "align-right",
+              title: "Align right",
+              command: (ed) => ed.chain().focus().setTextAlign("right").run(),
+              isActive: (ed) => ed.isActive({ textAlign: "right" }),
+            },
+            {
+              name: "alignJustify",
+              icon: "align-justify",
+              title: "Justify",
+              command: (ed) => ed.chain().focus().setTextAlign("justify").run(),
+              isActive: (ed) => ed.isActive({ textAlign: "justify" }),
             },
           ],
         },
@@ -558,6 +592,9 @@ export default {
             ];
           },
         }),
+        // Alignment is stored on the block node, not the image: an inline image
+        // sits inside a paragraph, so aligning that paragraph moves the image.
+        TextAlign.configure({ types: ["heading", "paragraph"] }),
         Link.configure({
           openOnClick: false,
           HTMLAttributes: { target: "_blank", rel: "noopener noreferrer" },
