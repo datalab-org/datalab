@@ -113,7 +113,8 @@ import { Plugin } from "prosemirror-state";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import { DatalabImage } from "@/editor/nodes/DatalabImage";
-import Link from "@tiptap/extension-link";
+import { DatalabFileLink } from "@/editor/marks/DatalabFileLink";
+import { DatalabFileDrop } from "@/editor/extensions/DatalabFileDrop";
 import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Color } from "@tiptap/extension-color";
@@ -129,7 +130,7 @@ import "katex/dist/katex.min.css";
 import { MermaidNode } from "@/editor/nodes/MermaidNode";
 import MermaidModal from "@/components/MermaidModal.vue";
 import ImageFileSelectModal from "@/components/ImageFileSelectModal.vue";
-import { datalabFileUrl } from "@/editor/nodes/DatalabImage";
+import { datalabFileUrl } from "@/editor/files.js";
 
 import { CrossReferenceNode } from "@/editor/nodes/CrossReferenceNode";
 import { CrossReferenceInputRule } from "@/editor/extensions/CrossReferenceInputRule";
@@ -638,7 +639,8 @@ export default {
         TextAlign.configure({ types: ["heading", "paragraph"] }),
         Subscript,
         Superscript,
-        Link.configure({
+        DatalabFileDrop,
+        DatalabFileLink.configure({
           openOnClick: false,
           HTMLAttributes: { target: "_blank", rel: "noopener noreferrer" },
         }),

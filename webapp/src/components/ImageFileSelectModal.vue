@@ -34,10 +34,7 @@
 
 <script>
 import Modal from "@/components/Modal.vue";
-import { datalabFileUrl } from "@/editor/nodes/DatalabImage";
-
-// Kept in step with the media block's own list of displayable images.
-const IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".tif", ".tiff", ".gif", ".webp", ".svg"];
+import { datalabFileUrl, isImageFileName } from "@/editor/files.js";
 
 export default {
   components: { Modal },
@@ -64,10 +61,7 @@ export default {
     },
     imageFiles() {
       const files = this.$store.state.all_item_data[this.item_id]?.files ?? [];
-      return files.filter((file) => {
-        const name = (file.name ?? "").toLowerCase();
-        return IMAGE_EXTENSIONS.some((extension) => name.endsWith(extension));
-      });
+      return files.filter((file) => isImageFileName(file.name));
     },
     selectedFile() {
       return this.imageFiles.find((file) => file.immutable_id === this.selectedId) ?? null;
