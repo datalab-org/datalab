@@ -154,6 +154,7 @@ export default {
       editingMermaid: false,
       markdownMode: false,
       markdownContent: "",
+      markdownSnapshot: "",
     };
   },
 
@@ -779,13 +780,14 @@ export default {
     },
     toggleMarkdownView() {
       if (this.markdownMode) {
+        this.editor.commands.toggleMarkdownView();
         this.markdownContent = this.editor.commands.getMarkdownContent();
-        if (!this.markdownContent) {
-          this.editor.commands.toggleMarkdownView();
-          this.markdownContent = this.editor.commands.getMarkdownContent();
-        }
+        this.markdownSnapshot = this.markdownContent;
+      } else if (this.markdownContent === this.markdownSnapshot) {
+        this.editor.commands.cancelMarkdownView();
       } else {
-        this.applyMarkdownChanges();
+        this.editor.commands.updateMarkdownContent(this.markdownContent);
+        this.editor.commands.toggleMarkdownView();
       }
     },
     applyMarkdownChanges() {
