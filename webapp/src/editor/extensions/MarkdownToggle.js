@@ -111,6 +111,12 @@ const convertDocToMarkdown = (doc) => {
             case "underline":
               text = `<u>${text}</u>`;
               break;
+            case "subscript":
+              text = `<sub>${text}</sub>`;
+              break;
+            case "superscript":
+              text = `<sup>${text}</sup>`;
+              break;
             case "link":
               text = `[${text}](${mark.attrs.href})`;
               break;
