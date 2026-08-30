@@ -657,6 +657,19 @@ export const MarkdownToggle = Extension.create({
           return true;
         },
 
+      /**
+       * Leave Markdown mode without writing the Markdown back into the
+       * document. Used when the Markdown was never edited, so that merely
+       * looking at it cannot rewrite the document through the (lossy)
+       * Markdown converter.
+       */
+      cancelMarkdownView:
+        () =>
+        ({ editor }) => {
+          editor.storage.markdownToggle.markdownMode = false;
+          return true;
+        },
+
       updateMarkdownContent:
         (content) =>
         ({ editor }) => {
