@@ -115,6 +115,8 @@ import Highlight from "@tiptap/extension-highlight";
 import Typography from "@tiptap/extension-typography";
 import Mathematics from "@tiptap/extension-mathematics";
 import TextAlign from "@tiptap/extension-text-align";
+import Subscript from "@tiptap/extension-subscript";
+import Superscript from "@tiptap/extension-superscript";
 import "katex/dist/katex.min.css";
 
 import { MermaidNode } from "@/editor/nodes/MermaidNode";
@@ -215,6 +217,22 @@ export default {
               command: (ed) => ed.chain().focus().toggleStrike().run(),
               isActive: (ed) => ed.isActive("strike"),
               isDisabled: (ed) => !ed.can().chain().focus().toggleStrike().run(),
+            },
+            {
+              name: "subscript",
+              icon: "subscript",
+              title: "Subscript",
+              command: (ed) => ed.chain().focus().toggleSubscript().run(),
+              isActive: (ed) => ed.isActive("subscript"),
+              isDisabled: (ed) => !ed.can().chain().focus().toggleSubscript().run(),
+            },
+            {
+              name: "superscript",
+              icon: "superscript",
+              title: "Superscript",
+              command: (ed) => ed.chain().focus().toggleSuperscript().run(),
+              isActive: (ed) => ed.isActive("superscript"),
+              isDisabled: (ed) => !ed.can().chain().focus().toggleSuperscript().run(),
             },
           ],
         },
@@ -595,6 +613,8 @@ export default {
         // Alignment is stored on the block node, not the image: an inline image
         // sits inside a paragraph, so aligning that paragraph moves the image.
         TextAlign.configure({ types: ["heading", "paragraph"] }),
+        Subscript,
+        Superscript,
         Link.configure({
           openOnClick: false,
           HTMLAttributes: { target: "_blank", rel: "noopener noreferrer" },
