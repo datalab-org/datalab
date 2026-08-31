@@ -52,6 +52,30 @@ mechanisms:
 Each is configured differently.
 If left unconfigured, then the corresponding registration mechanism will not be available to the user.
 
+### Unsafe passwordless test login
+
+For local development and disposable test deployments, setting
+`ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN` to `true` adds a passwordless test-login option
+alongside the configured email and OAuth options. The equivalent environment variable is
+`PYDATALAB_ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN=true`.
+
+> [!WARNING]
+> This option lets anyone who can access the instance impersonate configured test users without
+> authentication. Never enable it in production or on an instance containing sensitive data.
+
+With the option enabled, create or update a test user from the `pydatalab` directory:
+
+```shell
+uv run invoke dev.create-test-user \
+  --username alice \
+  --display-name "Alice Test User" \
+  --role user
+```
+
+The command stores a `testing_passwordless` identity on the normal user document. It does not
+create or store a password. Only active users with that identity appear in the test-login modal;
+their normal roles, groups, and permissions still apply.
+
 ### Email magic links
 
 To support sign-in via email magic-links, you must currently provide additional configuration for authorized SMTP server.
