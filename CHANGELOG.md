@@ -4,13 +4,23 @@
 > Release candidates and other pre-releases are not included in this changelog; there may be more
 recent changes described in the [release notes on GitHub](https://github.com/datalab-org/datalab/releases).
 
+## v0.7.7 (August 2026)
+
+Another release with backported fixes and usability improvements, this time focusing on the TipTap WYSIWYG editor used in the ELN, enabling resizable images and fixing the markdown previewer, as well as a fix for the webapp over requesting data from blocks.
+
+### What's Changed
+
+* Backport tiptap improvements and block request fix by @ml-evs in https://github.com/datalab-org/datalab/pull/2060
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.6...v0.7.7
+
 ## v0.7.6 (August 2026)
 
 This is a hotfix release for a UI bug that affected production deployments of 0.7.5. Our test harness has been adapted to run in production mode to catch these in future.
 
 ### What's Changed
 
-* Backport fixes to 0.7.x by @ml-evs in https://github.com/datalab-org/datalab/pull/2036
+* Backport table filtering and e2e test fixes to 0.7.x by @ml-evs in https://github.com/datalab-org/datalab/pull/2036
 
 **Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.5...v0.7.6
 
