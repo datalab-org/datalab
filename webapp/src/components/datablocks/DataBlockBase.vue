@@ -148,6 +148,45 @@
           </div>
         </div>
       </div>
+      <slot name="controls"></slot>
+
+      <div v-if="hasMetadata" class="mt-2 mb-2">
+        <span
+          class="metadata-toggle d-inline-flex align-items-center"
+          role="button"
+          tabindex="0"
+          :aria-expanded="metadataShown ? 'true' : 'false'"
+          @click="metadataShown = !metadataShown"
+          @keyup.enter="metadataShown = !metadataShown"
+        >
+          <font-awesome-icon
+            :icon="['fas', 'chevron-right']"
+            fixed-width
+            class="collapse-arrow-sm mr-1"
+            :class="{ rotated: metadataShown }"
+          />
+          Metadata
+        </span>
+      </div>
+
+      <div v-if="$slots.plot || hasMetadata" class="row mt-2">
+        <div
+          :class="
+            hasMetadata && metadataShown
+              ? 'col-xl-8 col-lg-8 col-md-12'
+              : 'col-xl-9 col-lg-10 col-md-11 mx-auto'
+          "
+        >
+          <slot name="plot"></slot>
+        </div>
+
+        <div v-if="hasMetadata && metadataShown" class="col-xl-4 col-lg-4 col-md-12">
+          <slot name="metadata" :metadata="block.metadata">
+            <MetadataViewer :metadata="block.metadata" />
+          </slot>
+        </div>
+      </div>
+
       <slot></slot>
       <TiptapInline v-model="BlockDescription" data-testid="block-description"></TiptapInline>
     </div>
@@ -167,6 +206,7 @@ import { DialogService } from "@/services/DialogService";
 import { createComputedSetterForBlockField } from "@/field_utils.js";
 import TiptapInline from "@/components/TiptapInline";
 import BlockTooltip from "@/components/BlockTooltip";
+import MetadataViewer from "@/components/MetadataViewer";
 
 import { deleteBlock, updateBlockFromServer } from "@/server_fetch_utils";
 
@@ -174,6 +214,7 @@ export default {
   components: {
     TiptapInline,
     BlockTooltip,
+    MetadataViewer,
   },
   props: {
     item_id: {
@@ -193,7 +234,20 @@ export default {
       isErrorsExpanded: true,
       isWarningsExpanded: true,
       isStagesExpanded: false,
+      metadataShown: true,
     };
+  },
+  watch: {
+    // Showing or hiding the metadata panel changes the width of the plot
+    // column. Bokeh lays its plots out once and only recomputes on a window
+    // resize, so without this the plot stays at its old width and is clipped
+    // until the user happens to resize the browser.
+    metadataShown() {
+      this.notifyLayoutChange();
+    },
+    hasMetadata() {
+      this.notifyLayoutChange();
+    },
   },
   computed: {
     block() {
@@ -231,6 +285,9 @@ export default {
       if (!this.processingStages || this.processingStages.length === 0) return "";
       return this.processingStages[this.processingStages.length - 1].message;
     },
+    hasMetadata() {
+      return this.block?.metadata && Object.keys(this.block.metadata).length > 0;
+    },
   },
   mounted() {
     // this is to help toggleExpandBlock() work properly. Resets contentMaxHeight to "none"
@@ -247,6 +304,15 @@ export default {
     document.removeEventListener("block-event", this.handleBokehEvent);
   },
   methods: {
+    notifyLayoutChange() {
+      // Wait for the DOM update and then for the browser to apply the new
+      // column widths, otherwise Bokeh re-measures against the old layout.
+      this.$nextTick(() => {
+        window.requestAnimationFrame(() => {
+          window.dispatchEvent(new Event("resize"));
+        });
+      });
+    },
     formatStageTime(timestamp) {
       const d = new Date(timestamp);
       return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -431,6 +497,16 @@ ul {
   -webkit-transform: rotate(90deg);
   -moz-transform: rotate(90deg);
   transform: rotate(90deg);
+}
+
+.metadata-toggle {
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.metadata-toggle:hover {
+  color: #004175;
 }
 
 .collapse-arrow-sm {

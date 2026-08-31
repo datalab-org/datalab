@@ -8,6 +8,8 @@ export default defineConfig({
     defaultCommandTimeout: 10000,
   },
   component: {
+    // Avoid port 8080's macOS WebSocket issue and the usual local dev-server port, 8081.
+    port: 8082,
     devServer: {
       framework: "vue-cli",
       bundler: "webpack",

@@ -10,6 +10,7 @@ env:
   FORCE_COLOR: true
   UV_VERSION: "0.11.8"
   NODE_VERSION: "22.22"
+  MIN_PYTHON_VERSION: "3.11"
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -23,10 +24,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up Python 3.10
+      - name: Set up minimum Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.10"
+          python-version: ${{ env.MIN_PYTHON_VERSION }}
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
@@ -59,7 +60,7 @@ jobs:
       fail-fast: false
       max-parallel: 2
       matrix:
-        python-version: ["3.10", "3.11"]
+        python-version: ["3.11"]
 
     steps:
       - uses: actions/checkout@v7
@@ -94,7 +95,7 @@ jobs:
           uv run pytest -rs --cov=pydatalab --cov-report=term --cov-report=xml -vvv ./tests
 
       - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.10' && github.repository == 'datalab-org/datalab'
+        if: matrix.python-version == env.MIN_PYTHON_VERSION && github.repository == 'datalab-org/datalab'
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -127,7 +128,6 @@ jobs:
     name: Test plugin builds
     runs-on: ubuntu-latest
     steps:
-
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
@@ -158,7 +158,6 @@ jobs:
             "https://github.com/datalab-org/datalab-app-plugin-template" \
             pydatalab/plugins/datalab-app-plugin-template
 
-
       - name: Set some environment variables for CI containers pre-build
         run: |
           echo "PYDATALAB_TESTING=true" >> .env
@@ -172,7 +171,7 @@ jobs:
           files: docker-compose.yml
           load: true
           source: .
-          targets: 'api'
+          targets: "api"
           set: |
             api.cache-from=type=gha,scope=${{ github.ref_name }}-build-api
             api.cache-from=type=gha,scope=main-build-api
@@ -294,7 +293,7 @@ jobs:
           files: docker-compose.yml
           load: true
           source: .
-          targets: 'app,api,database'
+          targets: "app,api,database"
           set: |
             app.cache-from=type=gha,scope=${{ github.ref_name }}-build-app
             app.cache-from=type=gha,scope=main-build-app
@@ -359,16 +358,26 @@ jobs:
           cache: "yarn"
           cache-dependency-path: ./webapp/yarn.lock
 
+      # Installing separately from the test run keeps `NODE_ENV` off the
+      # install, where yarn v1 would read it as `--production` and skip the
+      # devDependencies (Cypress included).
+      - name: Install dependencies
+        uses: cypress-io/github-action@v7
+        with:
+          working-directory: ./webapp
+          runTests: false
+
       - name: Run component tests
         uses: cypress-io/github-action@v7
         with:
           working-directory: ./webapp
+          install: false
           record: ${{ github.repository == 'datalab-org/datalab' }}
           component: true
           publish-summary: false
           browser: ${{ matrix.browser-backend }}
-          group: "Component tests (${{ matrix.browser-backend }})"
         env:
+          NODE_ENV: "production"
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
 
   liccheck:

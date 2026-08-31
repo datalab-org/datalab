@@ -1,8 +1,3 @@
----
-title: Introduction
----
-
-
 # <div align="center"><i>datalab</i></div>
 
 <div align="center" style="padding-bottom: 5px">
@@ -33,14 +28,17 @@ title: Introduction
 <a href="https://join.slack.com/t/datalab-world/shared_invite/zt-2h58ev3pc-VV496~5je~QoT2TgFIwn4g"><img src="https://img.shields.io/badge/Slack-chat_with_us-yellow?logo=slack"></a>
 </div>
 
+<!-- --8<-- [start:intro] -->
 _datalab_ is a user-friendly, open-source platform that can capture all the experimental data and metadata produced in a scientific lab, targeted (broadly) at materials chemistry but with customisability and extensability in mind.
 _datalab_ records data and metadata securely and makes it accessible and reusable by both humans and machines _via_ the web UI and API, respectively.
 _datalab_ can be self-hosted and managed deployments are also available.
+<!-- --8<-- [end:intro] -->
 
 You can try the demo deployment at [demo.datalab-org.io](https://demo.datalab-org.io/) and read the online documentation at [docs.datalab-org.io](https://docs.datalab-org.io) with release notes and changelog available on [GitHub](https://github.com/datalab-org/datalab/releases/) and [online](https://docs.datalab-org.io/en/latest/CHANGELOG).
 
 Features:
 
+<!-- --8<-- [start:features] -->
 * Capture and store sample and device metadata
 * Connect and sync raw data directly and from laboratory instruments
 * Built-in support for multiple characterisation techniques (XRD, NMR, echem, TEM, TGA, Mass Spec, Raman and more).
@@ -49,6 +47,7 @@ Features:
 * Join the [_datalab_ federation](https://github.com/datalab-org/datalab-federation): you can add your _datalab_ to the federation for additional shared features.
 * [Plugin ecosystem](https://docs.datalab-org.io/en/latest/plugins) allowing for custom data blocks, [AI integration](https://github.com/datalab-org/yellowhammer) and other instance-specific code.
 * [Deployment and infrastructure automation](https://github.com/datalab-industries/datalab-ansible-terraform) via Ansible playbooks.
+<!-- --8<-- [end:features] -->
 
 <div align="center">
 <video width="400" controls src="https://github.com/datalab-org/datalab/assets/7916000/0065cdd6-a5f0-4391-b192-0137fe208acc">
@@ -60,12 +59,19 @@ Features:
 
 ## Getting started
 
-To set up your own _datalab_ instance or to get started with development, you can follow the installation and deployment instructions in the [online documentation](https://docs.datalab-org.io/en/latest/INSTALL).
+The full documentation lives at [docs.datalab-org.io](https://docs.datalab-org.io), split by audience:
+
+- **[For users](https://guide.datalab-org.io/)** — using an instance that someone else runs: recording samples and cells, attaching data, and getting it back out again via the [Python API](https://github.com/datalab-org/datalab-api).
+- **[For developers](https://docs.datalab-org.io/en/latest/INSTALL)** — running *datalab* locally, writing [plugins](https://docs.datalab-org.io/en/latest/plugins), and contributing to the core.
+- **[For deployments](https://docs.datalab-org.io/en/latest/deployment)** — standing up and [configuring](https://docs.datalab-org.io/en/latest/config) an instance for your group.
+
+Note that *datalab* is self-hosted and plugin-extensible, so no two instances are alike: the item types, data blocks and metadata fields available to you depend on how your instance has been configured and which plugins it has installed.
 
 We can also provide paid managed deployments via [_datalab industries ltd._](https://datalab.industries): contact us at [hello@datalab.industries](mailto:hello@datalab.industries).
 
 ## Design philosophy and architecture
 
+<!-- --8<-- [start:architecture] -->
 The _datalab_ architecture is shown below:
 
 <center>
@@ -139,6 +145,7 @@ The main aim of *datalab* is to provide a platform for capturing the significant
 The platform provides researchers with a way to record sample- and cell-specific metadata, attach and sync raw data from instruments, and perform analysis and visualisation of many characterisation techniques in the browser (XRD, NMR, electrochemical cycling, TEM, TGA, Mass Spec, Raman).
 
 Importantly, *datalab* stores a network of interconnected research objects in the lab, such that individual pieces of data are stored with the context needed to make them scientifically useful.
+<!-- --8<-- [end:architecture] -->
 
 ## License
 
@@ -149,7 +156,9 @@ Please see [LICENSE](./LICENSE) for the full text of the license.
 
 Should you use _datalab_ in your research, please consider citing the following preprint:
 
+<!-- --8<-- [start:citation] -->
 > Matthew L. Evans, Joshua D. Bocarsly, Benjamin Charmes, Ben E. Smith, Gian-Marco Rignanese, David Waroquiers, Clare P. Grey, **datalab: Federated data management infrastructure for materials chemistry and beyond**, ChemRxiv (2026). DOI: [10.26434/chemrxiv.15001945/v1](https://doi.org/10.26434/chemrxiv.15001945/v1)
+<!-- --8<-- [end:citation] -->
 
 ## Contact
 
@@ -157,6 +166,11 @@ We are available for consultations on setting up and managing *datalab* deployme
 
 ## Contributions
 
+Bug reports, feature requests and pull requests are all welcome.
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for how to get started, what we expect from a
+contribution, and our policy on AI-assisted changes.
+
+<!-- --8<-- [start:credits] -->
 This software was conceived and developed by:
 
 - [Prof Joshua Bocarsly](https://jdbocarsly.github.io) ([Department of Chemistry, University of Houston](https://www.uh.edu/nsm/chemistry), previously [Department of Chemistry, University of Cambridge](https://www.ch.cam.ac.uk/))
@@ -182,3 +196,4 @@ In particular, the developers thank:
 - Initial proof-of-concept funding from the European Union's Horizon 2020 research and innovation programme under grant agreement 957189 (DOI: [10.3030/957189](https://doi.org/10.3030/957189)), the [Battery Interface Genome - Materials Acceleration Platform (BIG-MAP)](https://www.big-map.eu), as an external stakeholder project.
 - The [Faraday Institution](https://www.faraday.ac.uk) CATMAT project (FIRG016) for support of Dr Joshua Bocarsly during initial development of *datalab*.
 - The [Leverhulme Trust](https://leverhulme.ac.uk) and [Isaac Newton Trust](https://newtontrust.cam.ac.uk) for support provided by an early career fellowship for Dr Matthew Evans.
+<!-- --8<-- [end:credits] -->

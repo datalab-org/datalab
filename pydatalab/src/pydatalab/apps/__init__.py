@@ -3,7 +3,10 @@
 
 """
 
+import warnings
 from typing import TYPE_CHECKING
+
+from pydantic.warnings import PydanticDeprecatedSince20
 
 if TYPE_CHECKING:
     # This import is required to prevent circular imports for application-specific blocks
@@ -116,7 +119,13 @@ def load_block_plugins():
 
     block_plugins: dict[str, type[DataBlock]] = {}
     for entry_point in entry_points(group="pydatalab.apps.plugins"):
-        block = entry_point.load()
+        # Plugins may not yet be migrated to pydantic v2, so tolerate the v2
+        # deprecation warnings their models emit at import time (e.g. extra `Field`
+        # kwargs like `datalab_exclude_*`) rather than letting them error out plugin
+        # loading. datalab's own deprecations are still surfaced as errors.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", PydanticDeprecatedSince20)
+            block = entry_point.load()
 
         if not issubclass(block, DataBlock):
             raise ValueError(f"Plugin {block} must be a subclass of DataBlock")
@@ -131,3 +140,33 @@ def load_block_plugins():
 
 
 load_block_plugins()
+
+
+def load_item_plugins():
+    """Search through any registered entry points at 'pydatalab.item_types' and
+    register them as custom `Item` subclasses, making them available through the
+    generic item endpoints and at `/info/types`.
+
+    Each entry point must resolve to a concrete `Item` subclass declaring its
+    own unique `type` literal; `register_item_model` enforces this and mutates
+    the global `ITEM_MODELS`/`ITEM_SCHEMAS` registries in place.
+    """
+    from importlib.metadata import entry_points
+
+    from pydatalab.models import register_item_model
+
+    item_plugins = []
+    for entry_point in entry_points(group="pydatalab.item_types"):
+        # As with block plugins, tolerate the pydantic v2 deprecation warnings
+        # emitted at import time by plugins that have not yet migrated.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", PydanticDeprecatedSince20)
+            model = entry_point.load()
+
+        register_item_model(model)
+        item_plugins.append(model)
+
+    return item_plugins
+
+
+load_item_plugins()
