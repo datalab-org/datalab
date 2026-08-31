@@ -108,24 +108,67 @@
         </div>
         <div class="form-row">
           <div class="form-group col-md-12">
-            <label for="api-key" class="col-form-label">API Key:</label>
-            <div v-if="apiKeyDisplayed" class="input-group">
-              <StyledInput
-                v-model="apiKey"
-                :readonly="true"
-                :help-message="apiKeyHelpMessage"
+            <label class="col-form-label">API Keys:</label>
+
+            <ul v-if="apiKeys.length" class="list-group mb-2">
+              <li
+                v-for="key in apiKeys"
+                :key="key._id"
+                class="list-group-item d-flex align-items-center"
+              >
+                <strong class="flex-shrink-0 api-key-name">{{ key.name }}</strong>
+
+                <code v-if="!key.show" class="ml-2">{{ key.digest }}</code>
+                <div v-if="key.show" class="input-group input-group-sm api-key-input-group ml-2">
+                  <StyledInput
+                    v-model="apiKey"
+                    :readonly="true"
+                    :help-message="apiKeyHelpMessage"
+                    class="form-control form-control-sm"
+                  />
+                  <span class="input-group-append">
+                    <button
+                      class="btn btn-sm btn-outline-secondary"
+                      type="button"
+                      @click="copyToClipboard"
+                    >
+                      <font-awesome-icon icon="copy" />
+                    </button>
+                  </span>
+                </div>
+
+                <span class="text-muted text-nowrap ml-auto">
+                  {{ key.created_at ? humanDate(key.created_at) : "Unknown creation date" }}
+                </span>
+
+                <button
+                  class="btn btn-sm btn-outline-danger ml-2"
+                  type="button"
+                  @click="deleteKey(key._id)"
+                >
+                  <font-awesome-icon icon="trash" />
+                </button>
+              </li>
+            </ul>
+            <div v-else class="text-muted mb-2">You have no API keys yet.</div>
+
+            <div class="input-group">
+              <input
+                v-model="newKeyName"
+                type="text"
                 class="form-control"
+                placeholder="Add a key (e.g. laptop, CI)"
               />
               <div class="input-group-append">
-                <button class="btn btn-outline-secondary" type="button" @click="copyToClipboard">
-                  <font-awesome-icon icon="copy" />
+                <button
+                  class="btn btn-default"
+                  type="button"
+                  :disabled="!newKeyName"
+                  @click="requestAPIKey"
+                >
+                  Generate New Key
                 </button>
               </div>
-            </div>
-            <div class="input-group">
-              <button class="btn btn-default mt-2" @click="requestAPIKey">
-                Regenerate API Key
-              </button>
             </div>
           </div>
         </div>
@@ -146,6 +189,8 @@
 </template>
 
 <script>
+import { format } from "date-fns";
+
 import { DialogService } from "@/services/DialogService";
 
 import { API_URL } from "@/resources.js";
@@ -154,14 +199,22 @@ import UserBubble from "@/components/UserBubble.vue";
 import UserActivityGraph from "@/components/UserActivityGraph.vue";
 import FormattedGroupName from "@/components/FormattedGroupName.vue";
 
-import { getUserInfo, saveUser, requestNewAPIKey } from "@/server_fetch_utils.js";
+import {
+  getUserInfo,
+  saveUser,
+  requestNewAPIKey,
+  getAPIKeys,
+  deleteAPIKey,
+} from "@/server_fetch_utils.js";
 import StyledInput from "./StyledInput.vue";
 
 import { invalidateCurrentUserCache } from "@/server_fetch_utils.js";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
 export default {
   name: "EditAccountSettingsModal",
   components: {
+    FontAwesomeIcon,
     Modal,
     StyledInput,
     UserBubble,
@@ -180,8 +233,9 @@ export default {
         identities: [],
       },
       apiUrl: API_URL,
-      apiKeyDisplayed: false,
+      apiKeys: [],
       apiKey: null,
+      newKeyName: "",
       apiKeyHelpMessage:
         'You can use your API key via the datalab-api Python package, or pass it as an HTTP header "DATALAB-API-KEY" with the tool of your choice (e.g., curl).',
     };
@@ -212,6 +266,7 @@ export default {
   },
   mounted() {
     this.getUser();
+    this.loadAPIKeys();
   },
   methods: {
     async submitForm() {
@@ -233,18 +288,25 @@ export default {
         };
       }
     },
+    async loadAPIKeys() {
+      this.apiKeys = await getAPIKeys();
+    },
     async requestAPIKey(event) {
       event.preventDefault();
+      if (!this.newKeyName) {
+        return;
+      }
       const confirmed = await DialogService.confirm({
         title: "Generate New API Key",
-        message:
-          "Requesting a new API key will remove your old one. Are you sure you want to proceed?",
+        message: `Generate a new API key named "${this.newKeyName}"?`,
         type: "warning",
       });
       if (confirmed) {
-        const newKey = await requestNewAPIKey();
-        this.apiKey = newKey;
-        this.apiKeyDisplayed = true;
+        const result = await requestNewAPIKey(this.newKeyName);
+        this.apiKey = result.key;
+        this.newKeyName = "";
+        await this.loadAPIKeys();
+        this.apiKeys[this.apiKeys.length - 1].show = true;
         await DialogService.alert({
           title: "API Key Generated",
           message:
@@ -253,12 +315,29 @@ export default {
         });
       }
     },
+    async deleteKey(id) {
+      const confirmed = await DialogService.confirm({
+        title: "Delete API Key",
+        message: "Are you sure you want to delete this API key? This cannot be undone.",
+        type: "warning",
+      });
+      if (confirmed) {
+        const success = await deleteAPIKey(id);
+        if (success) {
+          await this.loadAPIKeys();
+        }
+      }
+    },
     copyToClipboard() {
       navigator.clipboard.writeText(this.apiKey);
+    },
+    humanDate(isodatetime) {
+      return format(new Date(isodatetime), "d MMM yyyy");
     },
     resetForm() {
       this.apiKeyDisplayed = false;
       this.apiKey = null;
+      this.newKeyName = "";
       this.$emit("update:modelValue", false);
     },
   },
@@ -283,5 +362,23 @@ export default {
 
 .btn:disabled {
   cursor: not-allowed;
+}
+
+.api-key-name {
+  display: inline-block;
+  min-width: 6rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.api-key-input-group {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 0;
+}
+
+.api-key-input-group :deep(input) {
+  width: 12rem;
 }
 </style>

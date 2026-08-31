@@ -3,3 +3,155 @@
 .md-grid {
     max-width: 60rem;
 }
+
+/* The landing page keeps the left-hand nav but drops the table of contents, so
+   give it a slightly wider grid than the 60rem used for prose pages: enough room
+   for the three audience cards to sit side-by-side next to the nav. */
+body:has(.home-cards) .md-grid {
+    max-width: 68rem;
+}
+
+/* Hold those three cards in one row on wider screens. Material's default
+   `auto-fit` would otherwise drop to two columns and orphan the third. */
+@media screen and (min-width: 68.25em) {
+    .md-typeset .home-cards {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Line the links up across all three cards regardless of how long each card's
+   blurb is: stack the card contents and let the blurb absorb the slack, so the
+   link lists (identical in length) all end up flush with the card bottom.
+   Material wraps the cards in a `display: contents` <ul>, so the cards are the
+   <li> inside it, not children of the grid itself; the `.grid.cards` prefix is
+   needed to out-specify Material's own `display: block` on those <li>. */
+.md-typeset .grid.cards.home-cards > ul > li {
+    display: flex;
+    flex-direction: column;
+}
+
+.md-typeset .grid.cards.home-cards > ul > li > hr + p {
+    flex: 1 0 auto;
+}
+
+/* Icon-led links inside the cards: keep the icon and label on one line. */
+.md-typeset .home-cards .twemoji {
+    vertical-align: -0.15em;
+}
+
+/* Labels marking how a model field relates to the database, injected by the
+   `virtual` / `foreign_key` annotations in `pydatalab.models.traits`. */
+.md-typeset .field-flag {
+    display: inline-block;
+    padding: 0.05em 0.5em;
+    margin-right: 0.3em;
+    border-radius: 0.6em;
+    font-size: 0.72em;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    vertical-align: 0.15em;
+    cursor: help;
+}
+
+.md-typeset .field-flag--virtual {
+    color: var(--md-default-bg-color);
+    background: var(--md-accent-fg-color);
+}
+
+.md-typeset .field-flag--foreign_key {
+    color: var(--md-default-fg-color--light);
+    border: 1px solid var(--md-default-fg-color--lighter);
+}
+
+/* New contributors, rewritten from a list of near-identical sentences by
+   `docs/hooks.py`: a row of avatar chips, one per person. */
+.md-typeset .contributors-label {
+    margin-bottom: 0.4em;
+    color: var(--md-default-fg-color--light);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.md-typeset .contributors-label + .contributors {
+    margin-top: 0;
+}
+
+.md-typeset .contributors {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 1em 0;
+    padding: 0;
+    list-style: none;
+}
+
+.md-typeset .contributors li {
+    margin: 0;
+}
+
+.md-typeset .contributor {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.15em 0.7em 0.15em 0.15em;
+    border: 1px solid var(--md-default-fg-color--lighter);
+    border-radius: 2em;
+    color: var(--md-default-fg-color--light);
+    font-size: 0.8em;
+    font-weight: 700;
+}
+
+.md-typeset .contributor:hover {
+    border-color: var(--md-accent-fg-color);
+    color: var(--md-accent-fg-color);
+}
+
+/* Sized in `em` so the avatar tracks the chip's own font size. A background
+   keeps the circle intact if GitHub does not serve an avatar for the account. */
+.md-typeset .contributor img {
+    width: 2em;
+    height: 2em;
+    border-radius: 50%;
+    background: var(--md-default-fg-color--lightest);
+}
+
+/* Release tags at the foot of each changelog entry, rewritten from GitHub's bare
+   compare URL by `docs/hooks.py`. Styled as chips so the two versions read as
+   labels rather than as more link text in a page already dense with links. */
+.md-typeset .changelog-tag {
+    display: inline-block;
+    padding: 0.05em 0.6em;
+    border: 1px solid var(--md-default-fg-color--lighter);
+    border-radius: 1em;
+    color: var(--md-default-fg-color--light);
+    font-size: 0.85em;
+    font-weight: 700;
+}
+
+.md-typeset .changelog-tag:hover {
+    border-color: var(--md-accent-fg-color);
+    color: var(--md-accent-fg-color);
+}
+
+.md-typeset .changelog-compare {
+    margin-left: 0.4em;
+    color: var(--md-default-fg-color--light);
+    font-size: 0.85em;
+}
+
+/* Keep every icon on these lines sitting on the text baseline. */
+.md-typeset .changelog-tag .twemoji,
+.md-typeset .changelog-compare .twemoji {
+    vertical-align: -0.15em;
+}
+
+/* Material renders admonitions and `details` at 0.64rem against 0.8rem body
+   text, which makes a callout read as an aside rather than as part of the page.
+   Match the surrounding prose instead; `inherit` keeps nested ones consistent. */
+.md-typeset .admonition,
+.md-typeset details {
+    font-size: inherit;
+}

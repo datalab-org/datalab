@@ -393,7 +393,7 @@ def selectable_axes_plot(
             df_temp = df_
 
         if labels:
-            orig = labels[ind]
+            orig = str(labels[ind])
         else:
             if hasattr(df_temp, "attrs") and "original_filename" in df_temp.attrs:
                 orig = df_temp.attrs["original_filename"] if len(df) > 1 else ""
@@ -402,11 +402,13 @@ def selectable_axes_plot(
 
         original_labels_list.append(orig)
 
-    legend_labels = (
-        generate_unique_labels(original_labels_list)
-        if len(df) > 1 and use_unique_labels
-        else original_labels_list
-    )
+    legend_labels = original_labels_list
+    if len(df) > 1 and use_unique_labels:
+        try:
+            legend_labels = generate_unique_labels(original_labels_list)
+        except Exception:
+            legend_labels = original_labels_list
+
     plot_columns = []
 
     for ind, df_ in enumerate(df):
@@ -678,6 +680,36 @@ def double_axes_echem_plot(
     modes = ("dQ/dV", "dV/dQ", "final capacity", None)
     if mode not in modes:
         raise RuntimeError(f"Mode must be one of {modes} not {mode}.")
+
+    # Check for if the file has only rest steps
+    # Done by checking of all capacity values are zero
+    # If so change the default plotting to be time against voltage
+    capacity_col = "capacity (mAh/g)" if normalized else "capacity (mAh)"
+    rest_only = all(
+        capacity_col not in df.columns or df[capacity_col].fillna(0).eq(0).all()
+        for df in dfs
+        if len(df) > 0
+    )
+    if rest_only and mode is None and "time (s)" in x_options:
+        # The default capacity-vs-voltage plot would be empty, so fall
+        # back to time vs voltage instead.
+        warnings.warn(
+            "No charge/discharge cycles were found in this data (only rest steps), "
+            "so capacity cannot be plotted. Falling back to time vs voltage.",
+            UserWarning,
+        )
+        x_options = [
+            "time (s)",
+            "voltage (V)",
+            *[opt for opt in x_options if opt not in ("time (s)", "voltage (V)")],
+        ]
+    elif rest_only and mode in ("dQ/dV", "dV/dQ", "final capacity"):
+        # There is no meaningful capacity differential or cycle summary to show
+        # for rest-only data, so fail clearly instead of rendering an empty or
+        # degenerate plot (or, for dV/dQ, hitting an IndexError below).
+        raise RuntimeError(
+            f"No charge/discharge cycles were found in this data (only rest steps): cannot generate a {mode} plot."
+        )
 
     x_default = x_options[0]
     y_default = x_options[1]
