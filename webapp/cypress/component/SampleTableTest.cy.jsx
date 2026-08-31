@@ -2,6 +2,7 @@ import SampleTable from "@/components/SampleTable.vue";
 import UserBubble from "@/components/UserBubble.vue";
 import StyledTooltip from "@/components/StyledTooltip.vue";
 import PrimeVue from "primevue/config";
+import DatalabPreset from "@/primevue-theme-preset.js";
 import { createStore } from "vuex";
 
 const IsoDatetimeToDate = (value) => {
@@ -127,7 +128,7 @@ describe("SampleTable Component Tests", () => {
 
     cy.mount(SampleTable, {
       global: {
-        plugins: [store, PrimeVue],
+        plugins: [store, [PrimeVue, { theme: DatalabPreset }]],
         config: {
           globalProperties: {
             $filters: {

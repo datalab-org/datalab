@@ -2,6 +2,7 @@ import CollectionTable from "@/components/CollectionTable.vue";
 import UserBubble from "@/components/UserBubble.vue";
 import StyledTooltip from "@/components/StyledTooltip.vue";
 import PrimeVue from "primevue/config";
+import DatalabPreset from "@/primevue-theme-preset.js";
 import { createStore } from "vuex";
 
 describe("CollectionTable Component Tests", () => {
@@ -37,7 +38,7 @@ describe("CollectionTable Component Tests", () => {
 
     cy.mount(CollectionTable, {
       global: {
-        plugins: [store, PrimeVue],
+        plugins: [store, [PrimeVue, { theme: DatalabPreset }]],
         components: {
           UserBubble,
           StyledTooltip,

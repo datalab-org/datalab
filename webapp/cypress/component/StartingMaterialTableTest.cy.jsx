@@ -1,5 +1,6 @@
 import StartingMaterialTable from "@/components/StartingMaterialTable.vue";
 import PrimeVue from "primevue/config";
+import DatalabPreset from "@/primevue-theme-preset.js";
 import { createStore } from "vuex";
 
 const IsoDatetimeToDate = (value) => {
@@ -51,7 +52,7 @@ describe("StartingMaterialTable Component Tests", () => {
 
     cy.mount(StartingMaterialTable, {
       global: {
-        plugins: [store, PrimeVue],
+        plugins: [store, [PrimeVue, { theme: DatalabPreset }]],
         config: {
           globalProperties: {
             $filters: {

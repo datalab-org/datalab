@@ -2,13 +2,15 @@ import EquipmentTable from "@/components/EquipmentTable.vue";
 import UserBubble from "@/components/UserBubble.vue";
 import StyledTooltip from "@/components/StyledTooltip.vue";
 import PrimeVue from "primevue/config";
+import DatalabPreset from "@/primevue-theme-preset.js";
 import { createStore } from "vuex";
 
-const IsoDatetimeToDate = (value) => {
-  if (!value) return "";
-  const date = new Date(value);
-  return date.toLocaleDateString();
-};
+// Mirrors $filters.IsoDatetimeToDate in main.js, which trims the ISO string
+// rather than formatting for a locale. The previous mock used
+// toLocaleDateString(), so the assertions below only held in an en-US locale
+// and failed for anyone else.
+const IsoDatetimeToDate = (isodatetime) =>
+  isodatetime ? isodatetime.substring(0, 10) : isodatetime;
 
 describe("EquipmentTable Component Tests", () => {
   let store;
@@ -47,7 +49,7 @@ describe("EquipmentTable Component Tests", () => {
 
     cy.mount(EquipmentTable, {
       global: {
-        plugins: [store, PrimeVue],
+        plugins: [store, [PrimeVue, { theme: DatalabPreset }]],
         config: {
           globalProperties: {
             $filters: {
@@ -101,7 +103,7 @@ describe("EquipmentTable Component Tests", () => {
         .within(() => {
           cy.get("td").eq(columnIndices["ID"]).should("contain.text", "equipment1");
           cy.get("td").eq(columnIndices["Name"]).should("contain.text", "Equipment One");
-          cy.get("td").eq(columnIndices["Date"]).should("contain.text", "9/1/2023");
+          cy.get("td").eq(columnIndices["Date"]).should("contain.text", "2023-09-01");
           cy.get("td").eq(columnIndices["Location"]).should("contain.text", "Warehouse A");
           cy.get("td").eq(columnIndices["Maintainers"]).find(".avatar").should("have.length", 1);
         });
@@ -113,7 +115,7 @@ describe("EquipmentTable Component Tests", () => {
         .within(() => {
           cy.get("td").eq(columnIndices["ID"]).should("contain.text", "equipment2");
           cy.get("td").eq(columnIndices["Name"]).should("contain.text", "Equipment Two");
-          cy.get("td").eq(columnIndices["Date"]).should("contain.text", "8/15/2023");
+          cy.get("td").eq(columnIndices["Date"]).should("contain.text", "2023-08-15");
           cy.get("td").eq(columnIndices["Location"]).should("contain.text", "Warehouse B");
           cy.get("td").eq(columnIndices["Maintainers"]).find(".avatar").should("have.length", 2);
         });
