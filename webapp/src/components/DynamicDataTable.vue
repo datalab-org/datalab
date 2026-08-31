@@ -133,6 +133,25 @@
           />
         </template>
       </Column>
+
+      <Column
+        class="clear-filters-column"
+        :class="{ 'filter-active': hasActiveFilters }"
+        :style="{ minWidth: '3ch', maxWidth: '3ch' }"
+      >
+        <template #header>
+          <button
+            data-testid="clear-filters-button"
+            class="clear-filters-icon-button"
+            type="button"
+            :disabled="!hasActiveFilters"
+            :title="hasActiveFilters ? 'Clear all filters' : 'No active filters'"
+            @click="handleClearFilters"
+          >
+            <i class="pi pi-filter-slash"></i>
+          </button>
+        </template>
+      </Column>
     </DataTable>
   </div>
   <CreateItemModal
@@ -277,6 +296,17 @@ export default {
     availableColumns() {
       return this.columns.map((col) => ({ ...col }));
     },
+    hasActiveFilters() {
+      return Object.entries(this.filters).some(([field, filter]) => {
+        if (field === "global" || !filter?.constraints) return false;
+        return filter.constraints.some((constraint) => {
+          const value = constraint.value;
+          if (value === null || value === undefined || value === "") return false;
+          if (Array.isArray(value) && value.length === 0) return false;
+          return true;
+        });
+      });
+    },
   },
   created() {
     this.$store.commit("setPage", { type: this.dataType, page: 0 });
@@ -310,30 +340,36 @@ export default {
       return itemDate >= startDate && itemDate <= endDate;
     });
 
-    const filters = { global: { value: null } };
     for (const col of this.columns) {
-      if (!col.filter) continue;
+      if (!col.filter || typeof col.filter.match !== "function") continue;
 
-      let matchModeName;
-      if (typeof col.filter.match === "function") {
-        matchModeName = `${this.dataType}_${col.field}`;
-        const matchFn = col.filter.match;
-        FilterService.register(matchModeName, (value, filterValue) => {
-          const operator = this.filters[col.field]?.operator;
-          return matchFn(value, filterValue, operator);
-        });
-      } else {
-        matchModeName = col.filter.matchMode || FilterMatchMode.CONTAINS;
-      }
-
-      filters[col.field] = {
-        operator: col.filter.operator || FilterOperator.AND,
-        constraints: [{ value: null, matchMode: matchModeName }],
-      };
+      const matchModeName = `${this.dataType}_${col.field}`;
+      const matchFn = col.filter.match;
+      FilterService.register(matchModeName, (value, filterValue) => {
+        const operator = this.filters[col.field]?.operator;
+        return matchFn(value, filterValue, operator);
+      });
     }
-    this.filters = filters;
+    this.filters = this.getDefaultFilters();
   },
   methods: {
+    getDefaultFilters() {
+      const filters = { global: { value: null } };
+      for (const col of this.columns) {
+        if (!col.filter) continue;
+
+        const matchModeName =
+          typeof col.filter.match === "function"
+            ? `${this.dataType}_${col.field}`
+            : col.filter.matchMode || FilterMatchMode.CONTAINS;
+
+        filters[col.field] = {
+          operator: col.filter.operator || FilterOperator.AND,
+          constraints: [{ value: null, matchMode: matchModeName }],
+        };
+      }
+      return filters;
+    },
     resolveBodyEvents(column) {
       if (!column.body?.events?.length) return {};
       return Object.fromEntries(
@@ -594,6 +630,9 @@ export default {
     updateFilters(newFilters) {
       this.filters = { ...newFilters };
     },
+    handleClearFilters() {
+      this.filters = { ...this.getDefaultFilters(), global: this.filters.global };
+    },
     handleResetTable() {
       localStorage.removeItem(`datatable-state-${this.dataType}`);
 
@@ -609,5 +648,27 @@ export default {
 .last-modified-cell {
   font-size: 0.85em;
   font-style: italic;
+}
+
+.clear-filters-icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.25rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.clear-filters-icon-button:hover {
+  opacity: 0.7;
+}
+
+.clear-filters-icon-button:disabled {
+  color: #ced4da;
+  cursor: default;
+  opacity: 1;
 }
 </style>
