@@ -5,6 +5,8 @@ services:
     build:
       context: .
       dockerfile: .docker/app/Dockerfile
+      additional_contexts:
+        plugin_environment: service:api
     restart: unless-stopped
     environment:
       - VUE_APP_GIT_VERSION
@@ -111,6 +113,8 @@ services:
       context: .
       dockerfile: .docker/app/Dockerfile
       target: dev
+      additional_contexts:
+        plugin_environment: service:api-dev
     volumes:
       - ./webapp:/app
     ports:

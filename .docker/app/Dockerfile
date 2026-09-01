@@ -1,4 +1,10 @@
 # syntax=docker/dockerfile:1
+# Both frontend targets collect panels from the corresponding plugin-enabled
+# API image supplied by Docker Compose as a named build context.
+FROM plugin_environment AS plugin-panels
+COPY webapp /webapp
+RUN /opt/.venv/bin/invoke dev.collect-plugin-panels
+
 FROM node:22.22-bullseye-slim AS base
 SHELL ["/bin/bash", "--login", "-c"]
 
@@ -18,6 +24,8 @@ RUN --mount=type=cache,target=/root/.cache/yarn yarn install --frozen-lockfile -
 # runtime libs plus xvfb for a virtual display), so the webapp test suites can
 # run inside the container.
 FROM base AS dev
+COPY --from=plugin-panels /webapp/src/plugins /opt/datalab-plugin-panels
+COPY .docker/app_dev_entrypoint.sh /usr/local/bin/datalab-app-dev
 RUN apt update \
     && apt install -y --no-install-recommends \
         libgtk2.0-0 \
@@ -32,7 +40,7 @@ RUN apt update \
         xvfb \
     && rm -rf /var/lib/apt/lists/*
 
-CMD [ "/node_modules/.bin/vue-cli-service", "serve", "--host", "0.0.0.0", "--port", "8081" ]
+CMD [ "/bin/bash", "/usr/local/bin/datalab-app-dev" ]
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD node -e "fetch('http://localhost:8081').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
 
@@ -40,6 +48,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD node -
 # than `dev` so production builds don't pull in the Cypress system libraries.
 FROM base AS build
 COPY webapp ./
+COPY --from=plugin-panels /webapp/src/plugins ./src/plugins
 # These get replaced by the entrypoint script for production builds.
 # Set the real values in `.env` files or an external docker-compose.
 ENV NODE_ENV=production
