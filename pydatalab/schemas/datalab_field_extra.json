@@ -1,0 +1,144 @@
+{
+  "additionalProperties": false,
+  "description": "Datalab hints attached to a field via ``json_schema_extra``.",
+  "properties": {
+    "datalab_include_field_in_summary": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Also show this field in list/summary views.",
+      "title": "Datalab Include Field In Summary"
+    },
+    "datalab_hidden": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Store but don't render this field (e.g. a companion unit field).",
+      "title": "Datalab Hidden"
+    },
+    "datalab_multiline": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Render a string as a multi-line textarea.",
+      "title": "Datalab Multiline"
+    },
+    "datalab_section": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Group fields sharing this section string into their own card.",
+      "title": "Datalab Section"
+    },
+    "datalab_ref_types": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Render an item-reference widget restricted to these item types.",
+      "title": "Datalab Ref Types"
+    },
+    "datalab_unit_field": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Companion field holding the unit; renders a value box + unit dropdown.",
+      "title": "Datalab Unit Field"
+    },
+    "datalab_units": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Unit options for the dropdown (with ``datalab_unit_field``).",
+      "title": "Datalab Units"
+    },
+    "datalab_default_unit": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Default unit for the dropdown.",
+      "title": "Datalab Default Unit"
+    },
+    "datalab_exclude_from_db": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Don't persist this field to the database (block models).",
+      "title": "Datalab Exclude From Db"
+    },
+    "datalab_exclude_from_load": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Don't populate this field when loading from the database (block models).",
+      "title": "Datalab Exclude From Load"
+    }
+  },
+  "title": "DatalabFieldExtra",
+  "type": "object"
+}

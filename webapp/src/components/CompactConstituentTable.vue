@@ -119,8 +119,8 @@ export default {
   },
   props: {
     modelValue: {
-      type: String,
-      default: "",
+      type: Array,
+      default: () => [],
     },
     typesToQuery: {
       type: Array,

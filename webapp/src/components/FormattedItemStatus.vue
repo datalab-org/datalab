@@ -2,7 +2,7 @@
   <span
     v-if="dotOnly"
     class="dot"
-    :title="status.toUpperCase()"
+    :title="status?.toUpperCase()"
     :class="'badge-' + badgeClass"
   ></span>
   <span v-else class="badge badge-pill text-uppercase" :class="'badge-' + badgeClass">

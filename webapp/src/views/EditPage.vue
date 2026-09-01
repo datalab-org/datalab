@@ -7,7 +7,7 @@
     <div v-show="false" class="navbar-nav"><LoginDetails /></div>
     <span class="navbar-brand clickable" @click="scrollToID($event, 'topScrollPoint')">
       <span class="navbar-brand-type"
-        >{{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;</span
+        >{{ itemTypeEntry?.navbarName || itemType || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;</span
       >
       <span class="navbar-brand-name">
         <FormattedItemName :item_id="item_id" :item-type="itemType" />
@@ -107,9 +107,16 @@
   <!-- Item-type header information goes here -->
   <div class="editor-body">
     <component
-      :is="itemTypeEntry?.itemInformationComponent"
+      :is="informationComponent"
       ref="sampleInformation"
       :item_id="item_id"
+      :hidden-fields="itemTypeEntry?.hiddenFields || []"
+    />
+    <component
+      :is="resolvedCustomPanel"
+      v-if="hasCustomPanel"
+      :item_id="item_id"
+      :item-type="itemType"
     />
     <FileList :item_id="item_id" :stored_files="stored_files" />
 
@@ -187,6 +194,8 @@ import {
 } from "@/server_fetch_utils";
 import LoginDetails from "@/components/LoginDetails";
 import FormattedItemName from "@/components/FormattedItemName";
+import { defineAsyncComponent } from "vue";
+import CustomFieldsPanel from "@/components/custom/CustomFieldsPanel.vue";
 
 import setupUppy from "@/file_upload.js";
 
@@ -209,6 +218,7 @@ export default {
     VersionHistoryModal,
     SharingModal,
     FormattedItemName,
+    CustomFieldsPanel,
     AddBlockDropdown,
     ExportDropdown,
   },
@@ -260,6 +270,17 @@ export default {
     },
     itemTypeEntry() {
       return itemTypes[this.itemType] || undefined;
+    },
+    informationComponent() {
+      return this.itemTypeEntry?.itemInformationComponent || null;
+    },
+    hasCustomPanel() {
+      // `itemTypes` is reactive, so this re-evaluates once dynamic types register.
+      return !!this.itemTypeEntry?.isDynamic;
+    },
+    resolvedCustomPanel() {
+      const factory = this.itemTypeEntry?.customPanel;
+      return factory ? defineAsyncComponent(factory) : CustomFieldsPanel;
     },
     navbarColor() {
       return this.itemTypeEntry?.navbarColor || "DarkGrey";

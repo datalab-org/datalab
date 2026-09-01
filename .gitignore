@@ -7,6 +7,11 @@ site/
 docker-compose.override.yml
 plugins.toml
 plugins/
+# ... but keep the webapp plugin-panel shim tracked (its generated
+# companions — panels.generated.js and copied .vue dirs — stay ignored)
+!/webapp/src/plugins/
+/webapp/src/plugins/*
+!/webapp/src/plugins/index.js
 
 # App testing files
 webapp/cypress/screenshots
