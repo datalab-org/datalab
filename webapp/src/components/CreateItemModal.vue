@@ -40,7 +40,7 @@
           <div class="form-group col-md-6">
             <label for="item-type-select" class="col-form-label">Type:</label>
             <select id="item-type-select" v-model="item_type" class="form-control" required>
-              <option v-for="type in allowedTypes" :key="type" :value="type">
+              <option v-for="type in effectiveAllowedTypes" :key="type" :value="type">
                 {{ itemTypes[type].display }}
               </option>
             </select>
@@ -170,6 +170,18 @@ export default {
     itemTypes() {
       return itemTypes;
     },
+    effectiveAllowedTypes() {
+      // The passed allowedTypes plus any dynamically-registered (custom/plugin)
+      // creatable types whose base type fits this modal's context, so e.g. a
+      // samples modal offers sample-derived custom types but not equipment-derived ones.
+      const dynamic = Object.keys(this.$store.state.schemas || {}).filter(
+        (type) =>
+          itemTypes[type]?.isDynamic &&
+          itemTypes[type]?.isCreateable &&
+          this.allowedTypes.includes(itemTypes[type]?.baseType),
+      );
+      return [...new Set([...this.allowedTypes, ...dynamic])];
+    },
     itemTypeDisplayName() {
       return itemTypes[this.item_type].display;
     },
@@ -186,7 +198,7 @@ export default {
     },
   },
   created() {
-    this.item_type = this.allowedTypes[0];
+    this.item_type = this.effectiveAllowedTypes[0];
   },
   methods: {
     async submitForm() {
@@ -205,6 +217,10 @@ export default {
       const groupsData = this.shareWithGroups.length > 0 ? this.shareWithGroups : null;
       const creatorsData = this.additionalCreators.length > 0 ? this.additionalCreators : null;
 
+      // Custom (dynamic) types have no list page to land on, so navigate to the
+      // new item's editor after creation.
+      const navigateAfterCreate = Boolean(itemTypes[this.item_type]?.isDynamic);
+
       await createNewItem(
         this.item_id,
         this.item_type,
@@ -217,7 +233,7 @@ export default {
         groupsData,
         creatorsData,
       )
-        .then(() => {
+        .then((newItemId) => {
           this.$emit("update:modelValue", false); // close this modal
           // can enable the following line to get smooth scrolling into view, but will fail
           // if generateIDAutomatically. It's currently not necessary because
@@ -227,6 +243,9 @@ export default {
           this.date = this.now(); // reset date to the new current time
           this.shareWithGroups = [];
           this.additionalCreators = [];
+          if (navigateAfterCreate && newItemId) {
+            this.$router.push(`/edit/${newItemId}`);
+          }
         })
         .catch((error) => {
           let is_item_id_error = false;
