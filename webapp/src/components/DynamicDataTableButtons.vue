@@ -171,7 +171,7 @@
             "
             data-testid="add-to-collection-button"
             class="dropdown-item"
-            @click="handleAddToCollection"
+            @click="handleAddToCollection()"
           >
             Add to collection
           </a>
@@ -189,7 +189,7 @@
             "
             data-testid="batch-share-button"
             class="dropdown-item"
-            @click="handleBatchShare"
+            @click="handleBatchShare()"
           >
             Batch share
           </a>
@@ -197,7 +197,7 @@
             v-if="!['collectionItems', 'users', 'tokens', 'groups'].includes(dataType)"
             data-testid="delete-selected-button"
             class="dropdown-item"
-            @click="confirmDeletion"
+            @click="confirmDeletion()"
           >
             Delete selected
           </a>
@@ -418,20 +418,20 @@ export default {
     },
   },
   methods: {
-    async confirmDeletion() {
-      const idsSelected = this.itemsSelected.map((x) => x.item_id || x.collection_id);
+    async confirmDeletion(items = this.itemsSelected) {
+      const idsSelected = items.map((x) => x.item_id || x.collection_id);
       let idsSelectedLabel = idsSelected;
       if (idsSelected.length > 10) {
         idsSelectedLabel = idsSelected.slice(0, 10).join(", ") + ", ...";
       }
       const confirmed = await DialogService.confirm({
         title: "Confirm Deletion",
-        message: `Are you sure you want to delete ${this.itemsSelected.length} selected items? (${idsSelectedLabel})`,
+        message: `Are you sure you want to delete ${items.length} selected item(s)? (${idsSelectedLabel})`,
         type: "warning",
       });
       if (confirmed) {
-        this.deleteItems(idsSelected);
-        this.$emit("delete-selected-items");
+        await this.deleteItems(idsSelected);
+        this.$emit("delete-selected-items", idsSelected);
       }
       this.isSelectedDropdownVisible = false;
     },
@@ -484,8 +484,8 @@ export default {
         this.isDeletingItems = false;
       }
     },
-    handleAddToCollection() {
-      this.$emit("open-add-to-collection-modal");
+    handleAddToCollection(items = null) {
+      this.$emit("open-add-to-collection-modal", items);
       this.isSelectedDropdownVisible = false;
     },
     columnLabel(option) {
@@ -503,8 +503,8 @@ export default {
         this.$emit("reset-table");
       }
     },
-    handleBatchShare() {
-      this.$emit("open-batch-share-modal");
+    handleBatchShare(items = null) {
+      this.$emit("open-batch-share-modal", items);
       this.isSelectedDropdownVisible = false;
     },
     async handleBulkActivateUsers() {
@@ -1007,6 +1007,10 @@ export default {
 
 .dropdown-item-text {
   padding: 0.5rem 1rem;
+}
+
+.dropdown-item {
+  cursor: pointer;
 }
 
 .column-select-dropdown {
