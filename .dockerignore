@@ -3,3 +3,8 @@
 **/.venv
 **/build
 **/files
+
+# Plugin panels are generated from the installed Python environment during the
+# frontend image build. Never let stale host-generated output enter that build.
+webapp/src/plugins/*
+!webapp/src/plugins/index.js
