@@ -31,6 +31,7 @@
               <tr>
                 <th>Version</th>
                 <th>Saved</th>
+                <th>Saved by</th>
                 <th>Action</th>
                 <th></th>
               </tr>
@@ -41,7 +42,7 @@
                 :key="version._id"
                 class="version-row"
                 :class="{ 'table-active': version.version === currentVersion }"
-                @click="previewVersionData(version._id, version.version)"
+                @click="previewVersionData(version)"
               >
                 <td>
                   <strong>{{ version.version }}</strong>
@@ -53,6 +54,10 @@
                   <span :title="formatDate(version.timestamp)">
                     {{ formatDistanceToNow(new Date(version.timestamp), { addSuffix: true }) }}
                   </span>
+                </td>
+                <td>
+                  <Creators v-if="version.creator" :creators="[version.creator]" :size="24" />
+                  <span v-else class="text-muted">Unknown</span>
                 </td>
                 <td>
                   <span class="text-muted">{{
@@ -76,107 +81,92 @@
       </div>
 
       <!-- Preview Mode -->
-      <div v-else class="preview-container">
+      <div v-else class="preview-container container-fluid">
+        <dl v-if="previewVersionRecord" class="row mb-3">
+          <dt class="col-sm-3">Saved by</dt>
+          <dd class="col-sm-9">
+            <Creators
+              v-if="previewVersionRecord.creator"
+              :creators="[previewVersionRecord.creator]"
+              :size="24"
+            />
+            <span v-else class="text-muted">Unknown</span>
+          </dd>
+
+          <dt class="col-sm-3">Saved</dt>
+          <dd class="col-sm-9">
+            {{ formatDate(previewVersionRecord.timestamp) }}
+            <span class="text-muted">
+              ({{
+                formatDistanceToNow(new Date(previewVersionRecord.timestamp), { addSuffix: true })
+              }})
+            </span>
+          </dd>
+
+          <dt class="col-sm-3">Action</dt>
+          <dd class="col-sm-9">
+            {{
+              formatAction(previewVersionRecord.action, previewVersionRecord.restored_from_version)
+            }}
+          </dd>
+
+          <dt class="col-sm-3">Saved via</dt>
+          <dd class="col-sm-9">
+            <span v-if="previewVersionRecord.user_agent">{{
+              previewVersionRecord.user_agent
+            }}</span>
+            <span v-else class="text-muted">Not recorded</span>
+          </dd>
+        </dl>
+
         <div class="alert alert-info mb-3">
           <font-awesome-icon icon="info-circle" fixed-width />
-          You are viewing a read-only preview of version {{ previewVersion }}. Changes made in this
-          version are highlighted below.
+          <span v-if="isPermissionsUpdate">
+            Version {{ previewVersion }} records a change to who can access this item. The item's
+            content was not edited.
+          </span>
+          <span v-else-if="previousVersionNumber">
+            What changed in version {{ previewVersion }}, compared with version
+            {{ previousVersionNumber }}.
+          </span>
+          <span v-else> Version {{ previewVersion }} is the first recorded version. </span>
         </div>
 
         <!-- Loading preview -->
         <div v-if="isLoadingPreview" class="text-center py-5">
           <font-awesome-icon icon="spinner" class="fa-spin" size="2x" style="color: gray" />
-          <p class="mt-3">Loading version data...</p>
+          <p class="mt-3">Loading changes...</p>
         </div>
 
-        <!-- Preview content -->
-        <div v-else-if="previewData" class="preview-content">
-          <!-- Debug: Show raw data structure -->
-          <details class="mb-3">
-            <summary style="cursor: pointer; color: #666">
-              <small>Debug: View raw data</small>
-            </summary>
-            <pre style="max-height: 200px; overflow-y: auto; font-size: 0.8em">{{
-              JSON.stringify(previewData, null, 2)
-            }}</pre>
-          </details>
+        <div v-else-if="isPermissionsUpdate" />
 
-          <h5>Item Information</h5>
-          <div class="row mb-3">
-            <div class="col-md-6">
-              <strong>Name:</strong>
-              <p>{{ previewData.name || "N/A" }}</p>
-            </div>
-            <div class="col-md-6">
-              <strong>Date:</strong>
-              <p>{{ previewData.date || "N/A" }}</p>
-            </div>
-          </div>
+        <div v-else-if="!previousVersionNumber" class="text-muted py-3">
+          There is no earlier version to compare it against.
+        </div>
 
-          <div class="row mb-3">
-            <div class="col-12">
-              <strong>Description:</strong>
-              <p>{{ previewData.description || "N/A" }}</p>
-            </div>
-          </div>
+        <div v-else-if="changes.length === 0" class="text-muted py-3">
+          No changes to the item's content were recorded in this version.
+        </div>
 
-          <div v-if="previewData.synthesis_description" class="row mb-3">
-            <div class="col-12">
-              <strong>Synthesis Description:</strong>
-              <p>{{ previewData.synthesis_description }}</p>
-            </div>
-          </div>
-
-          <div v-if="previewData.chemical_formula" class="row mb-3">
-            <div class="col-md-6">
-              <strong>Chemical Formula:</strong>
-              <p>{{ previewData.chemical_formula }}</p>
-            </div>
-          </div>
-
-          <div v-if="previewData.location" class="row mb-3">
-            <div class="col-md-6">
-              <strong>Location:</strong>
-              <p>{{ previewData.location }}</p>
-            </div>
-          </div>
-
-          <div v-if="previewData.manufacturer" class="row mb-3">
-            <div class="col-md-6">
-              <strong>Manufacturer:</strong>
-              <p>{{ previewData.manufacturer }}</p>
-            </div>
-          </div>
-
-          <div
-            v-if="previewData.display_order && previewData.display_order.length > 0"
-            class="mt-4"
-          >
-            <h5>Data Blocks ({{ previewData.display_order.length }})</h5>
-            <ul class="list-group">
-              <li
-                v-for="blockId in previewData.display_order"
-                :key="blockId"
-                class="list-group-item"
-              >
-                <strong>{{ getBlockTitle(blockId) }}</strong>
-                <span class="text-muted ml-2">({{ getBlockType(blockId) }})</span>
-              </li>
-            </ul>
-          </div>
-
-          <div v-if="previewData.files && previewData.files.length > 0" class="mt-4">
-            <h5>Files ({{ previewData.files.length }})</h5>
-            <ul class="list-group">
-              <li
-                v-for="file in previewData.files"
-                :key="file.immutable_id"
-                class="list-group-item"
-              >
-                {{ file.name }}
-              </li>
-            </ul>
-          </div>
+        <div v-else class="table-responsive">
+          <table class="table table-sm changes-table">
+            <thead>
+              <tr>
+                <th>Field</th>
+                <th>Before</th>
+                <th>After</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="change in changes" :key="change.field">
+                <td>
+                  <code>{{ change.field }}</code>
+                </td>
+                <td class="change-value change-before">{{ change.before }}</td>
+                <td class="change-value change-after">{{ change.after }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         <!-- Preview actions -->
@@ -201,13 +191,29 @@
 
 <script>
 import Modal from "@/components/Modal.vue";
-import { getItemVersions, getItemVersion, restoreItemVersion } from "@/server_fetch_utils";
+import { getItemVersions, compareItemVersions, restoreItemVersion } from "@/server_fetch_utils";
 import { formatDistanceToNow } from "date-fns";
 import { DialogService } from "@/services/DialogService";
+import Creators from "@/components/Creators.vue";
+
+// Fields that are bookkeeping rather than item content: they change on every save, or
+// are inlined by the server for display, so listing them as changes is just noise.
+const IGNORED_FIELDS = [
+  "last_modified",
+  "version",
+  "_id",
+  "immutable_id",
+  "refcode",
+  "creators",
+  "groups",
+  "creator_ids",
+  "group_ids",
+];
 
 export default {
   components: {
     Modal,
+    Creators,
   },
   props: {
     modelValue: Boolean,
@@ -233,13 +239,21 @@ export default {
       isPreviewMode: false,
       previewVersion: null,
       previewVersionId: null,
-      previewData: null,
+      previewVersionRecord: null,
+      previousVersionNumber: null,
+      changes: [],
       isLoadingPreview: false,
+      // Incremented whenever the active preview changes, so responses from an
+      // earlier (slower) comparison can be discarded instead of overwriting it.
+      previewRequestId: 0,
     };
   },
   computed: {
     sortedVersions() {
       return [...this.versions].sort((a, b) => b.version - a.version);
+    },
+    isPermissionsUpdate() {
+      return this.previewVersionRecord?.action === "permissions_update";
     },
   },
   watch: {
@@ -262,8 +276,11 @@ export default {
     },
     formatAction(action, restoredFromVersion) {
       const actionLabels = {
+        created: "Created",
         manual_save: "Manual Save",
         auto_save: "Auto Save",
+        agent_save: "Agent Save",
+        permissions_update: "Permissions Update",
         restored: restoredFromVersion
           ? `Restored from v${this.getVersionNumberById(restoredFromVersion)}`
           : "Restored",
@@ -285,25 +302,135 @@ export default {
         this.isLoadingVersions = false;
       }
     },
-    async previewVersionData(versionId, versionNumber) {
+    async previewVersionData(version) {
+      const versionId = version._id;
+      const versionNumber = version.version;
+      const requestId = ++this.previewRequestId;
+
       this.isPreviewMode = true;
       this.previewVersion = versionNumber;
       this.previewVersionId = versionId;
-      this.isLoadingPreview = true;
+      this.previewVersionRecord = version;
+      this.changes = [];
+      this.previousVersionNumber = null;
 
+      // A permissions update never touches the item's content, so a field-level diff
+      // has nothing useful to say about it.
+      if (this.isPermissionsUpdate) {
+        return;
+      }
+
+      // Compare against the closest earlier version rather than `versionNumber - 1`,
+      // since numbering can skip where a snapshot was deleted.
+      let previous = this.findPreviousVersion(versionNumber);
+      if (!previous) {
+        // The list may predate versions minted since the modal was opened, so confirm
+        // against the server before concluding this is the earliest version.
+        await this.loadVersions();
+        if (requestId !== this.previewRequestId) {
+          return;
+        }
+        previous = this.findPreviousVersion(versionNumber);
+        // `loadVersions` replaces the records, so re-point at the refreshed one.
+        this.previewVersionRecord =
+          this.versions.find((v) => v.version === versionNumber) || this.previewVersionRecord;
+      }
+      this.previousVersionNumber = previous ? previous.version : null;
+
+      if (!previous) {
+        return;
+      }
+
+      this.isLoadingPreview = true;
       try {
-        this.previewData = await getItemVersion(this.refcode, versionId);
+        const diff = await compareItemVersions(this.refcode, previous._id, versionId);
+        if (requestId !== this.previewRequestId) {
+          return;
+        }
+        this.changes = this.summariseDiff(diff);
       } catch (error) {
-        console.error("Failed to load version preview:", error);
-        this.previewData = null;
+        if (requestId !== this.previewRequestId) {
+          return;
+        }
+        console.error("Failed to load version changes:", error);
+        this.changes = [];
       } finally {
-        this.isLoadingPreview = false;
+        if (requestId === this.previewRequestId) {
+          this.isLoadingPreview = false;
+        }
       }
     },
+    findPreviousVersion(versionNumber) {
+      // `sortedVersions` is descending, so the first entry below this one is its
+      // immediate predecessor.
+      return this.sortedVersions.find((v) => v.version < versionNumber) || null;
+    },
+    summariseDiff(diff) {
+      // The server returns raw DeepDiff output, keyed by the kind of change, each
+      // mapping a path like `root['blocks_obj']['abc']['title']` to its values.
+      const changes = [];
+      const push = (path, before, after) => {
+        const field = this.formatFieldPath(path);
+        if (!field || IGNORED_FIELDS.includes(field.split(/[.[]/)[0])) {
+          return;
+        }
+        changes.push({
+          field,
+          before: this.formatValue(before),
+          after: this.formatValue(after),
+        });
+      };
+
+      for (const [path, change] of Object.entries(diff?.values_changed || {})) {
+        push(path, change.old_value, change.new_value);
+      }
+      for (const [path, change] of Object.entries(diff?.type_changes || {})) {
+        push(path, change.old_value, change.new_value);
+      }
+      for (const key of ["dictionary_item_added", "iterable_item_added"]) {
+        for (const [path, value] of Object.entries(diff?.[key] || {})) {
+          push(path, undefined, value);
+        }
+      }
+      for (const key of ["dictionary_item_removed", "iterable_item_removed"]) {
+        for (const [path, value] of Object.entries(diff?.[key] || {})) {
+          push(path, value, undefined);
+        }
+      }
+
+      return changes.sort((a, b) => a.field.localeCompare(b.field));
+    },
+    formatFieldPath(path) {
+      // `root['blocks_obj']['abc'][0]` -> `blocks_obj.abc[0]`
+      const parts = [...String(path).matchAll(/\['([^']*)'\]|\[(\d+)\]/g)];
+      return parts
+        .map(([, key, index], i) => {
+          if (index !== undefined) return `[${index}]`;
+          return i === 0 ? key : `.${key}`;
+        })
+        .join("");
+    },
+    formatValue(value) {
+      if (value === undefined) return "-";
+      if (value === null) return "null";
+      if (typeof value === "string") {
+        return value.length > 200 ? `${value.slice(0, 200)}...` : value || '""';
+      }
+      if (typeof value === "object") {
+        const serialised = JSON.stringify(value);
+        return serialised.length > 200 ? `${serialised.slice(0, 200)}...` : serialised;
+      }
+      return String(value);
+    },
     exitPreview() {
+      // Invalidate any comparison still in flight for the version being left.
+      this.previewRequestId++;
       this.isPreviewMode = false;
       this.previewVersion = null;
-      this.previewData = null;
+      this.previewVersionRecord = null;
+      this.previousVersionNumber = null;
+      this.changes = [];
+      this.isLoadingPreview = false;
     },
     async confirmRestore(versionId, versionNumber) {
       const confirmed = await DialogService.confirm({
@@ -346,26 +473,18 @@ export default {
         // Error dialog already shown by API function
       }
     },
-    getBlockTitle(blockId) {
-      if (!this.previewData.blocks_obj || !this.previewData.blocks_obj[blockId]) {
-        return blockId;
-      }
-      return this.previewData.blocks_obj[blockId].title || blockId;
-    },
-    getBlockType(blockId) {
-      if (!this.previewData.blocks_obj || !this.previewData.blocks_obj[blockId]) {
-        return "unknown";
-      }
-      return this.previewData.blocks_obj[blockId].blocktype || "unknown";
-    },
     closeModal() {
       this.isOpen = false;
       this.resetState();
     },
     resetState() {
+      this.previewRequestId++;
       this.isPreviewMode = false;
       this.previewVersion = null;
-      this.previewData = null;
+      this.previewVersionRecord = null;
+      this.previousVersionNumber = null;
+      this.changes = [];
+      this.isLoadingPreview = false;
       this.versions = [];
     },
   },
@@ -392,31 +511,25 @@ export default {
   overflow-y: auto;
 }
 
-.preview-content {
-  padding: 1rem;
-  background-color: #f8f9fa;
-  border-radius: 0.25rem;
-}
-
-.preview-content h5 {
-  margin-top: 1.5rem;
-  margin-bottom: 1rem;
-  font-weight: 600;
-}
-
-.preview-content h5:first-child {
-  margin-top: 0;
-}
-
-.preview-content strong {
+.changes-table code {
   color: #495057;
-  display: block;
-  margin-bottom: 0.25rem;
+  word-break: break-all;
 }
 
-.preview-content p {
-  margin-bottom: 0;
+.change-value {
   white-space: pre-wrap;
+  word-break: break-word;
+  max-width: 20rem;
+}
+
+.change-before {
+  color: #842029;
+  background-color: rgba(220, 53, 69, 0.05);
+}
+
+.change-after {
+  color: #0f5132;
+  background-color: rgba(25, 135, 84, 0.05);
 }
 
 .badge {

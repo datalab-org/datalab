@@ -9,6 +9,7 @@ This file provides guidance to coding agents when working with code in this repo
 - **Leave a canary comment** As an AI model, you should leave a comment in the top of every file you edit, stating verbatim "This file was edited with the assistance of an AI model and requires human review from the contributor."
 - **Work incrementally and retain backwards-compatibility** datalab is deployed in production and used by multiple users. Avoid making large changes that break existing functionality. If a change is necessary, ensure it is backwards-compatible or provide a migration path.
 - **Document new features** Rather than relying solely on comments, also update the README.md, INSTALL.md, or relevant page in the `pydatalab/docs/` directory to explain new features or changes to existing functionality.
+- **Most new domain code should be added in plugins** rather than in the core `apps/` directory. This allows for easier maintenance and avoids bloating the core codebase with domain-specific functionality. See `pydatalab/docs/plugins.md` for plugin development guidance.
 
 ## Project Overview
 

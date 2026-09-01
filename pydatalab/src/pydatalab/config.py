@@ -9,12 +9,13 @@ from typing import Any
 from pydantic import (
     AnyUrl,
     BaseModel,
-    BaseSettings,
+    ConfigDict,
     Field,
     ValidationError,
-    root_validator,
-    validator,
+    field_validator,
+    model_validator,
 )
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from pydatalab.models import Person
 from pydatalab.models.utils import RandomAlphabeticalRefcodeFactory, RefCodeFactory
@@ -24,7 +25,7 @@ __all__ = ("CONFIG", "ServerConfig", "DeploymentMetadata", "RemoteFilesystem")
 config_logger = logging.getLogger("pydatalab.config")
 
 
-def config_file_settings(settings: BaseSettings) -> dict[str, Any]:
+def config_file_settings(settings_cls: type[BaseSettings] | None = None) -> dict[str, Any]:
     """Returns a dictionary of server settings loaded from the default or specified
     JSON config file location (via the env var `PYDATALAB_CONFIG_FILE`).
 
@@ -34,7 +35,7 @@ def config_file_settings(settings: BaseSettings) -> dict[str, Any]:
     res = {}
     if config_file.is_file():
         config_logger.debug("Loading from config file at %s", config_file)
-        config_file_content = config_file.read_text(encoding=settings.__config__.env_file_encoding)
+        config_file_content = config_file.read_text(encoding="utf-8")
 
         try:
             res = json.loads(config_file_content)
@@ -51,20 +52,20 @@ def config_file_settings(settings: BaseSettings) -> dict[str, Any]:
 class DeploymentMetadata(BaseModel):
     """A model for specifying metadata about a datalab deployment."""
 
-    maintainer: Person | None
+    maintainer: Person | None = None
     issue_tracker: AnyUrl | None = Field("https://github.com/datalab-org/datalab/issues")
-    homepage: AnyUrl | None
+    homepage: AnyUrl | None = None
     source_repository: AnyUrl | None = Field("https://github.com/datalab-org/datalab")
 
-    @validator("maintainer")
+    @field_validator("maintainer")
+    @classmethod
     def strip_fields_from_person(cls, v):
         if not v.contact_email:
             raise ValueError("Must provide contact email for maintainer.")
 
         return Person(contact_email=v.contact_email, display_name=v.display_name)
 
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class BackupStrategy(BaseModel):
@@ -75,7 +76,8 @@ class BackupStrategy(BaseModel):
         description="Whether this backup strategy is active; i.e., whether it is actually used. All strategies will be disabled in testing scenarios.",
     )
     hostname: str | None = Field(
-        description="The hostname of the SSH-accessible server on which to store the backup (`None` indicates local backups)."
+        None,
+        description="The hostname of the SSH-accessible server on which to store the backup (`None` indicates local backups).",
     )
     location: Path = Field(
         description="The location under which to store the backups on the host. Each backup will be date-stamped and stored in a subdirectory of this location."
@@ -87,7 +89,7 @@ class BackupStrategy(BaseModel):
     frequency: str | None = Field(
         None,
         description="The frequency of the backup, described in the crontab syntax.",
-        pattern=r"^(?:\*|\d+(?:-\d+)?)(?:\/\d+)?(?:,\d+(?:-\d+)?(?:\/\d+)?)*$",
+        examples=["5 4 * * *", "5 2 1 1,4,7,10 *"],
     )
     notification_email_address: str | None = Field(
         None, description="An email address to send backup notifications to."
@@ -143,7 +145,7 @@ class ServerConfig(BaseSettings):
         False, description="Whether to run the server in testing mode, i.e., without user auth."
     )
 
-    SECRET_KEY: str = Field(
+    SECRET_KEY: str | None = Field(
         None,
         description="The secret key to use for Flask. This value should be changed and/or loaded from an environment variable for production deployments.",
     )
@@ -180,7 +182,7 @@ class ServerConfig(BaseSettings):
 
     REMOTE_FILESYSTEMS: list[RemoteFilesystem] = Field(
         [],
-        descripton="A list of dictionaries describing remote filesystems to be accessible from the server.",
+        description="A list of dictionaries describing remote filesystems to be accessible from the server.",
     )
 
     REMOTE_CACHE_MAX_AGE: int = Field(
@@ -261,6 +263,17 @@ its importance when deploying a datalab instance.""",
         description="A list of block type slugs (e.g. ['cycle', 'xrd']) that should be processed asynchronously via the task queue. Defaults to no blocks.",
     )
 
+    CUSTOM_ITEM_MODELS: list[str] = Field(
+        [],
+        description="A list of dotted import paths ('package.module:ClassName') to custom `Item` subclasses to register as additional item types served through the generic item endpoints, e.g. ['mypackage.models:MySample']. Each model must declare its own unique `type` literal.",
+    )
+
+    PREDEFINED_LOCATIONS: set[str] = Field(
+        default_factory=set,
+        description="A list of additional lab locations to populate in the /locations endpoint that will be suggested globally for autocompletion. Use '>' to indicate location hierarchy",
+        examples=[["Lab A > Cupboard B > Shelf C"]],
+    )
+
     BACKUP_STRATEGIES: dict[str, BackupStrategy] | None = Field(
         {
             "daily-snapshots": BackupStrategy(
@@ -285,18 +298,26 @@ its importance when deploying a datalab instance.""",
         description="The desired backup configuration.",
     )
 
-    @root_validator
-    def validate_cache_ages(cls, values):
-        if values.get("REMOTE_CACHE_MIN_AGE") > values.get("REMOTE_CACHE_MAX_AGE"):
-            raise RuntimeError(
-                f"The maximum cache age must be greater than the minimum cache age: min {values.get('REMOTE_CACHE_MIN_AGE')=}, max {values.get('REMOTE_CACHE_MAX_AGE')=}"
-            )
-        return values
+    @model_validator(mode="after")
+    def validate_cache_ages(self):
+        """Check the cache ages after parsing, so that the defaults are covered even
+        when only one of the two values is set explicitly.
+        """
+        min_age = self.REMOTE_CACHE_MIN_AGE
+        max_age = self.REMOTE_CACHE_MAX_AGE
 
-    @validator("SECRET_KEY", pre=True, always=True)
-    def validate_secret_key(cls, v, values):
+        if min_age > max_age:
+            raise RuntimeError(
+                f"The maximum cache age must be greater than the minimum cache age: min {min_age=}, max {max_age=}"
+            )
+        return self
+
+    @field_validator("SECRET_KEY", mode="before")
+    @classmethod
+    def validate_secret_key(cls, v, info):
         if v is None:
-            if values.get("TESTING"):
+            data = info.data if hasattr(info, "data") else {}
+            if data.get("TESTING"):
                 config_logger.error(
                     "`CONFIG.TESTING` is enabled - generating a deterministic secret key for testing purposes. This MUST be updated for production deployments."
                 )
@@ -306,7 +327,8 @@ its importance when deploying a datalab instance.""",
 
         return v
 
-    @validator("ROOT_PATH")
+    @field_validator("ROOT_PATH", mode="before")
+    @classmethod
     def validate_root_path(cls, v):
         if not v.startswith("/"):
             v = "/" + v
@@ -316,20 +338,22 @@ its importance when deploying a datalab instance.""",
 
         return v
 
-    @validator("IDENTIFIER_PREFIX", pre=True, always=True)
-    def validate_identifier_prefix(cls, v, values):
+    @field_validator("IDENTIFIER_PREFIX", mode="before")
+    @classmethod
+    def validate_identifier_prefix(cls, v, info):
         """Make sure that the identifier prefix is set and is valid, raising clear error messages if not.
 
         If in testing mode, then set the prefix to 'test' too.
         The app startup will test for this value and should also warn aggressively that this is unset.
 
         """
-        if values.get("TESTING") or v is None:
+        data = info.data if hasattr(info, "data") else {}
+        if data.get("TESTING") or v is None:
             return "test"
 
         if len(v) > 12:
             raise RuntimeError(
-                "Identifier prefix must be less than 12 characters long, received {v=}"
+                f"Identifier prefix must be less than 12 characters long, received {v=}"
             )
 
         # test a trial refcode
@@ -341,18 +365,32 @@ its importance when deploying a datalab instance.""",
             raise RuntimeError(
                 f"Invalid identifier prefix: {v}. Validation with refcode `AAAAAA` returned error: {exc}"
             )
-
         return v
 
-    @root_validator
-    def deactivate_backup_strategies_during_testing(cls, values):
-        if values.get("TESTING"):
-            for name in values.get("BACKUP_STRATEGIES", {}):
-                values["BACKUP_STRATEGIES"][name].active = False
+    @model_validator(mode="after")
+    def deactivate_backup_strategies_during_testing(self):
+        """Disable every backup strategy when running in testing mode.
 
-        return values
+        This runs after parsing so that the default strategies are covered (defaults
+        never appear in the raw input) and so that strategies loaded from a config
+        file are `BackupStrategy` instances rather than plain dicts.
+        """
+        if self.TESTING and self.BACKUP_STRATEGIES:
+            for strategy in self.BACKUP_STRATEGIES.values():
+                strategy.active = False
+        return self
 
-    @validator("LOG_FILE")
+    @field_validator("PREDEFINED_LOCATIONS", mode="before")
+    @classmethod
+    def check_predefined_locations(cls, v):
+        """Checks that predefined locations can be parsed hierarchically."""
+        from pydatalab.models.utils import construct_location_hierarchy
+
+        construct_location_hierarchy(v)
+        return v
+
+    @field_validator("LOG_FILE", mode="before")
+    @classmethod
     def make_missing_log_directory(cls, v):
         """Make sure that the log directory exists and is writable."""
         if v is None:
@@ -365,25 +403,40 @@ its importance when deploying a datalab instance.""",
             raise RuntimeError(f"Unable to create log file at {v}") from exc
         return v
 
-    class Config:
-        env_prefix = "pydatalab_"
-        extra = "allow"
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        validate_assignment = True
+    def update(self, values: dict):
+        """Update the configuration with new values, following Pydantic v1 behavior."""
+        for key, value in values.items():
+            key_upper = key.upper()
+            if hasattr(self, key_upper):
+                setattr(self, key_upper, value)
+            else:
+                setattr(self, key_upper, value)
 
-        @classmethod
-        def customise_sources(
-            cls,
+    model_config = SettingsConfigDict(
+        env_prefix="PYDATALAB_",
+        extra="allow",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        validate_assignment=True,
+        case_sensitive=False,
+    )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings,
+        env_settings,
+        dotenv_settings,
+        file_secret_settings,
+    ):
+        return (
             init_settings,
             env_settings,
+            dotenv_settings,
+            config_file_settings,
             file_secret_settings,
-        ):
-            return (init_settings, env_settings, config_file_settings, file_secret_settings)
-
-    def update(self, mapping):
-        for key in mapping:
-            setattr(self, key.upper(), mapping[key])
+        )
 
 
 CONFIG: ServerConfig = ServerConfig()

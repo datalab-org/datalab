@@ -1,3 +1,4 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -62,7 +63,7 @@ def _find_grouped_notification(
 
 def _insert_notification(notification: Notification, *, session: Any | None = None) -> Notification:
     result = flask_mongo.db.notifications.insert_one(
-        notification.dict(by_alias=True, exclude_none=True),
+        notification.model_dump(by_alias=True, exclude_none=True),
         session=session,
     )
     notification.immutable_id = result.inserted_id
@@ -136,7 +137,7 @@ def create_notification_with_result(
                 "last_occurred_at": now,
                 "level": _max_level(grouped_notification.get("level"), level),
             },
-            "$push": {"occurrences": occurrence.dict(exclude_none=True)},
+            "$push": {"occurrences": occurrence.model_dump(exclude_none=True)},
             "$unset": {"read_at": ""},
         }
         updated_notification = flask_mongo.db.notifications.find_one_and_update(

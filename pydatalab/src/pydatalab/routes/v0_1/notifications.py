@@ -1,3 +1,4 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 from datetime import datetime, timezone
 from typing import Any
 
@@ -143,7 +144,9 @@ def create_notifications():
     return jsonify(
         {
             "status": "success",
-            "data": [notification.dict() for notification, _ in notification_results],
+            "data": [
+                notification.model_dump(mode="json") for notification, _ in notification_results
+            ],
             "notification_ids": [
                 str(notification.immutable_id) for notification, _ in notification_results
             ],
@@ -184,7 +187,10 @@ def list_notifications(notification_permissions: dict):
     return jsonify(
         {
             "status": "success",
-            "data": [Notification(**notification).dict() for notification in notifications],
+            "data": [
+                Notification(**notification).model_dump(mode="json")
+                for notification in notifications
+            ],
             "unread_count": _count_unread_notifications(notification_permissions),
         }
     ), 200
@@ -231,7 +237,7 @@ def update_notification(
         return jsonify(
             {
                 "status": "success",
-                "data": Notification(**notification).dict(),
+                "data": Notification(**notification).model_dump(mode="json"),
                 "message": "No update to perform.",
             }
         ), 200
@@ -253,7 +259,7 @@ def update_notification(
     return jsonify(
         {
             "status": "success",
-            "data": Notification(**updated_notification).dict(),
+            "data": Notification(**updated_notification).model_dump(mode="json"),
             "unread_count": _count_unread_notifications(notification_permissions),
         }
     ), 200

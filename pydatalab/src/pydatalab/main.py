@@ -1,11 +1,13 @@
 import datetime
-import logging
 import os
 import pathlib
+import time
 from typing import Any
+from urllib.parse import urlparse
+from uuid import uuid4
 
 from dotenv import dotenv_values
-from flask import Flask, redirect, request, url_for
+from flask import Flask, g, redirect, request, url_for
 from flask_compress import Compress
 from flask_cors import CORS
 from flask_login import current_user, logout_user
@@ -15,7 +17,7 @@ import pydatalab.mongo
 from pydatalab import __version__
 from pydatalab.config import CONFIG
 from pydatalab.feature_flags import check_feature_flags
-from pydatalab.logger import LOGGER, setup_log
+from pydatalab.logger import LOGGER, request_id_var
 from pydatalab.login import LOGIN_MANAGER
 from pydatalab.send_email import MAIL
 from pydatalab.utils import BSONProvider
@@ -36,16 +38,13 @@ def create_app(
         The `Flask` app with all associated endpoints.
 
     """
-    setup_log("werkzeug", log_level=logging.INFO)
-    setup_log("", log_level=logging.INFO)
-
     app = Flask(__name__, instance_relative_config=True)
 
     if config_override:
         CONFIG.update(config_override)
 
     app.config.from_prefixed_env()
-    app.config.update(CONFIG.dict())
+    app.config.update(CONFIG.model_dump())
 
     # This value will still be overwritten by any dotenv values
     app.config["MAIL_DEBUG"] = app.config.get("MAIL_DEBUG") or CONFIG.TESTING
@@ -53,7 +52,7 @@ def create_app(
     # percolate datalab mail settings up to the `MAIL_` env vars/app config
     # for use by Flask Mail
     if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is not None:
-        mail_settings = CONFIG.EMAIL_AUTH_SMTP_SETTINGS.dict()
+        mail_settings = CONFIG.EMAIL_AUTH_SMTP_SETTINGS.model_dump()
         for key in mail_settings:
             app.config[key] = mail_settings[key]
 
@@ -77,7 +76,6 @@ def create_app(
             os.environ[key] = app.config[key]
 
     LOGGER.info("Launching datalab version %s", __version__)
-    LOGGER.info("Starting app with Flask app.config: %s", app.config)
 
     check_feature_flags(app)
 
@@ -95,11 +93,79 @@ def create_app(
             "proxy is configured to honour the X-Accel-Redirect header."
         )
 
-    CORS(
-        app,
-        resources={r"/*": {"origins": "*"}},
-        supports_credentials=True,
-    )
+    # datalab serves two kinds of client, which need different CORS treatment:
+    #
+    #   - the first-party web app, which authenticates with an ambient session cookie.
+    #     Cookies are attached by the browser without the caller doing anything, so
+    #     this origin must be named explicitly, and is taken from `APP_URL`.
+    #   - third-party apps, which authenticate with a `DATALAB-API-KEY` header. That
+    #     is an explicit credential that a browser will never attach on its own, so
+    #     the API can be opened to any origin provided cookies are *not* allowed.
+    #
+    # Only the first regime is restricted; the public API stays reachable from
+    # anywhere via the fallback handler below.
+    # Registered *before* `CORS()` deliberately: Flask runs `after_request` handlers
+    # in reverse registration order, and flask-cors bails out if the response already
+    # carries an `Access-Control-Allow-Origin`. Registering this first means it runs
+    # last, i.e. only fills in the wildcard for requests flask-cors declined to match.
+    @app.after_request
+    def add_public_api_cors_headers(response):
+        """Apply open, cookie-less CORS to any request not already handled as a
+        credentialed origin, so that API-key clients can call the API from anywhere.
+
+        Requests from any other origin that *do* carry cookies receive a wildcard
+        `Access-Control-Allow-Origin`, which browsers reject for credentialed
+        requests - which is the intent: the session cookie is never exposed to them.
+
+        """
+        if "Access-Control-Allow-Origin" in response.headers:
+            return response
+
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, DATALAB-API-KEY"
+        # The response varies by origin, since the `APP_URL` origin gets a different
+        # header set; without this a shared cache could serve the wrong one.
+        response.headers.add("Vary", "Origin")
+        return response
+
+    def _credentialed_cors_origin() -> str | None:
+        """The single origin allowed to make cookie-authenticated cross-origin
+        requests, derived from the configured web app URL.
+
+        Returns:
+            The `scheme://host[:port]` origin of `APP_URL`, or `None` if it is unset
+            or malformed.
+
+        """
+        if not CONFIG.APP_URL:
+            return None
+
+        parsed = urlparse(CONFIG.APP_URL)
+        if parsed.scheme and parsed.netloc:
+            return f"{parsed.scheme}://{parsed.netloc}"
+
+        LOGGER.warning("Ignoring malformed `APP_URL` for credentialed CORS: %s", CONFIG.APP_URL)
+        return None
+
+    credentialed_origin = _credentialed_cors_origin()
+    if credentialed_origin:
+        CORS(
+            app,
+            resources={r"/*": {"origins": [credentialed_origin]}},
+            supports_credentials=True,
+        )
+    else:
+        # No `APP_URL`, so no origin is trusted with an ambient session: the API stays
+        # reachable by API-key clients via the wildcard fallback above, and same-origin
+        # web apps are unaffected since CORS never applies to them. `feature_flags`
+        # already warns about `APP_URL` being unset, which also affects login
+        # redirects, notification emails and export provenance.
+        LOGGER.info(
+            "`APP_URL` is not set, so no origin is permitted to make cookie-authenticated "
+            "requests. Set it to the URL of the associated web app if that app is served "
+            "from a different origin than this API."
+        )
 
     # Override the default provider with a version that can handle ObjectIDs and returns isofromat dates
     app.json = BSONProvider(app)
@@ -119,6 +185,31 @@ def create_app(
 
     if CONFIG.FILE_DIRECTORY is not None:
         pathlib.Path(CONFIG.FILE_DIRECTORY).mkdir(parents=False, exist_ok=True)
+
+    @app.before_request
+    def assign_request_id():
+        """Tag the current context with a short ID for log correlation."""
+        request_id_var.set(uuid4().hex[:8])
+        g.start_time = time.perf_counter()
+
+    @app.after_request
+    def log_request(response):
+        """Write a single access log line per request handled."""
+        duration_ms = 1000 * (time.perf_counter() - g.start_time)
+        LOGGER.info(
+            '"%s %s" %s in %.1fms',
+            request.method,
+            request.path,
+            response.status_code,
+            duration_ms,
+        )
+        return response
+
+    # Register any custom item models declared in the config so that they are
+    # served via the generic item endpoints and appear in `/info/types`.
+    from pydatalab.models import load_custom_item_models
+
+    load_custom_item_models(CONFIG.CUSTOM_ITEM_MODELS)
 
     register_endpoints(app)
     LOGGER.info("App created.")
@@ -234,6 +325,13 @@ def register_endpoints(app: Flask):
             app.register_blueprint(
                 bp, url_prefix=f"{CONFIG.ROOT_PATH}{ver}", name=f"{ver}/{bp.name}"
             )
+
+    if CONFIG.ROOT_PATH != "/":
+        # Also serve the healthcheck endpoints at the bare root, so that e.g. container
+        # healthchecks work without needing to know the configured `ROOT_PATH`
+        from pydatalab.routes.v0_1.healthcheck import HEALTHCHECK
+
+        app.register_blueprint(HEALTHCHECK, url_prefix="/", name=f"root/{HEALTHCHECK.name}")
 
     for bp in OAUTH:  # type: ignore
         app.register_blueprint(OAUTH[bp], url_prefix=f"{CONFIG.ROOT_PATH}login")  # type: ignore

@@ -426,3 +426,28 @@ Cypress.Commands.add("getColumnIndices", (columnMap = {}) => {
     })
     .then(() => columnIndices);
 });
+
+/**
+ * Add a block to the current item via the top "Add a block" dropdown and yield
+ * that block, identified by the ID the API hands back. Callers can then scope
+ * their assertions to the new block rather than indexing across every block on
+ * the item: each block renders its contents (file selects included) once its own
+ * data has loaded, so the global ordering of those elements is racy.
+ * @param {string} blockName - Label of the block type in the dropdown, e.g. "Media"
+ * @returns {Cypress.Chainable<JQuery<HTMLElement>>} The new `.data-block` element
+ * @example
+ * cy.addBlockFromTopDropdown("Media").within(() => {
+ *   cy.get("select.file-select-dropdown").select("test_image.png");
+ * });
+ */
+Cypress.Commands.add("addBlockFromTopDropdown", (blockName) => {
+  cy.intercept("POST", "**/add-data-block/").as("addDataBlock");
+  cy.get('[data-testid="add-block-button-top"]').click();
+  cy.get('[data-testid="add-block-dropdown"]').contains(blockName).click();
+  return cy.wait("@addDataBlock").then((interception) => {
+    // The block element carries the block ID as its DOM id, which may start with
+    // a digit, so match on the attribute rather than with an `#id` selector.
+    const blockId = interception.response.body.new_block_obj.block_id;
+    return cy.get(`[id="${blockId}"]`);
+  });
+});

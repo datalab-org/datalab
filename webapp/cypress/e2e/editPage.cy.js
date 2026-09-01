@@ -226,15 +226,17 @@ describe("Edit Page", () => {
 
     cy.contains("Unsaved changes").should("not.exist");
 
-    cy.get(".datablock-content div").eq(0).type("the first comment box");
+    cy.get(".datablock-content [contenteditable]").eq(0).type("the first comment box");
     cy.contains("Unsaved changes");
 
     // click update block icon and make sure unsaved changes warning goes away
     cy.get('.datablock-header [aria-label="updateBlock"]').eq(0).click();
     cy.contains("Unsaved changes").should("not.exist");
-    cy.get(".datablock-content div").eq(0).contains("the first comment box");
+    cy.get(".datablock-content [contenteditable]").eq(0).contains("the first comment box");
 
-    cy.get(".datablock-content div").eq(0).type("\nThe first comment box; further changes.");
+    cy.get(".datablock-content [contenteditable]")
+      .eq(0)
+      .type("\nThe first comment box; further changes.");
     cy.contains("Unsaved changes");
 
     cy.get('[data-testid="block-description"]').first().find(".ProseMirror").click();
@@ -291,8 +293,14 @@ describe("Edit Page", () => {
     cy.get('[data-testid="add-block-button-top"]').click();
     cy.get('[data-testid="add-block-dropdown"]').contains("Powder XRD").click();
 
-    cy.findByText("Select a file:").should("exist");
-    cy.get("select.file-select-dropdown").select("example_data_XRD_example_bmb.xye");
+    cy.findByText("Select and order files").should("exist");
+    cy.get(".multi-file-selector").contains("example_data_XRD_example_bmb.xye").dblclick();
+    cy.get(".multi-file-selector").within(() => {
+      cy.contains("Selected Files (Ordered):")
+        .next("ul")
+        .contains("example_data_XRD_example_bmb.xye")
+        .should("exist");
+    });
     cy.contains("label", "X axis").should("exist");
     cy.contains("label", "Y axis").should("exist");
 
@@ -315,10 +323,10 @@ describe("Edit Page", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
 
-    cy.get('[data-testid="add-block-button-top"]').click();
-    cy.get('[data-testid="add-block-dropdown"]').contains("Media").click();
-    cy.findAllByText("Select a file:").eq(1).should("exist");
-    cy.get("select.file-select-dropdown").eq(1).select(test_fname);
+    cy.addBlockFromTopDropdown("Media").within(() => {
+      cy.findByText("Select a file").should("exist");
+      cy.get("select.file-select-dropdown").select(test_fname);
+    });
 
     // Check that the img with id "media-block-img" is present
     cy.get('img[data-testid="media-block-img"]').should("exist");
@@ -332,10 +340,10 @@ describe("Edit Page", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
 
-    cy.get('[data-testid="add-block-button-top"]').click();
-    cy.get('[data-testid="add-block-dropdown"]').contains("Media").click();
-    cy.findAllByText("Select a file:").eq(2).should("exist");
-    cy.get("select.file-select-dropdown").eq(2).select(test_fname);
+    cy.addBlockFromTopDropdown("Media").within(() => {
+      cy.findByText("Select a file").should("exist");
+      cy.get("select.file-select-dropdown").select(test_fname);
+    });
 
     // Check that the SVG is displayed
     cy.get(".svg-wrapper").should("exist");
@@ -358,12 +366,10 @@ describe("Edit Page", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
 
-    cy.get('[data-testid="add-block-button-top"]').click();
-    cy.get('[data-testid="add-block-dropdown"]').contains("Raman spectroscopy").click();
-    cy.findAllByText("Select a file:").eq(3).should("exist");
-    cy.get("select.file-select-dropdown")
-      .eq(3)
-      .select("example_data_raman_labspec_raman_example.txt");
+    cy.addBlockFromTopDropdown("Raman spectroscopy").within(() => {
+      cy.findByText("Select a file").should("exist");
+      cy.get("select.file-select-dropdown").select("example_data_raman_labspec_raman_example.txt");
+    });
     cy.contains("label", "X axis").should("exist");
     cy.contains("label", "Y axis").should("exist");
   });
@@ -423,7 +429,7 @@ describe("Edit Page", () => {
 
     cy.wait(1000);
     cy.get(".data-block").should("exist");
-    cy.findAllByText("Select a file:").should("exist");
+    cy.findAllByText("Select a file").should("exist");
   });
 
   it("Verifies bottom and top 'Add a block' dropdowns work independently", () => {

@@ -238,12 +238,14 @@ describe("Advanced sample creation features", () => {
   });
 
   it("modifies some data in the second sample", () => {
+    cy.intercept("POST", "**/save-item/").as("saveItem");
+
     cy.findByText("testB").click();
     cy.findByLabelText("Description").type("this is a description of testB.");
     cy.get('[data-testid="add-block-button-top"]').click();
     cy.get('[data-testid="add-block-dropdown"]').findByText("Comment").click();
 
-    cy.get(".datablock-content div").first().type("a comment is added here.");
+    cy.get(".datablock-content [contenteditable]").first().type("a comment is added here.");
     cy.expandIfCollapsed("[data-testid=synthesis-block]");
     cy.get("#synthesis-information .vs__search").first().type("component3");
     cy.get(".vs__dropdown-menu").contains(".badge", "component3").click();
@@ -259,7 +261,12 @@ describe("Advanced sample creation features", () => {
     cy.findByLabelText("Procedure").type("a description of the synthesis here");
 
     cy.get(".fa-save").click();
+    cy.wait("@saveItem").then(({ response }) => {
+      expect(response.statusCode).to.equal(200);
+      expect(response.body).to.have.property("status", "success");
+    });
     cy.findByText("Home").click();
+    cy.location("pathname").should("equal", "/");
   });
 
   it("copies the second sample", () => {

@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import ConfigDict, Field
 
-from pydatalab.models.utils import JSON_ENCODERS, PyObjectId
+from pydatalab.models.utils import BaseModel, PyObjectId
 
 
 class DataBlockResponse(BaseModel):
@@ -10,6 +10,8 @@ class DataBlockResponse(BaseModel):
     It is expected but not mandatory that this model will be extended by the specific block type
     where possible.
     """
+
+    model_config = ConfigDict(validate_by_name=True, extra="allow")
 
     blocktype: str
     """The type of the block."""
@@ -42,26 +44,31 @@ class DataBlockResponse(BaseModel):
     """Any warnings that occurred during block processing."""
 
     b64_encoded_image: dict[str, str] | None = Field(
-        datalab_exclude_from_db=True, datalab_exclude_from_load=True
+        None,
+        json_schema_extra={"datalab_exclude_from_db": True, "datalab_exclude_from_load": True},
     )
     """Any base64-encoded image data associated with the block, keyed by `file_id`."""
 
     bokeh_plot_data: dict | None = Field(
-        datalab_exclude_from_db=True, datalab_exclude_from_load=True
+        None,
+        json_schema_extra={"datalab_exclude_from_db": True, "datalab_exclude_from_load": True},
     )
     """A JSON-encoded string containing the Bokeh plot data, if any."""
 
-    computed: dict | None = Field(default=None, datalab_exclude_from_load=True)
+    computed: dict | None = Field(
+        default=None, json_schema_extra={"datalab_exclude_from_load": True}
+    )
     """Any processed or computed data associated with the block, small enough to store and filter directly in the database,
     i.e., strings or a few hundred numbers not exceeding 16KB in size.
     Examples could include peak positions, and widths, but not the full spectrum.
     """
 
-    metadata: dict | None = Field(default=None, datalab_exclude_from_load=True)
+    processed: dict | None = Field(
+        default=None, json_schema_extra={"datalab_exclude_from_load": True}
+    )
+
+    metadata: dict | None = Field(
+        default=None, json_schema_extra={"datalab_exclude_from_load": True}
+    )
     """Any structured metadata associated with the block, for example,
     experimental acquisition parameters."""
-
-    class Config:
-        allow_population_by_field_name = True
-        json_encoders = JSON_ENCODERS
-        extra = "allow"

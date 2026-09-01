@@ -217,7 +217,6 @@ export default {
         const graphData = await getItemGraph({
           item_id: this.itemId,
           max_depth: this.graphDepth,
-          updateStore: false,
         });
 
         const previouslySelected = new Set(this.selectedSampleIds);
@@ -343,7 +342,6 @@ export default {
         const response = await getItemGraph({
           item_id: this.itemId,
           max_depth: this.graphDepth,
-          updateStore: false,
         });
         this.graphData = response;
       } catch (error) {

@@ -1,10 +1,12 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Literal
 
-from pydantic import BaseModel, Field, root_validator
+from pydantic import ConfigDict, Field, model_validator
 
 from pydatalab.models.entries import Entry
-from pydatalab.models.utils import JSON_ENCODERS, PyObjectId
+from pydatalab.models.utils import BaseModel, PyObjectId
 
 
 class NotificationLevel(str, Enum):
@@ -56,18 +58,16 @@ class NotificationGrouping(BaseModel):
         description="Maximum number of occurrences before a new notification document is created.",
     )
 
-    @root_validator
-    def validate_grouping_policy(cls, values):
-        policy = NotificationGroupPolicy(values.get("policy"))
-        if policy == NotificationGroupPolicy.WINDOW and values.get("window_seconds") is None:
+    @model_validator(mode="after")
+    def validate_grouping_policy(self) -> "NotificationGrouping":
+        policy = NotificationGroupPolicy(self.policy)
+        if policy == NotificationGroupPolicy.WINDOW and self.window_seconds is None:
             raise ValueError("window_seconds must be provided for window grouping.")
         if policy == NotificationGroupPolicy.ONCE:
-            values["window_seconds"] = None
-        return values
+            self.window_seconds = None
+        return self
 
-    class Config:
-        json_encoders = JSON_ENCODERS
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class NotificationOccurrence(BaseModel):
@@ -82,15 +82,13 @@ class NotificationOccurrence(BaseModel):
         description="Whether this occurrence arrived since the notification was last read.",
     )
 
-    class Config:
-        json_encoders = JSON_ENCODERS
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class Notification(Entry):
     """A notification addressed to one user."""
 
-    type: str = Field("notifications", const=True)
+    type: Literal["notifications"] = "notifications"
     recipient_id: PyObjectId = Field(..., description="ID of the user receiving the notification")
     title: str = Field(..., min_length=1, max_length=200)
     summary: str | None = Field(
@@ -112,5 +110,4 @@ class Notification(Entry):
         description="Individual occurrence details for grouped notifications.",
     )
 
-    class Config(Entry.Config):
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
