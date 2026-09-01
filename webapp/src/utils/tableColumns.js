@@ -1,6 +1,7 @@
 import { FilterOperator, FilterMatchMode } from "@primevue/core/api";
 
 import { formatRelativeDate } from "@/field_utils.js";
+import { itemTypes } from "@/resources.js";
 
 import BlocksIconCounter from "@/components/BlocksIconCounter";
 import ChemicalFormula from "@/components/ChemicalFormula";
@@ -74,17 +75,25 @@ export const ITEM_ID_COLUMN = {
   },
 };
 
+/** The display label for an item type: the registered title for custom (plugin) types. */
+export function displayItemType(type) {
+  const itemType = itemTypes[type];
+  return itemType?.isDynamic ? itemType.display : type;
+}
+
 /** The item type, filterable against the types actually present in the table. */
 export const TYPE_COLUMN = {
   field: "type",
   header: "Type",
   label: "Type",
+  getValue: (row) => displayItemType(row.type),
   filter: {
     component: MultiSelectFilter,
-    componentProps: { optionLabel: "type", placeholder: "Select item types" },
+    componentProps: { optionLabel: "display", placeholder: "Select item types" },
     match: matchByKey("type"),
     operator: FilterOperator.AND,
-    options: keyedOptions("type"),
+    options: (data) =>
+      keyedOptions("type")(data).map((opt) => ({ ...opt, display: displayItemType(opt.type) })),
     noOperator: true,
   },
 };
