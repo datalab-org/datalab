@@ -1,4 +1,79 @@
 {
+  "$comment": "This file was edited with the assistance of an AI model and requires human review from the contributor.",
+  "$defs": {
+    "DatalabQuantityExtra": {
+      "additionalProperties": false,
+      "description": "Canonical storage and display-unit configuration for a numeric field.",
+      "properties": {
+        "canonical_unit": {
+          "description": "Unit used by the Pydantic field, REST API, application state, and database.",
+          "minLength": 1,
+          "title": "Canonical Unit",
+          "type": "string"
+        },
+        "display_units": {
+          "additionalProperties": {
+            "$ref": "#/$defs/DatalabUnitTransform"
+          },
+          "description": "Allowed display units and their affine transforms to the canonical unit.",
+          "title": "Display Units",
+          "type": "object"
+        },
+        "default_display_unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Initial display unit; defaults to ``canonical_unit`` when omitted.",
+          "title": "Default Display Unit"
+        },
+        "display_unit_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional companion field that persists presentation preference only.",
+          "title": "Display Unit Field"
+        }
+      },
+      "required": [
+        "canonical_unit",
+        "display_units"
+      ],
+      "title": "DatalabQuantityExtra",
+      "type": "object"
+    },
+    "DatalabUnitTransform": {
+      "additionalProperties": false,
+      "description": "Affine conversion from a display unit to a field's canonical unit.",
+      "properties": {
+        "scale": {
+          "default": 1.0,
+          "description": "Multiplier in ``canonical = displayed * scale + offset``.",
+          "title": "Scale",
+          "type": "number"
+        },
+        "offset": {
+          "default": 0.0,
+          "description": "Offset in ``canonical = displayed * scale + offset``.",
+          "title": "Offset",
+          "type": "number"
+        }
+      },
+      "title": "DatalabUnitTransform",
+      "type": "object"
+    }
+  },
   "additionalProperties": false,
   "description": "Datalab hints attached to a field via ``json_schema_extra``.",
   "properties": {
@@ -25,7 +100,7 @@
         }
       ],
       "default": null,
-      "description": "Store but don't render this field (e.g. a companion unit field).",
+      "description": "Store but don't render this field directly.",
       "title": "Datalab Hidden"
     },
     "datalab_multiline": {
@@ -70,47 +145,17 @@
       "description": "Render an item-reference widget restricted to these item types.",
       "title": "Datalab Ref Types"
     },
-    "datalab_unit_field": {
+    "datalab_quantity": {
       "anyOf": [
         {
-          "type": "string"
+          "$ref": "#/$defs/DatalabQuantityExtra"
         },
         {
           "type": "null"
         }
       ],
       "default": null,
-      "description": "Companion field holding the unit; renders a value box + unit dropdown.",
-      "title": "Datalab Unit Field"
-    },
-    "datalab_units": {
-      "anyOf": [
-        {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "description": "Unit options for the dropdown (with ``datalab_unit_field``).",
-      "title": "Datalab Units"
-    },
-    "datalab_default_unit": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "description": "Default unit for the dropdown.",
-      "title": "Datalab Default Unit"
+      "description": "Render a canonical numeric field with plugin-defined display-unit conversions."
     },
     "datalab_exclude_from_db": {
       "anyOf": [
