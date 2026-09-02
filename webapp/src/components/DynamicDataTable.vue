@@ -131,6 +131,9 @@
         >
           {{ $filters.IsoDatetimeToDate(slotProps.data[column.field]) }}
         </template>
+        <template v-else-if="column.field === 'type'" #body="slotProps">
+          {{ displayItemType(slotProps.data[column.field]) }}
+        </template>
         <template v-else #body="slotProps">
           {{ slotProps.data[column.field] }}
         </template>
@@ -223,7 +226,7 @@
           <MultiSelect
             v-model="filters[column.field].constraints[0].value"
             :options="knownTypes"
-            option-label="type"
+            option-label="display"
             placeholder="Select item types"
             class="d-flex w-full"
             :filter="true"
@@ -597,7 +600,7 @@ import CreateEquipmentModal from "@/components/CreateEquipmentModal";
 import AddToCollectionModal from "@/components/AddToCollectionModal";
 import BatchShareModal from "@/components/BatchShareModal";
 
-import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY } from "@/resources.js";
+import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY, itemTypes } from "@/resources.js";
 
 import FormattedItemName from "@/components/FormattedItemName";
 import BlocksIconCounter from "@/components/BlocksIconCounter";
@@ -973,7 +976,10 @@ export default {
     },
     knownTypes() {
       // Grab the set of types stored under the item type key
-      return Array.from(new Set(this.data.map((item) => item.type))).map((type) => ({ type }));
+      return Array.from(new Set(this.data.map((item) => item.type))).map((type) => ({
+        type,
+        display: this.displayItemType(type),
+      }));
     },
     computedDataTestId() {
       const dataTestIdMap = {
@@ -1250,6 +1256,10 @@ export default {
     });
   },
   methods: {
+    displayItemType(type) {
+      const itemType = itemTypes[type];
+      return itemType?.isDynamic ? itemType.display : type;
+    },
     formatRelativeDate(isodatetime) {
       if (!isodatetime) {
         return isodatetime;
