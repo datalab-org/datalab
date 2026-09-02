@@ -24,7 +24,7 @@
     "@fortawesome/vue-fontawesome": "^3.3.3",
     "@popperjs/core": "^2.11.8",
     "@primeuix/themes": "2.0.3",
-    "@tiptap/core": "^3.29.2",
+    "@tiptap/core": "^3.30.4",
     "@tiptap/extension-color": "^3.29.2",
     "@tiptap/extension-highlight": "^3.29.2",
     "@tiptap/extension-image": "^3.29.2",
