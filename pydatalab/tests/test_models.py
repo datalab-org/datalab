@@ -1,3 +1,4 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 import datetime
 import json
 
@@ -700,9 +701,53 @@ def test_datalab_field_extra_rejects_unknown_and_mistyped_hints():
     DatalabFieldExtra(
         datalab_include_field_in_summary=True,
         datalab_ref_types=["equipment"],
-        datalab_units=["mV", "V"],
-        datalab_default_unit="V",
+        datalab_quantity={
+            "canonical_unit": "V",
+            "display_units": {
+                "V": {"scale": 1},
+                "mV": {"scale": 0.001},
+            },
+            "default_display_unit": "mV",
+        },
     )
+
+
+def test_validate_schema_hints_checks_canonical_quantity_relationship():
+    from typing import Literal
+
+    from pydantic import Field
+
+    from pydatalab.models.schema_hints import validate_schema_hints
+    from pydatalab.models.utils import BaseModel
+
+    class _QuantityModel(BaseModel):
+        volume: float | None = Field(
+            None,
+            json_schema_extra={
+                "datalab_quantity": {
+                    "canonical_unit": "L",
+                    "display_units": {
+                        "L": {"scale": 1},
+                        "mL": {"scale": 0.001},
+                    },
+                    "default_display_unit": "mL",
+                    "display_unit_field": "volume_display_unit",
+                }
+            },
+        )
+        volume_display_unit: Literal["L", "mL"] | None = None
+
+    validate_schema_hints(_QuantityModel)
+
+    class _MismatchedUnits(BaseModel):
+        volume: float | None = Field(
+            None,
+            json_schema_extra=_QuantityModel.model_fields["volume"].json_schema_extra,
+        )
+        volume_display_unit: Literal["L", "cL"] | None = None
+
+    with pytest.raises(ValueError, match="containing exactly"):
+        validate_schema_hints(_MismatchedUnits)
 
 
 def test_validate_schema_hints_raises_for_bad_field_hint():

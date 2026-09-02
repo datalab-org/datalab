@@ -1,3 +1,4 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 import importlib
 import json
 import os
@@ -124,8 +125,15 @@ def generate_schemas(_):
         ("datalab_field_extra", DatalabFieldExtra),
         ("datalab_model_extra", DatalabModelExtra),
     ):
+        hint_schema = {
+            "$comment": (
+                "This file was edited with the assistance of an AI model and requires human "
+                "review from the contributor."
+            ),
+            **hint_model.model_json_schema(by_alias=False),
+        }
         with open(schemas_path / f"{name}.json", "w") as f:
-            json.dump(hint_model.model_json_schema(by_alias=False), f, indent=2)
+            json.dump(hint_schema, f, indent=2)
 
     with open(schemas_path / "plugin_config.json", "w") as f:
         json.dump(load_plugin_schema().schema(), f, indent=2)

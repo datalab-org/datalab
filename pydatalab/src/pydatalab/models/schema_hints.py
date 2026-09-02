@@ -1,3 +1,4 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 """Typed definitions of the ``datalab_*`` ``json_schema_extra`` hints.
 
 Item models tag fields and model config with ``datalab_*`` keys that the API and
@@ -9,9 +10,78 @@ Call sites keep writing plain dicts. The field names here match the literal keys
 and the attribute docstrings become the descriptions in the generated schema.
 """
 
-from pydantic import ConfigDict, ValidationError
+import math
+
+from pydantic import ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from pydatalab.models.utils import BaseModel
+
+
+class DatalabUnitTransform(BaseModel):
+    """Affine conversion from a display unit to a field's canonical unit."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    scale: float = 1.0
+    """Multiplier in ``canonical = displayed * scale + offset``."""
+
+    offset: float = 0.0
+    """Offset in ``canonical = displayed * scale + offset``."""
+
+    @field_validator("scale")
+    @classmethod
+    def _valid_scale(cls, value: float) -> float:
+        if not math.isfinite(value) or value <= 0:
+            raise ValueError("scale must be positive and finite")
+        return value
+
+    @field_validator("offset")
+    @classmethod
+    def _valid_offset(cls, value: float) -> float:
+        if not math.isfinite(value):
+            raise ValueError("offset must be finite")
+        return value
+
+
+class DatalabQuantityExtra(BaseModel):
+    """Canonical storage and display-unit configuration for a numeric field."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    canonical_unit: str = Field(min_length=1)
+    """Unit used by the Pydantic field, REST API, application state, and database."""
+
+    display_units: dict[str, DatalabUnitTransform]
+    """Allowed display units and their affine transforms to the canonical unit."""
+
+    default_display_unit: str | None = None
+    """Initial display unit; defaults to ``canonical_unit`` when omitted."""
+
+    display_unit_field: str | None = None
+    """Optional companion field that persists presentation preference only."""
+
+    @model_validator(mode="after")
+    def _valid_quantity(self):
+        if not self.display_units:
+            raise ValueError("display_units must contain at least the canonical unit")
+
+        if any(not unit for unit in self.display_units):
+            raise ValueError("display unit names must not be empty")
+
+        if self.canonical_unit not in self.display_units:
+            raise ValueError("canonical_unit must be present in display_units")
+
+        canonical = self.display_units[self.canonical_unit]
+        if canonical.scale != 1.0 or canonical.offset != 0.0:
+            raise ValueError("the canonical unit must use the identity transform")
+
+        if (
+            self.default_display_unit is not None
+            and self.default_display_unit not in self.display_units
+        ):
+            raise ValueError("default_display_unit must be present in display_units")
+
+        return self
 
 
 class DatalabFieldExtra(BaseModel):
@@ -23,7 +93,7 @@ class DatalabFieldExtra(BaseModel):
     """Also show this field in list/summary views."""
 
     datalab_hidden: bool | None = None
-    """Store but don't render this field (e.g. a companion unit field)."""
+    """Store but don't render this field directly."""
 
     datalab_multiline: bool | None = None
     """Render a string as a multi-line textarea."""
@@ -34,14 +104,8 @@ class DatalabFieldExtra(BaseModel):
     datalab_ref_types: list[str] | None = None
     """Render an item-reference widget restricted to these item types."""
 
-    datalab_unit_field: str | None = None
-    """Companion field holding the unit; renders a value box + unit dropdown."""
-
-    datalab_units: list[str] | None = None
-    """Unit options for the dropdown (with ``datalab_unit_field``)."""
-
-    datalab_default_unit: str | None = None
-    """Default unit for the dropdown."""
+    datalab_quantity: DatalabQuantityExtra | None = None
+    """Render a canonical numeric field with plugin-defined display-unit conversions."""
 
     datalab_exclude_from_db: bool | None = None
     """Don't persist this field to the database (block models)."""
@@ -77,6 +141,30 @@ def _datalab_hint_keys(extra: dict) -> dict:
     return {k: v for k, v in extra.items() if k.startswith("datalab_")}
 
 
+def _non_null_schema_types(schema: dict) -> set[str]:
+    """Return JSON Schema primitive types, ignoring nullable branches."""
+    types: set[str] = set()
+    if isinstance(schema.get("type"), str) and schema["type"] != "null":
+        types.add(schema["type"])
+    for branch in schema.get("anyOf", []):
+        if isinstance(branch, dict):
+            types.update(_non_null_schema_types(branch))
+    return types
+
+
+def _schema_enum_values(schema: dict) -> set[str] | None:
+    """Return string enum values from a direct or nullable JSON Schema."""
+    enum = schema.get("enum")
+    if isinstance(enum, list) and all(isinstance(value, str) for value in enum):
+        return set(enum)
+    for branch in schema.get("anyOf", []):
+        if isinstance(branch, dict):
+            values = _schema_enum_values(branch)
+            if values is not None:
+                return values
+    return None
+
+
 def validate_schema_hints(model: type[BaseModel]) -> None:
     """Validate the datalab ``json_schema_extra`` hints on ``model`` and its fields.
 
@@ -94,13 +182,62 @@ def validate_schema_hints(model: type[BaseModel]) -> None:
         except ValidationError as exc:
             raise ValueError(f"Invalid datalab model schema hints on {name!r}: {exc}") from exc
 
+    schema_properties = model.model_json_schema(by_alias=False).get("properties", {})
+
+    claimed_display_unit_fields: dict[str, str] = {}
+
     for field_name, field in model.model_fields.items():
         field_extra = field.json_schema_extra
         if not isinstance(field_extra, dict):
             continue
         try:
-            DatalabFieldExtra(**_datalab_hint_keys(field_extra))
+            parsed = DatalabFieldExtra(**_datalab_hint_keys(field_extra))
         except ValidationError as exc:
             raise ValueError(
                 f"Invalid datalab schema hints on {name!r}.{field_name!r}: {exc}"
             ) from exc
+
+        quantity = parsed.datalab_quantity
+        if quantity is None:
+            continue
+
+        field_schema = schema_properties.get(field_name, {})
+        if _non_null_schema_types(field_schema) != {"number"}:
+            raise ValueError(
+                f"Invalid datalab schema hints on {name!r}.{field_name!r}: "
+                "datalab_quantity requires a floating-point field"
+            )
+
+        display_unit_field = quantity.display_unit_field
+        if display_unit_field is None:
+            continue
+        if display_unit_field == field_name or display_unit_field not in model.model_fields:
+            raise ValueError(
+                f"Invalid datalab schema hints on {name!r}.{field_name!r}: "
+                f"display_unit_field {display_unit_field!r} does not name another model field"
+            )
+
+        existing_owner = claimed_display_unit_fields.get(display_unit_field)
+        if existing_owner is not None:
+            raise ValueError(
+                f"Invalid datalab schema hints on {name!r}.{field_name!r}: "
+                f"display_unit_field {display_unit_field!r} is already used by {existing_owner!r}"
+            )
+        claimed_display_unit_fields[display_unit_field] = field_name
+
+        unit_schema = schema_properties.get(display_unit_field, {})
+        unit_values = _schema_enum_values(unit_schema)
+        expected_values = set(quantity.display_units)
+        if unit_values != expected_values:
+            raise ValueError(
+                f"Invalid datalab schema hints on {name!r}.{field_name!r}: "
+                f"display_unit_field {display_unit_field!r} must be a string Literal "
+                f"containing exactly {sorted(expected_values)!r}"
+            )
+
+        unit_default = model.model_fields[display_unit_field].default
+        if unit_default is not None and unit_default not in expected_values:
+            raise ValueError(
+                f"Invalid datalab schema hints on {name!r}.{field_name!r}: "
+                f"the default for display_unit_field {display_unit_field!r} is not allowed"
+            )
