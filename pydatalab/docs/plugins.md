@@ -1,4 +1,3 @@
-<!-- This file was edited with the assistance of an AI model and requires human review from the contributor. -->
 # Plugins
 
 *datalab* supports plugins that extend the server with new functionality, in
