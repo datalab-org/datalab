@@ -1,4 +1,3 @@
-# This file was edited with the assistance of an AI model and requires human review from the contributor.
 """Typed definitions of the ``datalab_*`` ``json_schema_extra`` hints.
 
 Item models tag fields and model config with ``datalab_*`` keys that the API and
