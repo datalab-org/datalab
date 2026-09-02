@@ -1,3 +1,4 @@
+<!-- This file was edited with the assistance of an AI model and requires human review from the contributor. -->
 <template>
   <div v-if="customFields.length > 0" class="container custom-fields-panel mt-3">
     <div
@@ -24,7 +25,7 @@
 
             <!-- Read-only -->
             <div v-if="field.readOnly" class="form-control-plaintext">
-              {{ itemData[field.name] ?? "—" }}
+              {{ formatReadOnly(field) }}
             </div>
 
             <!-- Item reference: fixed link when selected, dropdown when empty -->
@@ -58,32 +59,28 @@
               />
             </div>
 
-            <!-- Number with unit selector -->
-            <div
-              v-else-if="(field.type === 'number' || field.type === 'integer') && field.unitField"
-              class="input-group"
-            >
+            <!-- Canonical number with a presentation-only unit selector -->
+            <div v-else-if="field.type === 'number' && field.quantity" class="input-group">
               <input
                 :id="'custom-' + field.name"
                 type="number"
                 class="form-control"
-                :step="field.type === 'integer' ? '1' : 'any'"
-                :value="itemData[field.name] ?? ''"
-                @change="
-                  updateField(
-                    field.name,
-                    $event.target.value === '' ? null : Number($event.target.value),
-                  )
-                "
+                step="any"
+                :value="displayValue(field)"
+                @change="updateQuantity(field, $event.target.value)"
               />
               <div class="input-group-append">
                 <select
+                  v-if="field.quantity.units.length > 1"
                   class="form-control unit-select"
-                  :value="itemData[field.unitField] ?? field.defaultUnit"
-                  @change="updateField(field.unitField, $event.target.value)"
+                  :value="selectedDisplayUnit(field)"
+                  @change="updateDisplayUnit(field, $event.target.value)"
                 >
-                  <option v-for="u in field.unitOptions" :key="u" :value="u">{{ u }}</option>
+                  <option v-for="u in field.quantity.units" :key="u" :value="u">
+                    {{ u }}
+                  </option>
                 </select>
+                <span v-else class="input-group-text">{{ field.quantity.canonicalUnit }}</span>
               </div>
             </div>
 
@@ -178,6 +175,22 @@ const SCALAR_TYPES = new Set(["string", "number", "integer", "boolean"]);
 function resolveField(name, rawSchema) {
   const { schema } = unwrapNullable(rawSchema);
   const extra = rawSchema["x-json_schema_extra"] || rawSchema;
+  const quantityConfig = extra.datalab_quantity || null;
+  const transforms = Object.fromEntries(
+    Object.entries(quantityConfig?.display_units || {}).map(([unit, transform]) => [
+      unit,
+      { scale: transform.scale ?? 1, offset: transform.offset ?? 0 },
+    ]),
+  );
+  const quantity = quantityConfig
+    ? {
+        canonicalUnit: quantityConfig.canonical_unit,
+        units: Object.keys(transforms),
+        transforms,
+        defaultDisplayUnit: quantityConfig.default_display_unit || quantityConfig.canonical_unit,
+        displayUnitField: quantityConfig.display_unit_field || null,
+      }
+    : null;
   return {
     name,
     title: rawSchema.title || prettifyType(name),
@@ -190,10 +203,7 @@ function resolveField(name, rawSchema) {
     section: extra.datalab_section || null,
     // Render a long string as a multi-line <textarea> instead of a single-line input.
     multiline: extra.datalab_multiline === true,
-    // Number+unit compound widget
-    unitField: extra.datalab_unit_field || null,
-    unitOptions: extra.datalab_units || null,
-    defaultUnit: extra.datalab_default_unit || null,
+    quantity,
   };
 }
 
@@ -203,6 +213,9 @@ export default {
   props: {
     item_id: { type: String, required: true },
     itemType: { type: String, required: true },
+  },
+  data() {
+    return { localDisplayUnits: {} };
   },
   computed: {
     itemData() {
@@ -225,6 +238,16 @@ export default {
     sectionTitle() {
       return this.typeSchema?.datalab_section_title || null;
     },
+    quantityDisplayFields() {
+      const fields = new Set();
+      const properties = this.typeSchema?.properties || {};
+      for (const schema of Object.values(properties)) {
+        const extra = schema["x-json_schema_extra"] || schema;
+        const displayUnitField = extra.datalab_quantity?.display_unit_field;
+        if (displayUnitField) fields.add(displayUnitField);
+      }
+      return fields;
+    },
     customFields() {
       if (!this.typeSchema || !this.baseSchema) return [];
       const typeProps = this.typeSchema.properties || {};
@@ -233,6 +256,7 @@ export default {
       return Object.entries(typeProps)
         .filter(([name, schema]) => {
           if (baseProps.includes(name) || name === "type") return false;
+          if (this.quantityDisplayFields.has(name)) return false;
           const extra = schema["x-json_schema_extra"] || schema;
           if (extra.datalab_hidden) return false;
           // Render only scalar-ish fields. Item references (datalab_ref_types) and enums
@@ -270,6 +294,51 @@ export default {
     },
   },
   methods: {
+    selectedDisplayUnit(field) {
+      const quantity = field.quantity;
+      if (!quantity) return null;
+
+      const storedUnit = quantity.displayUnitField
+        ? this.itemData[quantity.displayUnitField]
+        : null;
+      if (quantity.units.includes(storedUnit)) return storedUnit;
+
+      const localUnit = this.localDisplayUnits[field.name];
+      if (quantity.units.includes(localUnit)) return localUnit;
+
+      return quantity.defaultDisplayUnit;
+    },
+    displayValue(field) {
+      const canonicalValue = this.itemData[field.name];
+      if (canonicalValue === null || canonicalValue === undefined) return "";
+
+      const unit = this.selectedDisplayUnit(field);
+      const transform = field.quantity.transforms[unit];
+      return (Number(canonicalValue) - (transform.offset || 0)) / transform.scale;
+    },
+    formatReadOnly(field) {
+      const value = this.itemData[field.name];
+      if (value === null || value === undefined) return "—";
+      if (!field.quantity) return value;
+      return `${this.displayValue(field)} ${this.selectedDisplayUnit(field)}`;
+    },
+    updateQuantity(field, rawValue) {
+      const unit = this.selectedDisplayUnit(field);
+      const transform = field.quantity.transforms[unit];
+      const value =
+        rawValue === "" ? null : Number(rawValue) * transform.scale + (transform.offset || 0);
+      const itemData = { [field.name]: value };
+      if (field.quantity.displayUnitField) {
+        itemData[field.quantity.displayUnitField] = unit;
+      }
+      this.$store.commit("updateItemData", { item_id: this.item_id, item_data: itemData });
+    },
+    updateDisplayUnit(field, unit) {
+      this.localDisplayUnits[field.name] = unit;
+      if (field.quantity.displayUnitField) {
+        this.updateField(field.quantity.displayUnitField, unit);
+      }
+    },
     updateField(fieldName, value) {
       this.$store.commit("updateItemData", {
         item_id: this.item_id,

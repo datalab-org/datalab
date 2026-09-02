@@ -1,3 +1,4 @@
+<!-- This file was edited with the assistance of an AI model and requires human review from the contributor. -->
 # Plugins
 
 *datalab* supports plugins that extend the server with new functionality, in
@@ -166,9 +167,8 @@ annotations on the field:
 | `Field(json_schema_extra=…)` key | Effect in the UI |
 |---|---|
 | `datalab_include_field_in_summary` | also show the field as a column in list / summary views |
-| `datalab_hidden` | store the field but don't render it (e.g. a companion unit field) |
-| `datalab_unit_field` | name of a companion field holding the unit; renders a value box + unit dropdown |
-| `datalab_units` / `datalab_default_unit` | unit options, and the default, for that dropdown |
+| `datalab_hidden` | store the field but don't render it directly |
+| `datalab_quantity` | declare canonical storage plus plugin-defined display-unit conversions for a floating-point field |
 | `datalab_ref_types` | render as an item-search selector restricted to these item types — i.e. a link to another item (built-in *or* custom) |
 | `datalab_section` | group this field into its own titled card |
 | `datalab_multiline` | render a string as a multi-line text area |
@@ -214,16 +214,37 @@ class Solution(Sample):
 
     concentration: float | None = Field(
         None,
+        ge=0,
         json_schema_extra={
-            "datalab_units": ["mol/L", "mmol/L"], "datalab_default_unit": "mol/L",
-            "datalab_unit_field": "concentration_unit",
             "datalab_include_field_in_summary": True,
+            "datalab_quantity": {
+                "canonical_unit": "mol/L",
+                "display_units": {
+                    "mol/L": {"scale": 1.0},
+                    "mmol/L": {"scale": 0.001},
+                },
+                "default_display_unit": "mol/L",
+                "display_unit_field": "concentration_display_unit",
+            },
         },
     )
-    concentration_unit: Literal["mol/L", "mmol/L"] = Field(
-        "mol/L", json_schema_extra={"datalab_hidden": True}
-    )
+    concentration_display_unit: Literal["mol/L", "mmol/L"] | None = None
 ```
+
+The numeric field always uses `canonical_unit` in Python, REST payloads and the database. The UI
+converts other display units using:
+
+```text
+canonical = displayed * scale + offset
+```
+
+Thus, entering `1000 mmol/L` above stores `concentration: 1.0`. The optional companion field keeps
+the user's display choice, so the item reopens as `1000 mmol/L`; without it, the UI uses the default
+display unit.
+
+Plugin authors choose the canonical unit and provide correct conversions; Datalab validates and
+applies them. Changing the canonical unit requires a data migration. Conversions that are not a
+fixed scale and offset require a custom panel.
 
 ### Custom panels (full control)
 
