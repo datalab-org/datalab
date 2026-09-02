@@ -334,10 +334,18 @@ export default {
       this.$store.commit("updateItemData", { item_id: this.item_id, item_data: itemData });
     },
     updateDisplayUnit(field, unit) {
+      const displayedValue = this.displayValue(field);
       this.localDisplayUnits[field.name] = unit;
-      if (field.quantity.displayUnitField) {
-        this.updateField(field.quantity.displayUnitField, unit);
+
+      const itemData = {};
+      if (displayedValue !== "") {
+        const transform = field.quantity.transforms[unit];
+        itemData[field.name] = Number(displayedValue) * transform.scale + (transform.offset || 0);
       }
+      if (field.quantity.displayUnitField) {
+        itemData[field.quantity.displayUnitField] = unit;
+      }
+      this.$store.commit("updateItemData", { item_id: this.item_id, item_data: itemData });
     },
     updateField(fieldName, value) {
       this.$store.commit("updateItemData", {
