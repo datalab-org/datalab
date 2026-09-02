@@ -2,7 +2,7 @@ import math
 import os
 from collections import Counter
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
@@ -16,6 +16,13 @@ class AuthMechanisms(BaseModel):
     email: bool = False
     google: bool = False
     microsoft: bool = False
+    unsafe_testing_passwordless_login: bool = Field(
+        False,
+        description=(
+            "Unsafe testing-only login that permits impersonation without authentication. "
+            "Do not enable this mechanism in production."
+        ),
+    )
 
 
 class AIIntegrations(BaseModel):
@@ -58,6 +65,16 @@ def check_feature_flags(app):
     object reported by the API for use in UIs.
 
     """
+
+    FEATURE_FLAGS.auth_mechanisms.unsafe_testing_passwordless_login = (
+        CONFIG.ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN
+    )
+    if CONFIG.ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN:
+        LOGGER.critical(
+            "ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN is enabled. Anyone who can reach this "
+            "datalab instance can impersonate any configured passwordless test user without "
+            "authentication. This must never be enabled in production."
+        )
 
     if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is None:
         LOGGER.warning(

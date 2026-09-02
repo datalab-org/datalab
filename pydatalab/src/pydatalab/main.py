@@ -332,5 +332,13 @@ def register_endpoints(app: Flask):
     for bp in OAUTH:  # type: ignore
         app.register_blueprint(OAUTH[bp], url_prefix=f"{CONFIG.ROOT_PATH}login")  # type: ignore
 
+    if CONFIG.ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN:
+        from pydatalab.routes.v0_1.auth import TESTING_PASSWORDLESS_BLUEPRINT
+
+        app.register_blueprint(
+            TESTING_PASSWORDLESS_BLUEPRINT,
+            url_prefix=f"{CONFIG.ROOT_PATH}login",
+        )
+
     for exception_type, handler in ERROR_HANDLERS:
         app.register_error_handler(exception_type, handler)

@@ -215,7 +215,7 @@ uv lock
 ```
 ### Test server authentication/authorisation
 
-There are two approaches to authentication when developing *datalab* features locally.
+There are three approaches to authentication when developing *datalab* features locally.
 
 1. Disable authentication entirely with the `PYDATALAB_TESTING=true` environment
    variable (or corresponding config file option `TESTING`). This will perform
@@ -224,7 +224,7 @@ There are two approaches to authentication when developing *datalab* features lo
    - This mode of development is fine for e.g., developing new blocks, but in
      cases where new API functionality is being added, it is recommended to set
      up authentication locally (see below).
-1. Local OAuth setup. This requires registering an OAuth app with one of the
+2. Local OAuth setup. This requires registering an OAuth app with one of the
    implemented providers (e.g., GitHub, ORCID), configuring the credentials
    locally (see the [configuration documentation](https://docs.datalab-org.io/en/latest/config/) for more details) and then logging into *datalab* normally.
    - In this case, the user will also need to be activated when it is created.
@@ -233,6 +233,20 @@ There are two approaches to authentication when developing *datalab* features lo
      invoke task.
    - For testing admin functionality, the user can also be promoted with
      the `admin.change-user-role` invoke task.
+3. Enable the explicitly unsafe passwordless test login with
+   `PYDATALAB_ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN=true`. This keeps any existing email and
+   OAuth options and adds a modal for selecting configured test users. Create one with:
+
+   ```shell
+   uv run invoke dev.create-test-user \
+     --username alice \
+     --display-name "Alice Test User" \
+     --role user
+   ```
+
+   This mode is useful for switching between users when testing roles, groups, and permissions.
+   It performs no authentication and allows user impersonation, so it must never be enabled in
+   production or used with sensitive data.
 
 Finally, all API tests can be run with variable authentication.
 There are [pytest fixtures](https://docs.pytest.org/en/7.1.x/how-to/fixtures.html) that provide

@@ -16,7 +16,8 @@ from flask import Blueprint, Response, g, jsonify, redirect, request
 from flask_dance.consumer import OAuth2ConsumerBlueprint, oauth_authorized
 from flask_login import current_user, login_user
 from flask_login.utils import LocalProxy
-from werkzeug.exceptions import BadRequest, Forbidden, NotFound
+from pydantic import TypeAdapter, ValidationError
+from werkzeug.exceptions import BadRequest, Forbidden, NotFound, Unauthorized
 
 from pydatalab.config import CONFIG
 from pydatalab.errors import UserRegistrationForbidden
@@ -24,6 +25,7 @@ from pydatalab.feature_flags import FEATURE_FLAGS
 from pydatalab.logger import LOGGER
 from pydatalab.login import get_by_id
 from pydatalab.models.people import AccountStatus, Identity, IdentityType, Person
+from pydatalab.models.utils import HumanReadableIdentifier
 from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
 from pydatalab.permissions import ApiKey, authenticate, exclude_api_key
 from pydatalab.send_email import send_mail
@@ -400,6 +402,7 @@ def wrapped_login_user(*args, **kwargs):
 
 
 EMAIL_BLUEPRINT = Blueprint("email", __name__)
+TESTING_PASSWORDLESS_BLUEPRINT = Blueprint("testing_passwordless", __name__)
 
 AUTH = Blueprint("auth", __name__)
 
@@ -866,6 +869,64 @@ def email_logged_in():
         return redirect(CONFIG.APP_URL, 307)
     referer = request.headers.get("Referer", CONFIG.ROOT_PATH or "/")
     return redirect(referer, 307)
+
+
+@TESTING_PASSWORDLESS_BLUEPRINT.route("/testing-passwordless/users", methods=["GET"])
+def list_testing_passwordless_users():
+    """List only active users explicitly configured for unsafe test login."""
+
+    if not CONFIG.ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN:
+        raise NotFound()
+    documents = flask_mongo.db.users.find(
+        {
+            "account_status": AccountStatus.ACTIVE.value,
+            "identities.identity_type": IdentityType.TESTING_PASSWORDLESS.value,
+        }
+    )
+    users: list[dict[str, str | None]] = []
+    for document in documents:
+        login_user_model = get_by_id(document["_id"])
+        if login_user_model is None:
+            continue
+        for identity in login_user_model.identities:
+            if identity.identity_type is IdentityType.TESTING_PASSWORDLESS:
+                users.append(
+                    {
+                        "username": identity.identifier,
+                        "display_name": login_user_model.display_name,
+                        "role": login_user_model.role.value,
+                        "account_status": login_user_model.account_status.value,
+                    }
+                )
+    users.sort(key=lambda user: (user["display_name"] or user["username"] or "").casefold())
+    return jsonify({"users": users}), 200
+
+
+@TESTING_PASSWORDLESS_BLUEPRINT.route("/testing-passwordless", methods=["POST"])
+def testing_passwordless_login():
+    """Impersonate a configured test user without authentication or a password."""
+
+    if not CONFIG.ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN:
+        raise NotFound()
+    request_json = request.get_json(silent=True)
+    try:
+        if not isinstance(request_json, dict):
+            raise ValueError
+        username = TypeAdapter(HumanReadableIdentifier).validate_python(
+            request_json.get("username")
+        )
+    except (TypeError, ValueError, ValidationError):
+        raise Unauthorized("Unknown passwordless test user.") from None
+
+    person = find_user_with_identity(username, IdentityType.TESTING_PASSWORDLESS)
+    if person is None or person.account_status is not AccountStatus.ACTIVE:
+        raise Unauthorized("Unknown passwordless test user.")
+
+    login_user_model = get_by_id(person.immutable_id)
+    if login_user_model is None:
+        raise Unauthorized("Unknown passwordless test user.")
+    wrapped_login_user(login_user_model)
+    return jsonify({"status": "success"}), 200
 
 
 @oauth_authorized.connect_via(OAUTH[IdentityType.GITHUB])
