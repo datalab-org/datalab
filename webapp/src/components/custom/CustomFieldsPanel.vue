@@ -1,4 +1,3 @@
-<!-- This file was edited with the assistance of an AI model and requires human review from the contributor. -->
 <template>
   <div v-if="customFields.length > 0" class="container custom-fields-panel mt-3">
     <div
