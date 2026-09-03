@@ -8,7 +8,7 @@
 import * as Bokeh from "bokeh";
 
 import store from "@/store/index.js";
-import { updateBlockFromServer } from "@/server_fetch_utils.js";
+import { getBlockData, updateBlockFromServer } from "@/server_fetch_utils.js";
 // var BokehDoc = null
 
 export default {
@@ -70,6 +70,13 @@ export default {
 
       console.log("handlingBokehEvent", event.detail, "for block", this.block_id);
 
+      // A request for data is a read, so it does not go anywhere near the block
+      // update path: the arrays are patched into the plot that is already on
+      // screen, which keeps its zoom, its selection and its widget state.
+      if (event.detail.event_name === "get_data") {
+        return this.patchColumns(event.detail);
+      }
+
       updateBlockFromServer(
         this.item_id,
         this.block_id,
@@ -78,6 +85,38 @@ export default {
       ).catch((error) => {
         console.error("Error updating block:", error);
       });
+    },
+    async patchColumns({ columns, source, keys }) {
+      // `columns` says which columns to fetch and in what units; `keys` says what
+      // to call each one in the data source. The plot decides both -- everything
+      // here knows is how to put an array where it was asked to.
+      const target = this.BokehDoc && this.BokehDoc.get_model_by_name(source);
+      if (!target) {
+        console.warn(`No data source named ${source} in this plot`);
+        return;
+      }
+
+      try {
+        const response = await getBlockData(this.item_id, this.block_id, columns);
+        if (!response) {
+          return;
+        }
+
+        const data = { ...target.data };
+        for (const [column, values] of Object.entries(response.data)) {
+          data[keys[column] ?? column] = values;
+        }
+        target.data = data;
+
+        store.commit("setBlockError", { block_id: this.block_id, error: "" });
+      } catch (error) {
+        // The server explains refusals in terms the user can act on, e.g. which
+        // metadata field a unit needs, so show it rather than only logging it.
+        store.commit("setBlockError", {
+          block_id: this.block_id,
+          error: error?.message || String(error),
+        });
+      }
     },
     async startBokehPlot() {
       if (this.bokehPlotData) {
