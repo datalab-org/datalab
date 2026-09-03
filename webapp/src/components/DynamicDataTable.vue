@@ -111,10 +111,10 @@
           />
         </template>
         <template v-else-if="column.getValue" #body="slotProps">
-          {{ column.getValue(slotProps.data) }}
+          <span :class="column.cellClass">{{ column.getValue(slotProps.data) }}</span>
         </template>
         <template v-else #body="slotProps">
-          {{ slotProps.data[column.field] }}
+          <span :class="column.cellClass">{{ slotProps.data[column.field] }}</span>
         </template>
 
         <template v-if="column.filter" #filter="{ filterModel, filterCallback }">
@@ -222,7 +222,13 @@ export default {
       default: () => [],
     },
   },
-  emits: ["remove-selected-items-from-collection", "users-data-changed", "groups-data-changed"],
+  emits: [
+    "remove-selected-items-from-collection",
+    "users-data-changed",
+    "groups-data-changed",
+    "edit-group",
+    "group-deleted",
+  ],
   data() {
     return {
       createItemModalIsOpen: false,

@@ -223,6 +223,7 @@ export default {
           header: "",
           label: "Last modified",
           icon: ["fa", "clock"],
+          cellClass: "last-modified-cell",
           getValue: (row) => formatRelativeDate(row.last_modified),
         },
       ],

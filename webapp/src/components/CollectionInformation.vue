@@ -83,9 +83,18 @@ import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
 
 import TextFilter from "@/components/TextFilter";
 import MultiSelectFilter from "@/components/MultiSelectFilter";
+import CreatorsAndGroupsFilter from "@/components/CreatorsAndGroupsFilter";
+import DateRangeFilter from "@/components/DateRangeFilter";
 
 import { FilterOperator, FilterMatchMode } from "@primevue/core/api";
-import { matchStatus, statusOptions } from "@/utils/filterMatchers";
+import {
+  matchStatus,
+  matchCreatorsAndGroups,
+  matchBlocks,
+  statusOptions,
+  creatorsAndGroupsOptions,
+  blocksOptions,
+} from "@/utils/filterMatchers";
 
 export default {
   components: {
@@ -191,6 +200,12 @@ export default {
           header: "Date",
           label: "Date",
           getValue: (row) => (row.date ? row.date.substring(0, 10) : row.date),
+          filter: {
+            component: DateRangeFilter,
+            matchMode: "dateRange",
+            operator: FilterOperator.AND,
+            noOperator: true,
+          },
         },
         {
           field: "creatorsAndGroups",
@@ -212,6 +227,12 @@ export default {
               showBubble: true,
             }),
           },
+          filter: {
+            component: CreatorsAndGroupsFilter,
+            match: matchCreatorsAndGroups,
+            operator: FilterOperator.AND,
+            options: creatorsAndGroupsOptions,
+          },
         },
         {
           field: "blocks",
@@ -221,6 +242,13 @@ export default {
           body: {
             component: BlocksIconCounter,
             props: (row) => ({ count: row.nblocks, blockInfo: row.blocks }),
+          },
+          filter: {
+            component: MultiSelectFilter,
+            componentProps: { optionLabel: "label", placeholder: "Select block types" },
+            match: matchBlocks,
+            operator: FilterOperator.AND,
+            options: blocksOptions,
           },
         },
         {
@@ -238,6 +266,7 @@ export default {
           header: "",
           label: "Last modified",
           icon: ["fa", "clock"],
+          cellClass: "last-modified-cell",
           getValue: (row) => formatRelativeDate(row.last_modified),
         },
       ],
