@@ -26,6 +26,7 @@ import DateRangeFilter from "@/components/DateRangeFilter";
 import TextFilter from "@/components/TextFilter";
 
 import { FilterOperator, FilterMatchMode } from "@primevue/core/api";
+import { matchByKey, keyedOptions } from "@/utils/filterMatchers";
 
 export default {
   name: "TokenTable",
@@ -108,17 +109,9 @@ export default {
               optionLabel: "item_type",
               placeholder: "Select item types",
             },
-            match: (value, filterValue) => {
-              if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0))
-                return true;
-              if (Array.isArray(filterValue)) return filterValue.some((f) => f.item_type === value);
-              return filterValue.item_type === value;
-            },
+            match: matchByKey("item_type"),
             operator: FilterOperator.AND,
-            options: (data) =>
-              Array.from(new Set(data.map((token) => token.item_type).filter(Boolean))).map(
-                (type) => ({ item_type: type }),
-              ),
+            options: keyedOptions("item_type"),
           },
         },
         {

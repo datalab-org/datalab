@@ -246,6 +246,9 @@ export default {
       allowedTypes: INVENTORY_TABLE_TYPES,
       editable_inventory: EDITABLE_INVENTORY,
       selectedColumns: [],
+      // Names of the per-column matchers this instance registered with the global
+      // FilterService, so that they can be removed again when it unmounts.
+      registeredMatchModes: [],
     };
   },
 
@@ -328,6 +331,7 @@ export default {
           const operator = this.filters[col.field]?.operator;
           return matchFn(value, filterValue, operator);
         });
+        this.registeredMatchModes.push(matchModeName);
       } else {
         matchModeName = col.filter.matchMode || FilterMatchMode.CONTAINS;
       }
@@ -338,6 +342,14 @@ export default {
       };
     }
     this.filters = filters;
+  },
+  unmounted() {
+    // These matchers close over this instance, so drop them rather than leaving them
+    // in the global FilterService registry once the table is gone.
+    for (const matchModeName of this.registeredMatchModes) {
+      delete FilterService.filters[matchModeName];
+    }
+    this.registeredMatchModes = [];
   },
   methods: {
     resolveBodyEvents(column) {

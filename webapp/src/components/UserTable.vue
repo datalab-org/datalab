@@ -27,6 +27,7 @@ import MultiSelectFilter from "@/components/MultiSelectFilter";
 import SingleSelectFilter from "@/components/SingleSelectFilter";
 
 import { FilterOperator, FilterMatchMode } from "@primevue/core/api";
+import { matchStringValues } from "@/utils/filterMatchers";
 
 export default {
   name: "UserTable",
@@ -53,10 +54,7 @@ export default {
               valueComponent: UserStatusCell,
               valueProps: (val) => ({ status: val }),
             },
-            match: (value, filterValue) => {
-              if (!filterValue) return true;
-              return value === filterValue;
-            },
+            match: matchStringValues,
             operator: FilterOperator.OR,
             options: () => ["active", "unverified", "deactivated"],
           },
@@ -90,10 +88,7 @@ export default {
               valueComponent: RoleBadge,
               valueProps: (val) => ({ role: val }),
             },
-            match: (value, filterValue) => {
-              if (!filterValue) return true;
-              return value === filterValue;
-            },
+            match: matchStringValues,
             operator: FilterOperator.OR,
             options: () => ["user", "admin", "manager"],
           },

@@ -36,6 +36,8 @@ import DateRangeFilter from "@/components/DateRangeFilter";
 
 import { FilterOperator, FilterMatchMode } from "@primevue/core/api";
 import {
+  matchByKey,
+  keyedOptions,
   matchStatus,
   matchCollections,
   matchCreatorsAndGroups,
@@ -78,15 +80,9 @@ export default {
           filter: {
             component: MultiSelectFilter,
             componentProps: { optionLabel: "type", placeholder: "Select item types" },
-            match: (value, filterValue) => {
-              if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0))
-                return true;
-              if (Array.isArray(filterValue)) return filterValue.some((f) => f.type === value);
-              return filterValue.type === value;
-            },
+            match: matchByKey("type"),
             operator: FilterOperator.AND,
-            options: (data) =>
-              Array.from(new Set(data.map((item) => item.type))).map((type) => ({ type })),
+            options: keyedOptions("type"),
             noOperator: true,
           },
         },

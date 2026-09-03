@@ -1,10 +1,35 @@
 import { FilterOperator } from "@primevue/core/api";
 
-export function matchStatus(value, filterValue) {
-  if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) return true;
-  if (Array.isArray(filterValue)) return filterValue.some((f) => f.status === value);
-  return filterValue.status === value;
+/**
+ * Builds a matcher for columns whose filter options are objects keyed on a single field,
+ * e.g. `{ status: "PLANNED" }` matched against a row's `status` value.
+ *
+ * @param {string} key - The option key holding the value to compare against the cell.
+ * @returns {(value: any, filterValue: any) => boolean} A FilterService-compatible matcher.
+ */
+export function matchByKey(key) {
+  return (value, filterValue) => {
+    if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) return true;
+    if (Array.isArray(filterValue)) return filterValue.some((f) => f[key] === value);
+    return filterValue[key] === value;
+  };
 }
+
+/**
+ * Builds an options provider yielding the unique, truthy values of a field as
+ * single-key objects, i.e. the option shape that {@link matchByKey} expects.
+ *
+ * @param {string} key - The row field to collect options from.
+ * @returns {(data: Array<object>) => Array<object>} An options provider.
+ */
+export function keyedOptions(key) {
+  return (data) =>
+    Array.from(new Set(data.map((item) => item[key]).filter(Boolean))).map((value) => ({
+      [key]: value,
+    }));
+}
+
+export const matchStatus = matchByKey("status");
 
 export function matchCollections(value, filterValue, operator) {
   if (!filterValue || !value) return true;
@@ -85,11 +110,7 @@ export function creatorsAndGroupsOptions(data) {
   return Array.from(uniqueMap.values());
 }
 
-export function statusOptions(data) {
-  return Array.from(new Set(data.filter((item) => item.status).map((item) => item.status))).map(
-    (status) => ({ status }),
-  );
-}
+export const statusOptions = keyedOptions("status");
 
 export function blocksOptions(data, state) {
   const itemsWithBlocks = data.filter((item) => item.blocks && item.blocks.length > 0);
