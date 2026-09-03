@@ -7,6 +7,7 @@
     :placeholder="placeholder"
     class="d-flex w-full"
     :filter="true"
+    append-to="self"
     v-bind="$attrs"
     @update:model-value="onValueChange"
     @click.stop

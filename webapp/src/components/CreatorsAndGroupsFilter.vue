@@ -7,6 +7,7 @@
     placeholder="Any"
     class="d-flex w-full"
     :filter="true"
+    append-to="self"
     @update:model-value="onValueChange"
     @click.stop
   >

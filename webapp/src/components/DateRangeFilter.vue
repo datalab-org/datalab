@@ -7,6 +7,7 @@
       option-value="value"
       placeholder="Select filter type"
       class="w-full"
+      append-to="self"
       @change="onModeChange"
     />
     <DatePicker
@@ -19,6 +20,7 @@
       :manual-input="false"
       :hide-on-range-selection="true"
       style="width: 100%"
+      append-to="self"
       @update:model-value="$emit('update:modelValue', $event)"
     />
     <DatePicker
@@ -29,6 +31,7 @@
       :show-button-bar="true"
       :manual-input="false"
       style="width: 100%"
+      append-to="self"
       @update:model-value="$emit('update:modelValue', $event)"
     />
   </div>

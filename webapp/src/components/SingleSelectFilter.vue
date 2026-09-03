@@ -7,6 +7,7 @@
     :placeholder="placeholder"
     :show-clear="showClear"
     class="p-column-filter"
+    append-to="self"
     v-bind="$attrs"
     @update:model-value="$emit('update:modelValue', $event)"
   >
