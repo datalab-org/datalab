@@ -84,6 +84,7 @@ describe("EquipmentTable Component Tests", () => {
       "Date",
       "Location",
       "Maintainers",
+      "", // clear filters
     ];
 
     cy.get(".p-datatable-column-header-content").should("have.length", headers.length);
