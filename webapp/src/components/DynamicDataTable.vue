@@ -25,6 +25,8 @@
       state-storage="local"
       :state-key="`datatable-state-${dataType}`"
       :loading="data === null"
+      :export-filename="dataType"
+      :export-function="formatExportValue"
       @state-restore="onStateRestore"
       @state-save="onStateSave"
       @filter="onFilter"
@@ -60,6 +62,7 @@
           @users-data-changed="$emit('users-data-changed')"
           @bulk-invalidate-tokens="handleItemsUpdated"
           @bulk-delete-groups="$emit('groups-data-changed')"
+          @export-csv="handleExportCSV"
         />
       </template>
       <template #loading>
@@ -92,6 +95,7 @@
         :class="{ 'filter-active': isFilterActive(column.field) }"
         :style="{ minWidth: getColumnMinWidth(column) }"
         :filter-menu-class="column.filter && column.filter.noOperator ? 'no-operator' : ''"
+        :export-header="column.label || column.header || column.field"
       >
         <template #header>
           <div v-if="column.icon" class="header-with-icon">
@@ -593,6 +597,26 @@ export default {
     },
     updateFilters(newFilters) {
       this.filters = { ...newFilters };
+    },
+    formatExportValue({ data }) {
+      let value = typeof data === "object" ? JSON.stringify(data) : String(data);
+      // Prefix values that Excel/Sheets would otherwise interpret as formulas, to
+      // avoid CSV/formula injection when exporting user-controlled fields.
+      if (/^[=+\-@]/.test(value)) {
+        value = `'${value}`;
+      }
+      return value.replace(/"/g, '""');
+    },
+    getExportRow(row) {
+      const exportRow = {};
+      for (const column of this.selectedColumns) {
+        exportRow[column.field] = column.getValue ? column.getValue(row) : row[column.field];
+      }
+      return exportRow;
+    },
+    handleExportCSV(scope) {
+      const rows = scope === "selected" ? this.itemsSelected : this.$refs.datatable.processedData;
+      this.$refs.datatable.exportCSV(undefined, rows.map(this.getExportRow));
     },
     handleResetTable() {
       localStorage.removeItem(`datatable-state-${this.dataType}`);
