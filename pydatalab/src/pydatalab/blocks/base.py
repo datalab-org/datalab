@@ -3,14 +3,53 @@ import pprint
 import random
 import traceback
 import warnings
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from typing import Any
+
+from werkzeug.exceptions import BadRequest, UnprocessableEntity
 
 from pydatalab import __version__
 from pydatalab.logger import LOGGER
 from pydatalab.models.blocks import DataBlockResponse
 
-__all__ = ("generate_random_id", "DataBlock", "generate_js_callback_single_float_parameter")
+
+class UnsupportedUnits(BadRequest):
+    """The requested units are not among those the block declares for that column.
+
+    A client error: no state of the block could satisfy this request.
+    """
+
+    def __init__(self, column: str, units: str, supported: Iterable[str]):
+        self.column, self.units = column, units
+        super().__init__(
+            f"Column {column!r} cannot be given in {units!r}. "
+            f"Supported units are: {', '.join(repr(u) for u in supported)}."
+        )
+
+
+class MissingMetadataForUnits(UnprocessableEntity):
+    """The requested units are declared, but converting to them needs a metadata
+    value this block does not have -- a mass, a molar mass, a wavelength.
+
+    Not a client error: the request names a real unit, and it will succeed once
+    the missing value is supplied.
+    """
+
+    def __init__(self, column: str, units: str, field: str):
+        self.column, self.units, self.field = column, units, field
+        super().__init__(
+            f"Column {column!r} cannot be given in {units!r} because {field!r} is not "
+            f"set for this block. Supply it and the conversion becomes available."
+        )
+
+
+__all__ = (
+    "generate_random_id",
+    "DataBlock",
+    "generate_js_callback_single_float_parameter",
+    "UnsupportedUnits",
+    "MissingMetadataForUnits",
+)
 
 
 def generate_js_callback_single_float_parameter(
@@ -255,6 +294,31 @@ class DataBlock:
             self.data.pop("warnings", None)
 
         return self.block_db_model(**self.data).model_dump(exclude_unset=True, exclude_none=True)
+
+    def get_data(self, columns: dict[str, str | None]) -> dict[str, dict]:
+        """Return the named data columns, each converted to the units asked for.
+
+        This is a read: it must not alter the block, regenerate a plot or write
+        anything back, so that the client can call it as often as the user moves
+        a widget. It is what lets a plot change what it displays without the
+        block, and the whole Bokeh document with it, being rebuilt.
+
+        Args:
+            columns: The canonical name of each column wanted, mapped to the units
+                it should be given in. `None` means the column's own units.
+
+        Returns:
+            `{"data": {name: [...]}, "labels": {name: "..."}}`, where each label is
+            what the axis showing that column should be called.
+
+        Raises:
+            UnsupportedUnits: If a column cannot be expressed in the units asked for.
+            MissingMetadataForUnits: If it could be, but a metadata value is missing.
+
+        """
+        raise NotImplementedError(
+            f"The {self.blocktype!r} block cannot serve individual data columns."
+        )
 
     def process_events(self, events: list[dict] | dict):
         """Handle any supported events passed to the block."""
