@@ -74,7 +74,12 @@
     </template>
 
     <template #plot>
-      <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
+      <BokehPlot
+        v-if="bokehPlotData"
+        :item_id="item_id"
+        :block_id="block_id"
+        :bokeh-plot-data="bokehPlotData"
+      />
     </template>
   </DataBlockBase>
 </template>

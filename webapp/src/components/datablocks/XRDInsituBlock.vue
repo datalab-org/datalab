@@ -109,7 +109,12 @@
         id="bokehPlotContainer"
         class="col-xl-10 col-lg-11 col-md-12 d-flex justify-content-center overflow-auto"
       >
-        <BokehPlot :bokeh-plot-data="bokehPlotData" class="mw-100" />
+        <BokehPlot
+          :item_id="item_id"
+          :block_id="block_id"
+          :bokeh-plot-data="bokehPlotData"
+          class="mw-100"
+        />
       </div>
     </div>
   </DataBlockBase>
