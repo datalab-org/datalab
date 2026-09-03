@@ -204,7 +204,12 @@
           class="col mx-auto"
           :class="{ 'limited-width': bokehPlotLimitedWidth, blurry: isUpdating }"
         >
-          <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
+          <BokehPlot
+            v-if="bokehPlotData"
+            :item_id="item_id"
+            :block_id="block_id"
+            :bokeh-plot-data="bokehPlotData"
+          />
         </div>
       </div>
     </div>

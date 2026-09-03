@@ -6,6 +6,9 @@
 
 <script>
 import * as Bokeh from "bokeh";
+
+import store from "@/store/index.js";
+import { updateBlockFromServer } from "@/server_fetch_utils.js";
 // var BokehDoc = null
 
 export default {
@@ -13,6 +16,16 @@ export default {
     bokehPlotData: {
       type: Object,
       required: true,
+    },
+    // Widgets inside the plot dispatch `block-event` to ask the server for
+    // something, and the event has to say which block it came from.
+    item_id: {
+      type: String,
+      default: null,
+    },
+    block_id: {
+      type: String,
+      default: null,
     },
   },
   data: function () {
@@ -38,15 +51,34 @@ export default {
   },
   mounted() {
     this.unique_id = this.guidGenerator();
+    document.addEventListener("block-event", this.handleBokehEvent);
     this.$nextTick(() => {
       this.startBokehPlot();
     });
   },
   unmounted() {
+    document.removeEventListener("block-event", this.handleBokehEvent);
     this.cleanupBokehPlot();
   },
   // BokehDoc: null, // this is a non-reactive property. We don't put this is in Data so Vue doesn't wrap it in a Proxy, which breaks its document.clear() functionality (for some reason)
   methods: {
+    async handleBokehEvent(event) {
+      // Only handle events for this specific block
+      if (event.detail.block_id !== this.block_id) {
+        return;
+      }
+
+      console.log("handlingBokehEvent", event.detail, "for block", this.block_id);
+
+      updateBlockFromServer(
+        this.item_id,
+        this.block_id,
+        store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
+        event.detail,
+      ).catch((error) => {
+        console.error("Error updating block:", error);
+      });
+    },
     async startBokehPlot() {
       if (this.bokehPlotData) {
         this.cleanupBokehPlot();
