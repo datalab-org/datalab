@@ -40,6 +40,7 @@
         <DynamicDataTableButtons
           :data-type="dataType"
           :items-selected="itemsSelected"
+          :displayed-item-count="filteredItemCount"
           :filters="filters"
           :editable-inventory="editable_inventory"
           :show-buttons="showButtons"
@@ -823,7 +824,7 @@ export default {
           constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
         },
       },
-      filteredData: [],
+      filteredData: null,
       allowedTypes: INVENTORY_TABLE_TYPES,
       selectedColumns: [],
       dateFilterMode: "range",
@@ -836,6 +837,12 @@ export default {
   },
 
   computed: {
+    filteredItemCount() {
+      if (this.filteredData === null) {
+        return this.data ? this.data.length : 0;
+      }
+      return this.filteredData.length;
+    },
     rows() {
       return this.$store.state.datatablePaginationSettings[this.dataType].rows;
     },
