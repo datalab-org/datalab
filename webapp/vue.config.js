@@ -20,10 +20,6 @@ module.exports = {
       config.stats = "none";
     }
 
-    config.externals = {
-      ...config.externals,
-      bokeh: "Bokeh",
-    };
     config.module.rules.push({
       test: /\.mjs$/,
       include: /node_modules/,
