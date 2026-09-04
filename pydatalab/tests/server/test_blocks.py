@@ -911,7 +911,12 @@ def test_large_fake_xrd_data_block_serialization(
 @pytest.fixture
 def block_with_columns(admin_client, default_sample_dict, monkeypatch, request):
     """A real block on a real item, standing in for one that serves columns."""
-    from pydatalab.blocks.base import DataBlock, MissingMetadataForUnits, UnsupportedUnits
+    from pydatalab.blocks.base import (
+        DataBlock,
+        MissingMetadataForUnits,
+        UnknownColumn,
+        UnsupportedUnits,
+    )
 
     # The test database is not reset between tests, so each needs its own item.
     # Item ids are capped at 40 characters, hence the digest rather than the name.
@@ -932,7 +937,7 @@ def block_with_columns(admin_client, default_sample_dict, monkeypatch, request):
         def get_data(self, columns):
             for column, units in columns.items():
                 if column != "moment":
-                    raise UnsupportedUnits(column, units, ["emu", "emu/g"])
+                    raise UnknownColumn(column, ["moment"])
                 if units not in (None, "emu", "emu/g"):
                     raise UnsupportedUnits(column, units, ["emu", "emu/g"])
                 if units == "emu/g":
@@ -974,6 +979,18 @@ def test_an_unsupported_unit_and_a_missing_metadata_value_are_told_apart(
     assert unavailable.status_code == 422
     assert unavailable.json["title"] == "MissingMetadataForUnits"
     assert "sample_mass_mg" in unavailable.json["message"]
+
+
+def test_a_column_the_block_does_not_have_is_a_different_answer_again(
+    admin_client, block_with_columns
+):
+    """Listing the units of something it does not hold would be noise."""
+    sample_id, block_id = block_with_columns
+    response = admin_client.get(f"/blocks/{sample_id}/{block_id}/data?column=nonsense")
+
+    assert response.status_code == 400
+    assert response.json["title"] == "UnknownColumn"
+    assert "'moment'" in response.json["message"]
 
 
 def test_get_block_data_needs_at_least_one_column(admin_client, block_with_columns):
