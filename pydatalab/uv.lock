@@ -555,7 +555,7 @@ requires-dist = [
     { name = "langchain-openai", marker = "extra == 'chat'", specifier = "~=0.1" },
     { name = "matador-db", marker = "extra == 'apps'", specifier = "~=0.12" },
     { name = "matplotlib", specifier = "~=3.8" },
-    { name = "navani", marker = "extra == 'apps'", specifier = ">=0.1.21" },
+    { name = "navani", marker = "extra == 'apps'", specifier = ">=0.1.22" },
     { name = "nmrglue", marker = "extra == 'apps'", specifier = "~=0.12" },
     { name = "pandas", extras = ["excel"], specifier = "~=2.2" },
     { name = "periodictable", specifier = "~=2.1" },
@@ -1599,7 +1599,7 @@ wheels = [
 
 [[package]]
 name = "navani"
-version = "0.1.21"
+version = "0.1.22"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "datalab-org-galvani" },
@@ -1610,9 +1610,9 @@ dependencies = [
     { name = "requests" },
     { name = "scipy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5f/20/504de233fb2efd1bdba9bbd89640dd16a7e8acef83185c6df89a4ab8d404/navani-0.1.21.tar.gz", hash = "sha256:f0f91b0c555ba3995829df6d04975311b5c5ddff33455d542356088611e4d310", size = 7102616, upload-time = "2026-07-31T16:02:51.429Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b0/94/1bde4cf2540779624951037e1f6b104ac41ed759f3c195301b1c80998be1/navani-0.1.22.tar.gz", hash = "sha256:b7ceaa51435f12340518727cc4e56c07e53228c66db4b1e2a1017cfd7a832043", size = 7103331, upload-time = "2026-09-02T17:32:06.151Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ef/ef/be5aa72ae680b1824258fba3dade8e2a51be331d99de51c0253de102dd7c/navani-0.1.21-py3-none-any.whl", hash = "sha256:38a285c9d9d045058dbf3c9c3bf69d8a403a75adf5bd92de7fc62c8fb01655eb", size = 24964, upload-time = "2026-07-31T16:02:50.097Z" },
+    { url = "https://files.pythonhosted.org/packages/e9/e5/2bc94b7b752663de7c19f5f035748376d2cf000cd58b3ca792ee6da8e906/navani-0.1.22-py3-none-any.whl", hash = "sha256:570336f23aa0c86711b350a9797b9a01f8ab32e26f38ac8c037113e724cf80dc", size = 25148, upload-time = "2026-09-02T17:32:04.587Z" },
 ]
 
 [[package]]
