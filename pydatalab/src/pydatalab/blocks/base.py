@@ -13,6 +13,21 @@ from pydatalab.logger import LOGGER
 from pydatalab.models.blocks import DataBlockResponse
 
 
+class UnknownColumn(BadRequest):
+    """The block has no such data column.
+
+    Distinct from asking for a column in units it does not have: this one names
+    nothing the block holds, so listing the units of anything would be noise.
+    """
+
+    def __init__(self, column: str, available: Iterable[str]):
+        self.column = column
+        super().__init__(
+            f"This block has no column {column!r}. "
+            f"It holds: {', '.join(repr(c) for c in available) or 'nothing'}."
+        )
+
+
 class UnsupportedUnits(BadRequest):
     """The requested units are not among those the block declares for that column.
 
@@ -47,6 +62,7 @@ __all__ = (
     "generate_random_id",
     "DataBlock",
     "generate_js_callback_single_float_parameter",
+    "UnknownColumn",
     "UnsupportedUnits",
     "MissingMetadataForUnits",
 )
@@ -312,6 +328,7 @@ class DataBlock:
             what the axis showing that column should be called.
 
         Raises:
+            UnknownColumn: If the block holds no such column.
             UnsupportedUnits: If a column cannot be expressed in the units asked for.
             MissingMetadataForUnits: If it could be, but a metadata value is missing.
 
