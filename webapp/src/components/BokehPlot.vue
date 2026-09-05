@@ -6,6 +6,9 @@
 
 <script>
 import * as Bokeh from "bokeh";
+
+import store from "@/store/index.js";
+import { getBlockData, updateBlockFromServer } from "@/server_fetch_utils.js";
 // var BokehDoc = null
 
 export default {
@@ -13,6 +16,16 @@ export default {
     bokehPlotData: {
       type: Object,
       required: true,
+    },
+    // Widgets inside the plot dispatch `block-event` to ask the server for
+    // something, and the event has to say which block it came from.
+    item_id: {
+      type: String,
+      default: null,
+    },
+    block_id: {
+      type: String,
+      default: null,
     },
   },
   data: function () {
@@ -38,15 +51,73 @@ export default {
   },
   mounted() {
     this.unique_id = this.guidGenerator();
+    document.addEventListener("block-event", this.handleBokehEvent);
     this.$nextTick(() => {
       this.startBokehPlot();
     });
   },
   unmounted() {
+    document.removeEventListener("block-event", this.handleBokehEvent);
     this.cleanupBokehPlot();
   },
   // BokehDoc: null, // this is a non-reactive property. We don't put this is in Data so Vue doesn't wrap it in a Proxy, which breaks its document.clear() functionality (for some reason)
   methods: {
+    async handleBokehEvent(event) {
+      // Only handle events for this specific block
+      if (event.detail.block_id !== this.block_id) {
+        return;
+      }
+
+      console.log("handlingBokehEvent", event.detail, "for block", this.block_id);
+
+      // A request for data is a read, so it does not go anywhere near the block
+      // update path: the arrays are patched into the plot that is already on
+      // screen, which keeps its zoom, its selection and its widget state.
+      if (event.detail.event_name === "get_data") {
+        return this.patchColumns(event.detail);
+      }
+
+      updateBlockFromServer(
+        this.item_id,
+        this.block_id,
+        store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
+        event.detail,
+      ).catch((error) => {
+        console.error("Error updating block:", error);
+      });
+    },
+    async patchColumns({ columns, source, keys }) {
+      // `columns` says which columns to fetch and in what units; `keys` says what
+      // to call each one in the data source. The plot decides both -- everything
+      // here knows is how to put an array where it was asked to.
+      const target = this.BokehDoc && this.BokehDoc.get_model_by_name(source);
+      if (!target) {
+        console.warn(`No data source named ${source} in this plot`);
+        return;
+      }
+
+      try {
+        const response = await getBlockData(this.item_id, this.block_id, columns);
+        if (!response) {
+          return;
+        }
+
+        const data = { ...target.data };
+        for (const [column, values] of Object.entries(response.data)) {
+          data[keys[column] ?? column] = values;
+        }
+        target.data = data;
+
+        store.commit("setBlockError", { block_id: this.block_id, error: "" });
+      } catch (error) {
+        // The server explains refusals in terms the user can act on, e.g. which
+        // metadata field a unit needs, so show it rather than only logging it.
+        store.commit("setBlockError", {
+          block_id: this.block_id,
+          error: error?.message || String(error),
+        });
+      }
+    },
     async startBokehPlot() {
       if (this.bokehPlotData) {
         this.cleanupBokehPlot();
@@ -74,7 +145,7 @@ export default {
           // add some bootrap styles to bokeh widgets. This is not very elegants
           var bokehSelectElements = document.querySelectorAll("div.bk-input-group>select");
           bokehSelectElements.forEach((element) => {
-            element.classList.add("form-control", "ml-4");
+            element.classList.add("form-control", "form-control-sm", "ml-2");
             element.classList.remove("bk-input", "bk");
           });
           var bokehSelectLabelElements = document.querySelectorAll("div.bk-input-group>label");
@@ -83,7 +154,10 @@ export default {
           });
           var bokehInputGroups = document.querySelectorAll("div.bk-input-group");
           bokehInputGroups.forEach((element) => {
-            element.classList.add("input-group", "form-inline", "col-sm-6");
+            // No width class here: a widget's width is set by whatever the plot put
+            // it in. Pinning every input group to half a row overrode that, so a
+            // control laid out to fill its column only ever filled half of it.
+            element.classList.add("input-group", "form-inline");
             element.classList.remove("bk-input-group", "bk");
           });
         } catch (error) {

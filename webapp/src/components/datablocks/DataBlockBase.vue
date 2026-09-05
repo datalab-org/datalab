@@ -298,10 +298,6 @@ export default {
         this.contentMaxHeight = "none";
       }
     });
-    document.addEventListener("block-event", this.handleBokehEvent);
-  },
-  beforeUnmount() {
-    document.removeEventListener("block-event", this.handleBokehEvent);
   },
   methods: {
     notifyLayoutChange() {
@@ -319,23 +315,6 @@ export default {
     },
     async updateBlock() {
       await updateBlockFromServer(this.item_id, this.block_id, this.block).catch((error) => {
-        console.error("Error updating block:", error);
-      });
-    },
-    async handleBokehEvent(event) {
-      // Only handle events for this specific block
-      if (event.detail.block_id !== this.block_id) {
-        return;
-      }
-
-      console.log("handlingBokehEvent", event.detail, "for block", this.block_id);
-
-      updateBlockFromServer(
-        this.item_id,
-        this.block_id,
-        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
-        event.detail,
-      ).catch((error) => {
         console.error("Error updating block:", error);
       });
     },
