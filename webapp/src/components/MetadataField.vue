@@ -1,22 +1,36 @@
 <template>
-  <span class="metadata-field" @contextmenu.prevent="openMenu">
-    <input
-      v-if="editing"
-      ref="input"
-      v-model="draft"
-      class="form-control form-control-sm"
-      @keyup.enter="commit"
-      @keyup.esc="editing = false"
-      @blur="commit"
-    />
+  <!-- A div rather than a span: the menu is a `ul`, which a span cannot contain. -->
+  <div class="metadata-field" @click.stop="toggleMenu" @contextmenu.prevent.stop="openMenu">
+    <!-- `click.stop` for the same reason as on the menu: saving or abandoning an
+         edit must not fall through and open the menu behind it. -->
+    <span v-if="editing" class="editor" @click.stop>
+      <input
+        ref="input"
+        v-model="draft"
+        class="form-control form-control-sm"
+        @keyup.enter="commit"
+        @keyup.esc="cancel"
+        @blur="cancel"
+      />
+      <!-- `mousedown.prevent` so the input never loses focus, which would cancel
+           the edit out from under the button being pressed. -->
+      <button class="btn btn-sm btn-link" title="Save" @mousedown.prevent="commit">
+        <font-awesome-icon icon="check" fixed-width />
+      </button>
+      <button class="btn btn-sm btn-link cancel" title="Cancel" @mousedown.prevent="cancel">
+        <font-awesome-icon icon="times" fixed-width />
+      </button>
+    </span>
     <template v-else>
       <span class="value" :class="{ empty: isEmpty }">{{ shown }}</span>
       <span class="source" :class="entry.source" :title="explanation">{{ badge }}</span>
     </template>
 
-    <!-- Right-click menu. The options are whatever the block says it can offer,
-         so a source with nothing to give never appears. -->
-    <ul v-if="menuOpen" ref="menu" class="dropdown-menu show" :style="menuPosition">
+    <!-- The options are whatever the block says it can offer, so a source with
+         nothing to give never appears. -->
+    <!-- `click.stop` so choosing an option does not bubble back to the field and
+         reopen the menu that the option just closed. -->
+    <ul v-if="menuOpen" class="dropdown-menu show" @click.stop>
       <li>
         <button class="dropdown-item" @click="startEditing">Override…</button>
       </li>
@@ -32,8 +46,11 @@
       <li v-if="entry.bound">
         <button class="dropdown-item" @click="bind('auto')">Choose automatically</button>
       </li>
+      <li>
+        <button class="dropdown-item text-muted" @click="closeMenu">Cancel</button>
+      </li>
     </ul>
-  </span>
+  </div>
 </template>
 
 <script>
@@ -50,7 +67,7 @@ export default {
     entry: { type: Object, required: true },
   },
   data() {
-    return { menuOpen: false, menuPosition: {}, editing: false, draft: "" };
+    return { menuOpen: false, editing: false, draft: "" };
   },
   computed: {
     isEmpty() {
@@ -95,9 +112,14 @@ export default {
     format(value) {
       return Array.isArray(value) ? value.join(", ") : String(value);
     },
-    openMenu(event) {
-      this.menuPosition = { top: `${event.offsetY}px`, left: `${event.offsetX}px` };
-      this.menuOpen = true;
+    openMenu() {
+      if (!this.editing) this.menuOpen = true;
+    },
+    toggleMenu() {
+      // Nothing to choose while a value is being typed; the editor has its own
+      // save and cancel.
+      if (this.editing) return;
+      this.menuOpen = !this.menuOpen;
     },
     closeMenu() {
       this.menuOpen = false;
@@ -107,6 +129,9 @@ export default {
       this.editing = true;
       this.menuOpen = false;
       this.$nextTick(() => this.$refs.input?.focus());
+    },
+    cancel() {
+      this.editing = false;
     },
     commit() {
       if (!this.editing) return;
@@ -143,7 +168,26 @@ export default {
   display: inline-flex;
   align-items: baseline;
   gap: 0.4rem;
-  cursor: context-menu;
+  cursor: pointer;
+}
+
+.editor {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.editor .btn-link {
+  padding: 0 0.2rem;
+  color: #6c757d;
+}
+
+.editor .btn-link:hover {
+  color: cornflowerblue;
+}
+
+.editor .cancel:hover {
+  color: #c92a2a;
 }
 
 .value.empty {
@@ -168,8 +212,12 @@ export default {
   font-style: italic;
 }
 
+/* Below the value rather than at the pointer, so it lands in the same place
+   however the menu was opened. */
 .dropdown-menu {
   position: absolute;
+  top: 100%;
+  left: 0;
   z-index: 1000;
 }
 </style>

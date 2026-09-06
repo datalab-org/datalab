@@ -37,7 +37,7 @@ describe("MetadataField", () => {
 
   it("offers only the sources that have something to offer", () => {
     mount(fromFile);
-    cy.get(".metadata-field").rightclick();
+    cy.get(".metadata-field").click();
 
     // `sample` has nothing, and `file` is already in use.
     cy.get(".dropdown-item").should("not.contain", "sample");
@@ -48,28 +48,68 @@ describe("MetadataField", () => {
 
   it("offers a source that did not win, with its value", () => {
     mount({ ...fromFile, available: { file: 14.32, sample: 21.4 } });
-    cy.get(".metadata-field").rightclick();
+    cy.get(".metadata-field").click();
 
     cy.contains(".dropdown-item", "Use sample value").should("contain", "21.4");
   });
 
   it("only offers to choose automatically once something has been chosen", () => {
     mount(fromFile);
-    cy.get(".metadata-field").rightclick();
+    cy.get(".metadata-field").click();
     cy.get(".dropdown-item").should("not.contain", "Choose automatically");
 
     mount({ ...fromFile, bound: true });
-    cy.get(".metadata-field").rightclick();
+    cy.get(".metadata-field").click();
     cy.contains(".dropdown-item", "Choose automatically").should("be.visible");
   });
 
   it("edits in place, starting from the value on show", () => {
     mount(fromFile);
-    cy.get(".metadata-field").rightclick();
+    cy.get(".metadata-field").click();
     cy.contains(".dropdown-item", "Override…").click();
 
     cy.get("input").should("be.focused").and("have.value", "14.32");
-    cy.get("input").type("{esc}");
+  });
+
+  it("can be backed out of, by the button or by the keyboard", () => {
+    mount(fromFile);
+
+    for (const abandon of [
+      () => cy.get(".editor .cancel").click(),
+      () => cy.get("input").type("{esc}"),
+    ]) {
+      cy.get(".metadata-field").click();
+      cy.contains(".dropdown-item", "Override…").click();
+      cy.get("input").clear();
+      cy.get("input").type("999");
+      abandon();
+      cy.get("input").should("not.exist");
+      cy.get(".value").should("have.text", "14.32");
+    }
+  });
+
+  it("still opens on a right-click, for anyone who tries one", () => {
+    mount(fromFile);
+    cy.get(".value").rightclick();
+
+    cy.contains(".dropdown-item", "Override…").should("be.visible");
+  });
+
+  it("does not leave the menu open behind an edit that was saved or abandoned", () => {
+    mount(fromFile);
+    cy.get(".metadata-field").click();
+    cy.contains(".dropdown-item", "Override…").click();
+    cy.get(".editor .cancel").click();
+
+    cy.get(".dropdown-menu").should("not.exist");
+  });
+
+  it("closes the menu without changing anything", () => {
+    mount(fromFile);
+    cy.get(".metadata-field").click();
+    cy.contains(".dropdown-item", "Cancel").click();
+
+    cy.get(".dropdown-menu").should("not.exist");
     cy.get(".value").should("have.text", "14.32");
   });
 });
