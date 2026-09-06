@@ -59,6 +59,7 @@ def test_every_source_is_reported_not_only_the_winner():
     assert resolution.fields["sample_mass_mg"] == {
         "value": pytest.approx(14.32),
         "source": "file",
+        "bound": False,
         "available": {"file": pytest.approx(14.32), "sample": pytest.approx(21.0)},
     }
 
@@ -82,7 +83,13 @@ def test_a_user_may_say_a_field_has_no_good_value():
 
 
 def test_which_is_not_the_same_as_never_having_chosen():
-    assert resolve({}).fields["sample_mass_mg"]["source"] == "file"
+    """Both end up on the file's value; only one of them is a decision."""
+    cleared = resolve({"sample_mass_mg": {"source": "user", "value": None}})
+    untouched = resolve({})
+
+    assert cleared.fields["sample_mass_mg"]["bound"] is True
+    assert untouched.fields["sample_mass_mg"]["bound"] is False
+    assert untouched.fields["sample_mass_mg"]["source"] == "file"
 
 
 def test_a_zero_a_user_typed_is_kept_as_their_choice_even_where_it_is_no_value():

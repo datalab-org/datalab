@@ -116,6 +116,10 @@ def resolve_metadata(
         fields[field] = {
             "value": _coerce(metadata, field, value),
             "source": source,
+            # Whether the source was chosen or merely landed on, which is the
+            # difference between a decision to leave a field empty and nobody
+            # having filled it in yet.
+            "bound": binding is not None,
             "available": available,
         }
 

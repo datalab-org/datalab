@@ -17,7 +17,16 @@
       <template v-for="(value, key) in displayedMetadata" :key="key">
         <dt :title="String(key)">{{ formatLabel(key) }}</dt>
         <dd>
-          <details v-if="isExpandable(value)" class="value-details">
+          <!-- A field the block tracks the provenance of is editable in place and
+               says where it came from; the rest are plain values. -->
+          <MetadataField
+            v-if="fields[key]"
+            :item_id="item_id"
+            :block_id="block_id"
+            :field="String(key)"
+            :entry="fields[key]"
+          />
+          <details v-else-if="isExpandable(value)" class="value-details">
             <summary>{{ summaryFor(value) }}</summary>
             <pre class="value-json">{{ prettyPrint(value) }}</pre>
           </details>
@@ -29,15 +38,34 @@
 </template>
 
 <script>
+import MetadataField from "@/components/MetadataField";
+
 // Values longer than this are collapsed behind a <details> rather than being
 // allowed to dominate what is usually a narrow column beside a plot.
 const INLINE_LENGTH_LIMIT = 80;
 
 export default {
+  components: {
+    MetadataField,
+  },
   props: {
     metadata: {
       type: Object,
       default: () => ({}),
+    },
+    // `metadata_fields` as the block serves it: the entries whose provenance is
+    // known, keyed the same as `metadata`. Anything not in here renders as before.
+    fields: {
+      type: Object,
+      default: () => ({}),
+    },
+    item_id: {
+      type: String,
+      default: null,
+    },
+    block_id: {
+      type: String,
+      default: null,
     },
     labels: {
       type: Object,
@@ -62,6 +90,13 @@ export default {
       for (const [key, value] of Object.entries(this.metadata)) {
         if (!this.excludeKeys.includes(key) && value !== null && value !== undefined) {
           filtered[key] = value;
+        }
+      }
+      // A tracked field is shown even when it is empty: an empty one is exactly
+      // the one somebody needs to be able to right-click and fill in.
+      for (const key of Object.keys(this.fields)) {
+        if (!this.excludeKeys.includes(key) && !(key in filtered)) {
+          filtered[key] = this.metadata?.[key] ?? null;
         }
       }
       return filtered;
