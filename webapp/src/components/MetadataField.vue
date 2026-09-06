@@ -60,7 +60,7 @@ export default {
       return this.isEmpty ? "—" : this.format(this.entry.value);
     },
     badge() {
-      if (this.entry.source === "user") return this.entry.bound ? "edited" : "";
+      if (this.entry.source === "user") return this.entry.bound ? "user supplied" : "";
       return this.entry.source ?? "";
     },
     explanation() {
@@ -160,9 +160,11 @@ export default {
   cursor: help;
 }
 
-/* A value somebody typed is the one worth being able to pick out. */
+/* A value somebody typed is the one worth being able to pick out. Deliberately
+   not in the yellow the rest of datalab uses for unsaved changes: this says where
+   a value came from, not that anything needs doing about it. */
 .source.user {
-  color: #b8860b;
+  color: #4a6fa5;
   font-style: italic;
 }
 

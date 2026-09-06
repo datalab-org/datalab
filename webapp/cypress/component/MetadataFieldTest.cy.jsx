@@ -25,7 +25,7 @@ describe("MetadataField", () => {
   it("marks a value somebody typed as theirs", () => {
     mount({ value: 99, source: "user", bound: true, available: { file: 14.32 } });
 
-    cy.get(".source").should("have.text", "edited");
+    cy.get(".source").should("have.text", "user supplied");
     cy.get(".source").should("have.attr", "title").and("include", "nothing will overwrite it");
   });
 
