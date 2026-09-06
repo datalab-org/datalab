@@ -284,6 +284,26 @@ def test_a_block_may_say_what_its_sources_should_be_called():
     assert block.data["metadata_source_labels"] == {"file": "measurement.dat"}
 
 
+def test_an_event_that_failed_is_still_reported_after_a_plot_that_did_not():
+    """`to_web` rebuilds the block's errors from what the plots say, so an event
+    that failed on the way there used to disappear -- leaving a control that did
+    nothing and said nothing about why."""
+
+    class Plotting(_Block):
+        blocktype = "_metadata_test_plotting"
+
+        @property
+        def plot_functions(self):
+            return (lambda: None,)
+
+    block = Plotting(item_id="test")
+    block.process_events(
+        {"event_name": "set_metadata_source", "field": "nope", "source": "user", "value": 1}
+    )
+
+    assert block.to_web()["errors"]
+
+
 def test_resolving_writes_both_the_values_and_their_provenance():
     block = _Block(item_id="test")
     block.resolve_metadata()

@@ -162,6 +162,10 @@ class DataBlock:
     version: str = __version__
     """The implementation version of this particular block."""
 
+    _event_errors: tuple[str, ...] = ()
+    """Errors from events handled during this request, kept apart from the block's
+    stored errors so that they survive a plot that then succeeds."""
+
     def __init__(
         self,
         item_id: str | None = None,
@@ -232,7 +236,7 @@ class DataBlock:
 
     def to_web(self) -> dict[str, Any]:
         """Returns a JSON serializable dictionary to render the data block on the web."""
-        block_errors = []
+        block_errors = list(self._event_errors)
         block_warnings = []
         if self.plot_functions:
             for plot in self.plot_functions:
@@ -292,10 +296,14 @@ class DataBlock:
     def metadata_sources(self) -> dict[str, dict]:
         """Where this block's metadata can come from, best first.
 
-        A block returns what each source has, e.g. the header it just parsed and
-        the item it is attached to. Every source is read whether or not it wins,
-        so that the interface can show what the others offer and let the user
-        switch between them.
+        A block returns what each source has, e.g. the header of the file it reads
+        and the item it is attached to. Every source is read whether or not it
+        wins, so that the interface can show what the others offer and let the
+        user switch between them.
+
+        This is called whenever a binding is set as well as when the block renders,
+        and an event can arrive before anything has been rendered, so it must not
+        depend on rendering having happened.
         """
         return {}
 
@@ -369,9 +377,12 @@ class DataBlock:
                         self.__class__.__name__,
                         e,
                     )
-                    self.data["errors"] = [
-                        f"{self.__class__.__name__}: Error processing event {event}: {e}"
-                    ]
+                    message = f"{self.__class__.__name__}: Error processing event {event}: {e}"
+                    # Kept on the instance as well: `to_web` rebuilds the stored
+                    # errors from whatever the plots report, and an event that
+                    # failed before a plot that succeeded would otherwise vanish.
+                    self._event_errors = (*self._event_errors, message)
+                    self.data["errors"] = [message]
 
     @event()
     def null_event(self, **kwargs):
