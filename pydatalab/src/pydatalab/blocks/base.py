@@ -4,8 +4,11 @@ import random
 import traceback
 import warnings
 from collections.abc import Callable, Sequence
+from datetime import datetime, timezone
 from typing import Any
 
+from flask import has_request_context
+from flask_login import current_user
 from pydantic import BaseModel
 
 from pydatalab import __version__
@@ -103,6 +106,26 @@ def generate_random_id():
 ############################################################################################################
 # Resources (base classes to be extended)
 ############################################################################################################
+
+
+def _who_and_when() -> dict[str, str]:
+    """Whose choice this was and when they made it.
+
+    A binding is somebody deciding that a value should not be worked out the usual
+    way, which is worth being able to attribute later. Outside a request there is
+    nobody to name, so only the time is recorded.
+    """
+    stamp = {"set_at": datetime.now(tz=timezone.utc).isoformat()}
+
+    if not has_request_context():
+        return stamp
+
+    person = getattr(current_user, "person", None)
+    if person is not None:
+        stamp["set_by"] = str(person.immutable_id)
+        if person.display_name:
+            stamp["set_by_name"] = person.display_name
+    return stamp
 
 
 class DataBlock:
@@ -316,9 +339,9 @@ class DataBlock:
         if source == AUTO:
             bindings.pop(field, None)
         elif source == USER:
-            bindings[field] = {"source": USER, "value": value}
+            bindings[field] = {"source": USER, "value": value, **_who_and_when()}
         elif source in self.metadata_sources():
-            bindings[field] = {"source": source}
+            bindings[field] = {"source": source, **_who_and_when()}
         else:
             raise ValueError(f"{field!r} cannot be taken from {source!r}")
 

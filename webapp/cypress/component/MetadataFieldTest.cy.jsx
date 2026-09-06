@@ -44,6 +44,42 @@ describe("MetadataField", () => {
     cy.get(".source").should("have.attr", "title", "Value overwritten by user");
   });
 
+  it("names who made a choice, and when", () => {
+    mount({
+      value: 99,
+      source: "user",
+      bound: true,
+      available: { file: 14.32 },
+      set_by_name: "Ada Lovelace",
+      set_at: "2026-09-05T18:30:00+00:00",
+    });
+
+    cy.get(".source")
+      .should("have.attr", "title")
+      .and("match", /^Value overwritten by Ada Lovelace on /);
+  });
+
+  it("attributes the choice of a source too, not only a typed value", () => {
+    mount({
+      value: 14.32,
+      source: "file",
+      bound: true,
+      available: { file: 14.32, sample: 21.4 },
+      set_by_name: "Ada Lovelace",
+      set_at: "2026-09-05T18:30:00+00:00",
+    });
+
+    cy.get(".source")
+      .should("have.attr", "title")
+      .and("match", /^Supplied by NiCl2btd_MT\.rso\.dat, chosen by Ada Lovelace on /);
+  });
+
+  it("says only what it knows about a binding nobody is recorded for", () => {
+    mount({ value: 99, source: "user", bound: true, available: {} });
+
+    cy.get(".source").should("have.attr", "title", "Value overwritten by user");
+  });
+
   it("says so when somebody has decided there is no value", () => {
     mount({ value: null, source: "user", bound: true, available: { file: 14.32 } });
 

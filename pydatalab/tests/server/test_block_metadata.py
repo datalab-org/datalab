@@ -5,6 +5,9 @@ again on every render, so a value follows the file or the sample it came from;
 the user's choices are kept, including the choice that a field should be empty.
 """
 
+from datetime import datetime, timezone
+from types import SimpleNamespace
+
 import pytest
 from pydantic import BaseModel, ConfigDict, field_validator
 
@@ -163,8 +166,81 @@ def test_the_event_records_a_binding_and_resolution_honours_it():
         }
     )
 
-    assert block.data["metadata_bindings"] == {"sample_mass_mg": {"source": "user", "value": "99"}}
+    binding = block.data["metadata_bindings"]["sample_mass_mg"]
+    assert binding["source"] == "user"
+    assert binding["value"] == "99"
     assert block.resolve_metadata().metadata.sample_mass_mg == pytest.approx(99.0)
+
+
+def test_a_binding_records_when_it_was_made():
+    """Somebody deciding a value should not be worked out the usual way is worth
+    being able to attribute afterwards."""
+    block = _Block(item_id="test")
+    block.process_events(
+        {
+            "event_name": "set_metadata_source",
+            "field": "sample_mass_mg",
+            "source": "user",
+            "value": "99",
+        }
+    )
+
+    stamped = datetime.fromisoformat(block.data["metadata_bindings"]["sample_mass_mg"]["set_at"])
+    assert stamped.tzinfo is not None
+    assert abs((datetime.now(tz=timezone.utc) - stamped).total_seconds()) < 60
+
+    # and it reaches the interface alongside the value it belongs to
+    assert block.resolve_metadata().fields["sample_mass_mg"]["set_at"]
+
+
+def test_a_binding_records_who_made_it(monkeypatch):
+    from bson import ObjectId
+
+    from pydatalab.blocks import base
+
+    person = SimpleNamespace(immutable_id=ObjectId("1" * 24), display_name="Ada Lovelace")
+    monkeypatch.setattr(base, "has_request_context", lambda: True)
+    monkeypatch.setattr(base, "current_user", SimpleNamespace(person=person))
+
+    block = _Block(item_id="test")
+    block.process_events(
+        {
+            "event_name": "set_metadata_source",
+            "field": "sample_mass_mg",
+            "source": "user",
+            "value": "99",
+        }
+    )
+
+    binding = block.data["metadata_bindings"]["sample_mass_mg"]
+    assert binding["set_by"] == "1" * 24
+    assert binding["set_by_name"] == "Ada Lovelace"
+
+    # Choosing which source to take a value from is a decision too, so it is
+    # attributed the same way.
+    block.process_events(
+        {"event_name": "set_metadata_source", "field": "sample_mass_mg", "source": "file"}
+    )
+    assert block.data["metadata_bindings"]["sample_mass_mg"]["set_by_name"] == "Ada Lovelace"
+
+    assert block.resolve_metadata().fields["sample_mass_mg"]["set_by_name"] == "Ada Lovelace"
+
+
+def test_there_is_nobody_to_name_outside_a_request():
+    """Which must not be an error: the tests, and any script, resolve blocks with
+    no user logged in."""
+    block = _Block(item_id="test")
+    block.process_events(
+        {
+            "event_name": "set_metadata_source",
+            "field": "sample_mass_mg",
+            "source": "user",
+            "value": "99",
+        }
+    )
+
+    assert not block.data.get("errors")
+    assert "set_by" not in block.data["metadata_bindings"]["sample_mass_mg"]
 
 
 def test_asking_for_auto_drops_the_binding():

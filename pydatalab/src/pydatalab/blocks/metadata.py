@@ -121,6 +121,13 @@ def resolve_metadata(
             # having filled it in yet.
             "bound": binding is not None,
             "available": available,
+            # Carried through from the binding so that the interface has one place
+            # to look for everything about a field.
+            **{
+                k: binding[k]
+                for k in ("set_by", "set_by_name", "set_at")
+                if binding and k in binding
+            },
         }
 
     return MetadataResolution(metadata=metadata, fields=fields)

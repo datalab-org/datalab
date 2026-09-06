@@ -83,12 +83,26 @@ export default {
       if (this.entry.source === "user") return this.entry.bound ? "user supplied" : "";
       return this.entry.source ?? "";
     },
+    // Who made a choice and when, where anyone is recorded. A binding made outside
+    // a request -- by a script, or before this was tracked -- has neither.
+    attribution() {
+      const who = this.entry.set_by_name ? ` by ${this.entry.set_by_name}` : "";
+      const when = this.entry.set_at ? ` on ${new Date(this.entry.set_at).toLocaleString()}` : "";
+      return who + when;
+    },
     explanation() {
       if (this.entry.source === "user") {
-        return this.isEmpty ? "Value set to blank by user" : "Value overwritten by user";
+        const what = this.isEmpty ? "Value set to blank" : "Value overwritten";
+        return `${what}${this.attribution || " by user"}`;
       }
       if (!this.entry.source) return "No source has a value for this";
-      return `Supplied by ${this.sourceLabels[this.entry.source] ?? this.entry.source}`;
+
+      const supplied = `Supplied by ${this.sourceLabels[this.entry.source] ?? this.entry.source}`;
+      // Only worth saying who chose it where somebody did; otherwise the block
+      // worked it out and there is nobody to name.
+      return this.entry.bound && this.attribution
+        ? `${supplied}, chosen${this.attribution}`
+        : supplied;
     },
     // A source is only worth offering if it has something to offer and is not
     // already the one in use.
