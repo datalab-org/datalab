@@ -185,6 +185,7 @@
             <MetadataViewer
               :metadata="block.metadata"
               :fields="block.metadata_fields || {}"
+              :source-labels="block.metadata_source_labels || {}"
               :item_id="item_id"
               :block_id="block_id"
             />

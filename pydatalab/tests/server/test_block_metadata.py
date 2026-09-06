@@ -193,6 +193,21 @@ def test_an_impossible_binding_becomes_a_block_error(event):
     assert not block.data.get("metadata_bindings")
 
 
+def test_a_block_may_say_what_its_sources_should_be_called():
+    """ "file" is not much use on its own; which file is the useful half."""
+
+    class Named(_Block):
+        blocktype = "_metadata_test_named"
+
+        def metadata_source_labels(self):
+            return {"file": "measurement.dat"}
+
+    block = Named(item_id="test")
+    block.resolve_metadata()
+
+    assert block.data["metadata_source_labels"] == {"file": "measurement.dat"}
+
+
 def test_resolving_writes_both_the_values_and_their_provenance():
     block = _Block(item_id="test")
     block.resolve_metadata()

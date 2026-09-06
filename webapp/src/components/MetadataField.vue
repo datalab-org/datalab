@@ -65,6 +65,9 @@ export default {
     // As served in `metadata_fields`: the value, where it came from, whether that
     // was chosen or merely landed on, and what the other sources have to offer.
     entry: { type: Object, required: true },
+    // What to call each source when explaining where a value came from: the name
+    // of the file rather than "file".
+    sourceLabels: { type: Object, default: () => ({}) },
   },
   data() {
     return { menuOpen: false, editing: false, draft: "" };
@@ -82,13 +85,10 @@ export default {
     },
     explanation() {
       if (this.entry.source === "user") {
-        return this.isEmpty
-          ? "Set to empty by hand; it will not be filled in from a file again"
-          : "Entered by hand; nothing will overwrite it";
+        return this.isEmpty ? "Value set to blank by user" : "Value overwritten by user";
       }
       if (!this.entry.source) return "No source has a value for this";
-      const how = this.entry.bound ? "Taken from" : "Read from";
-      return `${how} the ${this.entry.source}, and follows it if it changes`;
+      return `Supplied by ${this.sourceLabels[this.entry.source] ?? this.entry.source}`;
     },
     // A source is only worth offering if it has something to offer and is not
     // already the one in use.
@@ -201,7 +201,6 @@ export default {
   text-transform: lowercase;
   color: #adb5bd;
   border-bottom: 1px dotted currentColor;
-  cursor: help;
 }
 
 /* A value somebody typed is the one worth being able to pick out. Deliberately

@@ -276,6 +276,12 @@ class DataBlock:
         """
         return {}
 
+    def metadata_source_labels(self) -> dict[str, str]:
+        """How to name each source to a person: the file it was read from, the item
+        it came off. Falls back to the source's own key where there is nothing
+        better to say."""
+        return {}
+
     def resolve_metadata(self) -> "MetadataResolution":
         """Resolve the metadata, honouring any bindings the user has set."""
         if self.metadata_model is None:
@@ -288,6 +294,7 @@ class DataBlock:
         )
         self.data["metadata"] = resolution.metadata.model_dump()
         self.data["metadata_fields"] = resolution.fields
+        self.data["metadata_source_labels"] = self.metadata_source_labels()
         return resolution
 
     @event()

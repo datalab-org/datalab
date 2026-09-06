@@ -25,6 +25,7 @@
             :block_id="block_id"
             :field="String(key)"
             :entry="fields[key]"
+            :source-labels="sourceLabels"
           />
           <details v-else-if="isExpandable(value)" class="value-details">
             <summary>{{ summaryFor(value) }}</summary>
@@ -56,6 +57,10 @@ export default {
     // `metadata_fields` as the block serves it: the entries whose provenance is
     // known, keyed the same as `metadata`. Anything not in here renders as before.
     fields: {
+      type: Object,
+      default: () => ({}),
+    },
+    sourceLabels: {
       type: Object,
       default: () => ({}),
     },

@@ -81,6 +81,12 @@ class DataBlockResponse(BaseModel):
     a value taken from a file or a sample follows that file or sample when it
     changes."""
 
+    metadata_source_labels: dict | None = Field(
+        default=None, json_schema_extra={"datalab_exclude_from_load": True}
+    )
+    """What to call each metadata source when showing it to somebody -- the name of
+    the file it was read from, say, rather than "file"."""
+
     metadata_bindings: dict | None = None
     """Where each metadata field should be taken from, where the user has said.
 

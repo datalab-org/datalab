@@ -5,7 +5,13 @@ import MetadataField from "@/components/MetadataField.vue";
 describe("MetadataField", () => {
   const mount = (entry) =>
     cy.mount(MetadataField, {
-      propsData: { item_id: "test", block_id: "block", field: "sample_mass_mg", entry },
+      propsData: {
+        item_id: "test",
+        block_id: "block",
+        field: "sample_mass_mg",
+        entry,
+        sourceLabels: { file: "NiCl2btd_MT.rso.dat", sample: "NiCl2btd-01" },
+      },
     });
 
   const fromFile = {
@@ -15,18 +21,33 @@ describe("MetadataField", () => {
     available: { file: 14.32, sample: null },
   };
 
-  it("shows the value and where it came from", () => {
+  it("names the file a value was read out of, not just that it was read from one", () => {
     mount(fromFile);
 
     cy.contains("14.32").should("be.visible");
-    cy.get(".source").should("have.text", "file").and("have.attr", "title").and("include", "file");
+    cy.get(".source").should("have.text", "file");
+    cy.get(".source").should("have.attr", "title", "Supplied by NiCl2btd_MT.rso.dat");
+  });
+
+  it("falls back to the source's own name where there is nothing better", () => {
+    cy.mount(MetadataField, {
+      propsData: { item_id: "test", block_id: "block", field: "sample_mass_mg", entry: fromFile },
+    });
+
+    cy.get(".source").should("have.attr", "title", "Supplied by file");
   });
 
   it("marks a value somebody typed as theirs", () => {
     mount({ value: 99, source: "user", bound: true, available: { file: 14.32 } });
 
     cy.get(".source").should("have.text", "user supplied");
-    cy.get(".source").should("have.attr", "title").and("include", "nothing will overwrite it");
+    cy.get(".source").should("have.attr", "title", "Value overwritten by user");
+  });
+
+  it("says so when somebody has decided there is no value", () => {
+    mount({ value: null, source: "user", bound: true, available: { file: 14.32 } });
+
+    cy.get(".source").should("have.attr", "title", "Value set to blank by user");
   });
 
   it("shows an empty field rather than hiding it", () => {

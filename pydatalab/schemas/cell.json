@@ -319,6 +319,21 @@
           "description": "The same metadata with its provenance: per field, the value, the source it\ncame from, and what each other source has to offer. Derived on every render, so\na value taken from a file or a sample follows that file or sample when it\nchanges.",
           "title": "Metadata Fields"
         },
+        "metadata_source_labels": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "datalab_exclude_from_load": true,
+          "default": null,
+          "description": "What to call each metadata source when showing it to somebody -- the name of\nthe file it was read from, say, rather than \"file\".",
+          "title": "Metadata Source Labels"
+        },
         "metadata_bindings": {
           "anyOf": [
             {
