@@ -6,7 +6,10 @@ import warnings
 from collections.abc import Callable, Sequence
 from typing import Any
 
+from pydantic import BaseModel
+
 from pydatalab import __version__
+from pydatalab.blocks.metadata import AUTO, USER, MetadataResolution, resolve_metadata
 from pydatalab.logger import LOGGER
 from pydatalab.models.blocks import DataBlockResponse
 
@@ -255,6 +258,64 @@ class DataBlock:
             self.data.pop("warnings", None)
 
         return self.block_db_model(**self.data).model_dump(exclude_unset=True, exclude_none=True)
+
+    metadata_model: type[BaseModel] | None = None
+    """Describes the metadata this block reads, if it reads any.
+
+    Every field must be optional: a block fills in whatever its sources happen to
+    have, and a field none of them supply is simply empty.
+    """
+
+    def metadata_sources(self) -> dict[str, dict]:
+        """Where this block's metadata can come from, best first.
+
+        A block returns what each source has, e.g. the header it just parsed and
+        the item it is attached to. Every source is read whether or not it wins,
+        so that the interface can show what the others offer and let the user
+        switch between them.
+        """
+        return {}
+
+    def resolve_metadata(self) -> "MetadataResolution":
+        """Resolve the metadata, honouring any bindings the user has set."""
+        if self.metadata_model is None:
+            raise NotImplementedError(f"The {self.blocktype!r} block has no metadata model.")
+
+        resolution = resolve_metadata(
+            self.metadata_model,
+            self.metadata_sources(),
+            self.data.get("metadata_bindings"),
+        )
+        self.data["metadata"] = resolution.metadata.model_dump()
+        self.data["metadata_fields"] = resolution.fields
+        return resolution
+
+    @event()
+    def set_metadata_source(self, field: str, source: str, value: Any = None, **kwargs):
+        """Bind one metadata field to a source, or to a value of the user's own.
+
+        `source` is the name of one of `metadata_sources`, or "user" with a value,
+        or "auto" to drop the binding and let the block choose again.
+
+        Clearing a field is `source="user"` with no value, and is deliberately not
+        the same as "auto": it says there is no good value for this field, which is
+        something worth keeping rather than something to be second-guessed on the
+        next render.
+        """
+        if self.metadata_model is None or field not in self.metadata_model.model_fields:
+            raise ValueError(f"{self.blocktype!r} has no metadata field {field!r}")
+
+        bindings = dict(self.data.get("metadata_bindings") or {})
+        if source == AUTO:
+            bindings.pop(field, None)
+        elif source == USER:
+            bindings[field] = {"source": USER, "value": value}
+        elif source in self.metadata_sources():
+            bindings[field] = {"source": source}
+        else:
+            raise ValueError(f"{field!r} cannot be taken from {source!r}")
+
+        self.data["metadata_bindings"] = bindings
 
     def process_events(self, events: list[dict] | dict):
         """Handle any supported events passed to the block."""

@@ -72,3 +72,20 @@ class DataBlockResponse(BaseModel):
     )
     """Any structured metadata associated with the block, for example,
     experimental acquisition parameters."""
+
+    metadata_fields: dict | None = Field(
+        default=None, json_schema_extra={"datalab_exclude_from_load": True}
+    )
+    """The same metadata with its provenance: per field, the value, the source it
+    came from, and what each other source has to offer. Derived on every render, so
+    a value taken from a file or a sample follows that file or sample when it
+    changes."""
+
+    metadata_bindings: dict | None = None
+    """Where each metadata field should be taken from, where the user has said.
+
+    Unlike the two above this is not derived, it is the choice itself: a field
+    bound to the user carries the value they gave, and one bound to a source is
+    re-read from it. A field with no binding is left to the block to decide, and is
+    decided again each time it renders.
+    """
