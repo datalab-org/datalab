@@ -89,20 +89,25 @@ export default {
   },
   computed: {
     displayedMetadata() {
-      if (!this.metadata) return {};
+      const values = this.metadata || {};
+
+      // `fields` names every tracked field in the order the block declares them,
+      // empty ones included, while `metadata` carries only those with a value.
+      // Taking the order from `fields` is what stops a field moving down the list
+      // the moment it is emptied and back up again when it is filled in.
+      const keys = [...new Set([...Object.keys(this.fields), ...Object.keys(values)])];
 
       const filtered = {};
-      for (const [key, value] of Object.entries(this.metadata)) {
-        if (!this.excludeKeys.includes(key) && value !== null && value !== undefined) {
-          filtered[key] = value;
-        }
-      }
-      // A tracked field is shown even when it is empty: an empty one is exactly
-      // the one somebody needs to be able to right-click and fill in.
-      for (const key of Object.keys(this.fields)) {
-        if (!this.excludeKeys.includes(key) && !(key in filtered)) {
-          filtered[key] = this.metadata?.[key] ?? null;
-        }
+      for (const key of keys) {
+        if (this.excludeKeys.includes(key)) continue;
+
+        const value = values[key] ?? null;
+        // An empty tracked field stays: it is exactly the one somebody needs to
+        // reach in order to give it a value. An empty untracked one has nothing
+        // to offer and is left out, as it always was.
+        if (value === null && !(key in this.fields)) continue;
+
+        filtered[key] = value;
       }
       return filtered;
     },
