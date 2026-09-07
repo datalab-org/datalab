@@ -105,6 +105,9 @@ class MySample(Sample):
     )
 ```
 
+For now, all custom item types are created and listed from the Samples page, regardless of their
+Python base model.
+
 There are two ways to register a custom item type, both of which run at server startup and require no changes to the core code:
 
 1. **From a plugin package**, via the `pydatalab.item_types` entry point group
@@ -155,8 +158,8 @@ As a rule of thumb, if you would want to *filter* the item list by it, it is a f
 The web UI renders a custom type's extra fields automatically. On startup the frontend reads `/info/types`, registers every custom type,
 and on the edit page shows:
 
-- the **base item component** — the same name / refcode / relationships block used by the
-  built-in type the model inherits from; and
+- the **base item component** — either the component used by the built-in type the model inherits
+  from, or the generic name / refcode / relationships component for a direct `Item` subclass; and
 - a **custom-fields panel** that diffs the type's schema against its base type and renders only
   the fields the model *adds*.
 
@@ -237,13 +240,7 @@ converts other display units using:
 canonical = displayed * scale + offset
 ```
 
-Thus, entering `1000 mmol/L` above stores `concentration: 1.0`. The optional companion field keeps
-the user's display choice, so the item reopens as `1000 mmol/L`; without it, the UI uses the default
-display unit.
 
-Plugin authors choose the canonical unit and provide correct conversions; Datalab validates and
-applies them. Changing the canonical unit requires a data migration. Conversions that are not a
-fixed scale and offset require a custom panel.
 
 ### Custom panels (full control)
 
