@@ -128,6 +128,13 @@ def test_create_wholly_custom_item(client, custom_item_models):
     assert item_data["width"] == 12.0
     assert item_data["height"] == 4.0
 
+    # All custom item types are surfaced through the Samples page for now,
+    # including types that inherit directly from Item.
+    response = client.get("/samples/")
+    assert response.status_code == 200, response.json
+    listed_items = {item["item_id"]: item for item in response.json["samples"]}
+    assert listed_items["custom-item-1"]["type"] == "_my_items"
+
 
 def test_custom_type_as_synthesis_constituent(client, custom_item_models):
     """A custom sample-derived type can be used as a synthesis constituent of
@@ -224,19 +231,26 @@ def test_bad_custom_item_type_rejected():
 
 
 def test_info_types_base_type_for_custom_types(client, custom_item_models):
-    """Custom types advertise their base_type; built-in types return base_type=None."""
+    """Custom types advertise their UI base and inherited fields."""
     attrs = client.get("/info/types/_my_samples", follow_redirects=True).json["data"]["attributes"]
     assert attrs["base_type"] == "samples"
+    assert "chemform" in attrs["base_fields"]
+    assert "drying_time" not in attrs["base_fields"]
     assert attrs["hidden_fields"] == []
     assert attrs["ui_color"] is None
 
-    # MyItem inherits from Item directly — no built-in collection type in its MRO.
+    # Direct Item subclasses use the virtual `items` UI base. It is metadata for
+    # selecting the generic component, not a concrete type exposed in ITEM_MODELS.
     attrs = client.get("/info/types/_my_items", follow_redirects=True).json["data"]["attributes"]
-    assert attrs["base_type"] is None
+    assert attrs["base_type"] == "items"
+    assert "name" in attrs["base_fields"]
+    assert "location" in attrs["base_fields"]
+    assert "width" not in attrs["base_fields"]
 
     # Built-in types themselves always return base_type=None.
     attrs = client.get("/info/types/samples", follow_redirects=True).json["data"]["attributes"]
     assert attrs["base_type"] is None
+    assert attrs["base_fields"] == []
 
 
 def test_save_item_null_field_is_cleared(client, custom_item_models):
