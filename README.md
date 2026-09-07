@@ -29,7 +29,7 @@
 </div>
 
 <!-- --8<-- [start:intro] -->
-_datalab_ is a user-friendly, open-source platform that can capture all the experimental data and metadata produced in a scientific lab, targeted (broadly) at materials chemistry but with customisability and extensability in mind.
+_datalab_ is a user-friendly, open-source platform that can capture all the experimental data and metadata produced in a scientific lab, targeted (broadly) at materials chemistry but with customisability and extensibility in mind.
 _datalab_ records data and metadata securely and makes it accessible and reusable by both humans and machines _via_ the web UI and API, respectively.
 _datalab_ can be self-hosted and managed deployments are also available.
 <!-- --8<-- [end:intro] -->
