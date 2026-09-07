@@ -1,6 +1,6 @@
 {
   "$defs": {
-    "DatalabQuantityExtra": {
+    "DatalabQuantity": {
       "additionalProperties": false,
       "description": "Canonical storage and display-unit configuration for a numeric field.",
       "properties": {
@@ -49,7 +49,7 @@
         "canonical_unit",
         "display_units"
       ],
-      "title": "DatalabQuantityExtra",
+      "title": "DatalabQuantity",
       "type": "object"
     },
     "DatalabUnitTransform": {
@@ -147,7 +147,7 @@
     "datalab_quantity": {
       "anyOf": [
         {
-          "$ref": "#/$defs/DatalabQuantityExtra"
+          "$ref": "#/$defs/DatalabQuantity"
         },
         {
           "type": "null"
