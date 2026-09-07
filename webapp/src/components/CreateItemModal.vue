@@ -171,15 +171,14 @@ export default {
       return itemTypes;
     },
     effectiveAllowedTypes() {
-      // The passed allowedTypes plus any dynamically-registered (custom/plugin)
-      // creatable types whose base type fits this modal's context, so e.g. a
-      // samples modal offers sample-derived custom types but not equipment-derived ones.
-      const dynamic = Object.keys(this.$store.state.schemas || {}).filter(
-        (type) =>
-          itemTypes[type]?.isDynamic &&
-          itemTypes[type]?.isCreateable &&
-          this.allowedTypes.includes(itemTypes[type]?.baseType),
-      );
+      // Custom/plugin item types all live in the Samples page for now. Keep them
+      // out of the Inventory modal even when they inherit from StartingMaterial.
+      const isSamplesContext = this.allowedTypes.some((type) => SAMPLE_TABLE_TYPES.includes(type));
+      const dynamic = isSamplesContext
+        ? Object.keys(this.$store.state.schemas || {}).filter(
+            (type) => itemTypes[type]?.isDynamic && itemTypes[type]?.isCreateable,
+          )
+        : [];
       return [...new Set([...this.allowedTypes, ...dynamic])];
     },
     itemTypeDisplayName() {

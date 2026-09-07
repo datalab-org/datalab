@@ -17,6 +17,7 @@ import StartingMaterialInformation from "@/components/StartingMaterialInformatio
 import CellInformation from "@/components/CellInformation";
 import CollectionInformation from "@/components/CollectionInformation";
 import EquipmentInformation from "@/components/EquipmentInformation";
+import ItemInformation from "@/components/ItemInformation";
 
 import { PLUGIN_PANELS } from "./plugins/index.js";
 
@@ -149,6 +150,7 @@ export const itemTypes = reactive({
 
 // Maps built-in backend type strings to their base information components.
 const BASE_TYPE_COMPONENTS = {
+  items: ItemInformation,
   samples: SampleInformation,
   cells: CellInformation,
   starting_materials: StartingMaterialInformation,

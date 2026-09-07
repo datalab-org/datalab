@@ -19,7 +19,7 @@ from pydatalab import __version__
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.feature_flags import FEATURE_FLAGS, FeatureFlags
-from pydatalab.models import BUILTIN_ITEM_TYPES, ITEM_MODELS, ITEM_SCHEMAS, Person
+from pydatalab.models import BUILTIN_ITEM_TYPES, ITEM_MODELS, ITEM_SCHEMAS, Item, Person
 from pydatalab.models.schema_hints import DatalabModelExtra
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only
@@ -162,19 +162,20 @@ def list_block_types():
     )
 
 
-def _get_base_type(item_type: str) -> str | None:
-    """Return the built-in type that this item type inherits from, or None if it is a built-in.
+def _get_base_item_model(item_type: str) -> tuple[str | None, type[Item] | None]:
+    """Return the UI base type/model for a custom item type.
 
-    Uses issubclass against the registered built-in models, so it works regardless of
-    whether the plugin's intermediate base class (e.g. Sample) appears in the MRO
-    (which depends on the installed version of the plugin package).
-    The most-derived built-in base is returned.
+    ``items`` is a virtual UI base for models derived directly from :class:`Item`;
+    it is deliberately not added to ``ITEM_MODELS`` because ``Item`` itself is not
+    a registered, creatable resource type. For subclasses of a concrete built-in,
+    the most-derived matching built-in base is returned.
     """
     model = ITEM_MODELS.get(item_type)
     if model is None or item_type in BUILTIN_ITEM_TYPES:
-        return None
-    best_type: str | None = None
-    best_model: type | None = None
+        return None, None
+
+    best_type: str | None = "items"
+    best_model: type[Item] | None = Item
     for builtin_type, builtin_model in ITEM_MODELS.items():
         if builtin_type not in BUILTIN_ITEM_TYPES:
             continue
@@ -183,7 +184,7 @@ def _get_base_type(item_type: str) -> str | None:
             if best_model is None or issubclass(builtin_model, best_model):
                 best_type = builtin_type
                 best_model = builtin_model
-    return best_type
+    return best_type, best_model
 
 
 def _get_model_schema_extra(item_type: str) -> dict:
@@ -202,12 +203,14 @@ def _type_attributes(item_type: str, schema: dict) -> dict:
     extra = DatalabModelExtra(
         **{k: v for k, v in _get_model_schema_extra(item_type).items() if k.startswith("datalab_")}
     )
+    base_type, base_model = _get_base_item_model(item_type)
     return {
         "version": __version__,
         "api_version": __api_version__,
         "schema": schema,
         "title": schema.get("title"),
-        "base_type": _get_base_type(item_type),
+        "base_type": base_type,
+        "base_fields": list(base_model.model_fields) if base_model is not None else [],
         "hidden_fields": extra.datalab_ui_hidden_fields or [],
         "ui_color": extra.datalab_ui_color,
     }
