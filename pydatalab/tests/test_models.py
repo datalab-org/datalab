@@ -687,6 +687,7 @@ def test_builtin_models_have_valid_schema_hints():
 
 def test_datalab_field_extra_rejects_unknown_and_mistyped_hints():
     from pydatalab.models.schema_hints import DatalabFieldExtra
+    from pydatalab.models.units import DatalabQuantity
 
     # Unknown datalab_ key.
     with pytest.raises(pydantic.ValidationError):
@@ -697,18 +698,20 @@ def test_datalab_field_extra_rejects_unknown_and_mistyped_hints():
         DatalabFieldExtra(datalab_ref_types="equipment")
 
     # A valid set of hints passes.
-    DatalabFieldExtra(
+    quantity = DatalabQuantity(
+        canonical_unit="V",
+        display_units={
+            "V": {"scale": 1},
+            "mV": {"scale": 0.001},
+        },
+        default_display_unit="mV",
+    )
+    field_extra = DatalabFieldExtra(
         datalab_include_field_in_summary=True,
         datalab_ref_types=["equipment"],
-        datalab_quantity={
-            "canonical_unit": "V",
-            "display_units": {
-                "V": {"scale": 1},
-                "mV": {"scale": 0.001},
-            },
-            "default_display_unit": "mV",
-        },
+        datalab_quantity=quantity,
     )
+    assert field_extra.datalab_quantity == quantity
 
 
 def test_validate_schema_hints_checks_canonical_quantity_relationship():
