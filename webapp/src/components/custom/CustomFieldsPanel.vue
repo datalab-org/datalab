@@ -181,7 +181,7 @@
 </template>
 
 <script>
-import { itemTypes, prettifyType } from "@/resources.js";
+import { prettifyType } from "@/resources.js";
 import DialogModal from "@/components/DialogModal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
 import FormattedItemName from "@/components/FormattedItemName.vue";
@@ -251,30 +251,14 @@ export default {
     itemData() {
       return this.$store.state.all_item_data[this.item_id] || {};
     },
-    typeEntry() {
-      return itemTypes[this.itemType];
-    },
     typeSchema() {
       return this.$store.state.schemas[this.itemType]?.attributes?.schema || null;
     },
     typeAttributes() {
       return this.$store.state.schemas[this.itemType]?.attributes || {};
     },
-    baseType() {
-      return this.typeSchema?.datalab_base_type || this.typeEntry?.baseType || null;
-    },
-    baseSchema() {
-      return this.baseType
-        ? this.$store.state.schemas[this.baseType]?.attributes?.schema || null
-        : null;
-    },
     baseFields() {
-      // New servers advertise the exact inherited fields, including those from
-      // the virtual `items` UI base. Fall back to the old base-schema lookup so
-      // the component remains compatible with older sample-derived metadata.
-      const advertised = this.typeAttributes.base_fields;
-      if (Array.isArray(advertised)) return new Set(advertised);
-      return new Set(Object.keys(this.baseSchema?.properties || {}));
+      return new Set(this.typeAttributes.base_fields || []);
     },
     sectionTitle() {
       return this.typeSchema?.datalab_section_title || null;
