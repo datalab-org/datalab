@@ -73,7 +73,7 @@
                   v-if="field.quantity.units.length > 1"
                   class="form-control unit-select"
                   :value="selectedDisplayUnit(field)"
-                  @change="updateDisplayUnit(field, $event.target.value)"
+                  @change="requestDisplayUnitChange(field, $event)"
                 >
                   <option v-for="u in field.quantity.units" :key="u" :value="u">
                     {{ u }}
@@ -147,11 +147,42 @@
       <!-- plugin-card-body -->
     </div>
     <!-- plugin-card -->
+
+    <DialogModal
+      :is-visible="pendingUnitChange !== null"
+      title="Change display unit"
+      type="confirm"
+      confirm-button-text="Convert value"
+      cancel-button-text="Keep number"
+      :show-cancel-button="true"
+      :show-close-button="false"
+      @confirm="convertUnitValue"
+      @cancel="keepUnitValue"
+    >
+      <template v-if="pendingUnitChange">
+        <p>
+          <strong>{{ pendingUnitChange.field.title }}</strong> is currently
+          <strong>{{ pendingUnitChange.displayedValue }} {{ pendingUnitChange.fromUnit }}</strong
+          >. Choose how to change it to {{ pendingUnitChange.toUnit }}.
+        </p>
+        <p>
+          <strong>Convert value:</strong> preserve the quantity and display
+          <strong>{{ pendingUnitChange.convertedValue }} {{ pendingUnitChange.toUnit }}</strong
+          >.
+        </p>
+        <p class="mb-0">
+          <strong>Keep number:</strong> preserve {{ pendingUnitChange.displayedValue }} and
+          reinterpret it as <strong>{{ pendingUnitChange.toUnit }}</strong
+          >. This changes the stored quantity.
+        </p>
+      </template>
+    </DialogModal>
   </div>
 </template>
 
 <script>
 import { itemTypes, prettifyType } from "@/resources.js";
+import DialogModal from "@/components/DialogModal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
 import FormattedItemName from "@/components/FormattedItemName.vue";
 
@@ -208,13 +239,13 @@ function resolveField(name, rawSchema) {
 
 export default {
   name: "CustomFieldsPanel",
-  components: { ItemSelect, FormattedItemName },
+  components: { DialogModal, ItemSelect, FormattedItemName },
   props: {
     item_id: { type: String, required: true },
     itemType: { type: String, required: true },
   },
   data() {
-    return { localDisplayUnits: {} };
+    return { localDisplayUnits: {}, pendingUnitChange: null };
   },
   computed: {
     itemData() {
@@ -342,8 +373,7 @@ export default {
       }
       this.$store.commit("updateItemData", { item_id: this.item_id, item_data: itemData });
     },
-    updateDisplayUnit(field, unit) {
-      const displayedValue = this.displayValue(field);
+    setDisplayUnit(field, unit, displayedValue = "") {
       this.localDisplayUnits[field.name] = unit;
 
       const itemData = {};
@@ -354,7 +384,43 @@ export default {
       if (field.quantity.displayUnitField) {
         itemData[field.quantity.displayUnitField] = unit;
       }
-      this.$store.commit("updateItemData", { item_id: this.item_id, item_data: itemData });
+      if (Object.keys(itemData).length) {
+        this.$store.commit("updateItemData", { item_id: this.item_id, item_data: itemData });
+      }
+    },
+    requestDisplayUnitChange(field, event) {
+      const fromUnit = this.selectedDisplayUnit(field);
+      const toUnit = event.target.value;
+      event.target.value = fromUnit;
+      if (toUnit === fromUnit) return;
+
+      const displayedValue = this.displayValue(field);
+      if (displayedValue === "") {
+        this.setDisplayUnit(field, toUnit);
+        return;
+      }
+
+      const canonicalValue = this.itemData[field.name];
+      const transform = field.quantity.transforms[toUnit];
+      this.pendingUnitChange = {
+        field,
+        fromUnit,
+        toUnit,
+        displayedValue,
+        convertedValue: (Number(canonicalValue) - (transform.offset || 0)) / transform.scale,
+      };
+    },
+    convertUnitValue() {
+      const change = this.pendingUnitChange;
+      if (!change) return;
+      this.setDisplayUnit(change.field, change.toUnit);
+      this.pendingUnitChange = null;
+    },
+    keepUnitValue() {
+      const change = this.pendingUnitChange;
+      if (!change) return;
+      this.setDisplayUnit(change.field, change.toUnit, change.displayedValue);
+      this.pendingUnitChange = null;
     },
     updateField(fieldName, value) {
       this.$store.commit("updateItemData", {
