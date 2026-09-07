@@ -7,9 +7,11 @@ from datetime import datetime, timedelta, timezone
 import gridfs
 from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_user
+from pymongo import ReturnDocument
 from werkzeug.exceptions import BadRequest, NotFound, NotImplemented
 
 from pydatalab.apps import BLOCK_TYPES
+from pydatalab.blocks import store
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
 from pydatalab.login import get_by_id
@@ -77,9 +79,8 @@ def _process_block_async(
                 {"item_id": block_data["item_id"], **get_default_permissions(user_only=True)},
                 projection={f"blocks_obj.{block_data['block_id']}": 1},
             )
-            stored_block_data = (
-                (stored_item or {}).get("blocks_obj", {}).get(block_data["block_id"])
-            )
+            stored_blocks = store.load_blocks_obj(stored_item or {})
+            stored_block_data = stored_blocks.get(block_data["block_id"])
 
             block = BLOCK_TYPES[block_type].from_web(block_data, stored_data=stored_block_data)
 
@@ -256,15 +257,34 @@ def add_data_block():
     else:
         display_order_update = block.block_id
 
+    # Check the item exists and the user has write access before creating the
+    # block document, to avoid orphaning it below.
+    if not flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=True)}, {"_id": 1}
+    ):
+        return (
+            jsonify(
+                status="error",
+                message=f"Update failed. {item_id=} is probably incorrect.",
+            ),
+            400,
+        )
+
+    # New blocks are born as separate documents in the `blocks` collection;
+    # the item only stores a reference to them. No version is committed until
+    # the next item version snapshot.
+    block_immutable_id = store.create_block_document(block)
+
     result = flask_mongo.db.items.update_one(
         {"item_id": item_id, **get_default_permissions(user_only=True)},
         {
             "$push": {"display_order": display_order_update},
-            "$set": {f"blocks_obj.{block.block_id}": block.to_db()},
+            "$set": {f"blocks_obj.{block.block_id}": {"immutable_id": block_immutable_id}},
         },
     )
 
     if result.modified_count < 1:
+        store.delete_block_document(block_immutable_id)
         return (
             jsonify(
                 status="error",
@@ -292,6 +312,11 @@ def _save_block_to_db(block: DataBlock):
     """Save data for a single block within an item to the database,
     overwriting previous data saved there.
 
+    The write is authorized against the parent item and then branches on the
+    block's stored form: a referenced block updates its `blocks` document,
+    while a legacy embedded block is written back into the item's `blocks_obj`
+    as before (a block never changes form).
+
     Parameters:
         block: The instance of DataBlock to save.
 
@@ -299,17 +324,28 @@ def _save_block_to_db(block: DataBlock):
     updated_block = block.to_db()
     update = {"$set": {f"blocks_obj.{block.block_id}": updated_block}}
 
-    match = {
-        "item_id": block.data["item_id"],
-        f"blocks_obj.{block.block_id}": {"$exists": True},
-        **get_default_permissions(user_only=False),
-    }
-    result = flask_mongo.db.items.update_one(match, update)
-
-    if result.matched_count != 1:
+    stored_blocks_obj_value = store.authorize_and_get_blocks_data(
+        block.data.get("item_id"), block.block_id
+    )
+    if stored_blocks_obj_value is None:
         raise BadRequest(
-            f"Failed to save block, likely because item_id ({block.data.get('item_id')}), and/or block_id ({block.block_id}) wasn't found"
+            f"Failed to save block, likely because block_id ({block.block_id}) wasn't found on item ({block.data.get('item_id')})"
         )
+
+    if store.is_block_reference(stored_blocks_obj_value):
+        store.update_block_document(stored_blocks_obj_value["immutable_id"], updated_block)
+    else:
+        match = {
+            "item_id": block.data["item_id"],
+            f"blocks_obj.{block.block_id}": {"$exists": True},
+            **get_default_permissions(user_only=False),
+        }
+        result = flask_mongo.db.items.update_one(match, update)
+
+        if result.matched_count != 1:
+            raise BadRequest(
+                f"Failed to save block, likely because item_id ({block.data.get('item_id')}) and/or block_id ({block.block_id}) wasn't found"
+            )
 
 
 @BLOCKS.route("/update-block/", methods=["POST"])
@@ -342,8 +378,10 @@ def update_block():
     if not item:
         raise NotFound(f"Item with item_id {item_id} not found or not accessible")
 
+    # `blocks_obj` holds a reference for separated blocks, so the stored payload
+    # has to be resolved before it can restore server-authoritative fields.
     block = BLOCK_TYPES[block_type].from_web(
-        block_data, stored_data=item.get("blocks_obj", {}).get(block_data["block_id"])
+        block_data, stored_data=store.load_blocks_obj(item).get(block_data["block_id"])
     )
 
     from pydatalab.config import CONFIG
@@ -430,7 +468,9 @@ def delete_block():
     item_id = request_json["item_id"]
     block_id = request_json["block_id"]
 
-    result = flask_mongo.db.items.update_one(
+    # Atomically remove the block from the item and read back its pre-deletion
+    # state.
+    doc_before = flask_mongo.db.items.find_one_and_update(
         {"item_id": item_id, **get_default_permissions(user_only=True)},
         {
             "$pull": {
@@ -439,9 +479,18 @@ def delete_block():
             },
             "$unset": {f"blocks_obj.{block_id}": ""},
         },
+        projection={f"blocks_obj.{block_id}": 1, "display_order": 1},
+        return_document=ReturnDocument.BEFORE,
     )
 
-    if result.modified_count < 1:
+    stored_blocks_obj_value = (
+        (doc_before.get("blocks_obj") or {}).get(block_id) if doc_before else None
+    )
+
+    block_was_present = stored_blocks_obj_value is not None or (
+        doc_before is not None and block_id in (doc_before.get("display_order") or [])
+    )
+    if not block_was_present:
         return (
             jsonify(
                 {
@@ -451,6 +500,10 @@ def delete_block():
             ),
             400,
         )
+
+    if store.is_block_reference(stored_blocks_obj_value):
+        store.delete_block_document(stored_blocks_obj_value["immutable_id"])
+
     return (
         jsonify({"status": "success"}),
         200,
