@@ -226,6 +226,9 @@ export default {
     typeSchema() {
       return this.$store.state.schemas[this.itemType]?.attributes?.schema || null;
     },
+    typeAttributes() {
+      return this.$store.state.schemas[this.itemType]?.attributes || {};
+    },
     baseType() {
       return this.typeSchema?.datalab_base_type || this.typeEntry?.baseType || null;
     },
@@ -233,6 +236,14 @@ export default {
       return this.baseType
         ? this.$store.state.schemas[this.baseType]?.attributes?.schema || null
         : null;
+    },
+    baseFields() {
+      // New servers advertise the exact inherited fields, including those from
+      // the virtual `items` UI base. Fall back to the old base-schema lookup so
+      // the component remains compatible with older sample-derived metadata.
+      const advertised = this.typeAttributes.base_fields;
+      if (Array.isArray(advertised)) return new Set(advertised);
+      return new Set(Object.keys(this.baseSchema?.properties || {}));
     },
     sectionTitle() {
       return this.typeSchema?.datalab_section_title || null;
@@ -248,13 +259,12 @@ export default {
       return fields;
     },
     customFields() {
-      if (!this.typeSchema || !this.baseSchema) return [];
+      if (!this.typeSchema) return [];
       const typeProps = this.typeSchema.properties || {};
-      const baseProps = this.baseSchema ? Object.keys(this.baseSchema.properties || {}) : [];
 
       return Object.entries(typeProps)
         .filter(([name, schema]) => {
-          if (baseProps.includes(name) || name === "type") return false;
+          if (this.baseFields.has(name) || name === "type") return false;
           if (this.quantityDisplayFields.has(name)) return false;
           const extra = schema["x-json_schema_extra"] || schema;
           if (extra.datalab_hidden) return false;
