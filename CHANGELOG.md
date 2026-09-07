@@ -4,6 +4,17 @@
 > Release candidates and other pre-releases are not included in this changelog; there may be more
 recent changes described in the [release notes on GitHub](https://github.com/datalab-org/datalab/releases).
 
+## v0.7.8 (September 2026)
+
+This minor release bumps the Debian version used in the app container and updates navani to fix a bug with Neware data import.
+
+### What's Changed
+
+* Backport navani bump to fix Neware timestamp issue by @ml-evs in https://github.com/datalab-org/datalab/pull/2081
+* Backport 'Bump Debian version to trixie in app docker build' by @ml-evs in https://github.com/datalab-org/datalab/pull/2086
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.7...v0.7.8
+
 ## v0.7.7 (August 2026)
 
 Another release with backported fixes and usability improvements, this time focusing on the TipTap WYSIWYG editor used in the ELN, enabling resizable images and fixing the markdown previewer, as well as a fix for the webapp over requesting data from blocks.
