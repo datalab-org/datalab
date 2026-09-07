@@ -17,6 +17,7 @@
     "prosemirror-view": "1.41.1"
   },
   "dependencies": {
+    "@bokeh/bokehjs": "2.4.3",
     "@fortawesome/fontawesome-svg-core": "^1.2.26-2",
     "@fortawesome/free-brands-svg-icons": "^5.15.4",
     "@fortawesome/free-regular-svg-icons": "^5.15.2",
