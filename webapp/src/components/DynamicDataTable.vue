@@ -231,6 +231,7 @@
             filter-placeholder="Search all tags"
             :reset-filter-on-hide="true"
             :virtual-scroller-options="{ itemSize: 38 }"
+            append-to="self"
             @click.stop
           >
             <template #option="slotProps">
