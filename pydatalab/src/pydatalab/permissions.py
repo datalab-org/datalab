@@ -1,9 +1,11 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 import datetime
 from functools import wraps
 from hashlib import sha512
 from typing import Any
 
 from bson import ObjectId
+from bson.errors import InvalidId
 from flask import g, request
 from flask_login import current_user
 from werkzeug.exceptions import Forbidden, Unauthorized
@@ -156,6 +158,45 @@ def admin_only(func):
         return {"error": "Insufficient privileges"}, 403
 
     return wrapped_route
+
+
+def with_notification_permissions(func):
+    """Decorator to inject the notification permission filter for the current user."""
+
+    @wraps(func)
+    def wrapped_route(*args, **kwargs):
+        if current_user.is_authenticated and current_user.person is not None:
+            kwargs["notification_permissions"] = {"recipient_id": current_user.person.immutable_id}
+        else:
+            kwargs["notification_permissions"] = {"_id": -1}
+        return func(*args, **kwargs)
+
+    return wrapped_route
+
+
+def notification_recipient_only(func):
+    """Decorator to load a notification only if it belongs to the current user."""
+
+    @wraps(func)
+    def wrapped_route(*args, **kwargs):
+        # notifications_permissions are injected by the with_notification_permissions decorator(see below)
+        notification_permissions = kwargs["notification_permissions"]
+        raw_notification_id = kwargs.pop("notification_id")
+        try:
+            notification_object_id = ObjectId(raw_notification_id)
+        except (InvalidId, TypeError):
+            return {"error": f"Invalid notification_id {raw_notification_id!r}."}, 400
+
+        notification = flask_mongo.db.notifications.find_one(
+            {"_id": notification_object_id, **notification_permissions}
+        )
+        if notification is None:
+            return {"error": "Notification not found."}, 404
+
+        kwargs["notification"] = notification
+        return func(*args, **kwargs)
+
+    return with_notification_permissions(wrapped_route)
 
 
 def authenticate(authentication_error):
