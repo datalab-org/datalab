@@ -84,6 +84,14 @@
       >
         Add an item
       </button>
+      <button
+        v-if="dataType === 'tags' && isLoggedIn"
+        data-testid="add-tag-button"
+        class="btn btn-default"
+        @click="$emit('open-create-tag-modal')"
+      >
+        Create new tag
+      </button>
 
       <div class="button-bar-spacer"></div>
 
@@ -167,7 +175,9 @@
         >
           <a
             v-if="
-              !['collections', 'collectionItems', 'users', 'tokens', 'groups'].includes(dataType)
+              !['collections', 'collectionItems', 'users', 'tokens', 'groups', 'tags'].includes(
+                dataType,
+              )
             "
             data-testid="add-to-collection-button"
             class="dropdown-item"
@@ -185,7 +195,9 @@
           </a>
           <a
             v-if="
-              !['collections', 'collectionItems', 'users', 'tokens', 'groups'].includes(dataType)
+              !['collections', 'collectionItems', 'users', 'tokens', 'groups', 'tags'].includes(
+                dataType,
+              )
             "
             data-testid="batch-share-button"
             class="dropdown-item"
@@ -313,6 +325,7 @@ import {
   saveUserManagers,
   invalidateToken,
   deleteGroup,
+  deleteTag,
 } from "@/server_fetch_utils.js";
 
 export default {
@@ -374,6 +387,7 @@ export default {
     "open-qr-scanner-modal",
     "open-create-collection-modal",
     "open-create-equipment-modal",
+    "open-create-tag-modal",
     "open-add-to-collection-modal",
     "open-batch-share-modal",
     "delete-selected-items",
@@ -419,14 +433,21 @@ export default {
   },
   methods: {
     async confirmDeletion() {
-      const idsSelected = this.itemsSelected.map((x) => x.item_id || x.collection_id);
-      let idsSelectedLabel = idsSelected;
-      if (idsSelected.length > 10) {
-        idsSelectedLabel = idsSelected.slice(0, 10).join(", ") + ", ...";
+      const isTags = this.dataType === "tags";
+      const idsSelected = this.itemsSelected.map(
+        (x) => x.item_id || x.collection_id || x.immutable_id,
+      );
+      // Tags have no human id; label them by name instead of immutable_id.
+      const labels = isTags ? this.itemsSelected.map((x) => x.name) : idsSelected;
+      let labelText = labels;
+      if (labels.length > 10) {
+        labelText = labels.slice(0, 10).join(", ") + ", ...";
       }
       const confirmed = await DialogService.confirm({
         title: "Confirm Deletion",
-        message: `Are you sure you want to delete ${this.itemsSelected.length} selected items? (${idsSelectedLabel})`,
+        message: isTags
+          ? `Are you sure you want to delete ${this.itemsSelected.length} selected tag(s)? They will be removed from any items using them. (${labelText})`
+          : `Are you sure you want to delete ${this.itemsSelected.length} selected items? (${labelText})`,
         type: "warning",
       });
       if (confirmed) {
@@ -450,6 +471,8 @@ export default {
           deletePromises = ids.map((id) => deleteStartingMaterial(id));
         } else if (this.dataType === "equipment") {
           deletePromises = ids.map((id) => deleteEquipment(id));
+        } else if (this.dataType === "tags") {
+          deletePromises = ids.map((id) => deleteTag(id));
         }
 
         await Promise.all(deletePromises);
