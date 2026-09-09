@@ -1654,10 +1654,10 @@
     "@testing-library/dom" "^9.3.3"
     "@vue/test-utils" "^2.4.1"
 
-"@tiptap/core@^3.29.2":
-  version "3.29.2"
-  resolved "https://registry.yarnpkg.com/@tiptap/core/-/core-3.29.2.tgz#90d24591a9e7fb450ffb95ed6a42f529348e3e9e"
-  integrity sha512-oKUkiPUB7noilVYxI9lNzUD4rX17sHub+PYjMfHMWHG9A3nvIy+FdePIVIIhThKWF7ijhr3eIqHY51Bn+GAFtw==
+"@tiptap/core@^3.29.2", "@tiptap/core@^3.30.5":
+  version "3.30.5"
+  resolved "https://registry.yarnpkg.com/@tiptap/core/-/core-3.30.5.tgz#9929ae10a5e0892fb1a38a197ae8208cdd3801ea"
+  integrity sha512-3O7N0FyKIfuLV+xrdWyDM3V5eUY/q2CgLjhhMwOAbM1Pu7VPp9VP+TpEYOdH8aRyB+h1vj5hX5A747D8ZrPfHA==
 
 "@tiptap/extension-blockquote@^3.29.2":
   version "3.29.2"
