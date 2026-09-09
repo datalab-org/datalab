@@ -17,7 +17,7 @@
       <span v-else class="empty-search"> Type a search term... </span>
     </template>
     <template #option="{ type, item_id, name, chemform, status, location }">
-      <span v-if="status != 'dummy'" class="item-status"
+      <span v-if="status != null && status != 'dummy'" class="item-status"
         ><FormattedItemStatus :status="status"
       /></span>
       <FormattedItemName
@@ -32,7 +32,7 @@
       />
     </template>
     <template #selected-option="{ type, item_id, name, status }">
-      <FormattedItemStatus :status="status" />
+      <FormattedItemStatus v-if="status != null" :status="status" />
       <FormattedItemName
         :item_id="item_id"
         :item-type="type"

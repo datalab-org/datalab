@@ -16,7 +16,12 @@ from werkzeug.exceptions import BadRequest, Conflict, InternalServerError, NotFo
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
-from pydatalab.models import ITEM_MODELS, ItemVersion, flagged_summary_fields
+from pydatalab.models import (
+    BUILTIN_ITEM_TYPES,
+    ITEM_MODELS,
+    ItemVersion,
+    flagged_summary_fields,
+)
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import (
@@ -296,7 +301,10 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
     if not match:
         match = {}
     match.update(get_default_permissions(user_only=False, inherit_from_collections=False))
-    match["type"] = {"$in": ["samples", "cells"]}
+    # Custom/plugin item types are surfaced in the samples listing for now (a
+    # `base_type`-aware split into samples/equipment/inventory can refine this later).
+    custom_item_types = [t for t in ITEM_MODELS if t not in BUILTIN_ITEM_TYPES]
+    match["type"] = {"$in": ["samples", "cells", *custom_item_types]}
 
     _project = {
         "_id": 0,
@@ -339,9 +347,9 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
         "status": 1,
     }
 
-    # Include any fields on samples/cells (including custom subclasses) that opt
-    # into summaries via `datalab_include_field_in_summary`.
-    for field in flagged_summary_fields(("samples", "cells")):
+    # Include any fields on samples/cells/custom types that opt into summaries
+    # via `datalab_include_field_in_summary`.
+    for field in flagged_summary_fields(ITEM_MODELS):
         _project.setdefault(field, 1)
 
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check

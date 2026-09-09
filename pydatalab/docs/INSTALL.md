@@ -118,7 +118,7 @@ cd pydatalab
 uv run invoke dev.install
 ```
 
-This merges `plugins.toml` into a working copy of `pyproject.toml` under `./build/`, re-locks dependencies, and installs everything into the currently active *datalab* virtual environment. The same task is used by the production Docker build and can be wired into the Ansible deployment role, so the `plugins.toml` you write locally is the same artifact used in production.
+This merges `plugins.toml` into a working copy of `pyproject.toml` under `./build/`, re-locks dependencies, installs everything into the currently active *datalab* virtual environment, and collects any custom Vue panels when the webapp source is present. No separate panel collection command is required. The same task is used by the Docker builds and can be wired into the Ansible deployment role, so the `plugins.toml` you write locally is the same artifact used in production.
 
 See the [plugins documentation](plugins.md) for the `plugins.toml` format and a full description of the install procedure.
 
