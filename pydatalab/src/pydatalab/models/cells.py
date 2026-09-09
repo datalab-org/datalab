@@ -11,6 +11,11 @@ from pydatalab.models.entries import EntryReference
 from pydatalab.models.items import Item
 from pydatalab.models.utils import CellStatus, Constituent
 
+# Conversion factor from nominal_capacity_unit to the base unit (mAh). Single source of
+# truth: used by `set_nominal_capacity`, so any downstream consumer normalizes
+# consistently regardless of which unit is currently selected on a given item.
+NOMINAL_CAPACITY_TO_MAH = {"mAh": 1, "Ah": 1e3}
+
 
 class CellComponent(Constituent): ...
 
@@ -72,6 +77,28 @@ class Cell(Item):
     status: CellStatus = Field(default=CellStatus.ACTIVE)
     """The status of the cells, indicating its current state."""
 
+    theoretical_capacity: float | None = None
+    """The theoretical specific capacity of the active material, in mAh/g."""
+
+    nominal_capacity_unit: Literal["mAh", "Ah"] = "mAh"
+    """The unit that `nominal_capacity` is given in."""
+
+    nominal_capacity: float | None = None
+    """The nominal capacity of the cell. Computed as `theoretical_capacity *
+    characteristic_mass` unless `nominal_capacity_manual` is set, in which case the
+    user-supplied value is kept as-is. See `set_nominal_capacity`."""
+
+    nominal_capacity_manual: bool = False
+    """Whether `nominal_capacity` was entered directly by a user rather than computed
+    from `theoretical_capacity` and `characteristic_mass`. When set, `set_nominal_capacity`
+    will not overwrite `nominal_capacity`/`nominal_capacity_mah` on save."""
+
+    nominal_capacity_mah: float | None = None
+    """`nominal_capacity` normalized to mAh, regardless of the unit currently selected
+    on this item (`nominal_capacity_unit`). Prefer this field over `nominal_capacity`
+    whenever comparing or aggregating across cells, since `nominal_capacity_unit` can
+    differ from item to item."""
+
     @field_validator("characteristic_molar_mass", mode="before")
     @classmethod
     def set_molar_mass(cls, v, info):
@@ -85,6 +112,33 @@ class Cell(Item):
                 except Exception:
                     return None
         return v
+
+    @model_validator(mode="after")
+    def set_nominal_capacity(self):
+        if self.nominal_capacity_manual:
+            # Trust the user-supplied value; just normalize it to mAh for comparison
+            # across items with different `nominal_capacity_unit`.
+            if self.nominal_capacity is None:
+                self.nominal_capacity_mah = None
+            else:
+                self.nominal_capacity_mah = (
+                    self.nominal_capacity * NOMINAL_CAPACITY_TO_MAH[self.nominal_capacity_unit]
+                )
+            return self
+
+        if self.theoretical_capacity is None or self.characteristic_mass is None:
+            self.nominal_capacity_mah = None
+            return self
+
+        # theoretical_capacity is in mAh/g; characteristic_mass is in mg (divide by
+        # 1000 to get grams).
+        nominal_capacity_mah = self.theoretical_capacity * self.characteristic_mass / 1000
+
+        self.nominal_capacity_mah = nominal_capacity_mah
+        self.nominal_capacity = (
+            nominal_capacity_mah / NOMINAL_CAPACITY_TO_MAH[self.nominal_capacity_unit]
+        )
+        return self
 
     @model_validator(mode="after")
     def add_missing_electrode_relationships(self):
