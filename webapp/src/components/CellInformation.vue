@@ -105,16 +105,26 @@
             />
           </div>
           <div class="form-group col-lg-4 col-md-4">
-            <label
-              for="cell-nominal-capacity"
-              title="Computed live as theoretical capacity × active mass."
-            >
+            <label for="cell-nominal-capacity">
               Nominal capacity
+              <a
+                v-if="NominalCapacityManual"
+                href="#"
+                class="ml-1"
+                title="Reset to the value calculated from theoretical capacity × active mass."
+                @click.prevent="resetNominalCapacityToCalculated"
+              >
+                (reset to calculated)
+              </a>
             </label>
             <div class="input-group">
-              <div id="cell-nominal-capacity" class="form-control">
-                {{ NominalCapacityDisplay }}
-              </div>
+              <input
+                id="cell-nominal-capacity"
+                v-model="NominalCapacityInput"
+                class="form-control"
+                type="text"
+                :class="{ 'red-border': isNaN(NominalCapacityInput) }"
+              />
               <div class="input-group-append">
                 <select v-model="NominalCapacityUnit" class="form-control">
                   <option value="mAh">mAh</option>
@@ -122,6 +132,9 @@
                 </select>
               </div>
             </div>
+            <small v-if="NominalCapacityMismatchWarning" class="form-text text-warning">
+              {{ NominalCapacityMismatchWarning }}
+            </small>
           </div>
         </div>
         <div class="row">
@@ -208,14 +221,17 @@ export default {
     Status: createComputedSetterForItemField("status"),
     TheoreticalCapacity: createComputedSetterForItemField("theoretical_capacity"),
     NominalCapacityUnit: createComputedSetterForItemField("nominal_capacity_unit"),
+    NominalCapacityManual: createComputedSetterForItemField("nominal_capacity_manual"),
     schema() {
       return this.$store.state.schemas[this.item?.type];
     },
     possibleItemStatuses() {
       return this.schema?.attributes?.schema?.["$defs"]?.CellStatus?.enum;
     },
-    // Recomputed live from the store on every render — no save round-trip needed.
-    NominalCapacity() {
+    // The value that would be calculated from theoretical capacity × active mass,
+    // in the currently selected unit. Used both to auto-fill the field while it is
+    // not manually overridden, and to warn when a manual value diverges from it.
+    CalculatedNominalCapacity() {
       const nominalCapacityToMah = { mAh: 1, Ah: 1e3 };
 
       // theoretical_capacity is always mAh/g.
@@ -231,20 +247,59 @@ export default {
       const mAh = (theoreticalCapacity * characteristicMass) / 1000;
       return mAh / nominalCapacityToMah[nominalCapacityUnit];
     },
-    NominalCapacityDisplay() {
-      return this.NominalCapacity === null ? "—" : this.NominalCapacity.toFixed(4);
+    NominalCapacityInput: {
+      get() {
+        if (this.NominalCapacityManual) {
+          return this.item?.nominal_capacity;
+        }
+        return this.CalculatedNominalCapacity === null
+          ? null
+          : Number(this.CalculatedNominalCapacity.toFixed(4));
+      },
+      set(value) {
+        const numericValue = value === "" ? null : Number(value);
+        this.$store.commit("updateItemData", {
+          item_id: this.item_id,
+          item_data: { nominal_capacity: numericValue, nominal_capacity_manual: true },
+        });
+      },
+    },
+    NominalCapacityMismatchWarning() {
+      if (!this.NominalCapacityManual) {
+        return null;
+      }
+      const manualValue = Number(this.item?.nominal_capacity);
+      if (!Number.isFinite(manualValue) || this.CalculatedNominalCapacity === null) {
+        return null;
+      }
+      if (Math.abs(manualValue - this.CalculatedNominalCapacity) < 1e-6) {
+        return null;
+      }
+      return `Doesn't match the value calculated from theoretical capacity × active mass (${this.CalculatedNominalCapacity.toFixed(4)} ${this.NominalCapacityUnit || "mAh"}).`;
     },
   },
   watch: {
-    // Persist the live-computed value too, so it's saved without relying on a
-    // server round-trip (the backend validator recomputes it again on save).
-    NominalCapacity(value) {
-      if (value !== null && value !== this.item?.nominal_capacity) {
+    // While the field is not manually overridden, keep the persisted value in sync
+    // with the live-computed one, so it's saved without relying on a server
+    // round-trip (the backend validator recomputes it again on save regardless).
+    CalculatedNominalCapacity(value) {
+      if (!this.NominalCapacityManual && value !== null && value !== this.item?.nominal_capacity) {
         this.$store.commit("updateItemData", {
           item_id: this.item_id,
           item_data: { nominal_capacity: value },
         });
       }
+    },
+  },
+  methods: {
+    resetNominalCapacityToCalculated() {
+      this.$store.commit("updateItemData", {
+        item_id: this.item_id,
+        item_data: {
+          nominal_capacity_manual: false,
+          nominal_capacity: this.CalculatedNominalCapacity,
+        },
+      });
     },
   },
 };
