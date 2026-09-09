@@ -764,3 +764,9 @@ def test_validate_schema_hints_raises_for_bad_field_hint():
 
     with pytest.raises(ValueError, match="widget"):
         validate_schema_hints(_BadHints)
+
+    class _InvalidExtra(BaseModel):
+        widget: str | None = Field(None, json_schema_extra="bad")  # type: ignore[arg-type]
+
+    with pytest.raises(ValueError, match="expected a dict, callable, or None"):
+        validate_schema_hints(_InvalidExtra)

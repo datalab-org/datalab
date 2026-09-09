@@ -43,19 +43,6 @@
       "default": null,
       "description": "Title of the default custom-fields card.",
       "title": "Datalab Section Title"
-    },
-    "datalab_base_type": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "description": "Built-in type this derives from, when not inferable from the class hierarchy.",
-      "title": "Datalab Base Type"
     }
   },
   "title": "DatalabModelExtra",

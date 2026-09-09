@@ -59,6 +59,7 @@
         "scale": {
           "default": 1.0,
           "description": "Multiplier in ``canonical = displayed * scale + offset``.",
+          "exclusiveMinimum": 0,
           "title": "Scale",
           "type": "number"
         },

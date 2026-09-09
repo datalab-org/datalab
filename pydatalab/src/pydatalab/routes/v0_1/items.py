@@ -1756,19 +1756,10 @@ def save_item():
     if isinstance(existing_last_modified, datetime.datetime):
         existing_last_modified = existing_last_modified.isoformat()
 
-    # Fields explicitly set to null in the incoming update must be cleared in the DB.
-    # model_dump(exclude_none=True) silently drops them from `item`, so we $unset separately.
-    # Skip any field still present in `item` (e.g. re-filled by a model validator):
-    # the same path in both $set and $unset is a MongoDB conflict error.
-    fields_to_unset = {k for k, v in updated_data.items() if v is None and k not in item}
-
     # Update the item FIRST (transaction safety: item update before version save)
-    mongo_update: dict = {"$set": item}
-    if fields_to_unset:
-        mongo_update["$unset"] = {f: "" for f in fields_to_unset}
     result = flask_mongo.db.items.update_one(
         {"item_id": item_id, **get_default_permissions(user_only=True)},
-        mongo_update,
+        {"$set": item},
     )
 
     if result.matched_count != 1:

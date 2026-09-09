@@ -59,9 +59,6 @@ class DatalabModelExtra(BaseModel):
     datalab_section_title: str | None = None
     """Title of the default custom-fields card."""
 
-    datalab_base_type: str | None = None
-    """Built-in type this derives from, when not inferable from the class hierarchy."""
-
 
 def _datalab_hint_keys(extra: dict) -> dict:
     """Pick the ``datalab_*`` hint keys out of a raw ``json_schema_extra`` dict.
@@ -107,6 +104,10 @@ def validate_schema_hints(model: type[BaseModel]) -> None:
     name = getattr(model, "__name__", str(model))
 
     model_extra = model.model_config.get("json_schema_extra")
+    if model_extra is not None and not callable(model_extra) and not isinstance(model_extra, dict):
+        raise ValueError(
+            f"Invalid json_schema_extra on {name!r}: expected a dict, callable, or None"
+        )
     if isinstance(model_extra, dict):
         try:
             DatalabModelExtra(**_datalab_hint_keys(model_extra))
@@ -119,8 +120,13 @@ def validate_schema_hints(model: type[BaseModel]) -> None:
 
     for field_name, field in model.model_fields.items():
         field_extra = field.json_schema_extra
-        if not isinstance(field_extra, dict):
+        if field_extra is None or callable(field_extra):
             continue
+        if not isinstance(field_extra, dict):
+            raise ValueError(
+                f"Invalid json_schema_extra on {name!r}.{field_name!r}: "
+                "expected a dict, callable, or None"
+            )
         try:
             parsed = DatalabFieldExtra(**_datalab_hint_keys(field_extra))
         except ValidationError as exc:
