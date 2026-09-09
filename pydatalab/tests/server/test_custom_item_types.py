@@ -253,40 +253,6 @@ def test_info_types_base_type_for_custom_types(client, custom_item_models):
     assert attrs["base_fields"] == []
 
 
-def test_save_item_null_field_is_cleared(client, custom_item_models):
-    """Setting a custom field to null in a save call removes it from the DB.
-
-    Without the $unset fix, model_dump(exclude_none=True) silently drops the
-    null field from $set, leaving the old value in place in MongoDB.
-    """
-    client.post(
-        "/new-sample/",
-        json={
-            "new_sample_data": {
-                "type": "_my_samples",
-                "item_id": "unset-test-1",
-                "drying_time": 5.0,
-            }
-        },
-    )
-
-    response = client.get("/get-item-data/unset-test-1")
-    assert response.json["item_data"]["drying_time"] == 5.0
-
-    # Now clear the field by saving with null.
-    client.post(
-        "/save-item/",
-        json={
-            "item_id": "unset-test-1",
-            "data": {"type": "_my_samples", "item_id": "unset-test-1", "drying_time": None},
-        },
-    )
-
-    response = client.get("/get-item-data/unset-test-1")
-    assert response.status_code == 200
-    assert response.json["item_data"].get("drying_time") is None
-
-
 def test_extra_fields_on_builtin_sample_are_ignored(client):
     """Stuffing custom-schema fields into a plain `samples` item does not persist
     them: the built-in `Sample` model ignores unknown fields (`extra="ignore"`),

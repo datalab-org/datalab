@@ -1,8 +1,6 @@
 """Models describing unit conversions for numeric item fields."""
 
-import math
-
-from pydantic import ConfigDict, Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, model_validator
 
 from pydatalab.models.utils import BaseModel
 
@@ -12,25 +10,11 @@ class DatalabUnitTransform(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    scale: float = 1.0
+    scale: float = Field(default=1.0, gt=0, allow_inf_nan=False)
     """Multiplier in ``canonical = displayed * scale + offset``."""
 
-    offset: float = 0.0
+    offset: float = Field(default=0.0, allow_inf_nan=False)
     """Offset in ``canonical = displayed * scale + offset``."""
-
-    @field_validator("scale")
-    @classmethod
-    def _valid_scale(cls, value: float) -> float:
-        if not math.isfinite(value) or value <= 0:
-            raise ValueError("scale must be positive and finite")
-        return value
-
-    @field_validator("offset")
-    @classmethod
-    def _valid_offset(cls, value: float) -> float:
-        if not math.isfinite(value):
-            raise ValueError("offset must be finite")
-        return value
 
 
 class DatalabQuantity(BaseModel):
