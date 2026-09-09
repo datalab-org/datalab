@@ -19,31 +19,23 @@
 <script>
 import DynamicDataTable from "@/components/DynamicDataTable";
 import { getStartingMaterialList } from "@/server_fetch_utils.js";
-import { formatRelativeDate } from "@/field_utils.js";
 
-import FormattedItemName from "@/components/FormattedItemName";
-import FormattedItemStatus from "@/components/FormattedItemStatus";
 import FormattedBarcode from "@/components/FormattedBarcode";
-import ChemicalFormula from "@/components/ChemicalFormula";
-import CollectionList from "@/components/CollectionList";
-import BlocksIconCounter from "@/components/BlocksIconCounter";
-import FilesIconCounter from "@/components/FilesIconCounter";
-import FormattedCollectionName from "@/components/FormattedCollectionName";
-
-import TextFilter from "@/components/TextFilter";
 import MultiSelectFilter from "@/components/MultiSelectFilter";
 
-import { FilterOperator, FilterMatchMode } from "@primevue/core/api";
+import { FilterOperator } from "@primevue/core/api";
+import { matchStringValues, stringValuesOptions } from "@/utils/filterMatchers";
 import {
-  matchStatus,
-  matchCollections,
-  matchBlocks,
-  matchStringValues,
-  collectionsOptions,
-  statusOptions,
-  blocksOptions,
-  stringValuesOptions,
-} from "@/utils/filterMatchers";
+  ITEM_ID_COLUMN,
+  STATUS_COLUMN,
+  NAME_COLUMN,
+  CHEMFORM_COLUMN,
+  DATE_COLUMN,
+  COLLECTIONS_COLUMN,
+  BLOCKS_COLUMN,
+  FILES_COLUMN,
+  LAST_MODIFIED_COLUMN,
+} from "@/utils/tableColumns";
 
 export default {
   components: { DynamicDataTable },
@@ -51,49 +43,16 @@ export default {
     return {
       startingMaterialColumn: [
         {
-          field: "item_id",
-          header: "ID",
-          label: "ID",
+          ...ITEM_ID_COLUMN,
           body: {
-            component: FormattedItemName,
+            ...ITEM_ID_COLUMN.body,
             props: (row) => ({
-              item_id: row.item_id,
+              ...ITEM_ID_COLUMN.body.props(row),
               itemType: row.type !== undefined ? row.type : "starting_materials",
-              enableClick: true,
-              enableModifiedClick: true,
             }),
           },
-          filter: {
-            component: TextFilter,
-            componentProps: { placeholder: "Search by ID" },
-            matchMode: FilterMatchMode.CONTAINS,
-            operator: FilterOperator.AND,
-          },
         },
-        {
-          field: "status",
-          header: "Status",
-          label: "Status",
-          body: {
-            component: FormattedItemStatus,
-            props: (row) => ({ status: row.status }),
-          },
-          filter: {
-            component: MultiSelectFilter,
-            componentProps: {
-              optionLabel: "status",
-              placeholder: "Select status",
-              optionComponent: FormattedItemStatus,
-              optionProps: (opt) => ({ status: opt.status, dotOnly: false }),
-              valueComponent: FormattedItemStatus,
-              valueProps: (val) => ({ status: val.status, dotOnly: false }),
-            },
-            match: matchStatus,
-            operator: FilterOperator.OR,
-            options: statusOptions,
-            noOperator: true,
-          },
-        },
+        STATUS_COLUMN,
         {
           field: "barcode",
           header: "",
@@ -108,51 +67,10 @@ export default {
             }),
           },
         },
-        { field: "name", header: "Name", label: "Name" },
-        {
-          field: "chemform",
-          header: "Formula",
-          label: "Formula",
-          body: {
-            component: ChemicalFormula,
-            props: (row) => ({
-              formula: row.chemform,
-              smiles: row.smiles,
-              inchiKey: row.inchi_key,
-              ghsCodes: row.GHS_codes,
-              molarMass: row.molar_mass,
-              cas: row.CAS,
-            }),
-          },
-        },
-        {
-          field: "date",
-          header: "Date",
-          label: "Date",
-          getValue: (row) => (row.date ? row.date.substring(0, 10) : row.date),
-        },
-        {
-          field: "collections",
-          header: "Collections",
-          label: "Collections",
-          body: {
-            component: CollectionList,
-            props: (row) => ({ collections: row.collections }),
-          },
-          filter: {
-            component: MultiSelectFilter,
-            componentProps: {
-              optionLabel: "collection_id",
-              optionComponent: FormattedCollectionName,
-              optionProps: (opt) => ({ collection_id: opt.collection_id, size: 24 }),
-              valueComponent: FormattedCollectionName,
-              valueProps: (val) => ({ collection_id: val.collection_id, size: 20 }),
-            },
-            match: matchCollections,
-            operator: FilterOperator.AND,
-            options: collectionsOptions,
-          },
-        },
+        NAME_COLUMN,
+        CHEMFORM_COLUMN,
+        DATE_COLUMN,
+        COLLECTIONS_COLUMN,
         {
           field: "supplier",
           header: "Supplier",
@@ -177,41 +95,9 @@ export default {
             options: stringValuesOptions("location"),
           },
         },
-        {
-          field: "blocks",
-          header: "",
-          icon: ["fa", "cubes"],
-          label: "Block",
-          body: {
-            component: BlocksIconCounter,
-            props: (row) => ({ count: row.nblocks, blockInfo: row.blocks }),
-          },
-          filter: {
-            component: MultiSelectFilter,
-            componentProps: { optionLabel: "label", placeholder: "Select block types" },
-            match: matchBlocks,
-            operator: FilterOperator.AND,
-            options: blocksOptions,
-          },
-        },
-        {
-          field: "nfiles",
-          header: "",
-          icon: ["fa", "file"],
-          label: "Files",
-          body: {
-            component: FilesIconCounter,
-            props: (row) => ({ count: row.nfiles }),
-          },
-        },
-        {
-          field: "last_modified",
-          header: "",
-          label: "Last modified",
-          icon: ["fa", "clock"],
-          cellClass: "last-modified-cell",
-          getValue: (row) => formatRelativeDate(row.last_modified),
-        },
+        { ...BLOCKS_COLUMN, label: "Block" },
+        FILES_COLUMN,
+        LAST_MODIFIED_COLUMN,
       ],
     };
   },

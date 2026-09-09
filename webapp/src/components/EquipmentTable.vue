@@ -11,15 +11,9 @@
 import DynamicDataTable from "@/components/DynamicDataTable";
 import { getEquipmentList } from "@/server_fetch_utils.js";
 
-import FormattedItemName from "@/components/FormattedItemName";
-import FormattedItemStatus from "@/components/FormattedItemStatus";
 import Creators from "@/components/Creators";
 
-import TextFilter from "@/components/TextFilter";
-import MultiSelectFilter from "@/components/MultiSelectFilter";
-
-import { FilterOperator, FilterMatchMode } from "@primevue/core/api";
-import { matchStatus, statusOptions } from "@/utils/filterMatchers";
+import { ITEM_ID_COLUMN, STATUS_COLUMN, NAME_COLUMN, DATE_COLUMN } from "@/utils/tableColumns";
 
 export default {
   components: { DynamicDataTable },
@@ -27,57 +21,23 @@ export default {
     return {
       equipmentColumn: [
         {
-          field: "item_id",
-          header: "ID",
+          ...ITEM_ID_COLUMN,
           body: {
-            component: FormattedItemName,
+            ...ITEM_ID_COLUMN.body,
             props: (row) => ({
-              item_id: row.item_id,
+              ...ITEM_ID_COLUMN.body.props(row),
               itemType: row.type !== undefined ? row.type : "equipment",
-              enableClick: true,
-              enableModifiedClick: true,
             }),
           },
-          filter: {
-            component: TextFilter,
-            componentProps: { placeholder: "Search by ID" },
-            matchMode: FilterMatchMode.CONTAINS,
-            operator: FilterOperator.AND,
-          },
         },
-        {
-          field: "status",
-          header: "Status",
-          body: {
-            component: FormattedItemStatus,
-            props: (row) => ({ status: row.status }),
-          },
-          filter: {
-            component: MultiSelectFilter,
-            componentProps: {
-              optionLabel: "status",
-              placeholder: "Select status",
-              optionComponent: FormattedItemStatus,
-              optionProps: (opt) => ({ status: opt.status, dotOnly: false }),
-              valueComponent: FormattedItemStatus,
-              valueProps: (val) => ({ status: val.status, dotOnly: false }),
-            },
-            match: matchStatus,
-            operator: FilterOperator.OR,
-            options: statusOptions,
-            noOperator: true,
-          },
-        },
-        { field: "name", header: "Name" },
-        {
-          field: "date",
-          header: "Date",
-          getValue: (row) => (row.date ? row.date.substring(0, 10) : row.date),
-        },
-        { field: "location", header: "Location" },
+        STATUS_COLUMN,
+        NAME_COLUMN,
+        DATE_COLUMN,
+        { field: "location", header: "Location", label: "Location" },
         {
           field: "creators",
           header: "Maintainers",
+          label: "Maintainers",
           body: {
             component: Creators,
             props: (row) => ({

@@ -13,13 +13,10 @@ import DynamicDataTable from "@/components/DynamicDataTable";
 import { getCollectionList } from "@/server_fetch_utils.js";
 
 import FormattedCollectionName from "@/components/FormattedCollectionName";
-import Creators from "@/components/Creators";
-
 import TextFilter from "@/components/TextFilter";
-import CreatorsAndGroupsFilter from "@/components/CreatorsAndGroupsFilter";
 
 import { FilterOperator, FilterMatchMode } from "@primevue/core/api";
-import { matchCreatorsAndGroups, creatorsAndGroupsOptions } from "@/utils/filterMatchers";
+import { CREATORS_AND_GROUPS_COLUMN } from "@/utils/tableColumns";
 
 export default {
   components: { DynamicDataTable },
@@ -46,33 +43,7 @@ export default {
           },
         },
         { field: "title", header: "Title", label: "Title" },
-        {
-          field: "creatorsAndGroups",
-          header: "Creators",
-          label: "Creators",
-          body: {
-            component: Creators,
-            props: (row) => ({
-              creators: row.creatorsAndGroups
-                ? row.creatorsAndGroups.filter((item) => item.type === "creator")
-                : row.creators || [],
-              groups: row.creatorsAndGroups
-                ? row.creatorsAndGroups.filter((item) => item.type === "group")
-                : row.groups || [],
-              showNames:
-                (row.creatorsAndGroups || row.creators || []).filter(
-                  (item) => !item.type || item.type === "creator",
-                ).length === 1,
-              showBubble: true,
-            }),
-          },
-          filter: {
-            component: CreatorsAndGroupsFilter,
-            match: matchCreatorsAndGroups,
-            operator: FilterOperator.AND,
-            options: creatorsAndGroupsOptions,
-          },
-        },
+        CREATORS_AND_GROUPS_COLUMN,
       ],
     };
   },
