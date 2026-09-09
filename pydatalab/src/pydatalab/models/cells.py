@@ -84,13 +84,18 @@ class Cell(Item):
     """The unit that `nominal_capacity` is given in."""
 
     nominal_capacity: float | None = None
-    """The nominal capacity of the cell, computed as
-    `theoretical_capacity * characteristic_mass`. See `set_nominal_capacity`."""
+    """The nominal capacity of the cell. Computed as `theoretical_capacity *
+    characteristic_mass` unless `nominal_capacity_manual` is set, in which case the
+    user-supplied value is kept as-is. See `set_nominal_capacity`."""
+
+    nominal_capacity_manual: bool = False
+    """Whether `nominal_capacity` was entered directly by a user rather than computed
+    from `theoretical_capacity` and `characteristic_mass`. When set, `set_nominal_capacity`
+    will not overwrite `nominal_capacity`/`nominal_capacity_mah` on save."""
 
     nominal_capacity_mah: float | None = None
     """`nominal_capacity` normalized to mAh, regardless of the unit currently selected
-    on this item (`nominal_capacity_unit`). Read-only/derived: always recomputed on
-    save (see `set_nominal_capacity`). Prefer this field over `nominal_capacity`
+    on this item (`nominal_capacity_unit`). Prefer this field over `nominal_capacity`
     whenever comparing or aggregating across cells, since `nominal_capacity_unit` can
     differ from item to item."""
 
@@ -110,6 +115,17 @@ class Cell(Item):
 
     @model_validator(mode="after")
     def set_nominal_capacity(self):
+        if self.nominal_capacity_manual:
+            # Trust the user-supplied value; just normalize it to mAh for comparison
+            # across items with different `nominal_capacity_unit`.
+            if self.nominal_capacity is None:
+                self.nominal_capacity_mah = None
+            else:
+                self.nominal_capacity_mah = (
+                    self.nominal_capacity * NOMINAL_CAPACITY_TO_MAH[self.nominal_capacity_unit]
+                )
+            return self
+
         if self.theoretical_capacity is None or self.characteristic_mass is None:
             self.nominal_capacity_mah = None
             return self

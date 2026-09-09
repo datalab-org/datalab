@@ -1598,8 +1598,14 @@
         }
       ],
       "default": null,
-      "description": "The nominal capacity of the cell, computed as\n`theoretical_capacity * characteristic_mass`. See `set_nominal_capacity`.",
+      "description": "The nominal capacity of the cell. Computed as `theoretical_capacity *\ncharacteristic_mass` unless `nominal_capacity_manual` is set, in which case the\nuser-supplied value is kept as-is. See `set_nominal_capacity`.",
       "title": "Nominal Capacity"
+    },
+    "nominal_capacity_manual": {
+      "default": false,
+      "description": "Whether `nominal_capacity` was entered directly by a user rather than computed\nfrom `theoretical_capacity` and `characteristic_mass`. When set, `set_nominal_capacity`\nwill not overwrite `nominal_capacity`/`nominal_capacity_mah` on save.",
+      "title": "Nominal Capacity Manual",
+      "type": "boolean"
     },
     "nominal_capacity_mah": {
       "anyOf": [
@@ -1611,7 +1617,7 @@
         }
       ],
       "default": null,
-      "description": "`nominal_capacity` normalized to mAh, regardless of the unit currently selected\non this item (`nominal_capacity_unit`). Read-only/derived: always recomputed on\nsave (see `set_nominal_capacity`). Prefer this field over `nominal_capacity`\nwhenever comparing or aggregating across cells, since `nominal_capacity_unit` can\ndiffer from item to item.",
+      "description": "`nominal_capacity` normalized to mAh, regardless of the unit currently selected\non this item (`nominal_capacity_unit`). Prefer this field over `nominal_capacity`\nwhenever comparing or aggregating across cells, since `nominal_capacity_unit` can\ndiffer from item to item.",
       "title": "Nominal Capacity Mah"
     }
   },

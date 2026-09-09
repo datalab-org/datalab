@@ -509,8 +509,8 @@ def test_cell_nominal_capacity():
     # nominal_capacity_mah is unit-independent and always mAh.
     assert cell.nominal_capacity_mah == pytest.approx(1.0)
 
-    # A client-supplied nominal_capacity is not trusted: it is always recomputed
-    # from theoretical_capacity * characteristic_mass.
+    # A client-supplied nominal_capacity is not trusted by default: it is always
+    # recomputed from theoretical_capacity * characteristic_mass.
     cell = Cell(
         item_id="abcd-1-2-3",
         characteristic_mass=5.0,
@@ -523,6 +523,52 @@ def test_cell_nominal_capacity():
     cell = Cell(**json.loads(cell.model_dump_json()))
     assert cell.nominal_capacity == pytest.approx(1.0)
     assert cell.nominal_capacity_mah == pytest.approx(1.0)
+
+
+def test_cell_nominal_capacity_manual_override():
+    """When `nominal_capacity_manual` is set, a user-supplied `nominal_capacity` is
+    kept as-is rather than being recomputed from `theoretical_capacity` and
+    `characteristic_mass`, but `nominal_capacity_mah` is still normalized from it."""
+    from pydatalab.models.cells import Cell
+
+    # Manual value is honoured even though mass/theoretical capacity would imply
+    # a different result.
+    cell = Cell(
+        item_id="abcd-1-2-3",
+        characteristic_mass=5.0,
+        theoretical_capacity=200.0,
+        nominal_capacity=5.0,
+        nominal_capacity_manual=True,
+    )
+    assert cell.nominal_capacity == pytest.approx(5.0)
+    assert cell.nominal_capacity_mah == pytest.approx(5.0)
+
+    # Manual value in a non-default unit is normalized to mAh.
+    cell = Cell(
+        item_id="abcd-1-2-3",
+        nominal_capacity=5.0,
+        nominal_capacity_unit="Ah",
+        nominal_capacity_manual=True,
+    )
+    assert cell.nominal_capacity == pytest.approx(5.0)
+    assert cell.nominal_capacity_mah == pytest.approx(5000.0)
+
+    # Manual flag with no supplied value: nothing to normalize.
+    cell = Cell(item_id="abcd-1-2-3", nominal_capacity_manual=True)
+    assert cell.nominal_capacity is None
+    assert cell.nominal_capacity_mah is None
+
+    # Round-tripping through JSON preserves the manual value rather than recomputing it.
+    cell = Cell(
+        item_id="abcd-1-2-3",
+        characteristic_mass=5.0,
+        theoretical_capacity=200.0,
+        nominal_capacity=5.0,
+        nominal_capacity_manual=True,
+    )
+    cell = Cell(**json.loads(cell.model_dump_json()))
+    assert cell.nominal_capacity == pytest.approx(5.0)
+    assert cell.nominal_capacity_mah == pytest.approx(5.0)
 
 
 def test_sample_synthesis_relationship_deduplication():
