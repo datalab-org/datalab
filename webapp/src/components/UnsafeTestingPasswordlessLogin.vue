@@ -12,22 +12,23 @@
       <div v-if="error" class="alert alert-warning" data-testid="testing-passwordless-error">
         {{ error }}
       </div>
-      <div v-else-if="users === null" class="text-center text-muted py-3">
+      <div v-if="users === null && !error" class="text-center text-muted py-3">
         <font-awesome-icon icon="spinner" spin /> Loading test users…
       </div>
       <div
-        v-else-if="users.length === 0"
+        v-else-if="users !== null && users.length === 0"
         class="text-muted"
         data-testid="testing-passwordless-empty"
       >
         No passwordless test users are configured.
       </div>
-      <div v-else class="list-group" data-testid="testing-passwordless-users">
+      <div v-else-if="users !== null" class="list-group" data-testid="testing-passwordless-users">
         <button
           v-for="user in users"
           :key="user.username"
           type="button"
           class="list-group-item list-group-item-action"
+          :disabled="isLoggingIn"
           @click="login(user.username)"
         >
           <span class="d-flex justify-content-between align-items-center">
@@ -84,6 +85,7 @@ export default {
       isOpen: false,
       users: null,
       error: "",
+      isLoggingIn: false,
     };
   },
   methods: {
@@ -98,11 +100,17 @@ export default {
       }
     },
     async login(username) {
+      if (this.isLoggingIn) return;
+
+      this.isLoggingIn = true;
+      this.error = "";
       try {
         await loginTestingPasswordless(username);
         window.location.reload();
       } catch {
         this.error = "Unable to log in as that test user.";
+      } finally {
+        this.isLoggingIn = false;
       }
     },
   },
