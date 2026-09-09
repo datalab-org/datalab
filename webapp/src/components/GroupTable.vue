@@ -22,6 +22,14 @@ import DynamicDataTable from "@/components/DynamicDataTable";
 import EditGroupModal from "./EditGroupModal.vue";
 import { getAdminGroupsList } from "@/server_fetch_utils.js";
 
+import GroupIdCell from "@/components/GroupIdCell";
+import GroupMembersCell from "@/components/GroupMembersCell";
+import GroupActionsCell from "@/components/GroupActionsCell";
+
+import TextFilter from "@/components/TextFilter";
+
+import { FilterOperator, FilterMatchMode } from "@primevue/core/api";
+
 export default {
   name: "GroupTable",
   components: { DynamicDataTable, EditGroupModal },
@@ -35,41 +43,57 @@ export default {
         {
           field: "group_id",
           header: "Group ID",
-          body: "GroupIdCell",
-          bodyConfig: {
-            groupId: "group_id",
-          },
           label: "Group ID",
-          filter: true,
+          body: {
+            component: GroupIdCell,
+            props: (row) => ({ groupId: row.group_id }),
+          },
+          filter: {
+            component: TextFilter,
+            componentProps: { placeholder: "Search by group ID" },
+            matchMode: FilterMatchMode.CONTAINS,
+            operator: FilterOperator.AND,
+          },
         },
         {
           field: "display_name",
           header: "Name",
           label: "Name",
-          filter: true,
+          filter: {
+            component: TextFilter,
+            componentProps: { placeholder: "Search by name" },
+            matchMode: FilterMatchMode.CONTAINS,
+            operator: FilterOperator.AND,
+          },
         },
         {
           field: "description",
           header: "Description",
           label: "Description",
-          filter: true,
+          filter: {
+            component: TextFilter,
+            componentProps: { placeholder: "Search by description" },
+            matchMode: FilterMatchMode.CONTAINS,
+            operator: FilterOperator.AND,
+          },
         },
         {
           field: "members",
           header: "# of members",
-          body: "GroupMembersCell",
-          bodyConfig: {
-            members: "members",
-          },
           label: "Members",
+          body: {
+            component: GroupMembersCell,
+            props: (row) => ({ members: row.members }),
+          },
         },
         {
           field: "actions",
           header: "Actions",
-          body: "GroupActionsCell",
-          bodyConfig: {
-            group: "group",
-            allGroups: "allGroups",
+          sortable: false,
+          body: {
+            component: GroupActionsCell,
+            props: (row) => ({ group: row.group, allGroups: row.allGroups }),
+            events: ["edit-group", "group-deleted"],
           },
         },
       ],

@@ -69,21 +69,31 @@
 <script>
 import { createComputedSetterForCollectionField } from "@/field_utils.js";
 import TiptapInline from "@/components/TiptapInline";
-import Creators from "@/components/Creators";
 import CollectionRelationshipVisualization from "@/components/CollectionRelationshipVisualization";
 import DynamicDataTable from "@/components/DynamicDataTable";
-import FormattedItemStatus from "@/components/FormattedItemStatus.vue";
 import ExportButton from "@/components/ExportButton";
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
 import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
 
+import {
+  ITEM_ID_COLUMN,
+  TYPE_COLUMN,
+  STATUS_COLUMN,
+  NAME_COLUMN,
+  CHEMFORM_COLUMN,
+  DATE_COLUMN,
+  DATE_RANGE_FILTER,
+  CREATORS_AND_GROUPS_COLUMN,
+  BLOCKS_COLUMN,
+  FILES_COLUMN,
+  LAST_MODIFIED_COLUMN,
+} from "@/utils/tableColumns";
+
 export default {
   components: {
     TiptapInline,
-    Creators,
     CollectionRelationshipVisualization,
     DynamicDataTable,
-    FormattedItemStatus,
     ExportButton,
     ToggleableCreatorsFormGroup,
     ToggleableGroupsFormGroup,
@@ -97,41 +107,16 @@ export default {
   data() {
     return {
       collectionTableColumns: [
-        {
-          field: "item_id",
-          header: "ID",
-          body: "FormattedItemName",
-          filter: true,
-          label: "ID",
-        },
-        { field: "type", header: "Type", filter: true, label: "Type" },
-        { field: "status", header: "Status", body: "FormattedItemStatus", filter: true },
-        { field: "name", header: "Name", label: "Sample name" },
-        { field: "chemform", header: "Formula", body: "ChemicalFormula", label: "Formula" },
-        { field: "date", header: "Date", label: "Date", filter: true },
-        {
-          field: "creatorsAndGroups",
-          header: "Creators",
-          body: "Creators",
-          label: "Creators",
-          filter: true,
-        },
-        {
-          field: "blocks",
-          header: "",
-          body: "BlocksIconCounter",
-          icon: ["fa", "cubes"],
-          label: "Blocks",
-          filter: true,
-        },
-        {
-          field: "nfiles",
-          header: "",
-          body: "FilesIconCounter",
-          icon: ["fa", "file"],
-          label: "Files",
-        },
-        { field: "last_modified", header: "", label: "Last modified", icon: ["fa", "clock"] },
+        ITEM_ID_COLUMN,
+        TYPE_COLUMN,
+        STATUS_COLUMN,
+        { ...NAME_COLUMN, label: "Sample name" },
+        CHEMFORM_COLUMN,
+        { ...DATE_COLUMN, filter: DATE_RANGE_FILTER },
+        CREATORS_AND_GROUPS_COLUMN,
+        BLOCKS_COLUMN,
+        FILES_COLUMN,
+        LAST_MODIFIED_COLUMN,
       ],
     };
   },

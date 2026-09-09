@@ -19,58 +19,46 @@
 import DynamicDataTable from "@/components/DynamicDataTable";
 import { getSampleList } from "@/server_fetch_utils.js";
 
+import {
+  ITEM_ID_COLUMN,
+  TYPE_COLUMN,
+  STATUS_COLUMN,
+  NAME_COLUMN,
+  CHEMFORM_COLUMN,
+  DATE_COLUMN,
+  DATE_RANGE_FILTER,
+  COLLECTIONS_COLUMN,
+  CREATORS_AND_GROUPS_COLUMN,
+  BLOCKS_COLUMN,
+  FILES_COLUMN,
+  LAST_MODIFIED_COLUMN,
+} from "@/utils/tableColumns";
+
 export default {
   components: { DynamicDataTable },
   data() {
     return {
       sampleColumns: [
         {
-          field: "item_id",
-          header: "ID",
-          body: "FormattedItemName",
-          filter: true,
-          label: "ID",
+          ...ITEM_ID_COLUMN,
+          body: {
+            ...ITEM_ID_COLUMN.body,
+            props: (row) => ({
+              ...ITEM_ID_COLUMN.body.props(row),
+              itemType: row.type !== undefined ? row.type : "samples",
+            }),
+          },
         },
-        { field: "type", header: "Type", filter: true, label: "Type" },
-        { field: "status", header: "Status", body: "FormattedItemStatus", filter: true },
-        { field: "name", header: "Name", label: "Sample name" },
-        {
-          field: "chemform",
-          header: "Formula",
-          body: "ChemicalFormula",
-          label: "Formula",
-        },
-        { field: "date", header: "Date", label: "Date", filter: true },
-        {
-          field: "collections",
-          header: "Collections",
-          body: "CollectionList",
-          filter: true,
-          label: "Collections",
-        },
-        {
-          field: "creatorsAndGroups",
-          header: "Creators",
-          body: "Creators",
-          filter: true,
-          label: "Creators",
-        },
-        {
-          field: "blocks",
-          header: "",
-          body: "BlocksIconCounter",
-          icon: ["fa", "cubes"],
-          filter: true,
-          label: "Blocks",
-        },
-        {
-          field: "nfiles",
-          header: "",
-          body: "FilesIconCounter",
-          icon: ["fa", "file"],
-          label: "Files",
-        },
-        { field: "last_modified", header: "", label: "Last modified", icon: ["fa", "clock"] },
+        TYPE_COLUMN,
+        STATUS_COLUMN,
+        { ...NAME_COLUMN, label: "Sample name" },
+        CHEMFORM_COLUMN,
+        { ...DATE_COLUMN, filter: DATE_RANGE_FILTER },
+        COLLECTIONS_COLUMN,
+        CREATORS_AND_GROUPS_COLUMN,
+        BLOCKS_COLUMN,
+        FILES_COLUMN,
+        LAST_MODIFIED_COLUMN,
       ],
     };
   },
