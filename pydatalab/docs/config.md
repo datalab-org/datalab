@@ -26,6 +26,8 @@ These can be provided as either:
         - `VUE_APP_WEBSITE_TITLE`: the title of the web app, which is displayed in the browser tab and header.
         - `VUE_APP_QR_CODE_RESOLVER_URL`: the URL of a service that can resolve QR codes to *datalab* entries, which is used by the web app to display QR codes for entries (see [datalab-org/datalab-purl](https://github.com/datalab-org/datalab-purl) for more information).
         - `VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT`: whether to automatically generate IDs for new entries in the web app by default, or require a checkbox to be ticked at item creation.
+        - `VUE_APP_ENABLE_LOGIN_PAGE`: whether unauthenticated users should be directed to the dedicated login page. If unset or set to `false`, the web app keeps the original unauthenticated routing behaviour.
+        - `VUE_APP_LOGIN_HIDE_UNAVAILABLE_AUTH`: whether the dedicated login page should hide unavailable authentication mechanisms. If unset or set to `false`, unavailable mechanisms are shown but disabled.
 
 > [!NOTE]
 > The possible ways to set configuration options can be inconsistent with each other, e.g., values required to be `None` in Python should be set to `null` in the JSON config file and as .env values. Similarly, boolean values may be set to `true` or `false` in the JSON config file, but can be set to {`1`, `yes`, `true`} or {`0`, `no`, `false`} in a `.env` file.
@@ -179,6 +181,43 @@ Place a `CustomAbout.vue` file in `public/custom/components/` and it will automa
 The component can contain any valid Vue template, script and scoped styles.
 No special configuration or flags are needed — if the file exists, it will be used.
 
+### Custom login page content (`public/custom/components/CustomLoginInfo.vue`)
+
+Deployments can provide a custom Vue component for the left-hand content of the login page.
+This is only relevant when the dedicated login page is enabled with `VUE_APP_ENABLE_LOGIN_PAGE=true`.
+Place a `CustomLoginInfo.vue` file in `public/custom/components/` and it will automatically replace the default empty custom-login skeleton at build time.
+If no custom component is provided, the built-in login welcome content is used.
+
+Authentication buttons and login behaviour remain managed by *datalab*.
+The custom component should only provide branding, text, links, images, and styling for the welcome panel.
+
+For example:
+
+```vue
+<template>
+  <img src="/custom/logos/mylogo.png" alt="My lab" class="login-logo" />
+  <h1>My lab datalab</h1>
+  <p>Research data management for our group.</p>
+</template>
+
+<script>
+export default {
+  name: "CustomLoginInfo",
+};
+</script>
+```
+
+Login colours can also be tuned from `public/custom/override.css` without providing a custom component:
+
+```css
+:root {
+  --login-welcome-background: #123456;
+  --login-welcome-color: white;
+  --login-options-background: white;
+  --login-options-color: #222;
+}
+```
+
 ### Directory structure
 
 A typical deployment customisation directory looks like:
@@ -192,7 +231,8 @@ public/custom/
 ├── logos/
 │   └── mylogo.png
 └── components/
-    └── CustomAbout.vue
+    ├── CustomAbout.vue
+    └── CustomLoginInfo.vue
 ```
 
 
