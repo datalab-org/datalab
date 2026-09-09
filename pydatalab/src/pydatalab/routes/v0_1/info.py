@@ -174,14 +174,14 @@ def _get_base_item_model(item_type: str) -> tuple[str | None, type[Item] | None]
     if model is None or item_type in BUILTIN_ITEM_TYPES:
         return None, None
 
-    best_type: str | None = "items"
-    best_model: type[Item] | None = Item
+    best_type = "items"
+    best_model: type[Item] = Item
     for builtin_type, builtin_model in ITEM_MODELS.items():
         if builtin_type not in BUILTIN_ITEM_TYPES:
             continue
         if issubclass(model, builtin_model):
             # Prefer the most specific (most-derived) built-in base.
-            if best_model is None or issubclass(builtin_model, best_model):
+            if issubclass(builtin_model, best_model):
                 best_type = builtin_type
                 best_model = builtin_model
     return best_type, best_model
@@ -194,6 +194,7 @@ def _get_model_schema_extra(item_type: str) -> dict:
         return {}
     extra = model.model_config.get("json_schema_extra") or {}
     if callable(extra):
+        # Pydantic supports callables here, but they do not expose static Datalab hints.
         return {}
     return extra
 

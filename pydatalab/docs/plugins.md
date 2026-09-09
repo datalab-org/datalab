@@ -240,7 +240,8 @@ converts other display units using:
 canonical = displayed * scale + offset
 ```
 
-
+The optional `display_unit_field` stores only the user's display-unit preference. It must name a
+companion string `Literal` whose possible values exactly match the keys in `display_units`.
 
 ### Custom panels (full control)
 
@@ -319,7 +320,7 @@ resulting mixture live — none of which the core panel can do on its own.
     perform collection before the development or production frontend is compiled. Only install
     panels from sources you trust.
 
-## Plugin installation
+## Deployment integration
 
 The same `invoke dev.install` task is used by both Docker API images (`.docker/server/Dockerfile`): a `plugins.toml` at the repository root is picked up automatically at build time, and both frontend profiles collect panels from the corresponding plugin-enabled API image. Plugins can therefore be baked into a complete deployment without modifying either Dockerfile.
 It will also be invoked from the [*datalab* Ansible role](https://github.com/datalab-org/datalab-ansible-terraform) to provision plugins on a deployed server when a `plugins.toml` is provided; see the role documentation for details.
