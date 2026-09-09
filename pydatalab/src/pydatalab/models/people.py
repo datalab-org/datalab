@@ -22,6 +22,7 @@ class IdentityType(str, Enum):
     GITHUB = "github"
     GOOGLE = "google"
     MICROSOFT = "microsoft"
+    TESTING_PASSWORDLESS = "testing_passwordless"
 
 
 class Identity(BaseModel):

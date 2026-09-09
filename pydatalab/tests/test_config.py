@@ -10,6 +10,14 @@ def test_default_settings():
     assert config.MONGO_URI == "mongodb://localhost:27017/datalabvue"
     assert config.SECRET_KEY
     assert Path(config.FILE_DIRECTORY).name == "files"
+    assert config.ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN is False
+
+
+def test_unsafe_testing_passwordless_login_environment_setting(monkeypatch):
+    from pydatalab.config import ServerConfig
+
+    monkeypatch.setenv("PYDATALAB_ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN", "true")
+    assert ServerConfig().ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN is True
 
 
 def test_update_settings():

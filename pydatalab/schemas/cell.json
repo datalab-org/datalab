@@ -907,7 +907,8 @@
         "orcid",
         "github",
         "google",
-        "microsoft"
+        "microsoft",
+        "testing_passwordless"
       ],
       "title": "IdentityType",
       "type": "string"

@@ -169,6 +169,96 @@ def serve(
 dev.add_task(serve)
 
 
+@task(
+    help={
+        "username": "Case-sensitive username for unsafe passwordless testing login",
+        "display_name": "Display name for the test user (defaults to the username)",
+        "role": "User role: user, manager, or admin",
+    }
+)
+def create_test_user(
+    _,
+    username: str,
+    display_name: str | None = None,
+    role: str = "user",
+):
+    """Create or update a user for unsafe passwordless testing login."""
+
+    from pydantic import TypeAdapter, ValidationError
+
+    from pydatalab.config import CONFIG
+    from pydatalab.models.people import AccountStatus, DisplayName, Identity, IdentityType, Person
+    from pydatalab.models.utils import HumanReadableIdentifier, UserRole
+    from pydatalab.mongo import get_database, insert_pydantic_model_fork_safe
+
+    if not CONFIG.ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN:
+        raise SystemExit(
+            "Unsafe passwordless test users require "
+            "PYDATALAB_ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN=true. "
+            "Never enable this option in production."
+        )
+
+    try:
+        username = TypeAdapter(HumanReadableIdentifier).validate_python(username)
+    except ValidationError as exc:
+        raise SystemExit(f"Invalid test username {username!r}: {exc}") from None
+
+    try:
+        role_value = UserRole(role.lower())
+    except ValueError:
+        allowed_roles = ", ".join(value.value for value in UserRole)
+        raise SystemExit(f"Invalid role {role!r}; expected one of: {allowed_roles}.") from None
+
+    if display_name is not None:
+        try:
+            display_name = TypeAdapter(DisplayName).validate_python(display_name)
+        except ValidationError as exc:
+            raise SystemExit(f"Invalid display name {display_name!r}: {exc}") from None
+
+    database = get_database()
+    identity_query = {
+        "identities": {
+            "$elemMatch": {
+                "identity_type": IdentityType.TESTING_PASSWORDLESS.value,
+                "identifier": username,
+            }
+        }
+    }
+    existing_user = database.users.find_one(identity_query)
+
+    if existing_user is None:
+        identity = Identity(
+            identity_type=IdentityType.TESTING_PASSWORDLESS,
+            identifier=username,
+            name=username,
+            display_name=display_name or username,
+            verified=False,
+        )
+        user = Person.new_user_from_identity(
+            identity,
+            account_status=AccountStatus.ACTIVE,
+        )
+        user_id = insert_pydantic_model_fork_safe(user, "users")
+        action = "Created"
+    else:
+        user_id = existing_user["_id"]
+        user_updates = {"account_status": AccountStatus.ACTIVE.value}
+        if display_name is not None:
+            user_updates["display_name"] = display_name
+        database.users.update_one({"_id": user_id}, {"$set": user_updates})
+        action = "Updated"
+
+    database.roles.update_one(
+        {"_id": user_id},
+        {"$set": {"role": role_value.value}},
+        upsert=True,
+    )
+    print(f"{action} unsafe passwordless test user {username!r} with role {role_value.value!r}.")
+
+
+dev.add_task(create_test_user)
+
+
 @task
 def install(_, dev=True):
     """This task looks for a plugins.toml and attempts to

@@ -643,6 +643,16 @@ export async function requestMagicLink(email_address) {
     });
 }
 
+export function getTestingPasswordlessUsers() {
+  return fetch_get(`${API_URL}/login/testing-passwordless/users`).then(
+    (response_json) => response_json.users,
+  );
+}
+
+export function loginTestingPasswordless(username) {
+  return fetch_post(`${API_URL}/login/testing-passwordless`, { username });
+}
+
 export function searchUsers(query, nresults = 100) {
   // construct a url with parameters:
   var url = new URL(`${API_URL}/search-users/`);

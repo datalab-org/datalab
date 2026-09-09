@@ -145,6 +145,14 @@ class ServerConfig(BaseSettings):
         False, description="Whether to run the server in testing mode, i.e., without user auth."
     )
 
+    ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN: bool = Field(
+        False,
+        description=(
+            "Enable an unsafe testing-only login that lets anyone impersonate configured test "
+            "users without authentication. This must never be enabled in production."
+        ),
+    )
+
     SECRET_KEY: str | None = Field(
         None,
         description="The secret key to use for Flask. This value should be changed and/or loaded from an environment variable for production deployments.",
