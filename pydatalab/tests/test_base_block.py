@@ -11,6 +11,16 @@ def test_base_block():
     assert block.data["kwargs"]["d"] == "string"
 
 
+def test_process_events_ignores_events_without_event_name():
+    """Regression test: in-situ blocks (XRD/NMR/UVVis) trigger async processing by
+    posting a bare `{"trigger_async": True}` event with no `event_name` key, which
+    previously raised `KeyError: 'event_name'` in `process_events`.
+    """
+    block = DataBlock(item_id="test-id")
+    block.process_events({"trigger_async": True})
+    assert "errors" not in block.data
+
+
 def test_callback():
     callback = generate_js_callback_single_float_parameter(
         "set_wavelength", "wavelength", block_id="test", throttled=False
