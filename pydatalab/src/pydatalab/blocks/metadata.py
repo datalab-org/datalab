@@ -51,17 +51,18 @@ class MetadataResolution(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
 
 
-def _coerce(metadata: BaseModel, field: str, value: Any) -> Any:
-    """Put a value through the model, returning what it became, or None.
+def _coerce(model: type[BaseModel], field: str, value: Any) -> Any:
+    """What the model makes of a value for one field, or None if it will not have it.
 
-    A file is free to contain nonsense in a field nobody needs, so a value the
-    model rejects is dropped rather than allowed to fail the whole block.
+    Validated rather than assigned: a model only checks assignments if it asks to,
+    and the guarantee here -- that a file is free to contain nonsense in a field
+    nobody needs, and loses only that field by it -- should not depend on whether
+    the block that wrote the model happened to think of that.
     """
     try:
-        setattr(metadata, field, value)
+        return getattr(model.model_validate({field: value}), field)
     except Exception:  # noqa: S110 -- a bad value is one missing value, not an error
         return None
-    return getattr(metadata, field)
 
 
 def resolve_metadata(
@@ -83,20 +84,19 @@ def resolve_metadata(
     """
     bindings = bindings or {}
     metadata = model()
-    # A separate instance to try candidate values on, so that reading what a source
-    # offers cannot leave anything behind on the model being built.
-    probe = model()
     fields: dict[str, dict[str, Any]] = {}
 
     for field in model.model_fields:
         # Everything each source has for this field, in the order they were given.
         available = {
-            name: _coerce(probe, field, values.get(field))
+            name: _coerce(model, field, values.get(field))
             for name, values in sources.items()
             if field in values
         }
 
         binding = bindings.get(field)
+        if not isinstance(binding, dict):
+            binding = None  # nothing readable; treat it as no choice having been made
         source: str | None
         value: Any
         if binding and binding.get("source") == USER:
@@ -113,8 +113,10 @@ def resolve_metadata(
                 ((name, v) for name, v in available.items() if v is not None), (None, None)
             )
 
+        value = _coerce(model, field, value)
+        setattr(metadata, field, value)
         fields[field] = {
-            "value": _coerce(metadata, field, value),
+            "value": value,
             "source": source,
             # Whether the source was chosen or merely landed on, which is the
             # difference between a decision to leave a field empty and nobody

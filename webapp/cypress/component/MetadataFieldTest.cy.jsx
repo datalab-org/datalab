@@ -1,3 +1,5 @@
+import { h } from "vue";
+
 import MetadataField from "@/components/MetadataField.vue";
 
 // Where a value came from decides what may be done to it, so these check that
@@ -78,6 +80,40 @@ describe("MetadataField", () => {
     mount({ value: 99, source: "user", bound: true, available: {} });
 
     cy.get(".source").should("have.attr", "title", "Value overwritten by user");
+  });
+
+  it("names nobody rather than half of somebody when only the time is known", () => {
+    // A binding made by a script, or by a user with no display name: there is a
+    // timestamp but no actor, and "overwritten on Tuesday" credits no one.
+    mount({
+      value: 99,
+      source: "user",
+      bound: true,
+      available: {},
+      set_at: "2026-09-05T18:30:00+00:00",
+    });
+
+    cy.get(".source").should("have.attr", "title", "Value overwritten by user");
+  });
+
+  it("closes its menu when another field is clicked", () => {
+    // Each field listens on the document for clicks elsewhere, so a field that
+    // swallowed its own clicks would leave every menu ever opened still open.
+    const entry = { value: 1, source: "file", bound: false, available: {} };
+    const props = { item_id: "i", block_id: "b", entry };
+
+    cy.mount(() =>
+      h("div", [
+        h(MetadataField, { ...props, field: "first" }),
+        h(MetadataField, { ...props, field: "second" }),
+      ]),
+    );
+
+    cy.get(".metadata-field").first().click();
+    cy.get(".dropdown-menu").should("have.length", 1);
+
+    cy.get(".metadata-field").last().click();
+    cy.get(".dropdown-menu").should("have.length", 1);
   });
 
   it("says so when somebody has decided there is no value", () => {

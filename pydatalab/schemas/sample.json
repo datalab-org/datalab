@@ -316,8 +316,9 @@
               "type": "null"
             }
           ],
+          "datalab_exclude_from_load": true,
           "default": null,
-          "description": "Where each metadata field should be taken from, where the user has said.\n\nUnlike the two above this is not derived, it is the choice itself: a field\nbound to the user carries the value they gave, and one bound to a source is\nre-read from it. A field with no binding is left to the block to decide, and is\ndecided again each time it renders.",
+          "description": "Where each metadata field should be taken from, where the user has said.\n\nUnlike the two above this is not derived, it is the choice itself: a field\nbound to the user carries the value they gave, and one bound to a source is\nre-read from it. A field with no binding is left to the block to decide, and is\ndecided again each time it renders.\n\nOnly `set_metadata_source` may write it. It records who made each choice and\nwhen, and a value the web could set directly would be a claim about a person\nthat nobody checked -- which is the one thing this must not be.",
           "title": "Metadata Bindings"
         }
       },

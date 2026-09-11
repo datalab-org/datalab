@@ -1,6 +1,6 @@
 <template>
   <!-- A div rather than a span: the menu is a `ul`, which a span cannot contain. -->
-  <div class="metadata-field" @click.stop="toggleMenu" @contextmenu.prevent.stop="openMenu">
+  <div ref="root" class="metadata-field" @click="toggleMenu" @contextmenu.prevent.stop="openMenu">
     <!-- `click.stop` for the same reason as on the menu: saving or abandoning an
          edit must not fall through and open the menu behind it. -->
     <span v-if="editing" class="editor" @click.stop>
@@ -47,7 +47,7 @@
         <button class="dropdown-item" @click="bind('auto')">Choose automatically</button>
       </li>
       <li>
-        <button class="dropdown-item text-muted" @click="closeMenu">Cancel</button>
+        <button class="dropdown-item text-muted" @click="menuOpen = false">Cancel</button>
       </li>
     </ul>
   </div>
@@ -85,10 +85,13 @@ export default {
     },
     // Who made a choice and when, where anyone is recorded. A binding made outside
     // a request -- by a script, or before this was tracked -- has neither.
+    // Who made a choice and when. A binding made outside a request -- by a script,
+    // or by a user with no display name -- has a time but nobody to name, and a
+    // time on its own credits no one, so it is not an attribution at all.
     attribution() {
-      const who = this.entry.set_by_name ? ` by ${this.entry.set_by_name}` : "";
+      if (!this.entry.set_by_name) return "";
       const when = this.entry.set_at ? ` on ${new Date(this.entry.set_at).toLocaleString()}` : "";
-      return who + when;
+      return ` by ${this.entry.set_by_name}${when}`;
     },
     explanation() {
       if (this.entry.source === "user") {
@@ -98,8 +101,8 @@ export default {
       if (!this.entry.source) return "No source has a value for this";
 
       const supplied = `Supplied by ${this.sourceLabels[this.entry.source] ?? this.entry.source}`;
-      // Only worth saying who chose it where somebody did; otherwise the block
-      // worked it out and there is nobody to name.
+      // Only worth saying who chose it where somebody is recorded; otherwise the
+      // block worked it out, or nobody was named, and there is no one to credit.
       return this.entry.bound && this.attribution
         ? `${supplied}, chosen${this.attribution}`
         : supplied;
@@ -135,7 +138,13 @@ export default {
       if (this.editing) return;
       this.menuOpen = !this.menuOpen;
     },
-    closeMenu() {
+    closeMenu(event) {
+      // Clicks inside this field are its own business -- opening the menu, or
+      // choosing from it. Anything else closes it, including a click on another
+      // field, which is how only one menu is ever open at a time.
+      // `$refs` rather than `$el`: the comment above makes this a fragment, so
+      // `$el` is that comment rather than the element, and contains nothing.
+      if (event && this.$refs.root?.contains(event.target)) return;
       this.menuOpen = false;
     },
     startEditing() {

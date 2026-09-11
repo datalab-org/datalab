@@ -304,6 +304,73 @@ def test_an_event_that_failed_is_still_reported_after_a_plot_that_did_not():
     assert block.to_web()["errors"]
 
 
+def test_a_model_that_does_not_validate_assignments_is_still_protected():
+    """The guarantee that a file may contain nonsense and lose only that field must
+    not depend on the block having thought to enable assignment validation."""
+
+    class Unguarded(BaseModel):
+        sample_mass_mg: float | None = None
+
+    resolution = resolve_metadata(Unguarded, {"file": {"sample_mass_mg": "heavy"}}, None)
+    assert resolution.fields["sample_mass_mg"]["value"] is None
+
+    # and a value still arrives as the type the model asks for
+    typed = resolve_metadata(Unguarded, {}, {"sample_mass_mg": {"source": "user", "value": "99"}})
+    assert typed.metadata.sample_mass_mg == pytest.approx(99.0)
+
+
+def test_a_binding_that_is_not_a_binding_costs_that_field_and_nothing_else():
+    """Bindings come from the database, which has held other shapes before now."""
+    resolution = resolve(bindings={"sample_mass_mg": "nonsense"})
+
+    assert resolution.metadata.sample_mass_mg == pytest.approx(14.32)
+    assert resolution.fields["sample_mass_mg"]["bound"] is False
+
+
+def test_the_web_cannot_write_a_binding_directly():
+    """A binding says who chose a value and when. Letting the web set one would be
+    letting it make a claim about a person that nobody checked."""
+    schema = DataBlock.block_db_model.model_json_schema()["properties"]
+    assert schema["metadata_bindings"]["datalab_exclude_from_load"]
+
+
+def test_a_source_may_not_be_called_user_or_auto():
+    """Those are the two answers the event gives itself, so a source of either name
+    could never be bound to -- and asking for it would blank the field instead."""
+
+    class Colliding(_Block):
+        blocktype = "_metadata_test_colliding"
+
+        def metadata_sources(self):
+            return {"user": {"sample_mass_mg": 1.0}}
+
+    block = Colliding(item_id="test")
+    block.process_events(
+        {"event_name": "set_metadata_source", "field": "sample_mass_mg", "source": "user"}
+    )
+
+    assert block.data["errors"]
+    assert not block.data.get("metadata_bindings")
+
+
+def test_setting_a_source_resolves_there_and_then():
+    """`to_web` only runs the plot functions, so a block whose plots do not resolve
+    would answer the request with the value the field had before the choice."""
+    block = _Block(item_id="test")
+    block.resolve_metadata()
+    block.process_events(
+        {
+            "event_name": "set_metadata_source",
+            "field": "sample_mass_mg",
+            "source": "user",
+            "value": 99,
+        }
+    )
+
+    assert block.data["metadata"]["sample_mass_mg"] == pytest.approx(99.0)
+    assert block.data["metadata_fields"]["sample_mass_mg"]["source"] == "user"
+
+
 def test_resolving_writes_both_the_values_and_their_provenance():
     block = _Block(item_id="test")
     block.resolve_metadata()

@@ -343,17 +343,28 @@ class DataBlock:
         if self.metadata_model is None or field not in self.metadata_model.model_fields:
             raise ValueError(f"{self.blocktype!r} has no metadata field {field!r}")
 
+        sources = self.metadata_sources()
+        if reserved := {USER, AUTO} & set(sources):
+            raise ValueError(
+                f"{self.blocktype!r} names a metadata source {reserved.pop()!r}, which this "
+                "event answers itself; a source cannot be called either of those."
+            )
+
         bindings = dict(self.data.get("metadata_bindings") or {})
         if source == AUTO:
             bindings.pop(field, None)
         elif source == USER:
             bindings[field] = {"source": USER, "value": value, **_who_and_when()}
-        elif source in self.metadata_sources():
+        elif source in sources:
             bindings[field] = {"source": source, **_who_and_when()}
         else:
             raise ValueError(f"{field!r} cannot be taken from {source!r}")
 
         self.data["metadata_bindings"] = bindings
+        # Nothing else re-resolves before the response is built -- `to_web` only runs
+        # the plot functions -- so without this the field would redraw with the value
+        # and the source it had before the choice was made.
+        self.resolve_metadata()
 
     def process_events(self, events: list[dict] | dict):
         """Handle any supported events passed to the block."""
