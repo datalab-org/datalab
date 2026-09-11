@@ -4,9 +4,15 @@ import random
 import traceback
 import warnings
 from collections.abc import Callable, Sequence
+from datetime import datetime, timezone
 from typing import Any
 
+from flask import has_request_context
+from flask_login import current_user
+from pydantic import BaseModel
+
 from pydatalab import __version__
+from pydatalab.blocks.metadata import AUTO, USER, MetadataResolution, resolve_metadata
 from pydatalab.logger import LOGGER
 from pydatalab.models.blocks import DataBlockResponse
 
@@ -102,6 +108,26 @@ def generate_random_id():
 ############################################################################################################
 
 
+def _who_and_when() -> dict[str, str]:
+    """Whose choice this was and when they made it.
+
+    A binding is somebody deciding that a value should not be worked out the usual
+    way, which is worth being able to attribute later. Outside a request there is
+    nobody to name, so only the time is recorded.
+    """
+    stamp = {"set_at": datetime.now(tz=timezone.utc).isoformat()}
+
+    if not has_request_context():
+        return stamp
+
+    person = getattr(current_user, "person", None)
+    if person is not None:
+        stamp["set_by"] = str(person.immutable_id)
+        if person.display_name:
+            stamp["set_by_name"] = person.display_name
+    return stamp
+
+
 class DataBlock:
     """Base class for a data block."""
 
@@ -135,6 +161,10 @@ class DataBlock:
 
     version: str = __version__
     """The implementation version of this particular block."""
+
+    _event_errors: tuple[str, ...] = ()
+    """Errors from events handled during this request, kept apart from the block's
+    stored errors so that they survive a plot that then succeeds."""
 
     def __init__(
         self,
@@ -206,7 +236,7 @@ class DataBlock:
 
     def to_web(self) -> dict[str, Any]:
         """Returns a JSON serializable dictionary to render the data block on the web."""
-        block_errors = []
+        block_errors = list(self._event_errors)
         block_warnings = []
         if self.plot_functions:
             for plot in self.plot_functions:
@@ -256,6 +286,86 @@ class DataBlock:
 
         return self.block_db_model(**self.data).model_dump(exclude_unset=True, exclude_none=True)
 
+    metadata_model: type[BaseModel] | None = None
+    """Describes the metadata this block reads, if it reads any.
+
+    Every field must be optional: a block fills in whatever its sources happen to
+    have, and a field none of them supply is simply empty.
+    """
+
+    def metadata_sources(self) -> dict[str, dict]:
+        """Where this block's metadata can come from, best first.
+
+        A block returns what each source has, e.g. the header of the file it reads
+        and the item it is attached to. Every source is read whether or not it
+        wins, so that the interface can show what the others offer and let the
+        user switch between them.
+
+        This is called whenever a binding is set as well as when the block renders,
+        and an event can arrive before anything has been rendered, so it must not
+        depend on rendering having happened.
+        """
+        return {}
+
+    def metadata_source_labels(self) -> dict[str, str]:
+        """How to name each source to a person: the file it was read from, the item
+        it came off. Falls back to the source's own key where there is nothing
+        better to say."""
+        return {}
+
+    def resolve_metadata(self) -> "MetadataResolution":
+        """Resolve the metadata, honouring any bindings the user has set."""
+        if self.metadata_model is None:
+            raise NotImplementedError(f"The {self.blocktype!r} block has no metadata model.")
+
+        resolution = resolve_metadata(
+            self.metadata_model,
+            self.metadata_sources(),
+            self.data.get("metadata_bindings"),
+        )
+        self.data["metadata"] = resolution.metadata.model_dump()
+        self.data["metadata_fields"] = resolution.fields
+        self.data["metadata_source_labels"] = self.metadata_source_labels()
+        return resolution
+
+    @event()
+    def set_metadata_source(self, field: str, source: str, value: Any = None, **kwargs):
+        """Bind one metadata field to a source, or to a value of the user's own.
+
+        `source` is the name of one of `metadata_sources`, or "user" with a value,
+        or "auto" to drop the binding and let the block choose again.
+
+        Clearing a field is `source="user"` with no value, and is deliberately not
+        the same as "auto": it says there is no good value for this field, which is
+        something worth keeping rather than something to be second-guessed on the
+        next render.
+        """
+        if self.metadata_model is None or field not in self.metadata_model.model_fields:
+            raise ValueError(f"{self.blocktype!r} has no metadata field {field!r}")
+
+        sources = self.metadata_sources()
+        if reserved := {USER, AUTO} & set(sources):
+            raise ValueError(
+                f"{self.blocktype!r} names a metadata source {reserved.pop()!r}, which this "
+                "event answers itself; a source cannot be called either of those."
+            )
+
+        bindings = dict(self.data.get("metadata_bindings") or {})
+        if source == AUTO:
+            bindings.pop(field, None)
+        elif source == USER:
+            bindings[field] = {"source": USER, "value": value, **_who_and_when()}
+        elif source in sources:
+            bindings[field] = {"source": source, **_who_and_when()}
+        else:
+            raise ValueError(f"{field!r} cannot be taken from {source!r}")
+
+        self.data["metadata_bindings"] = bindings
+        # Nothing else re-resolves before the response is built -- `to_web` only runs
+        # the plot functions -- so without this the field would redraw with the value
+        # and the source it had before the choice was made.
+        self.resolve_metadata()
+
     def process_events(self, events: list[dict] | dict):
         """Handle any supported events passed to the block."""
         if isinstance(events, dict):
@@ -278,9 +388,12 @@ class DataBlock:
                         self.__class__.__name__,
                         e,
                     )
-                    self.data["errors"] = [
-                        f"{self.__class__.__name__}: Error processing event {event}: {e}"
-                    ]
+                    message = f"{self.__class__.__name__}: Error processing event {event}: {e}"
+                    # Kept on the instance as well: `to_web` rebuilds the stored
+                    # errors from whatever the plots report, and an event that
+                    # failed before a plot that succeeded would otherwise vanish.
+                    self._event_errors = (*self._event_errors, message)
+                    self.data["errors"] = [message]
 
     @event()
     def null_event(self, **kwargs):

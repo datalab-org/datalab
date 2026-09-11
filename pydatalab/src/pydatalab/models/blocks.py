@@ -72,3 +72,32 @@ class DataBlockResponse(BaseModel):
     )
     """Any structured metadata associated with the block, for example,
     experimental acquisition parameters."""
+
+    metadata_fields: dict | None = Field(
+        default=None, json_schema_extra={"datalab_exclude_from_load": True}
+    )
+    """The same metadata with its provenance: per field, the value, the source it
+    came from, and what each other source has to offer. Derived on every render, so
+    a value taken from a file or a sample follows that file or sample when it
+    changes."""
+
+    metadata_source_labels: dict | None = Field(
+        default=None, json_schema_extra={"datalab_exclude_from_load": True}
+    )
+    """What to call each metadata source when showing it to somebody -- the name of
+    the file it was read from, say, rather than "file"."""
+
+    metadata_bindings: dict | None = Field(
+        default=None, json_schema_extra={"datalab_exclude_from_load": True}
+    )
+    """Where each metadata field should be taken from, where the user has said.
+
+    Unlike the two above this is not derived, it is the choice itself: a field
+    bound to the user carries the value they gave, and one bound to a source is
+    re-read from it. A field with no binding is left to the block to decide, and is
+    decided again each time it renders.
+
+    Only `set_metadata_source` may write it. It records who made each choice and
+    when, and a value the web could set directly would be a claim about a person
+    that nobody checked -- which is the one thing this must not be.
+    """

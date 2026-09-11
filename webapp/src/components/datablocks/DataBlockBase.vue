@@ -182,7 +182,13 @@
 
         <div v-if="hasMetadata && metadataShown" class="col-xl-4 col-lg-4 col-md-12">
           <slot name="metadata" :metadata="block.metadata">
-            <MetadataViewer :metadata="block.metadata" />
+            <MetadataViewer
+              :metadata="block.metadata"
+              :fields="block.metadata_fields || {}"
+              :source-labels="block.metadata_source_labels || {}"
+              :item_id="item_id"
+              :block_id="block_id"
+            />
           </slot>
         </div>
       </div>
@@ -286,7 +292,12 @@ export default {
       return this.processingStages[this.processingStages.length - 1].message;
     },
     hasMetadata() {
-      return this.block?.metadata && Object.keys(this.block.metadata).length > 0;
+      // A tracked field counts even when it is empty: an empty one is exactly the
+      // one somebody needs to reach in order to give it a value.
+      return (
+        Object.keys(this.block?.metadata || {}).length > 0 ||
+        Object.keys(this.block?.metadata_fields || {}).length > 0
+      );
     },
   },
   mounted() {
