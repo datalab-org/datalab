@@ -63,7 +63,12 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
 
     <template #plot>
       <div v-show="file_id" id="bokehPlotContainer">
-        <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
+        <BokehPlot
+          v-if="bokehPlotData"
+          :item_id="item_id"
+          :block_id="block_id"
+          :bokeh-plot-data="bokehPlotData"
+        />
       </div>
     </template>
   </DataBlockBase>

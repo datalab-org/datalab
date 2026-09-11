@@ -457,6 +457,62 @@ def delete_block():
     )  # could try to switch to http 204 is "No Content" success with no json
 
 
+@BLOCKS.route("/blocks/<string:item_id>/<string:block_id>/data", methods=["GET"])
+def get_block_data(item_id: str, block_id: str):
+    """Serve individual data columns from a block, in the units asked for.
+
+    Each `column` query parameter names one column and, after a colon, the units
+    to give it in; omitting the units gives the column as it is stored:
+
+        ?column=moment:emu%2Fg&column=temperature
+
+    This exists so that a plot can change what it shows without the block being
+    reprocessed and its whole Bokeh document rebuilt. It is deliberately a GET
+    that takes no block data: the block is read from the database, so there is no
+    way for a request to alter it, and no large payload to upload.
+
+    The units on offer are fixed by the block's own declaration -- the client
+    names a unit, never a conversion to apply -- so this cannot be used to make a
+    block evaluate anything of the caller's choosing.
+
+    """
+    requested: dict[str, str | None] = {}
+    for parameter in request.args.getlist("column"):
+        column, _, units = parameter.partition(":")
+        if not column:
+            raise BadRequest(f"Malformed column parameter: {parameter!r}")
+        requested[column] = units or None
+
+    if not requested:
+        raise BadRequest("No columns requested; pass at least one `column` parameter.")
+
+    item = flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=False)},
+        projection={f"blocks_obj.{block_id}": 1},
+    )
+    if not item:
+        raise NotFound(f"Item with item_id {item_id} not found or not accessible")
+
+    block_data = item.get("blocks_obj", {}).get(block_id)
+    if not block_data:
+        raise NotFound(f"Item {item_id} has no block with block_id {block_id}")
+
+    block_type = block_data["blocktype"]
+    if block_type not in BLOCK_TYPES:
+        raise NotImplemented(  # noqa: F901
+            f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
+        )
+
+    block = BLOCK_TYPES[block_type](item_id=item_id, init_data=block_data, unique_id=block_id)
+
+    try:
+        payload = block.get_data(requested)
+    except NotImplementedError as exc:
+        raise NotImplemented(str(exc))  # noqa: F901
+
+    return jsonify({"status": "success", **payload}), 200
+
+
 @BLOCKS.route("/blocks/<string:task_id>/status", methods=["GET"])
 def get_block_task_status(task_id: str):
     task = flask_mongo.db.tasks.find_one({"task_id": task_id, "type": TaskType.BLOCK_PROCESSING})

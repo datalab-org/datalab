@@ -829,6 +829,23 @@ export async function getCollectionData(collection_id) {
     });
 }
 
+export async function getBlockData(item_id, block_id, columns) {
+  // Ask the server for individual data columns from a block, each in the units
+  // wanted, e.g. `{moment: "emu/g", temperature: null}` for the stored units.
+  //
+  // This is a read: it cannot change the block, and the response carries only the
+  // columns asked for, so a plot can use it to change what it shows without being
+  // rebuilt.
+  if (!(await waitForUserAuth())) return;
+
+  const query = Object.entries(columns)
+    .map(([column, units]) => (units ? `${column}:${units}` : column))
+    .map((parameter) => `column=${encodeURIComponent(parameter)}`)
+    .join("&");
+
+  return fetch_get(`${API_URL}/blocks/${item_id}/${block_id}/data?${query}`);
+}
+
 export async function updateBlockFromServer(item_id, block_id, block_data, event_data = null) {
   // Send the current block state to the API and receive an updated version
   // of the block in return, including any event data.
