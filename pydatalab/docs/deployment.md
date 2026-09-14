@@ -204,24 +204,27 @@ creates no Hub container, tools network, Jupyter volume, or Docker-socket mount.
 
 ### Compose-managed JupyterHub
 
-Configure matching client credentials in the root environment and explicitly
-combine the base Compose file with `docker-compose.jupyter.yml`. Including this
-companion file is what enables the managed Hub; no additional Jupyter profile
-is needed:
+Configure matching client credentials in the root environment and explicitly combine the base
+Compose file with the companion file supplied by the `datalab-jupyter` repository. Including that
+file is what enables the managed Hub; no additional Jupyter profile is needed. Set
+`<DATALAB_JUPYTER_CHECKOUT>` to the location of that checkout:
 
 ```shell
 export DATALAB_JUPYTER_CLIENT_ID=datalab-jupyter
 export DATALAB_JUPYTER_CLIENT_SECRET="$(openssl rand -hex 32)"
-docker compose -f docker-compose.yml -f docker-compose.jupyter.yml \
+docker compose -f docker-compose.yml \
+  -f <DATALAB_JUPYTER_CHECKOUT>/deployment/docker-compose.datalab.yml \
   --profile prod up --build --wait
-docker compose -f docker-compose.yml -f docker-compose.jupyter.yml \
+docker compose -f docker-compose.yml \
+  -f <DATALAB_JUPYTER_CHECKOUT>/deployment/docker-compose.datalab.yml \
   --profile dev up --build --wait
 ```
 
 Use the same files for later Compose operations, including shutdown:
 
 ```shell
-docker compose -f docker-compose.yml -f docker-compose.jupyter.yml \
+docker compose -f docker-compose.yml \
+  -f <DATALAB_JUPYTER_CHECKOUT>/deployment/docker-compose.datalab.yml \
   --profile dev down
 ```
 
@@ -323,7 +326,7 @@ client.
 
 Set `DATALAB_JUPYTER_EXTERNAL_URL` to use an independently deployed
 Hub. In that case, run the normal base Compose file without
-`docker-compose.jupyter.yml`; no local Hub is created. The external
+the `datalab-jupyter` companion Compose file; no local Hub is created. The external
 administrator owns TLS, proxying, availability, spawning, storage, quotas,
 culling, and the user-server image.
 
