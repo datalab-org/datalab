@@ -50,7 +50,14 @@ class BaseModel(PydanticBaseModel):
 
 
 class ItemType(str, Enum):
-    """An enumeration of the types of items known by this implementation, should be made dynamic in the future."""
+    """An enumeration of the built-in item types that can act as a constituent
+    of another item.
+
+    Retained for backwards compatibility only: the set of types accepted as a
+    constituent is now resolved dynamically from the item registry, via
+    `pydatalab.models.constituent_item_types`, so that custom item types are
+    also included.
+    """
 
     SAMPLES = "samples"
     STARTING_MATERIALS = "starting_materials"
@@ -372,9 +379,19 @@ class Constituent(BaseModel):
     @field_validator("item")
     @classmethod
     def check_itemhood(cls, v):
-        """Check that the reference within the constituent is to an item type."""
-        if hasattr(v, "type") and v.type not in [item_type.value for item_type in ItemType]:
-            raise ValueError(f"`type` must be one of {[t.value for t in ItemType]!r}")
+        """Check that the reference within the constituent is to an item type
+        that can act as a constituent, i.e. one that carries substance
+        information.
+
+        The allowed types are resolved from the live item registry rather than
+        hardcoded, so that custom item types (see `docs/plugins.md`) can be used
+        as constituents.
+        """
+        from pydatalab.models import constituent_item_types
+
+        allowed = constituent_item_types()
+        if hasattr(v, "type") and v.type not in allowed:
+            raise ValueError(f"`type` must be one of {sorted(allowed)!r}")
         return v
 
     @field_validator("item", mode="before")
@@ -409,3 +426,34 @@ class Constituent(BaseModel):
                 return InlineSubstance(name=name or str(v), chemform=chemform)
 
         return v
+
+
+def construct_location_hierarchy(flat_locations: set[str]) -> dict[str, dict]:
+    """Take a flat list of locations with locations segmented by '>'
+    and construct a nested hierarchy, terminating with empty dicts `{}`.
+
+    Location segments that appear at multiple levels of the hierarchy
+    will be treated as separate locations, e.g., the flat list
+    `["Lab 1 > Shelf 2", "Building A > Lab 1 > Shelf 3"]` will result in
+    the hierarchy `{"Lab 1": {"Shelf 2": {}}, "Building A": {"Lab 1": {"Shelf 3": {}}}`.
+
+    Parameters:
+        flat_locations: The flat set of locations.
+
+    Returns:
+        A nested dictionary containing the location hierarchy.
+
+    """
+    nested_locations: dict[str, dict] = {}
+    for location_locators in flat_locations:
+        comprising_locations = location_locators.split(">")
+        curr_dict = nested_locations
+        for location in comprising_locations:
+            location = location.strip()
+            if not location:
+                continue
+            if location not in curr_dict:
+                curr_dict[location] = {}
+            curr_dict = curr_dict[location]
+
+    return nested_locations

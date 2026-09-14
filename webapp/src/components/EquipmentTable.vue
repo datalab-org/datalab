@@ -11,17 +11,43 @@
 import DynamicDataTable from "@/components/DynamicDataTable";
 import { getEquipmentList } from "@/server_fetch_utils.js";
 
+import Creators from "@/components/Creators";
+
+import { ITEM_ID_COLUMN, STATUS_COLUMN, NAME_COLUMN, DATE_COLUMN } from "@/utils/tableColumns";
+
 export default {
   components: { DynamicDataTable },
   data() {
     return {
       equipmentColumn: [
-        { field: "item_id", header: "ID", body: "FormattedItemName", filter: true },
-        { field: "status", header: "Status", body: "FormattedItemStatus", filter: true },
-        { field: "name", header: "Name" },
-        { field: "date", header: "Date" },
-        { field: "location", header: "Location" },
-        { field: "creators", header: "Maintainers", body: "Creators" },
+        {
+          ...ITEM_ID_COLUMN,
+          body: {
+            ...ITEM_ID_COLUMN.body,
+            props: (row) => ({
+              ...ITEM_ID_COLUMN.body.props(row),
+              itemType: row.type !== undefined ? row.type : "equipment",
+            }),
+          },
+        },
+        STATUS_COLUMN,
+        NAME_COLUMN,
+        DATE_COLUMN,
+        { field: "location", header: "Location", label: "Location" },
+        {
+          field: "creators",
+          header: "Maintainers",
+          label: "Maintainers",
+          body: {
+            component: Creators,
+            props: (row) => ({
+              creators: row.creators || [],
+              groups: [],
+              showNames: (row.creators || []).length === 1,
+              showBubble: true,
+            }),
+          },
+        },
       ],
     };
   },
@@ -31,10 +57,7 @@ export default {
         return null;
       }
 
-      return this.$store.state.equipment_list.map((equipment) => ({
-        ...equipment,
-        // creatorsList: equipment.creators.map((creator) => creator.display_name).join(", "),
-      }));
+      return this.$store.state.equipment_list;
     },
   },
   mounted() {

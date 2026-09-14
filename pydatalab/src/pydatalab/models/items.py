@@ -6,6 +6,7 @@ from pydatalab.models.entries import Entry
 from pydatalab.models.files import HasFiles
 from pydatalab.models.traits import (
     HasBlocks,
+    HasLocation,
     HasOwner,
     HasRevisionControl,
     IsCollectable,
@@ -17,7 +18,9 @@ from pydatalab.models.utils import (
 )
 
 
-class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, HasFiles, abc.ABC):
+class Item(
+    Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, HasLocation, HasFiles, abc.ABC
+):
     """The generic model for data types that will be exposed with their own named endpoints.
 
     `Item` is the abstract base shared by every physical item type: samples, cells,

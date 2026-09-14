@@ -16,6 +16,7 @@ __all__ = (
     "IsCollectable",
     "HasSynthesisInfo",
     "HasSubstanceInfo",
+    "HasLocation",
 )
 
 
@@ -121,6 +122,7 @@ class HasSynthesisInfo(BaseModel):
     @model_validator(mode="after")
     def add_missing_synthesis_relationships(self):
         """Add any missing sample synthesis constituents to parent relationships"""
+        from pydatalab.models import constituent_item_types
         from pydatalab.models.relationships import RelationshipType, TypedRelationship
 
         constituents_set = set()
@@ -171,7 +173,9 @@ class HasSynthesisInfo(BaseModel):
                 constituents_set.update(i for i in (refcode, item_id) if i)
 
         # Finally, filter out any parent relationships with item that were removed
-        # from the synthesis constituents
+        # from the synthesis constituents. The set of constituent-capable types is
+        # resolved dynamically so that custom item types are also cleaned up.
+        removable_types = constituent_item_types()
         self.relationships = [
             rel
             for rel in self.relationships
@@ -179,7 +183,7 @@ class HasSynthesisInfo(BaseModel):
                 rel.refcode not in constituents_set
                 and rel.item_id not in constituents_set
                 and rel.relation == RelationshipType.PARENT
-                and rel.type in ("samples", "starting_materials")
+                and rel.type in removable_types
             )
         ]
 
@@ -238,3 +242,8 @@ class HasSubstanceInfo(BaseModel):
                 return None
 
         return v
+
+
+class HasLocation(BaseModel):
+    location: str | None = Field(None)
+    """The place where the item is located."""

@@ -111,6 +111,12 @@ const convertDocToMarkdown = (doc) => {
             case "underline":
               text = `<u>${text}</u>`;
               break;
+            case "subscript":
+              text = `<sub>${text}</sub>`;
+              break;
+            case "superscript":
+              text = `<sup>${text}</sup>`;
+              break;
             case "link":
               text = `[${text}](${mark.attrs.href})`;
               break;
@@ -186,7 +192,19 @@ const convertDocToMarkdown = (doc) => {
       case "image": {
         const src = node.attrs?.src || "";
         const alt = node.attrs?.alt || "";
-        markdown += `![${alt}](${src})`;
+        const width = node.attrs?.width;
+        const height = node.attrs?.height;
+        if (width || height) {
+          // Markdown has no syntax for image dimensions, so fall back to raw HTML
+          // to avoid losing a resize when round-tripping through Markdown mode.
+          const sizeAttrs = [
+            width ? ` width="${escapeAttr(width)}"` : "",
+            height ? ` height="${escapeAttr(height)}"` : "",
+          ].join("");
+          markdown += `<img src="${escapeAttr(src)}" alt="${escapeAttr(alt)}"${sizeAttrs}>`;
+        } else {
+          markdown += `![${alt}](${src})`;
+        }
         break;
       }
 
@@ -642,6 +660,19 @@ export const MarkdownToggle = Extension.create({
             commands.setContent(parseMarkdownToHTML(storage.markdownContent));
             storage.markdownMode = false;
           }
+          return true;
+        },
+
+      /**
+       * Leave Markdown mode without writing the Markdown back into the
+       * document. Used when the Markdown was never edited, so that merely
+       * looking at it cannot rewrite the document through the (lossy)
+       * Markdown converter.
+       */
+      cancelMarkdownView:
+        () =>
+        ({ editor }) => {
+          editor.storage.markdownToggle.markdownMode = false;
           return true;
         },
 

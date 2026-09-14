@@ -16,10 +16,14 @@ from werkzeug.exceptions import BadRequest, Conflict, InternalServerError, NotFo
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
-from pydatalab.models import ITEM_MODELS, ItemVersion
+from pydatalab.models import ITEM_MODELS, ItemVersion, flagged_summary_fields
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
-from pydatalab.models.utils import InlineSubstance, generate_unique_refcode
+from pydatalab.models.utils import (
+    InlineSubstance,
+    construct_location_hierarchy,
+    generate_unique_refcode,
+)
 from pydatalab.models.versions import (
     CompareVersionsQuery,
     RestoreVersionRequest,
@@ -77,6 +81,9 @@ def get_equipment_summary():
         "status": 1,
     }
 
+    for field in flagged_summary_fields(("equipment",)):
+        _project.setdefault(field, 1)
+
     items = [
         doc
         for doc in flask_mongo.db.items.aggregate(
@@ -95,6 +102,44 @@ def get_equipment_summary():
 
 @ITEMS.route("/starting-materials/", methods=["GET"])
 def get_starting_materials():
+    _project = {
+        "_id": 0,
+        "item_id": 1,
+        "blocks": {
+            "$map": {
+                "input": {"$objectToArray": {"$ifNull": ["$blocks_obj", {}]}},
+                "as": "b",
+                "in": {
+                    "blocktype": "$$b.v.blocktype",
+                    "title": "$$b.v.title",
+                },
+            }
+        },
+        "collections": {
+            "collection_id": 1,
+        },
+        "nblocks": {"$size": "$display_order"},
+        "nfiles": {"$size": "$file_ObjectIds"},
+        "date": 1,
+        "chemform": 1,
+        "smiles": 1,
+        "inchi_key": 1,
+        "GHS_codes": 1,
+        "molar_mass": 1,
+        "name": 1,
+        "type": 1,
+        "chemical_purity": 1,
+        "barcode": 1,
+        "refcode": 1,
+        "supplier": 1,
+        "location": 1,
+        "status": 1,
+        "CAS": 1,
+    }
+
+    for field in flagged_summary_fields(("starting_materials",)):
+        _project.setdefault(field, 1)
+
     items = [
         doc
         for doc in flask_mongo.db.items.aggregate(
@@ -212,6 +257,11 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
         "status": 1,
     }
 
+    # Include any fields (across all registered item types, including custom
+    # ones) that opt into summaries via `datalab_include_field_in_summary`.
+    for field in flagged_summary_fields(ITEM_MODELS):
+        _project.setdefault(field, 1)
+
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
     if project:
         for key in project:
@@ -288,6 +338,11 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
         "refcode": 1,
         "status": 1,
     }
+
+    # Include any fields on samples/cells (including custom subclasses) that opt
+    # into summaries via `datalab_include_field_in_summary`.
+    for field in flagged_summary_fields(("samples", "cells")):
+        _project.setdefault(field, 1)
 
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
     if project:
@@ -1560,7 +1615,9 @@ def save_item():
     item_id = str(request_json["item_id"])
     updated_data = request_json["data"]
 
-    # These keys should not be updated here and cannot be modified by the user through this endpoint
+    # These keys should not be updated here and cannot be modified by the user through this endpoint.
+    # `blocks` is not a field of any item model at all: it is a flattened copy of `blocks_obj`
+    # sent by the webapp, and is dropped here rather than being silently ignored by the model.
     for k in (
         "_id",
         "immutable_id",
@@ -1573,6 +1630,7 @@ def save_item():
         "item_id",
         "relationships",
         "last_modified",
+        "blocks",
     ):
         if k in updated_data:
             del updated_data[k]
@@ -1790,3 +1848,35 @@ def get_access_token_info(refcode: str):
         ), 200
     else:
         return jsonify({"status": "success", "has_token": False}), 200
+
+
+@ITEMS.route("/locations", methods=["GET"])
+def get_locations_for_items():
+    """List all distinct locations that the current user has access to, whether via
+    items at those locations, or pre-defined locations for the overall deployment.
+
+    """
+    locations = set(
+        flask_mongo.db.items.distinct(
+            "location",
+            {
+                "location": {"$ne": None},
+                **get_default_permissions(user_only=False),
+            },
+        )
+    )
+
+    locations |= CONFIG.PREDEFINED_LOCATIONS
+
+    try:
+        nested_locations = construct_location_hierarchy(locations)
+    except Exception as exc:
+        LOGGER.error("Error constructing location hierarchy for %s: %s", locations, exc)
+        nested_locations = {}
+
+    return jsonify(
+        {
+            "data": {"flat_locations": list(locations), "nested_locations": nested_locations},
+            "status": "success",
+        }
+    ), 200

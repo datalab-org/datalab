@@ -11,7 +11,7 @@ The plugin entry points exposed today cover *data blocks*, *standalone tools*, a
 trusted *in-app tools*; see [Plugins](plugins.md).
 Planned extensions include:
 
-- **Custom item types** — register new top-level item models (beyond the built-in samples, cells, and starting materials) from a plugin package.
+- **Custom item types** [in-progress #1767](https://github.com/datalab-org/datalab/issues/1767) — register new top-level item models (beyond the built-in samples, cells, and starting materials) from a plugin package.
 - **Ingestion hooks** — allow plugins to register handlers that run on file upload, item creation, or other lifecycle events.
 - **Broader frontend SDK** — expand the deliberately small *tool frontend SDK* only when
   stable, reusable webapp capabilities are needed by multiple trusted plugins.
