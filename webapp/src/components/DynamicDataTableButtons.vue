@@ -128,10 +128,13 @@
           >
             <div class="dropdown-item-text">
               <label class="mb-1 font-weight-bold">Columns</label>
+              <!-- Compare columns by field: the default deep comparison can fail on column
+                   definitions holding components. -->
               <MultiSelect
                 :model-value="selectedColumns"
                 :options="availableColumns"
                 :option-label="columnLabel"
+                data-key="field"
                 placeholder="Select column(s) to display"
                 display="chip"
                 class="column-select-dropdown"

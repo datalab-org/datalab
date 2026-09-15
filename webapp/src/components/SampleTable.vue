@@ -1,5 +1,8 @@
 <template>
+  <!-- The table sets up its columns (and their filters) once, when created, so wait for the
+       server info that decides whether the tags column is shown. -->
   <DynamicDataTable
+    v-if="serverInfoLoaded"
     :columns="sampleColumns"
     :data="samples"
     :data-type="'samples'"
@@ -9,7 +12,7 @@
 
 <script>
 import DynamicDataTable from "@/components/DynamicDataTable";
-import { getSampleList } from "@/server_fetch_utils.js";
+import { getInfo, getSampleList, getTags } from "@/server_fetch_utils.js";
 
 import {
   ITEM_ID_COLUMN,
@@ -21,6 +24,7 @@ import {
   DATE_RANGE_FILTER,
   COLLECTIONS_COLUMN,
   CREATORS_AND_GROUPS_COLUMN,
+  TAGS_COLUMN,
   BLOCKS_COLUMN,
   FILES_COLUMN,
   LAST_MODIFIED_COLUMN,
@@ -55,6 +59,9 @@ export default {
     };
   },
   computed: {
+    serverInfoLoaded() {
+      return this.$store.state.serverInfo !== null;
+    },
     enableTags() {
       // Tag column only if enabled globally.
       return this.$store.state.serverInfo?.features?.tags ?? false;
@@ -63,13 +70,7 @@ export default {
       const columns = [...this.baseSampleColumns];
       if (this.enableTags) {
         const insertBeforeBlocks = columns.findIndex((column) => column.field === "blocks");
-        columns.splice(insertBeforeBlocks, 0, {
-          field: "tags",
-          header: "Tags",
-          body: "TagList",
-          filter: true,
-          label: "Tags",
-        });
+        columns.splice(insertBeforeBlocks, 0, TAGS_COLUMN);
       }
       return columns;
     },
@@ -110,6 +111,22 @@ export default {
         };
       });
     },
+  },
+  watch: {
+    enableTags: {
+      // The tags filter offers the whole global tag list, so fetch it once tags are enabled.
+      immediate: true,
+      handler(enabled) {
+        if (enabled && this.$store.state.tag_list === null) {
+          getTags();
+        }
+      },
+    },
+  },
+  created() {
+    if (!this.serverInfoLoaded) {
+      getInfo();
+    }
   },
   mounted() {
     this.getSamples();
