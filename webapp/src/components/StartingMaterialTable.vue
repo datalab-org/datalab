@@ -20,59 +20,84 @@
 import DynamicDataTable from "@/components/DynamicDataTable";
 import { getStartingMaterialList } from "@/server_fetch_utils.js";
 
+import FormattedBarcode from "@/components/FormattedBarcode";
+import MultiSelectFilter from "@/components/MultiSelectFilter";
+
+import { FilterOperator } from "@primevue/core/api";
+import { matchStringValues, stringValuesOptions } from "@/utils/filterMatchers";
+import {
+  ITEM_ID_COLUMN,
+  STATUS_COLUMN,
+  NAME_COLUMN,
+  CHEMFORM_COLUMN,
+  DATE_COLUMN,
+  COLLECTIONS_COLUMN,
+  BLOCKS_COLUMN,
+  FILES_COLUMN,
+  LAST_MODIFIED_COLUMN,
+} from "@/utils/tableColumns";
+
 export default {
   components: { DynamicDataTable },
   data() {
     return {
       startingMaterialColumn: [
-        { field: "item_id", header: "ID", body: "FormattedItemName", filter: true, label: "ID" },
         {
-          field: "status",
-          header: "Status",
-          body: "FormattedItemStatus",
-          filter: true,
-          label: "Status",
+          ...ITEM_ID_COLUMN,
+          body: {
+            ...ITEM_ID_COLUMN.body,
+            props: (row) => ({
+              ...ITEM_ID_COLUMN.body.props(row),
+              itemType: row.type !== undefined ? row.type : "starting_materials",
+            }),
+          },
         },
+        STATUS_COLUMN,
         {
           field: "barcode",
-          body: "FormattedBarcode",
           header: "",
           label: "Barcode",
           icon: ["fa", "barcode"],
+          body: {
+            component: FormattedBarcode,
+            props: (row) => ({
+              barcode: row.barcode,
+              enableBarcode: false,
+              enableModifiedClick: false,
+            }),
+          },
         },
-        { field: "name", header: "Name", label: "Name" },
+        NAME_COLUMN,
+        CHEMFORM_COLUMN,
+        DATE_COLUMN,
+        COLLECTIONS_COLUMN,
         {
-          field: "chemform",
-          header: "Formula",
-          body: "ChemicalFormula",
-          label: "Formula",
-        },
-        { field: "date", header: "Date", label: "Date" },
-        {
-          field: "collections",
-          header: "Collections",
-          body: "CollectionList",
-          filter: true,
-          label: "Collections",
-        },
-        { field: "supplier", header: "Supplier", label: "Supplier", filter: true },
-        { field: "location", header: "Location", label: "Location", filter: true },
-        {
-          field: "blocks",
-          header: "",
-          body: "BlocksIconCounter",
-          icon: ["fa", "cubes"],
-          label: "Block",
-          filter: true,
+          field: "supplier",
+          header: "Supplier",
+          label: "Supplier",
+          filter: {
+            component: MultiSelectFilter,
+            componentProps: { placeholder: "Any" },
+            match: matchStringValues,
+            operator: FilterOperator.AND,
+            options: stringValuesOptions("supplier"),
+          },
         },
         {
-          field: "nfiles",
-          header: "",
-          body: "FilesIconCounter",
-          icon: ["fa", "file"],
-          label: "Files",
+          field: "location",
+          header: "Location",
+          label: "Location",
+          filter: {
+            component: MultiSelectFilter,
+            componentProps: { placeholder: "Any" },
+            match: matchStringValues,
+            operator: FilterOperator.AND,
+            options: stringValuesOptions("location"),
+          },
         },
-        { field: "last_modified", header: "", label: "Last modified", icon: ["fa", "clock"] },
+        { ...BLOCKS_COLUMN, label: "Block" },
+        FILES_COLUMN,
+        LAST_MODIFIED_COLUMN,
       ],
     };
   },

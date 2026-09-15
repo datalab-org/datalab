@@ -1,5 +1,6 @@
 import store from "@/store/index.js";
 import { DATETIME_FIELDS } from "@/resources.js";
+import { formatDistanceToNow } from "date-fns";
 
 /**
  * Parses a server-provided timestamp as UTC.
@@ -22,6 +23,19 @@ export function parseUTCDate(value) {
     value += "Z";
   }
   return new Date(value);
+}
+
+/**
+ * Formats a server-provided timestamp as a human-readable relative date, e.g. "2 months ago".
+ *
+ * @param {string} isodatetime - A server timestamp string.
+ * @returns {string} The relative date, or the original falsy value if none was given.
+ */
+export function formatRelativeDate(isodatetime) {
+  if (!isodatetime) {
+    return isodatetime;
+  }
+  return formatDistanceToNow(parseUTCDate(isodatetime), { addSuffix: true });
 }
 
 /**
