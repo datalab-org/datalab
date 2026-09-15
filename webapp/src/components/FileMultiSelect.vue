@@ -67,7 +67,7 @@
         </button>
         <button
           class="btn btn-secondary btn-sm mt-2"
-          :disabled="modelValue.length === 0"
+          :disabled="selectedFileIds.length === 0"
           aria-label="Remove all files"
           @click="removeAllSelected"
         >
@@ -84,7 +84,7 @@
           aria-multiselectable="false"
         >
           <li
-            v-for="(fileId, index) in modelValue"
+            v-for="(fileId, index) in selectedFileIds"
             :key="fileId"
             class="list-group-item list-group-item-action"
             :class="{ active: selectedSelected === fileId }"
@@ -101,7 +101,9 @@
               <b>Live</b> ({{ lastModified(fileId) }})
             </span>
           </li>
-          <li v-if="!modelValue.length" class="list-group-item disabled">No files selected.</li>
+          <li v-if="!selectedFileIds.length" class="list-group-item disabled">
+            No files selected.
+          </li>
         </ul>
       </div>
 
@@ -157,6 +159,13 @@ export default {
       type: Array,
       default: () => [],
     },
+    // Whether to fall back to the block's singular `file_id` when no `file_ids` are
+    // set. Only appropriate where this component is bound to the block's primary
+    // file list, not for comparison or otherwise-named file selections.
+    fallbackToSingleFileId: {
+      type: Boolean,
+      default: false,
+    },
   },
   emits: ["update:modelValue"],
   data() {
@@ -167,6 +176,23 @@ export default {
     };
   },
   computed: {
+    selectedFileIds() {
+      // Blocks stored before their type gained multi-file support have an explicit
+      // `file_ids: null`, which bypasses the `modelValue` prop default (Vue only
+      // applies defaults for `undefined`).
+      if (Array.isArray(this.modelValue)) {
+        return this.modelValue;
+      }
+      // Such blocks still carry their original singular `file_id`, which is retained
+      // in the database; surface it here so the selection is not silently lost.
+      if (this.fallbackToSingleFileId && this.legacyFileId) {
+        return [this.legacyFileId];
+      }
+      return [];
+    },
+    legacyFileId() {
+      return this.$store.state.all_item_data[this.item_id]?.blocks_obj?.[this.block_id]?.file_id;
+    },
     all_files_map() {
       // Create a map for potentially faster lookups if the list is large
       const fileMap = new Map();
@@ -192,7 +218,7 @@ export default {
     },
     availableFiles() {
       // Filter out files that are already selected or explicitly excluded
-      const selectedSet = new Set(this.modelValue);
+      const selectedSet = new Set(this.selectedFileIds);
       const excludedSet = new Set(this.excludeFileIds);
       // Get filtered IDs
       const filteredIds = this.all_available_file_ids.filter(
@@ -210,7 +236,8 @@ export default {
     },
     canMoveDown() {
       return (
-        this.selectedSelected !== null && this.selectedSelectedIndex < this.modelValue.length - 1
+        this.selectedSelected !== null &&
+        this.selectedSelectedIndex < this.selectedFileIds.length - 1
       );
     },
   },
@@ -263,7 +290,7 @@ export default {
       if (!id) return;
 
       // Create a new array to ensure reactivity
-      const newSelectedFiles = [...this.modelValue, id];
+      const newSelectedFiles = [...this.selectedFileIds, id];
       this.emitUpdate(newSelectedFiles);
 
       // Reset selection in available list
@@ -273,7 +300,7 @@ export default {
       const id = fileIdToRemove || this.selectedSelected;
       if (!id) return;
 
-      const newSelectedFiles = this.modelValue.filter((fileId) => fileId !== id);
+      const newSelectedFiles = this.selectedFileIds.filter((fileId) => fileId !== id);
       this.emitUpdate(newSelectedFiles);
 
       // Reset selection in selected list
@@ -283,12 +310,12 @@ export default {
     addAllAvailable() {
       if (this.availableFiles.length === 0) return;
 
-      const newSelectedFiles = [...this.modelValue, ...this.availableFiles];
+      const newSelectedFiles = [...this.selectedFileIds, ...this.availableFiles];
       this.emitUpdate(newSelectedFiles);
       this.selectedAvailable = null;
     },
     removeAllSelected() {
-      if (this.modelValue.length === 0) return;
+      if (this.selectedFileIds.length === 0) return;
 
       this.emitUpdate([]);
       this.selectedSelected = null;
@@ -299,7 +326,7 @@ export default {
       if (!this.canMoveUp) return;
 
       const index = this.selectedSelectedIndex;
-      const newSelectedFiles = [...this.modelValue]; // Create mutable copy
+      const newSelectedFiles = [...this.selectedFileIds]; // Create mutable copy
       // Swap elements
       [newSelectedFiles[index], newSelectedFiles[index - 1]] = [
         newSelectedFiles[index - 1],
@@ -313,7 +340,7 @@ export default {
       if (!this.canMoveDown) return;
 
       const index = this.selectedSelectedIndex;
-      const newSelectedFiles = [...this.modelValue]; // Create mutable copy
+      const newSelectedFiles = [...this.selectedFileIds]; // Create mutable copy
       // Swap elements
       [newSelectedFiles[index], newSelectedFiles[index + 1]] = [
         newSelectedFiles[index + 1],
@@ -337,12 +364,12 @@ export default {
     },
     checkFileList() {
       // This should fire if the available IDs change (e.g by removing a file from a sample)
-      if (!Array.isArray(this.modelValue) || !Array.isArray(this.all_available_file_ids)) {
+      if (!Array.isArray(this.all_available_file_ids)) {
         // Avoid running if data is not in the expected format
         return;
       }
 
-      const currentSelectedIds = this.modelValue;
+      const currentSelectedIds = this.selectedFileIds;
       if (currentSelectedIds.length === 0) {
         return; // No files selected, nothing to check
       }

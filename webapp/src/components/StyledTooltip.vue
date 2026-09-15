@@ -35,11 +35,19 @@ export default {
       type: String,
       default: "",
     },
+    // When set, clicking (or pressing enter on) the anchor pins the tooltip
+    // open so that it survives the pointer leaving, until it is clicked again
+    // or the user clicks elsewhere.
+    pinnable: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
       tooltipTimeout: null,
       popperInstance: null,
+      pinned: false,
     };
   },
   mounted() {
@@ -64,8 +72,13 @@ export default {
     anchor.addEventListener("focusin", this.delayedShowTooltip);
     anchor.addEventListener("focusout", this.hideTooltip);
 
+    if (this.pinnable) {
+      anchor.addEventListener("click", this.togglePinned);
+      anchor.addEventListener("keyup", this.handleAnchorKeyup);
+    }
+
     document.addEventListener("mousedown", this.handleClickOutside);
-    window.addEventListener("scroll", this.hideTooltip, true);
+    window.addEventListener("scroll", this.forceHideTooltip, true);
   },
   beforeUnmount() {
     const anchor = this.$refs.anchor;
@@ -74,13 +87,15 @@ export default {
       anchor.removeEventListener("mouseleave", this.hideTooltip);
       anchor.removeEventListener("focusin", this.delayedShowTooltip);
       anchor.removeEventListener("focusout", this.hideTooltip);
+      anchor.removeEventListener("click", this.togglePinned);
+      anchor.removeEventListener("keyup", this.handleAnchorKeyup);
     }
     if (this.popperInstance) {
       this.popperInstance.destroy();
     }
 
     document.removeEventListener("mousedown", this.handleClickOutside);
-    window.removeEventListener("scroll", this.hideTooltip, true);
+    window.removeEventListener("scroll", this.forceHideTooltip, true);
   },
   methods: {
     delayedShowTooltip() {
@@ -91,10 +106,37 @@ export default {
         }
       }, this.delay);
     },
+    showTooltip() {
+      clearTimeout(this.tooltipTimeout);
+      if (this.$refs.tooltipContent && this.popperInstance) {
+        this.$refs.tooltipContent.setAttribute("data-show", "");
+        this.popperInstance.update();
+      }
+    },
     hideTooltip() {
+      // A pinned tooltip ignores the pointer leaving; it is dismissed by
+      // clicking the anchor again or clicking outside.
+      if (this.pinned) return;
+      this.forceHideTooltip();
+    },
+    forceHideTooltip() {
+      this.pinned = false;
       clearTimeout(this.tooltipTimeout);
       if (this.$refs.tooltipContent) {
         this.$refs.tooltipContent.removeAttribute("data-show");
+      }
+    },
+    togglePinned() {
+      this.pinned = !this.pinned;
+      if (this.pinned) {
+        this.showTooltip();
+      } else {
+        this.forceHideTooltip();
+      }
+    },
+    handleAnchorKeyup(event) {
+      if (event.key === "Enter" || event.key === " ") {
+        this.togglePinned();
       }
     },
     handleClickOutside(event) {
@@ -104,7 +146,7 @@ export default {
       if (!anchor || !tooltip) return;
 
       if (!anchor.contains(event.target) && !tooltip.contains(event.target)) {
-        this.hideTooltip();
+        this.forceHideTooltip();
       }
     },
   },

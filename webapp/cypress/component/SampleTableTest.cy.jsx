@@ -756,12 +756,14 @@ describe("SampleTable Component Tests", () => {
     cy.get(".p-multiselect-list-container").findByText("ACTIVE").click();
     cy.get(".p-datatable-tbody tr").should("have.length", 1);
     cy.findByText("Clear").click();
+    cy.get(".p-datatable-filter-overlay").should("not.exist");
 
     cy.get(".p-datatable-thead th").eq(3).find(".p-datatable-column-filter-button").click();
     cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
     cy.get(".p-multiselect-list-container").findByText("CYCLED").click();
     cy.get(".p-datatable-tbody tr").should("have.length", 1);
     cy.findByText("Clear").click();
+    cy.get(".p-datatable-filter-overlay").should("not.exist");
 
     cy.get(".p-datatable-thead th").eq(3).find(".p-datatable-column-filter-button").click();
     cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
@@ -790,18 +792,21 @@ describe("SampleTable Component Tests", () => {
     cy.get(".p-multiselect-list-container").findByText("collection1").click();
     cy.get(".p-datatable-tbody tr").should("have.length", 4);
     cy.findByText("Clear").click();
+    cy.get(".p-datatable-filter-overlay").should("not.exist");
 
     cy.get(".p-datatable-thead th").eq(7).find(".p-datatable-column-filter-button").click();
     cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
     cy.get(".p-multiselect-list-container").findByText("collection2").click();
     cy.get(".p-datatable-tbody tr").should("have.length", 3);
     cy.findByText("Clear").click();
+    cy.get(".p-datatable-filter-overlay").should("not.exist");
 
     cy.get(".p-datatable-thead th").eq(7).find(".p-datatable-column-filter-button").click();
     cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
     cy.get(".p-multiselect-list-container").findByText("collection3").click();
     cy.get(".p-datatable-tbody tr").should("have.length", 2);
     cy.findByText("Clear").click();
+    cy.get(".p-datatable-filter-overlay").should("not.exist");
 
     cy.get(".p-datatable-thead th").eq(7).find(".p-datatable-column-filter-button").click();
     cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
@@ -823,18 +828,21 @@ describe("SampleTable Component Tests", () => {
     cy.get(".p-multiselect-list-container").findByText("Creator 1").click();
     cy.get(".p-datatable-tbody tr").should("have.length", 4);
     cy.findByText("Clear").click();
+    cy.get(".p-datatable-filter-overlay").should("not.exist");
 
     cy.get(".p-datatable-thead th").eq(8).find(".p-datatable-column-filter-button").click();
     cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
     cy.get(".p-multiselect-list-container").findByText("Creator 2").click();
     cy.get(".p-datatable-tbody tr").should("have.length", 4);
     cy.findByText("Clear").click();
+    cy.get(".p-datatable-filter-overlay").should("not.exist");
 
     cy.get(".p-datatable-thead th").eq(8).find(".p-datatable-column-filter-button").click();
     cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
     cy.get(".p-multiselect-list-container").findByText("Creator 3").click();
     cy.get(".p-datatable-tbody tr").should("have.length", 2);
     cy.findByText("Clear").click();
+    cy.get(".p-datatable-filter-overlay").should("not.exist");
 
     cy.get(".p-datatable-thead th").eq(8).find(".p-datatable-column-filter-button").click();
     cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
@@ -856,24 +864,28 @@ describe("SampleTable Component Tests", () => {
     cy.get(".p-multiselect-list-container").findByText("nmr").click();
     cy.get(".p-datatable-tbody tr").should("have.length", 6);
     cy.findByText("Clear").click();
+    cy.get(".p-datatable-filter-overlay").should("not.exist");
 
     cy.get(".p-datatable-thead th").eq(9).find(".p-datatable-column-filter-button").click();
     cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
     cy.get(".p-multiselect-list-container").findByText("insitu").click();
     cy.get(".p-datatable-tbody tr").should("have.length", 2);
     cy.findByText("Clear").click();
+    cy.get(".p-datatable-filter-overlay").should("not.exist");
 
     cy.get(".p-datatable-thead th").eq(9).find(".p-datatable-column-filter-button").click();
     cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
     cy.get(".p-multiselect-list-container").findByText("ftir").click();
     cy.get(".p-datatable-tbody tr").should("have.length", 1);
     cy.findByText("Clear").click();
+    cy.get(".p-datatable-filter-overlay").should("not.exist");
 
     cy.get(".p-datatable-thead th").eq(9).find(".p-datatable-column-filter-button").click();
     cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
     cy.get(".p-multiselect-list-container").findByText("xrd").click();
     cy.get(".p-datatable-tbody tr").should("have.length", 1);
     cy.findByText("Clear").click();
+    cy.get(".p-datatable-filter-overlay").should("not.exist");
 
     cy.get(".p-datatable-thead th").eq(9).find(".p-datatable-column-filter-button").click();
     cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();

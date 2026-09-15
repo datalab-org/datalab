@@ -9,7 +9,7 @@ class ModelCard(BaseModel):
     context_window: int
     input_cost_usd_per_MTok: float
     output_cost_usd_per_MTok: float
-    chat_client: type[BaseChatModel] | None = Field(exclude=True)
+    chat_client: type[BaseChatModel] | None = Field(None, exclude=True)
 
 
 __all__ = ("AVAILABLE_MODELS", "ModelCard")

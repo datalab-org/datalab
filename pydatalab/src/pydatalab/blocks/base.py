@@ -190,13 +190,15 @@ class DataBlock:
         """returns a dictionary with the data for this
         block, ready to be input into mongodb"""
 
-        LOGGER.debug("Casting block %s to database object.", self.__class__.__name__)
+        LOGGER.debug(
+            "Casting block %s to database object, data: %s", self.__class__.__name__, self.data
+        )
         exclude_fields: set[str] = {
             f
-            for (f, s) in self.block_db_model.schema()["properties"].items()
+            for (f, s) in self.block_db_model.model_json_schema()["properties"].items()
             if s.get("datalab_exclude_from_db")
         }
-        return self.block_db_model(**self.data).dict(
+        return self.block_db_model(**self.data).model_dump(
             exclude=exclude_fields,
             exclude_unset=True,
             exclude_none=True,
@@ -238,6 +240,10 @@ class DataBlock:
                                 ]
                             )
 
+        # Opportunistically convert the data to a dict if it is already a pydantic model
+        if not isinstance(self.data, dict):
+            self.data = self.data.dict()
+
         # If the last plotting run did not raise any errors or warnings, remove any old ones
         if block_errors:
             self.data["errors"] = block_errors
@@ -248,7 +254,7 @@ class DataBlock:
         else:
             self.data.pop("warnings", None)
 
-        return self.block_db_model(**self.data).dict(exclude_unset=True, exclude_none=True)
+        return self.block_db_model(**self.data).model_dump(exclude_unset=True, exclude_none=True)
 
     def process_events(self, events: list[dict] | dict):
         """Handle any supported events passed to the block."""
@@ -263,6 +269,7 @@ class DataBlock:
                     self, self.__class__
                 )
                 try:
+                    LOGGER.debug("Processing event %s with params %s", event_name, event)
                     bound_method(**event)
                 except Exception as e:
                     LOGGER.error(
@@ -309,28 +316,32 @@ class DataBlock:
         }
 
     @classmethod
-    def from_web(cls, data: dict):
+    def from_web(cls, data: dict, stored_data: dict | None = None):
         """Initialise the block state from data passed via web request
         with a given item and block ID.
 
         Parameters:
             data: The block data to initialiaze the block with.
+            stored_data: The stored database state of the block, if any,
+                used to preserve server-authoritative fields that cannot
+                be set from the web.
 
         """
         block = cls(
             item_id=data.get("item_id"),
             unique_id=data["block_id"],
         )
-        block.update_from_web(data)
+        block.update_from_web(data, stored_data=stored_data)
         return block
 
-    def update_from_web(self, data: dict):
+    def update_from_web(self, data: dict, stored_data: dict | None = None):
         """Update the block with validated data received from a web request.
         Will strip any fields that are "computed" or otherwise not controllable
-        by the user.
+        by the user, restoring their stored database values where available.
 
         Parameters:
             data: A dictionary of data to update the block with.
+            stored_data: The stored database state of the block, if any.
 
         """
         LOGGER.debug(
@@ -339,9 +350,18 @@ class DataBlock:
         )
         exclude_fields: set[str] = {
             f
-            for (f, s) in self.block_db_model.schema()["properties"].items()
+            for (f, s) in self.block_db_model.model_json_schema()["properties"].items()
             if s.get("datalab_exclude_from_load")
         }
         [data.pop(f, None) for f in exclude_fields]
-        self.data.update(self.block_db_model(**data).dict())
+        self.data.update(self.block_db_model(**data).model_dump(exclude_unset=True))
+        # Fields stripped above (e.g., `metadata`, `computed`) are server-authoritative:
+        # writable only via block events or block code, never from the web payload.
+        # Without restoring them from the stored state here, the model defaults
+        # materialised by `.dict()` above would overwrite them in the database on
+        # every subsequent save of the block or its item.
+        if stored_data:
+            for field in exclude_fields:
+                if field in stored_data:
+                    self.data[field] = stored_data[field]
         return self

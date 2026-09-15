@@ -77,7 +77,7 @@ This requires a MongoDB server to be running on your desired host machine.
 ##### Python setup
 
 The next step is to set up a Python environment that contains all of the required dependencies with the correct versions.
-The currently supported versions are 3.10 and 3.11; you can find the full list of supported versions in the `pyproject.toml` file.
+The currently supported versions can be found in the `pyproject.toml` file.
 We strongly recommend using a tool to manage Python versions on your machine, to avoid breakages based on your OS's Python versioning (e.g., [`uv`](https://github.com/astral-sh/uv)).
 
 ###### Installation with `uv` or `venv`

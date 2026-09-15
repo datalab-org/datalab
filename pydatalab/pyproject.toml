@@ -8,24 +8,25 @@ authors = [{ name = "datalab development team", email = "dev@datalab-org.io" }]
 dynamic = ["version"]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Information Technology",
     "Topic :: Scientific/Engineering",
 ]
 
-requires-python = ">= 3.10, < 3.12"
+requires-python = ">= 3.11, < 3.12"
 
 dependencies = [
     "bokeh ~= 2.4, < 3.0",
     "matplotlib ~= 3.8",
-    "periodictable ~= 1.7",
-    "pydantic[email, dotenv] < 2.0",
+    "periodictable ~= 2.1",
+    "pydantic[email] >= 2.11, < 3.0",
+    "pydantic-settings ~= 2.10",
+    "python-dotenv ~= 1.1",
     "pint ~= 0.24",
     "pandas[excel] ~= 2.2",
     "pymongo ~= 4.7",
-    "deepdiff ~= 8.1",
+    "deepdiff>=8.1,<10.0",
     "tomlkit ~= 0.14",
 ]
 
@@ -58,13 +59,13 @@ server = [
     "python-dotenv ~= 1.0",
     "pillow>=11,<13",
     "pyjwt ~= 2.9",
-    "invoke ~= 2.2",
+    "invoke>=2.2,<4.0",
 ]
 apps = [
     # General
     "scipy ~= 1.13",
     # NMR
-    "nmrglue ~= 0.11",
+    "nmrglue ~= 0.12",
     # Electrochemistry
     "navani >= 0.1.21",
     "pyarrow ~= 23.0.1",
@@ -74,14 +75,10 @@ apps = [
     # TGA
     "python-dateutil ~= 2.9",
     # XRD
-    "matador-db >= 0.11.2",
-    "psutil>=7.0.0",
+    "matador-db ~= 0.12",
 ]
 
-app-plugins-git = [
-    "datalab-app-plugin-insitu",
-    "datalab-app-plugin-xps",
-]
+app-plugins-git = ["datalab-app-plugin-insitu", "datalab-app-plugin-xps"]
 
 chat = [
     # Hard upper pin on langchain is 0.3 as pydantic is not supported
@@ -101,7 +98,7 @@ follow_imports = "skip"
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "Q", "DTZ", "S", "G"]
@@ -128,8 +125,9 @@ dev = [
     "mkdocs ~= 1.6",
     "mkdocs-material ~= 9.5",
     "mkdocstrings[python] ~= 1.0",
-    "docstring-inheritance ~= 2.2",
+    "docstring-inheritance>=2.2,<4.0",
     "griffe-inherited-docstrings ~= 1.1",
+    "griffe-pydantic ~= 1.1",
     "mkdocs-awesome-pages-plugin ~= 2.9",
     "markdown-callouts ~= 0.4",
 ]
@@ -137,13 +135,21 @@ dev = [
 [tool.uv]
 # Do not allow installing third-party deps that are very young
 exclude-newer = "1 week"
-# But allow deps we manage ourselves to be newer
-exclude-newer-package = { "navani" = false, "datalab-org-galvani" = false, "datalab-app-plugin-insitu" = false, "datalab-app-plugin-xps" = false }
+
+# But allow deps we manage ourselves to be newer,
+# or specific exceptions for safe deps where we want
+# to make a release for a latest version (e.g., nmrglue)
+[tool.uv.exclude-newer-package]
+nmrglue = false # TODO: remove in September 2026 after cooldown for nmrglue 0.12
+navani = false
+datalab-org-galvani = false
+datalab-app-plugin-insitu = false
+datalab-app-plugin-xps = false
+matador-db = false
 
 [tool.uv.sources]
 datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git", rev = "v0.4.1" }
 datalab-app-plugin-xps = { git = "https://github.com/datalab-industries/datalab-app-plugin-xps.git", rev = "v0.2.0" }
-nmrglue = { git = "https://github.com/jjhelmus/nmrglue.git", rev = "b6408751bf18801a0a4ce084acf4d31335e2b02a" }       # TODO: Update when new release is made
 
 [tool.pytest.ini_options]
 filterwarnings = [

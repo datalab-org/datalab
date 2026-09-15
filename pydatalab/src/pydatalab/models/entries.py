@@ -1,10 +1,10 @@
 import abc
 
-from pydantic import BaseModel, Field, root_validator
+from pydantic import ConfigDict, Field, model_validator
 
 from pydatalab.models.relationships import TypedRelationship
 from pydatalab.models.utils import (
-    JSON_ENCODERS,
+    BaseModel,
     EntryReference,
     IsoformatDateTime,
     PyObjectId,
@@ -20,27 +20,32 @@ class Entry(BaseModel, abc.ABC):
     type: str
     """The resource type of the entry."""
 
-    immutable_id: PyObjectId = Field(
+    immutable_id: PyObjectId | None = Field(
         None,
         title="Immutable ID",
         alias="_id",
-        format="uuid",
+        json_schema_extra={"format": "uuid"},
     )
     """The immutable database ID of the entry."""
 
     last_modified: IsoformatDateTime | None = None
     """The timestamp at which the entry was last modified."""
 
-    relationships: list[TypedRelationship] | None = None
+    relationships: list[TypedRelationship] = Field(default_factory=list)
     """A list of related entries and their types."""
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def check_id_names(cls, values):
         """Slightly upsetting hack: this case *should* be covered by the pydantic setting for
         populating fields by alias names.
         """
         if "_id" in values:
             values["immutable_id"] = values.pop("_id")
+
+        # Coerce a stored/explicit null into an empty list so the field is always a list.
+        if values.get("relationships") is None:
+            values["relationships"] = []
 
         return values
 
@@ -63,7 +68,4 @@ class Entry(BaseModel, abc.ABC):
 
         return EntryReference(**data)
 
-    class Config:
-        allow_population_by_field_name = True
-        json_encoders = JSON_ENCODERS
-        extra = "ignore"
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")

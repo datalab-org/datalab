@@ -1,5 +1,5 @@
-import Aura from "@primevue/themes/aura";
-import { definePreset } from "@primevue/themes";
+import Aura from "@primeuix/themes/aura";
+import { definePreset } from "@primeuix/themes";
 
 const DatalabPreset = definePreset(Aura, {
   semantic: {

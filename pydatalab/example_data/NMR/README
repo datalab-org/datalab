@@ -3,3 +3,4 @@
 72.zip: example of 2D (MATPASS) solid-state NMR data
 1h.dx: example of 1D JCAMP-DX data, sourced from [nmRxiv](https://docs.nmrxiv.org/introduction/data/exemplary-data.html#jcamp-datasets)
 13c.dx: example of 1D JCAMP-DX data, sourced from [nmRxiv](https://docs.nmrxiv.org/introduction/data/exemplary-data.html#jcamp-datasets)
+multi_nuclei.zip: a shell example of multi-nuclei NMR data (1H, 13C, 15N, 31P) from Bruker -- contains no raw data and will fail any real test, but useful for folder structure only
