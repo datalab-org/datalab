@@ -238,6 +238,8 @@ describe("Advanced sample creation features", () => {
   });
 
   it("modifies some data in the second sample", () => {
+    cy.intercept("POST", "**/save-item/").as("saveItem");
+
     cy.findByText("testB").click();
     cy.findByLabelText("Description").type("this is a description of testB.");
     cy.get('[data-testid="add-block-button-top"]').click();
@@ -259,7 +261,12 @@ describe("Advanced sample creation features", () => {
     cy.findByLabelText("Procedure").type("a description of the synthesis here");
 
     cy.get(".fa-save").click();
+    cy.wait("@saveItem").then(({ response }) => {
+      expect(response.statusCode).to.equal(200);
+      expect(response.body).to.have.property("status", "success");
+    });
     cy.findByText("Home").click();
+    cy.location("pathname").should("equal", "/");
   });
 
   it("copies the second sample", () => {

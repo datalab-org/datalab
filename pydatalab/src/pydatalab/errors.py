@@ -81,11 +81,7 @@ def handle_pydantic_validation_error(exc: ValidationError) -> tuple[Response, in
 def handle_generic_exception(exc: Exception) -> tuple[Response, int]:
     """Return a specific error message and status code if the exception stores them."""
 
-    LOGGER.critical(
-        "An unhandled exception occurred: %s",
-        exc,
-        exc_info=True,
-    )
+    LOGGER.exception("An unhandled exception occurred: %s", exc)
 
     response = {
         "title": "Internal Server Error",

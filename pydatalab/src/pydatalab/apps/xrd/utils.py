@@ -1,5 +1,6 @@
 import os
 import re
+import struct
 import tempfile
 import warnings
 import zipfile
@@ -238,7 +239,11 @@ def parse_bruker_raw(filename: str) -> tuple[pd.DataFrame, dict]:
 
     class raw_ReaderClass:
         """This class is essentially vendored from GSAS-II, with only interface
-        and cosmetic changes:
+        and cosmetic changes.
+
+        06/08/2026 - Method was also updated to allow for incremental reading of partial v4 files,
+        by essentially wrapping all byte block reads into a try/except that will return whatever
+        could be read and emit a warning if the read was partial.
 
         - Permalink: https://github.com/AdvancedPhotonSource/GSAS-II/blob/b87f554c5ca767601cf6f24187645c36947f9a35/GSASII/imports/G2pwd_BrukerRAW.py
         - Copyright: 2010, UChicago Argonne, LLC, Operator of Argonne National Laboratory. All rights reserved.
@@ -544,12 +549,18 @@ def parse_bruker_raw(filename: str) -> tuple[pd.DataFrame, dict]:
                                     pass
                                 fp.read(12)
                                 x = np.array([startAngle + i * stepSize for i in range(Nsteps)])
-                                y = np.array(
-                                    [
-                                        max(1.0, st.unpack("<f", fp.read(4))[0])
-                                        for i in range(Nsteps)
-                                    ]
-                                )
+                                y = np.zeros_like(x)
+                                y *= np.nan
+                                # datalab-specific edit: accumulate y's until we run out and leave the rest padded with NaN
+                                for i in range(Nsteps):
+                                    try:
+                                        y[i] = max(1.0, st.unpack("<f", fp.read(4))[0])
+                                    except struct.error:
+                                        warnings.warn(
+                                            f"Bruker RAW file {filename} appears to be truncated or incomplete, could only read {i} of {Nsteps} expected steps."
+                                        )
+                                        break
+
                                 w = 1.0 / y
                                 if nBank == blockNum - 1:
                                     self.powderdata = [

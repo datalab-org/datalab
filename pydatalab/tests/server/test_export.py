@@ -92,7 +92,7 @@ def test_get_export_status_pending(client, user_id, database):
 
 def test_get_export_status_ready(client, user_id, database, tmp_path):
     task_id = "test-task-ready"
-    file_path = tmp_path / f"{task_id}.eln"
+    file_path = tmp_path / f"{task_id}.eln.zip"
     file_path.write_text("test content")
 
     task = Task(
@@ -166,7 +166,7 @@ def test_download_export_success(client, user_id, database, tmp_path, monkeypatc
 
     task_id = "test-download-task"
     collection_id = "test_collection"
-    file_path = tmp_path / f"{task_id}.eln"
+    file_path = tmp_path / f"{task_id}.eln.zip"
     file_path.write_bytes(b"test export content")
 
     task = Task(
@@ -185,7 +185,7 @@ def test_download_export_success(client, user_id, database, tmp_path, monkeypatc
     response = client.get(f"/exports/{task_id}/download")
     assert response.status_code == 200
     assert response.data == b"test export content"
-    assert f"filename={collection_id}.eln" in response.headers.get("Content-Disposition", "")
+    assert f"filename={collection_id}.eln.zip" in response.headers.get("Content-Disposition", "")
 
     database.tasks.delete_one({"task_id": task_id})
 
@@ -245,7 +245,7 @@ def test_download_export_file_missing(client, user_id, database):
         spec=ExportTaskSpec(
             collection_id="test_collection",
             export_type="collection",
-            file_path="/nonexistent/path.eln",
+            file_path="/nonexistent/path.eln.zip",
         ),
     )
     database.tasks.insert_one(task.dict())
@@ -353,7 +353,7 @@ def test_cleanup_old_exports(database, user_id, tmp_path, monkeypatch):
 
     # An old export: created beyond the max age, with a file still on disk.
     old_task_id = "old-export-to-clean"
-    old_file = tmp_path / f"{old_task_id}.eln"
+    old_file = tmp_path / f"{old_task_id}.eln.zip"
     old_file.write_bytes(b"old export content")
     old_task = Task(
         type=TaskType.EXPORT,
@@ -371,7 +371,7 @@ def test_cleanup_old_exports(database, user_id, tmp_path, monkeypatch):
 
     # A recent export: created within the window, must be retained.
     recent_task_id = "recent-export-to-keep"
-    recent_file = tmp_path / f"{recent_task_id}.eln"
+    recent_file = tmp_path / f"{recent_task_id}.eln.zip"
     recent_file.write_bytes(b"recent export content")
     recent_task = Task(
         type=TaskType.EXPORT,
@@ -419,7 +419,7 @@ def test_cleanup_old_exports_missing_file(database, user_id):
         spec=ExportTaskSpec(
             collection_id="test_collection",
             export_type="collection",
-            file_path="/nonexistent/already-deleted.eln",
+            file_path="/nonexistent/already-deleted.eln.zip",
         ),
     )
     database.tasks.insert_one(task.dict())
@@ -563,7 +563,9 @@ class TestEndToEndExport:
         download_response = client.get(final_data["download_url"])
         assert download_response.status_code == 200
         assert len(download_response.data) > 0
-        assert f"{collection_id}.eln" in download_response.headers.get("Content-Disposition", "")
+        assert f"{collection_id}.eln.zip" in download_response.headers.get(
+            "Content-Disposition", ""
+        )
 
         # Clean up the generated file
         task = database.tasks.find_one({"task_id": task_id})
@@ -606,7 +608,7 @@ class TestEndToEndExport:
         download_response = client.get(final_data["download_url"])
         assert download_response.status_code == 200
         assert len(download_response.data) > 0
-        assert f"{item_id}.eln" in download_response.headers.get("Content-Disposition", "")
+        assert f"{item_id}.eln.zip" in download_response.headers.get("Content-Disposition", "")
 
         task = database.tasks.find_one({"task_id": task_id})
         file_path = task.get("spec", {}).get("file_path")

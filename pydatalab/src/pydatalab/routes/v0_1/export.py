@@ -40,13 +40,13 @@ def _is_export_path_safe(file_path: str, task_id: str) -> bool:
     Defends :func:`download_export` and :func:`_cleanup_old_exports` against
     serving or deleting arbitrary local files should a task document become
     corrupted or tampered with. Generated exports are always written as
-    ``<export_dir>/<task_id>.eln`` (see :func:`_do_export`), so the resolved
+    ``<export_dir>/<task_id>.eln.zip`` (see :func:`_do_export`), so the resolved
     path must match that location *exactly* — both the directory and the random
-    per-task ``<task_id>.eln`` basename — so a path such as
-    ``/some/other/dir/<task_id>.eln`` or ``/etc/passwd`` is rejected.
+    per-task ``<task_id>.eln.zip`` basename — so a path such as
+    ``/some/other/dir/<task_id>.eln.zip`` or ``/etc/passwd`` is rejected.
     """
     try:
-        expected = (_export_dir() / f"{task_id}.eln").resolve()
+        expected = (_export_dir() / f"{task_id}.eln.zip").resolve()
         return Path(file_path).resolve() == expected
     except (OSError, ValueError, RuntimeError):
         return False
@@ -145,7 +145,7 @@ def _do_export(
         export_dir = _export_dir()
         export_dir.mkdir(exist_ok=True, parents=True)
 
-        output_path = export_dir / f"{task_id}.eln"
+        output_path = export_dir / f"{task_id}.eln.zip"
 
         if export_type == "collection":
             create_eln_file(str(output_path), collection_id=collection_id, on_stage=add_stage)
@@ -342,7 +342,7 @@ def download_export(task_id: str):
     ):
         return jsonify({"status": "error", "message": "Export file not found"}), 404
 
-    filename = f"{spec.get('collection_id') or spec.get('item_id')}.eln"
+    filename = f"{spec.get('collection_id') or spec.get('item_id')}.eln.zip"
 
     return _serve_export_file(file_path, filename)
 

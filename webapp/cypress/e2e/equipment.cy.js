@@ -41,7 +41,7 @@ describe("Equipment table page", () => {
   it("Loads the equipment page without any errors", () => {
     cy.findByText("About").should("exist");
     cy.findByText("Equipment").should("exist");
-    cy.get('[data-testid="add-equipment-button"]').should("contain.text", "Add an equipment");
+    cy.get('[data-testid="add-equipment-button"]').should("contain.text", "Add equipment");
     cy.findByText("Maintainers").should("exist");
 
     // Ensure no error messages or console errors. The wait is necessary so that

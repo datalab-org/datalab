@@ -4,6 +4,74 @@
 > Release candidates are not included in this changelog; there may be more
 recent changes described in the [release notes on GitHub](https://github.com/datalab-org/datalab/releases).
 
+## v0.7.3 (August 2026)
+
+This patch release includes several bug fixes, usability fixes and developer experience improvements. Highlights include:
+
+- Hierarchical location input for starting materials and samples
+- Optimisations to the item graph for large collections
+- Improved handling of last modified timestamps with respect to versioning of items
+- Reintroduction of a Docker-based development stack
+- More consistent permissions on datablock routes
+
+> [!note]
+> The previous release 0.7.2 was not pushed to PyPI due to an error with our release workflow. As 0.7.3 supersedes it, we will not release a separate backport unless otherwise requested.
+
+### What's Changed
+
+* Fix loose permissions when creating a sample by copying from another by @davidwaroquiers in https://github.com/datalab-org/datalab/pull/1922
+* Add option to disable magic link authentication by @davidwaroquiers in https://github.com/datalab-org/datalab/pull/1917
+* Fix tz-naive datetime for certain routes by @be-smith in https://github.com/datalab-org/datalab/pull/1927
+* Add human-readable `last_modified` as a data table column by @ml-evs in https://github.com/datalab-org/datalab/pull/1910
+* Fix user login query in case where user has been deleted by @gpetretto in https://github.com/datalab-org/datalab/pull/1921
+* Add docker development environment and CI coverage by @jbouquiaux in https://github.com/datalab-org/datalab/pull/1928
+* Item graph optimisations by @ml-evs in https://github.com/datalab-org/datalab/pull/1933
+* Fix versioning from magic git tag in app docker by @ml-evs in https://github.com/datalab-org/datalab/pull/1949
+* add LocationInput component for hierarchical location editing by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1838
+* Remove all item graph caching from the store by @ml-evs in https://github.com/datalab-org/datalab/pull/1953
+* Bump navani to 0.1.21 by @be-smith in https://github.com/datalab-org/datalab/pull/1952
+* Allow non-creators but those with permission to "read" blocks by @be-smith in https://github.com/datalab-org/datalab/pull/1951
+* Make XRD block natively multi-file by @ml-evs in https://github.com/datalab-org/datalab/pull/1868
+
+### New Contributors
+
+* @davidwaroquiers made their first contribution in https://github.com/datalab-org/datalab/pull/1922
+* @gpetretto made their first contribution in https://github.com/datalab-org/datalab/pull/1921
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.2...v0.7.3
+
+## v0.7.2 (July 2026)
+
+Another predominantly bug fix and QoL release, closing a low risk but easy-to-exploit bug whereby an authenticated user could update the data blocks on another users's sample without explicitly having permissions, provided they had the full item and block IDs; although this is difficult for them to achieve, they may have them lying around after having permissions that were then removed. The fix entirely solves the issue and does not require any migration.
+
+On a more pleasant note, the release also includes some niceties:
+
+- An export progress bar for long running ELN exports.
+- Installation documentation improvements.
+- Improvements to group searching.
+
+### What's Changed
+
+* Improvements to ELN export: capture other file reprs and report progress to UI by @ml-evs in https://github.com/datalab-org/datalab/pull/1801
+* Improvements to substance info display (rounding, toggle and styling) by @jdbocarsly in https://github.com/datalab-org/datalab/pull/1836
+* Fixes events from bokeh route to fire by @be-smith in https://github.com/datalab-org/datalab/pull/1853
+* remove 'only' from SampleTable e2e tests, ensuring all tests run by @jdbocarsly in https://github.com/datalab-org/datalab/pull/1830
+* Add support for nmrglue < 0.12 with import guard on jeol reader by @ml-evs in https://github.com/datalab-org/datalab/pull/1855
+* Remove mentions of Jest in documentation and add component test runner by @ml-evs in https://github.com/datalab-org/datalab/pull/1856
+* Fix bug where only admins could be set as managers by @jdbocarsly in https://github.com/datalab-org/datalab/pull/1829
+* Use native bokeh objects in callbacks rather than relying on `window.event` by @be-smith in https://github.com/datalab-org/datalab/pull/1835
+* Fixes error in MS block where multiple chanels aren't plotted as separate panels by @be-smith in https://github.com/datalab-org/datalab/pull/1883
+* Improve install docs for node, Python and MongoDB by @ml-evs in https://github.com/datalab-org/datalab/pull/1903
+* Add some notes and more rules to AGENTS.md by @ml-evs in https://github.com/datalab-org/datalab/pull/1871
+* Fix group search + group row unclickable by @jbouquiaux in https://github.com/datalab-org/datalab/pull/1909
+* Lower erroneously open permissions of block updates if IDs are known by @ml-evs in https://github.com/datalab-org/datalab/pull/1918
+
+### New Contributors
+
+* @jbouquiaux made their first contribution in https://github.com/datalab-org/datalab/pull/1909
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.1...v0.7.2
+
 ## v0.7.1 (June 2026)
 
 Minor release with bug fixes and usability improvements relative to v0.7.0. Highlights include:
@@ -14,7 +82,8 @@ Minor release with bug fixes and usability improvements relative to v0.7.0. High
 - better mobile scaling for the edit page navbar
 - improved sharing UI with clear distinction between read and write permissions
 
-## What's Changed
+### What's Changed
+
 * Add directly copyable text link under sharing QR codes by @ml-evs in https://github.com/datalab-org/datalab/pull/1777
 * Only write a new version when item data actually changes by @be-smith in https://github.com/datalab-org/datalab/pull/1775
 * Add a modal for sharing items with creators and groups by @ml-evs in https://github.com/datalab-org/datalab/pull/1779
