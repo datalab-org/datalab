@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from pydatalab.models.blocks import DataBlockResponse
 
@@ -46,8 +46,7 @@ class NMRMetadata(BaseModel):
     title: str | None = None
     """Title or description of the NMR experiment."""
 
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
 
 class NMRModel(DataBlockResponse):

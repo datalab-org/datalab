@@ -7,6 +7,7 @@ from flask.testing import FlaskClient
 
 from pydatalab.models import Cell, Collection, Equipment, Sample, StartingMaterial
 from pydatalab.models.people import AccountStatus
+from pydatalab.mongo import flask_mongo
 
 TEST_DATABASE_NAME = "__datalab-testing__"
 
@@ -73,6 +74,7 @@ def app_config(secret_key, files_directory):
         "MAIL_DEBUG": True,
         "MAIL_SUPPRESS_SEND": True,
         "MAIL_PASSWORD": "test",
+        "PREDEFINED_LOCATIONS": ["Cambridge > Lab 1 > Location A", "Cambridge > Lab 2"],
         # Set to 10 MB to check that larger files fail; this should be larger than all of our example files.
         # Elsewhere, we can generate an artificial large file to check that it fails.
         "MAX_CONTENT_LENGTH": 10 * 1000**2,
@@ -139,6 +141,12 @@ def client(app, user_api_key):
 
 
 @pytest.fixture(scope="function")
+def api_key_client(app, client):
+    """Returns a test client for the API with normal API user access."""
+    yield client
+
+
+@pytest.fixture(scope="function")
 def another_client(app, another_user_api_key):
     """Returns a test client for the API with a second normal user access."""
     yield client_factory(app, another_user_api_key)
@@ -160,6 +168,22 @@ def unverified_client(app, unverified_user_api_key):
 def deactivated_client(app, deactivated_user_api_key):
     """Returns a test client for the API with a deactivated user's credentials."""
     yield client_factory(app, deactivated_user_api_key)
+
+
+@pytest.fixture(scope="function")
+def session_client(app, user_id):
+    app.test_client_class = FlaskClient
+    with app.test_client() as cli:
+        with cli.session_transaction() as session:
+            session["_user_id"] = str(user_id)
+        yield cli
+
+
+@pytest.fixture(scope="function")
+def unauthenticated_session_client(app):
+    app.test_client_class = FlaskClient
+    with app.test_client() as cli:
+        yield cli
 
 
 def generate_api_key():
@@ -251,7 +275,13 @@ def insert_user(
     real_mongo_client.get_database(TEST_DATABASE_NAME).users.insert_one(demo_user)
     hash = sha512(api_key.encode("utf-8")).hexdigest()
     real_mongo_client.get_database(TEST_DATABASE_NAME).api_keys.insert_one(
-        {"_id": id, "hash": hash}
+        {
+            "_id": ObjectId(),
+            "user": ObjectId(id),
+            "name": "testing API key",
+            "hash": hash,
+            "type": "api_key",
+        }
     )
     real_mongo_client.get_database(TEST_DATABASE_NAME).roles.insert_one({"_id": id, "role": role})
 
@@ -310,6 +340,14 @@ def insert_demo_users(
     )
 
 
+@pytest.fixture(scope="function", name="api_keys_db")
+def fixture_api_keys_db(database):
+    current_api_keys = list(database.api_keys.find())
+    yield database.api_keys
+    database.api_keys.delete_many({})
+    database.api_keys.insert_many(current_api_keys)
+
+
 @pytest.fixture(scope="module", name="default_sample")
 def fixture_default_sample(admin_user_id, user_id, group_id):
     return Sample(
@@ -364,7 +402,6 @@ def fixture_default_collection():
         **{
             "collection_id": "test_collection",
             "title": "My Test Collection",
-            "date": "1970-02-02",
             "type": "collections",
         }
     )
@@ -479,7 +516,7 @@ def fixture_insert_complicated_sample_constituents(user_id):
             creator_ids=[user_id],
             refcode=generate_unique_refcode(),
         )
-        flask_mongo.db.items.insert_one(sm.dict(exclude_unset=False))
+        flask_mongo.db.items.insert_one(sm.model_dump(exclude_unset=False))
         items.append(sm)
 
     yield items
@@ -492,7 +529,7 @@ def fixture_insert_complicated_sample_constituents(user_id):
 def example_items(user_id, admin_user_id):
     """Create a collection of samples with mixed ownership between the user and admin."""
     return [
-        d.dict(exclude_unset=False)
+        d.model_dump(exclude_unset=False)
         for d in [
             Sample(
                 **{
@@ -579,23 +616,23 @@ def example_items(user_id, admin_user_id):
 
 
 @pytest.fixture(scope="module", name="default_sample_dict")
-def fixture_default_sample_dict(default_sample):
-    return default_sample.dict(exclude_unset=True)
+def fixture_default_sample_model_dump(default_sample):
+    return default_sample.model_dump(exclude_unset=True)
 
 
 @pytest.fixture(scope="module", name="default_cell_dict")
-def fixture_default_cell_dict(default_cell):
-    return default_cell.dict(exclude_unset=True)
+def fixture_default_cell_model_dump(default_cell):
+    return default_cell.model_dump(exclude_unset=True)
 
 
 @pytest.fixture(scope="module", name="default_starting_material_dict")
-def fixture_default_starting_material_dict(default_starting_material):
-    return default_starting_material.dict(exclude_unset=True)
+def fixture_default_starting_material_model_dump(default_starting_material):
+    return default_starting_material.model_dump(exclude_unset=True)
 
 
 @pytest.fixture(scope="module", name="default_equipment_dict")
-def fixture_default_equipment_dict(default_equipment):
-    return default_equipment.dict(exclude_unset=True)
+def fixture_default_equipment_model_dump(default_equipment):
+    return default_equipment.model_dump(exclude_unset=True)
 
 
 def _insert_and_cleanup_item_from_model(model):
@@ -604,9 +641,27 @@ def _insert_and_cleanup_item_from_model(model):
 
     refcode = generate_unique_refcode()
     model.refcode = refcode
-    flask_mongo.db.items.insert_one(model.dict(exclude_unset=False))
+    flask_mongo.db.items.insert_one(model.model_dump(exclude_unset=False))
     yield model
     flask_mongo.db.items.delete_one({"refcode": model.refcode})
+
+
+@pytest.fixture(scope="function", name="item_creator")
+def fixture_item_creator():
+    ref_codes_to_remove = []
+
+    def _insert_item_from_model(model):
+        from pydatalab.models.utils import generate_unique_refcode
+        from pydatalab.mongo import flask_mongo
+
+        refcode = generate_unique_refcode()
+        model.refcode = refcode
+        flask_mongo.db.items.insert_one(model.model_dump(exclude_unset=False))
+        ref_codes_to_remove.append(refcode)
+        return model
+
+    yield _insert_item_from_model
+    flask_mongo.db.items.delete_many({"refcode": {"$in": ref_codes_to_remove}})
 
 
 @pytest.fixture(scope="module", name="insert_default_sample")

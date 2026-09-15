@@ -1,8 +1,63 @@
 # Changelog
 
 > [!NOTE]
-> Release candidates are not included in this changelog; there may be more
+> Release candidates and other pre-releases are not included in this changelog; there may be more
 recent changes described in the [release notes on GitHub](https://github.com/datalab-org/datalab/releases).
+
+## v0.7.5 (August 2026)
+
+This is expected to be the final release in the 0.7.x series. It includes:
+
+- Several dependency updates for both JS and Python.
+- The option to enable stricter CORS rules in the API.
+- Improvements to the diff display in the item versioning UI.
+- An improved metadata viewer that all datablocks can use.
+- An overhaul of the documentation pages, including a new [user guide](https://guide.datalab-org.io).
+
+We expect to release an alpha of 0.8.x soon with an overhaul for Pydantic v2 and ask that all future developments are based on that.
+
+### What's Changed
+
+* Update and fix latest Python sub-deps by @github-actions[bot] in https://github.com/datalab-org/datalab/pull/1996
+* Tweaks to suppress new warnings after JS updates, lock primevue by @ml-evs in https://github.com/datalab-org/datalab/pull/2003
+* Add stricter CORS rules when `APP_URL` is configured by @ml-evs in https://github.com/datalab-org/datalab/pull/2017
+* Improvements to item versioning UI by @ml-evs in https://github.com/datalab-org/datalab/pull/2011
+* Bump nmrglue to 0.12 by @ml-evs in https://github.com/datalab-org/datalab/pull/2021
+* Add `MetadataViewer` option on all blocks by @ml-evs in https://github.com/datalab-org/datalab/pull/2022
+* Docs refresh and link out to new user guide by @ml-evs in https://github.com/datalab-org/datalab/pull/2013
+
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.4...v0.7.5
+
+## v0.7.4 (August 2026)
+
+This patch release adds a series of quality-of-life improvements, principally:
+
+- The ability for users to register multiple named API keys; in the future these can be assigned to service accounts for instruments.
+- Extended the `.raw` XRD reader to work on incomplete files, so that diffraction data can be observed as it is recorded.
+- Improvements to the block lifecycle that enables block events to edit and preserve metadata.
+- ELN file exports are now named `.eln.zip` for better downstream support in Windows/macOS.
+- Updated Neware parsers (via [NewareNDA](https://github.com/d-cogswell/NewareNDA)) to support latest cyclers.
+
+### What's Changed
+
+* Fix ephemeral race condition in e2e test of batch sample table by @davidwaroquiers in https://github.com/datalab-org/datalab/pull/1962
+* Set default .eln file extension to .zip by @ml-evs in https://github.com/datalab-org/datalab/pull/1972
+* Fixed editing of roles (UI) by @davidwaroquiers in https://github.com/datalab-org/datalab/pull/1924
+* Bump the python-production group across 1 directory with 9 updates by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1956
+* Extend GSAS-II vendored .raw reader to be able to read incomplete files by @ml-evs in https://github.com/datalab-org/datalab/pull/1974
+* Remove unecessary log volume mounts from docker compose by @ml-evs in https://github.com/datalab-org/datalab/pull/1980
+* Add mongo image healthcheck and add API startup dependency by @ml-evs in https://github.com/datalab-org/datalab/pull/1985
+* Tidy up and improve API logging by @ml-evs in https://github.com/datalab-org/datalab/pull/1984
+* Make block hydration more consistent when using pydantic by @ml-evs in https://github.com/datalab-org/datalab/pull/1979
+* Added ability to have multiple named API keys per user by @OMWalmsley in https://github.com/datalab-org/datalab/pull/1942
+* Bump NewareNDA to support latest Neware formats and reintroduce uv autoupdater for subdeps by @ml-evs in https://github.com/datalab-org/datalab/pull/1990
+
+### New Contributors
+
+* @OMWalmsley made their first contribution in https://github.com/datalab-org/datalab/pull/1942
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.3...v0.7.4
 
 ## v0.7.3 (August 2026)
 
@@ -258,7 +313,8 @@ There is also a new tool called [`beholder`](https://github.com/datalab-industri
 * Add Google and Microsoft OAuth authentication by @DianaAliabieva in https://github.com/datalab-org/datalab/pull/1706
 * Fix for dev server unable to load .env by @ml-evs in https://github.com/datalab-org/datalab/pull/1770
 
-## New Contributors
+### New Contributors
+
 * @isabelcooley made their first contribution in https://github.com/datalab-org/datalab/pull/1532
 * @wuppersaver made their first contribution in https://github.com/datalab-org/datalab/pull/1727
 
@@ -415,8 +471,6 @@ fixes, performance improvements and backwards-compatible API enhancements.
 > [!WARNING]
 > This release also bumps the supported MongoDB version all the way from v3 to v8. Whilst older MongoDB versions should still continue to work, version 8 will now be tested and used in the docker builds, so we recommend you upgrade. For existing databases this requires you to first dump the database using `mongodump` with the old MongoDB version, then upgrade to the new version and restore the database with `mongorestore`. If you unsure about this process then please ask us for help!
 
-### Highlights
-
 - Extra functionality for all data tables: column selection, persistent user
   preferences and improved filtering.
 - Improved inventory management: native UI for hazard labels, CAS numbers and external barcodes,
@@ -477,11 +531,9 @@ The Ansible playbooks at [datalab-ansible-terraform](https://github.com/datalab-
 
 Many thanks to all contributors: developers, user feedback and deployment managers!
 
-### Breaking changes
-
-* The Python server has been entirely repackaged with `uv` for much more streamlined dependency management (especially for external plugins). If you are using the docker deployments, then nothing should change for you, but developers may need to adjust their development setups following the [installation instructions](./INSTALL.md).
-
-### Highlights
+> [!warning] Breaking changes
+>
+> * The Python server has been entirely repackaged with `uv` for much more streamlined dependency management (especially for external plugins). If you are using the docker deployments, then nothing should change for you, but developers may need to adjust their development setups following the [installation instructions](./INSTALL.md).
 
 * The table component used to display all items has been entirely rewritten, and is now more visually responsive and can accommodate custom schemas/components.
 * QR code generation and scanning for all items, optionally using the new [datalab pURL service](https://purl.datalab-org.io/) when configured with `VUE_APP_QR_CODE_RESOLVER_URL`.
@@ -566,8 +618,6 @@ It is also accompanied by the first release of the *datalab* Python API package 
 
 Special thanks go to @vrajpatel9988 and especially @BenjaminCharmes who both made their first contributions to *datalab* in this release!
 
-### Highlights
-
 - User accounts: users can now update their name and contact info, as well as connect external accounts and regenerate API keys directly from the web UI. The ability to login via ORCID is now enabled by default (but must be configured at the instance level).
 - Admin dashboard: adds the ability for admins to do user management from the UI directly.
 - Electrochemistry block: support for Neware file formats, MPR files written by ECLab > 11.50 and cyclic voltammetry data.
@@ -579,11 +629,11 @@ Special thanks go to @vrajpatel9988 and especially @BenjaminCharmes who both mad
 - General improvements to block error reporting and reactivity, as well as several bug fixes.
 
 
-### Notes for upgrading to v0.4.0
-
-- Users now have an `"unverified"` status by default. For some deployments, this may require an admin to first self-verify their account directly with a database update (`"account_status" -> "active"`), after which they can verify all other users in the UI.
-- The data mount point of the `database` container in the default `./docker-compose.yml` has changed to use `/data/db` on the host system. Deployments using this configuration should be careful to backup and restore from their existing database, or continue to use the `docker volume` approach (feel free to raise an issue with any questions).
-- Similarly, the development set up has changed slightly and may need to be remade after upgrading.
+> [!note] Notes for upgrading to v0.4.0
+>
+> - Users now have an `"unverified"` status by default. For some deployments, this may require an admin to first self-verify their account directly with a database update (`"account_status" -> "active"`), after which they can verify all other users in the UI.
+> - The data mount point of the `database` container in the default `./docker-compose.yml` has changed to use `/data/db` on the host system. Deployments using this configuration should be careful to backup and restore from their existing database, or continue to use the `docker volume` approach (feel free to raise an issue with any questions).
+> - Similarly, the development set up has changed slightly and may need to be remade after upgrading.
 
 ### What's Changed
 * Dynamically set production app container config in entrypoint by @ml-evs in https://github.com/the-grey-group/datalab/pull/605
@@ -705,8 +755,6 @@ It also adds the ability for data blocks to pass errors and warnings to the fron
 This is the long overdue v0.3.0 release of datalab, which coincides with many new deployments popping up. It is strongly recommended to upgrade and continue to keep up-to-date with releases as they come out. There are no intentional breaking changes between this release and the previous release candidates, so please report any issues you come across on the [GitHub issue tracker](https://github.com/the-grey-group/datalab/issues).
 
 Thanks to new contributor @elbee99 who has added support for Raman spectroscopy, plus new contributors with as-of-yet unreleased changes!
-
-### Highlights
 
 - Support for Biologic data files created with the most recent versions of ECLab 11.50+, plus enhanced support for Arbin data files
 - A new 1D Raman block that can parse both Renishaw WDF and Oxford Instrument's spectra

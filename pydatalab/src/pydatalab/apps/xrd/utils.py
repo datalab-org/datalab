@@ -208,7 +208,9 @@ def compute_cif_pxrd(filename: str, wavelength: float) -> tuple[pd.DataFrame, di
 
     structure, success = cif2dict(filename)
     if not success:
-        raise RuntimeError(f"Failed to parse required information from CIF file {filename}.")
+        raise RuntimeError(
+            f"Failed to parse required information from CIF file {filename}: {structure}"
+        )
 
     pxrd = PXRD(structure, wavelength=wavelength, two_theta_bounds=(5, 60))
 

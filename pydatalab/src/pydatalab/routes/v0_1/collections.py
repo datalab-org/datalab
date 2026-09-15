@@ -1,5 +1,4 @@
 import datetime
-import json
 
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
@@ -87,7 +86,7 @@ def get_collection(collection_id):
         {
             "status": "success",
             "collection_id": collection_id,
-            "data": json.loads(collection.json(exclude_unset=True)),
+            "data": collection.model_dump(mode="json", exclude_unset=True),
             "child_items": list(samples),
         }
     )
@@ -98,7 +97,9 @@ def create_collection():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     data = request_json.get("data", {})
     copy_from_id = request_json.get("copy_from_collection_id", None)
-    starting_members = data.get("starting_members", [])
+    starting_members = data.pop("starting_members", [])
+    # Consumed below to populate `creator_ids`; not a field of `Collection` itself.
+    additional_creators = data.pop("additional_creators", None)
 
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
@@ -125,8 +126,8 @@ def create_collection():
             }
         ]
 
-    if data.get("additional_creators"):
-        for c in data["additional_creators"]:
+    if additional_creators:
+        for c in additional_creators:
             creator_id = c.get("_id") or c.get("immutable_id")
             if creator_id:
                 data["creator_ids"].append(ObjectId(creator_id))
@@ -168,7 +169,7 @@ def create_collection():
         )
 
     result: InsertOneResult = flask_mongo.db.collections.insert_one(
-        data_model.dict(exclude={"creators", "groups"})
+        data_model.model_dump(exclude={"creators", "groups"})
     )
     if not result.acknowledged:
         return (
@@ -218,7 +219,7 @@ def create_collection():
 
     response = {
         "status": "success",
-        "data": json.loads(data_model.json()),
+        "data": data_model.model_dump(mode="json"),
     }
 
     if errors:
@@ -278,7 +279,7 @@ def save_collection(collection_id):
     collection.update(updated_data)
 
     try:
-        collection = Collection(**collection).dict()
+        collection = Collection(**collection).model_dump()
     except ValidationError as exc:
         return (
             jsonify(
@@ -534,7 +535,7 @@ def search_collections():
     )
 
     cursor = [
-        json.loads(Collection(**doc).json(exclude_unset=True))
+        Collection(**doc).model_dump(mode="json", exclude_unset=True)
         for doc in flask_mongo.db.collections.aggregate(pipeline)
     ]
 

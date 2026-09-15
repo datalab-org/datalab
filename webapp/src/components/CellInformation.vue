@@ -179,7 +179,7 @@ export default {
       return this.$store.state.schemas[this.item?.type];
     },
     possibleItemStatuses() {
-      return this.schema?.attributes?.schema?.definitions?.CellStatus?.enum;
+      return this.schema?.attributes?.schema?.["$defs"]?.CellStatus?.enum;
     },
   },
 };

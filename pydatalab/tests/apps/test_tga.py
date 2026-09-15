@@ -46,7 +46,8 @@ def test_ms_parse_and_plot():
 
 
 @pytest.mark.parametrize(
-    "filename", (Path(__file__).parent.parent.parent / "example_data" / "TGA-MS").glob("*.asc")
+    "filename",
+    list((Path(__file__).parent.parent.parent / "example_data" / "TGA-MS").glob("*.asc")),
 )
 def test_ms_parse_no_validation(filename):
     from pydatalab.apps.tga.parsers import parse_mt_mass_spec_ascii

@@ -12,6 +12,7 @@ from pydatalab.apps.echem.utils import (
 ECHEM_DATA_DIR = Path(__file__).parent.parent.parent / "example_data" / "echem"
 MPR_FILE = ECHEM_DATA_DIR / "jdb11-1_c3_gcpl_5cycles_2V-3p8V_C-24_data_C09.mpr"
 BDF_CSV_FILE = ECHEM_DATA_DIR / "arbin_example.bdf.csv"
+REST_ONLY_IVIUM_FILE = ECHEM_DATA_DIR / "rest_only_ivium.txt"
 BDF_REQUIRED_COLUMNS = {"Test Time / s", "Voltage / V", "Current / A"}
 
 
@@ -72,6 +73,73 @@ def test_plot(reduced_echem_dataframe):
     differential_df = compute_gpcl_differential(reduced_echem_dataframe, mode="dV/dQ")
     layout = double_axes_echem_plot([differential_df], mode="dV/dQ")
     assert layout
+
+
+@pytest.fixture
+def rest_only_ivium_dataframes(tmp_path):
+    """Loads the rest-only ivium fixture and returns (df, cycle_summary_df)."""
+    import shutil
+    import warnings
+
+    import navani.echem as ec
+
+    src = Path(shutil.copy(REST_ONLY_IVIUM_FILE, tmp_path / REST_ONLY_IVIUM_FILE.name))
+    block = CycleBlock(item_id="test")
+    raw_df, _ = block._load_and_cache_echem(src, None, None, reload=True)
+    with warnings.catch_warnings():
+        # navani's average_voltage divides by max(capacity), which is 0 for
+        # rest-only data; this is a navani-internal warning, not the thing under test.
+        warnings.filterwarnings(
+            "ignore",
+            message=".*invalid value encountered in scalar divide.*",
+            category=RuntimeWarning,
+        )
+        cycle_summary_df = ec.cycle_summary(raw_df)
+    df, cycle_summary_df = CycleBlock.process_raw_echem_df(raw_df, cycle_summary_df)
+    return df, cycle_summary_df
+
+
+def test_plot_rest_only_ivium_file_falls_back_to_time(rest_only_ivium_dataframes):
+    """A file containing only rest data has no charge/discharge cycles, so the
+    default capacity-vs-voltage plot would be empty. The plot should instead
+    fall back to time vs voltage and warn the user."""
+    from pydatalab.bokeh_plots import double_axes_echem_plot
+
+    df, _ = rest_only_ivium_dataframes
+
+    with pytest.warns(UserWarning, match="only rest steps"):
+        layout = double_axes_echem_plot([df])
+    assert layout
+
+    p1 = layout.children[0].children[0][0]
+    assert p1.xaxis[0].axis_label == "time (s)"
+    assert p1.yaxis[0].axis_label == "voltage (V)"
+
+
+@pytest.mark.parametrize("mode", ["dQ/dV", "dV/dQ"])
+def test_plot_rest_only_data_raises_for_derivative_modes(rest_only_ivium_dataframes, mode):
+    """dQ/dV and dV/dQ have no meaningful signal to show for rest-only data
+    (previously this rendered an almost-empty plot for dQ/dV, and raised an
+    unhelpful IndexError for dV/dQ). Both should now fail with a clear error."""
+    from pydatalab.bokeh_plots import double_axes_echem_plot
+
+    df, _ = rest_only_ivium_dataframes
+    differential_df = compute_gpcl_differential(df, mode=mode)
+
+    with pytest.raises(RuntimeError, match="only rest steps"):
+        double_axes_echem_plot([differential_df], mode=mode)
+
+
+def test_plot_rest_only_data_raises_for_final_capacity(rest_only_ivium_dataframes):
+    """The final capacity (cycle summary) plot previously rendered nothing for
+    rest-only data since charge/discharge capacities are all NaN. It should
+    now fail with a clear error instead."""
+    from pydatalab.bokeh_plots import double_axes_echem_plot
+
+    df, cycle_summary_df = rest_only_ivium_dataframes
+
+    with pytest.raises(RuntimeError, match="only rest steps"):
+        double_axes_echem_plot([df], mode="final capacity", cycle_summary_dfs=[cycle_summary_df])
 
 
 def test_load_and_cache_mpr_exports_bdf_csv_and_parquet(tmp_path):

@@ -86,7 +86,7 @@ def test_new_sample_with_automatically_generated_id(client, user_id):
     assert response.status_code == 200
     assert response.json["status"] == "success"
     assert response.json["item_data"]["refcode"].split(":")[1] == created_item_id
-    assert response.json["item_data"]["molar_mass"] == 18.01528
+    assert response.json["item_data"]["molar_mass"] == pytest.approx(18.015)
 
     for key in new_sample_data:
         if isinstance(v := new_sample_data[key], datetime.datetime):
@@ -360,7 +360,7 @@ def test_item_regex_search(
 def test_new_sample_with_relationships(
     client, complicated_sample, insert_complicated_sample_constituents
 ):
-    complicated_sample_json = json.loads(complicated_sample.json())
+    complicated_sample_json = json.loads(complicated_sample.model_dump_json())
     response = client.post("/new-sample/", json=complicated_sample_json)
     # Test that 201: Created is emitted
     assert response.status_code == 201, response.json
@@ -424,7 +424,7 @@ def test_new_sample_with_relationships(
             description="This is a new relationship",
         )
     )
-    derived_sample_json = json.loads(derived_sample.json())
+    derived_sample_json = json.loads(derived_sample.model_dump_json())
 
     response = client.post("/new-sample/", json=derived_sample_json)
     # Test that 201: Created is emitted
@@ -528,7 +528,7 @@ def test_copy_from_sample(client, complicated_sample):
 
     """
     complicated_sample.item_id = "new_complicated_sample"
-    complicated_sample_json = json.loads(complicated_sample.json())
+    complicated_sample_json = json.loads(complicated_sample.model_dump_json())
     response = client.post("/new-sample/", json=complicated_sample_json)
 
     # Test that 201: Created is emitted
@@ -558,12 +558,13 @@ def test_copy_from_sample(client, complicated_sample):
 
 @pytest.mark.dependency(depends=["test_copy_from_sample"])
 def test_create_multiple_samples(client, complicated_sample):
-    samples = [complicated_sample, complicated_sample.copy()]
+    samples = [complicated_sample, complicated_sample.model_copy()]
     samples[0].item_id = "another_new_complicated_sample"
     samples[1].item_id = "additional_new_complicated_sample"
 
     response = client.post(
-        "/new-samples/", json={"new_sample_datas": [json.loads(s.json()) for s in samples]}
+        "/new-samples/",
+        json={"new_sample_datas": [json.loads(s.model_dump_json()) for s in samples]},
     )
     assert response.status_code == 207, response.json
     assert response.json["nsuccess"] == 2, response.json
@@ -577,7 +578,7 @@ def test_create_multiple_samples(client, complicated_sample):
     response = client.post(
         "/new-samples/",
         json={
-            "new_sample_datas": [json.loads(s.json()) for s in samples],
+            "new_sample_datas": [json.loads(s.model_dump_json()) for s in samples],
             "copy_from_item_ids": [
                 "another_new_complicated_sample",
                 "additional_new_complicated_sample",
@@ -599,7 +600,7 @@ def test_create_multiple_samples(client, complicated_sample):
 
 @pytest.mark.dependency(depends=["test_create_multiple_samples"])
 def test_create_cell(client, default_cell):
-    response = client.post("/new-sample/", json=json.loads(default_cell.json()))
+    response = client.post("/new-sample/", json=json.loads(default_cell.model_dump_json()))
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
 
@@ -624,8 +625,8 @@ def test_create_cell(client, default_cell):
     assert cell["electrolyte"][1]["item"]["chemform"] == "NaCl"
 
     assert (
-        cell["positive_electrode"][0]["item"]["name"]
-        == default_cell.positive_electrode[0].item.name
+        cell["positive_electrode"][0]["item"]["item_id"]
+        == default_cell.positive_electrode[0].item.item_id
     )
     # The anode has a "real" entry in the db, so it should be looked up properly
     # with dereferenced chemical formula and name, even if it was not provided at link time
@@ -672,7 +673,9 @@ def test_create_collections(client, default_collection, database):
     assert response.status_code == 200
 
     # Create an empty collection
-    response = client.put("/collections", json={"data": json.loads(default_collection.json())})
+    response = client.put(
+        "/collections", json={"data": json.loads(default_collection.model_dump_json())}
+    )
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
     assert response.json["data"]["collection_id"] == "test_collection"
@@ -691,7 +694,7 @@ def test_create_collections(client, default_collection, database):
     new_collection = copy.deepcopy(default_collection)
     new_collection.collection_id = "test_collection_2"
 
-    data = json.loads(new_collection.json())
+    data = json.loads(new_collection.model_dump_json())
     data.update(
         {
             "starting_members": [
@@ -745,6 +748,30 @@ def test_create_collections(client, default_collection, database):
     assert response.json["data"]["collection_id"] == "test_collection_2"
     assert response.json["data"]["title"] == "My Test Collection"
     assert response.json["data"]["num_items"] == 2
+
+
+@pytest.mark.dependency(depends=["test_create_collections"])
+def test_create_collection_with_additional_creators(client, default_collection):
+    """`additional_creators` is consumed by the endpoint to populate `creator_ids` and is
+    not a field of `Collection` itself, so it must not be passed through to the model.
+
+    Kept explicit so the payload stays valid if unknown fields are rejected outright in
+    the future, rather than relying on them being silently ignored.
+    """
+    collection_id = "test_collection_creators"
+    data = json.loads(default_collection.model_dump_json())
+    data.update({"collection_id": collection_id, "additional_creators": None})
+
+    response = client.put("/collections", json={"data": data})
+    assert response.status_code == 201, response.json
+    assert "additional_creators" not in response.json["data"]
+
+    response = client.get(f"/collections/{collection_id}")
+    assert response.status_code == 200, response.json
+    assert "additional_creators" not in response.json["data"]
+
+    # Remove it again so that the collection counts asserted by later tests still hold.
+    assert client.delete(f"/collections/{collection_id}").status_code == 200
 
 
 @pytest.mark.dependency(depends=["test_create_collections"])
@@ -924,7 +951,7 @@ def test_remove_items_from_collection_success(
         response = client.post("/new-sample/", json=sample_dict)
         assert response.status_code == 201
 
-    collection_dict = default_collection.dict()
+    collection_dict = default_collection.model_dump()
     collection_dict["collection_id"] = "test_collection_remove"
     response = client.put("/collections", json={"data": collection_dict})
     assert response.status_code == 201
@@ -996,7 +1023,7 @@ def test_remove_items_from_collection_not_found(client):
 @pytest.mark.dependency()
 def test_remove_items_from_collection_no_items_provided(client, default_collection):
     """Test removing with no item IDs provided."""
-    collection_dict = default_collection.dict()
+    collection_dict = default_collection.model_dump()
     collection_dict["collection_id"] = "test_collection_empty_items"
     response = client.put("/collections", json={"data": collection_dict})
     assert response.status_code == 201
@@ -1012,7 +1039,7 @@ def test_remove_items_from_collection_no_items_provided(client, default_collecti
 @pytest.mark.dependency()
 def test_remove_items_from_collection_no_matching_items(client, default_collection):
     """Test removing items that don't exist."""
-    collection_dict = default_collection.dict()
+    collection_dict = default_collection.model_dump()
     collection_dict["collection_id"] = "test_collection_no_match"
     response = client.put("/collections", json={"data": collection_dict})
     assert response.status_code == 201
@@ -1041,7 +1068,7 @@ def test_remove_items_from_collection_partial_success(
     response = client.post("/new-sample/", json=sample_dict)
     assert response.status_code == 201
 
-    collection_dict = default_collection.dict()
+    collection_dict = default_collection.model_dump()
     collection_dict["collection_id"] = "test_collection_partial"
     response = client.put("/collections", json={"data": collection_dict})
     assert response.status_code == 201
@@ -1100,7 +1127,7 @@ def test_copy_sample_and_add_to_collection(client, default_sample_dict, default_
     assert response.status_code == 201
     assert response.json["status"] == "success"
 
-    collection_dict = default_collection.dict().copy()
+    collection_dict = default_collection.model_dump().copy()
     collection_dict["collection_id"] = "test_copy_collection"
     response = client.put("/collections", json={"data": collection_dict})
     assert response.status_code == 201
@@ -1132,12 +1159,12 @@ def test_copy_sample_and_add_to_collection(client, default_sample_dict, default_
 def test_copy_sample_from_collection_to_different_collection(
     client, default_sample_dict, default_collection
 ):
-    collection1_dict = default_collection.dict().copy()
+    collection1_dict = default_collection.model_dump().copy()
     collection1_dict["collection_id"] = "collection_1"
     response = client.put("/collections", json={"data": collection1_dict})
     assert response.status_code == 201
 
-    collection2_dict = default_collection.dict().copy()
+    collection2_dict = default_collection.model_dump().copy()
     collection2_dict["collection_id"] = "collection_2"
     response = client.put("/collections", json={"data": collection2_dict})
     assert response.status_code == 201
@@ -1177,7 +1204,7 @@ def test_copy_sample_from_collection_to_different_collection(
 
 @pytest.mark.dependency(depends=["test_copy_sample_from_collection_to_different_collection"])
 def test_copy_sample_without_copying_collections(client, default_sample_dict, default_collection):
-    collection_dict = default_collection.dict().copy()
+    collection_dict = default_collection.model_dump().copy()
     collection_dict["collection_id"] = "test_no_auto_copy_collection"
     response = client.put("/collections", json={"data": collection_dict})
     assert response.status_code == 201
@@ -1217,7 +1244,7 @@ def test_collections_permissions(client, admin_client, default_sample_dict, defa
     assert response.json["status"] == "success"
     refcode = response.json["sample_list_entry"]["refcode"]
 
-    admin_collection = default_collection.dict().copy()
+    admin_collection = default_collection.model_dump().copy()
     admin_collection["collection_id"] = "admin_only_collection"
     response = admin_client.put("/collections", json={"data": admin_collection})
 
@@ -1290,6 +1317,40 @@ def test_save_item_with_malformed_constituent_returns_400(client, default_sample
     assert response.json["status"] == "error"
 
 
+def test_clearing_field_via_save_item_persists_to_db(client):
+    """Setting a field then clearing it (setting to None) via save-item must
+    actually clear it in MongoDB. Fails if exclude_none=True strips the None
+    from the $set payload, leaving the old value untouched."""
+    item_id = "clear_field_test"
+    response = client.post(
+        "/new-sample/",
+        json={"name": "Clear field test", "item_id": item_id, "type": "samples"},
+    )
+    assert response.status_code == 201, response.json
+
+    # Set molar_mass and save.
+    item_data = client.get(f"/get-item-data/{item_id}").json["item_data"]
+    item_data["molar_mass"] = 123.45
+    assert (
+        client.post("/save-item/", json={"item_id": item_id, "data": item_data}).status_code == 200
+    )
+
+    assert client.get(f"/get-item-data/{item_id}").json["item_data"]["molar_mass"] == 123.45
+
+    # Now clear molar_mass and save again.
+    item_data = client.get(f"/get-item-data/{item_id}").json["item_data"]
+    item_data["molar_mass"] = None
+    assert (
+        client.post("/save-item/", json={"item_id": item_id, "data": item_data}).status_code == 200
+    )
+
+    result = client.get(f"/get-item-data/{item_id}").json["item_data"].get("molar_mass")
+    assert result is None, (
+        f"molar_mass should be None after being cleared but got {result!r}; "
+        "exclude_none=True in save_item is stripping the None from the $set payload"
+    )
+
+
 def test_get_item_with_malformed_stored_constituent_returns_500(client, database, user_id):
     """If an item with a malformed constituent ended up in the database (e.g.
     from an older write path), GET should surface it as a server-side
@@ -1315,3 +1376,106 @@ def test_get_item_with_malformed_stored_constituent_returns_500(client, database
         assert response.json["status"] == "error"
     finally:
         database.items.delete_one({"item_id": bad_doc["item_id"]})
+
+
+@pytest.mark.dependency(depends=["test_create_collections"])
+def test_save_item_collection_change_preserves_other_relationships(
+    client, database, default_collection
+):
+    """Check that changing an item's collections via `/save-item/` retargets only the
+    collection relationships, leaving other relationships intact.
+    """
+    collection_dict = json.loads(default_collection.model_dump_json())
+    collection_dict["collection_id"] = "test_collection_rels_a"
+    response = client.put("/collections", json={"data": collection_dict})
+    assert response.status_code == 201, response.json
+    collection_a_id = database.collections.find_one({"collection_id": "test_collection_rels_a"})[
+        "_id"
+    ]
+
+    collection_dict = json.loads(default_collection.model_dump_json())
+    collection_dict["collection_id"] = "test_collection_rels_b"
+    response = client.put("/collections", json={"data": collection_dict})
+    assert response.status_code == 201, response.json
+    collection_b_id = database.collections.find_one({"collection_id": "test_collection_rels_b"})[
+        "_id"
+    ]
+
+    response = client.post("/new-sample/", json={"item_id": "rels_parent", "type": "samples"})
+    assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "item_id": "rels_child",
+            "type": "samples",
+            "synthesis_constituents": [
+                {"item": {"item_id": "rels_parent", "type": "samples"}, "quantity": None}
+            ],
+            "collections": [{"collection_id": "test_collection_rels_a"}],
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    item = database.items.find_one({"item_id": "rels_child"})
+    assert [r["immutable_id"] for r in item["relationships"] if r["type"] == "collections"] == [
+        collection_a_id
+    ]
+    assert [
+        r["item_id"]
+        for r in item["relationships"]
+        if r["relation"] == RelationshipType.PARENT.value
+    ] == ["rels_parent"]
+
+    # Saving without a `collections` key must leave collection membership untouched
+    response = client.get("/get-item-data/rels_child")
+    assert response.status_code == 200, response.json
+    updated_data = response.json["item_data"]
+    updated_data.pop("collections", None)
+    updated_data["description"] = "no collections key in this payload"
+    response = client.post("/save-item/", json={"data": updated_data, "item_id": "rels_child"})
+    assert response.status_code == 200, response.json
+
+    item = database.items.find_one({"item_id": "rels_child"})
+    assert [r["immutable_id"] for r in item["relationships"] if r["type"] == "collections"] == [
+        collection_a_id
+    ]
+    assert [
+        r["item_id"]
+        for r in item["relationships"]
+        if r["relation"] == RelationshipType.PARENT.value
+    ] == ["rels_parent"]
+
+    # Swapping collection A for B must retarget the collection relationship only
+    response = client.get("/get-item-data/rels_child")
+    assert response.status_code == 200, response.json
+    updated_data = response.json["item_data"]
+    updated_data["collections"] = [{"collection_id": "test_collection_rels_b"}]
+    response = client.post("/save-item/", json={"data": updated_data, "item_id": "rels_child"})
+    assert response.status_code == 200, response.json
+
+    item = database.items.find_one({"item_id": "rels_child"})
+    assert [r["immutable_id"] for r in item["relationships"] if r["type"] == "collections"] == [
+        collection_b_id
+    ]
+    assert [
+        r["item_id"]
+        for r in item["relationships"]
+        if r["relation"] == RelationshipType.PARENT.value
+    ] == ["rels_parent"]
+
+    # Clearing collections must drop every collection relationship, but only those
+    response = client.get("/get-item-data/rels_child")
+    assert response.status_code == 200, response.json
+    updated_data = response.json["item_data"]
+    updated_data["collections"] = []
+    response = client.post("/save-item/", json={"data": updated_data, "item_id": "rels_child"})
+    assert response.status_code == 200, response.json
+
+    item = database.items.find_one({"item_id": "rels_child"})
+    assert [r for r in item["relationships"] if r["type"] == "collections"] == []
+    assert [
+        r["item_id"]
+        for r in item["relationships"]
+        if r["relation"] == RelationshipType.PARENT.value
+    ] == ["rels_parent"]
