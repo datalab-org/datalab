@@ -72,6 +72,9 @@ This hides email authentication from the advertised authentication mechanisms an
 OAuth2 allows users to log in using their existing accounts with third-party providers, without the need for a password.
 Generally, you register an application with the provider, which gives you a client ID and secret that you can use to configure the OAuth2 settings in *datalab*.
 
+When the dedicated login page is enabled, the web app preserves the requested internal page through the external OAuth flow and returns the user to it after login.
+This redirect uses [`APP_URL`][pydatalab.config.ServerConfig.APP_URL] as the trusted web app origin, so `APP_URL` must be configured correctly.
+
 Each provider then has bespoke settings to control the permissions that accounts registered via the external provider will have.
 
 For developers, if you are testing locally without HTTPS, you must also set `OAUTHLIB_INSECURE_TRANSPORT=1` and `OAUTHLIB_RELAX_TOKEN_SCOPE=1` in your environment to circumvent security requirements; this should not be used in production.
@@ -88,8 +91,6 @@ application](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/crea
 These should be provided in a `.env` file local to your app and not added to your main config file.
 
 The authorization callback URL in the GitHub app settings should be set to `<YOUR_API_URL>/login/github/authorized`.
-A user's first login may direct them to this page rather than the web app, depending on their browser.
-The user will then simply have to navigate back to the URL of the web app, where they should find themselves to be logged in.
 
 Then, you can configure [`GITHUB_ORG_ALLOW_LIST`][pydatalab.config.ServerConfig.GITHUB_ORG_ALLOW_LIST] with a list of string IDs of GitHub organizations that user's must be a public member of to register an account.
 If this value is set to `None`, then any GitHub account will be able to register, and if it is set to an empty list, then no accounts will be able to register.
@@ -185,7 +186,7 @@ No special configuration or flags are needed — if the file exists, it will be 
 
 Deployments can provide a custom Vue component for the left-hand content of the login page.
 This is only relevant when the dedicated login page is enabled with `VUE_APP_ENABLE_LOGIN_PAGE=true`.
-Place a `CustomLoginInfo.vue` file in `public/custom/components/` and it will automatically replace the default empty custom-login skeleton at build time.
+Place a `CustomLoginInfo.vue` file in `public/custom/components/` and it will automatically replace the built-in `LoginInfo.vue` component at build time.
 If no custom component is provided, the built-in login welcome content is used.
 
 Authentication buttons and login behaviour remain managed by *datalab*.

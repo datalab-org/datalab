@@ -1,8 +1,7 @@
 <template>
   <div class="login-container">
     <div class="welcome-section">
-      <CustomLoginInfo v-if="customLoginInfoHasContent" />
-      <LoginInfo v-else />
+      <LoginInfo />
     </div>
 
     <div class="login-options">
@@ -16,13 +15,14 @@
           :href="homepage_url"
           style="display: inline-block"
           target="_blank"
+          rel="noopener noreferrer"
         >
           <img class="logo-banner" :src="logo_url" />
         </a>
         <img v-else class="logo-banner" :src="logo_url" />
       </div>
 
-      <div v-if="!userInfoLoaded" class="text-muted text-center">
+      <div v-if="!isLoaded" class="text-muted text-center">
         <font-awesome-icon icon="spinner" spin /> Loading...
       </div>
 
@@ -43,55 +43,30 @@
 
       <div v-else class="login-button">
         <a
-          v-if="showUnavailableAuthMechanisms || showGitHub"
-          type="button"
-          :class="{ disabled: !showGitHub }"
+          v-for="provider in visibleOAuthProviders"
+          :key="provider.name"
+          :class="{ disabled: !authMechanismEnabled(provider.name) }"
           class="btn btn-default btn-login p-3"
-          aria-label="Login via GitHub"
-          :href="apiUrl + '/login/github'"
+          :aria-label="`Login via ${provider.label}`"
+          :aria-disabled="!authMechanismEnabled(provider.name)"
+          :href="authMechanismEnabled(provider.name) ? oauthLoginUrl(provider.name) : null"
         >
-          <font-awesome-icon :icon="['fab', 'github']" /> Login via GitHub
+          <font-awesome-icon
+            :class="{ 'orcid-icon': provider.name === 'orcid' }"
+            :icon="provider.icon"
+          />
+          Login via {{ provider.label }}
         </a>
-        <a
-          v-if="showUnavailableAuthMechanisms || showORCID"
+        <button
+          v-if="shouldShowAuthMechanism('email')"
           type="button"
-          :class="{ disabled: !showORCID }"
-          class="btn btn-default btn-login p-3"
-          aria-label="Login via ORCID"
-          :href="apiUrl + '/login/orcid'"
-        >
-          <font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Login via ORCID
-        </a>
-        <a
-          v-if="showUnavailableAuthMechanisms || showGoogle"
-          type="button"
-          :class="{ disabled: !showGoogle }"
-          class="btn btn-default btn-login p-3"
-          aria-label="Login via Google"
-          :href="apiUrl + '/login/google'"
-        >
-          <font-awesome-icon :icon="['fab', 'google']" /> Login via Google
-        </a>
-        <a
-          v-if="showUnavailableAuthMechanisms || showMicrosoft"
-          type="button"
-          :class="{ disabled: !showMicrosoft }"
-          class="btn btn-default btn-login p-3"
-          aria-label="Login via Microsoft"
-          :href="apiUrl + '/login/microsoft'"
-        >
-          <font-awesome-icon :icon="['fab', 'microsoft']" /> Login via Microsoft
-        </a>
-        <a
-          v-if="showUnavailableAuthMechanisms || showEmail"
-          type="button"
-          :class="{ disabled: !showEmail }"
           class="btn btn-default btn-login p-3"
           aria-label="Login via email"
+          :disabled="!authMechanismEnabled('email')"
           @click="emailModalIsOpen = true"
         >
           <font-awesome-icon :icon="['fa', 'envelope']" /> Login via email
-        </a>
+        </button>
         <div v-if="noAuthMechanismsAvailable" class="text-muted text-center">
           No login methods are currently available. Please contact the admin of this datalab server.
         </div>
@@ -102,15 +77,20 @@
 </template>
 
 <script>
-import CustomLoginInfo from "@/components/CustomLoginInfo.vue";
 import LoginInfo from "@/components/LoginInfo.vue";
 import GetEmailModal from "@/components/GetEmailModal.vue";
-import { getAuthMechanisms, getUserInfo } from "@/server_fetch_utils.js";
+import { getAuthMechanisms } from "@/server_fetch_utils.js";
 import { API_URL, LOGO_URL, HOMEPAGE_URL, LOGIN_HIDE_UNAVAILABLE_AUTH } from "@/resources.js";
+
+const OAUTH_PROVIDERS = [
+  { name: "github", label: "GitHub", icon: ["fab", "github"] },
+  { name: "orcid", label: "ORCID", icon: ["fab", "orcid"] },
+  { name: "google", label: "Google", icon: ["fab", "google"] },
+  { name: "microsoft", label: "Microsoft", icon: ["fab", "microsoft"] },
+];
 
 export default {
   components: {
-    CustomLoginInfo,
     LoginInfo,
     GetEmailModal,
   },
@@ -120,59 +100,43 @@ export default {
       apiUrl: API_URL,
       logo_url: LOGO_URL,
       homepage_url: HOMEPAGE_URL,
-      authMechanisms: null,
+      authMechanisms: {},
       currentUser: null,
-      userInfoLoaded: false,
+      isLoaded: false,
     };
   },
   computed: {
-    customLoginInfoHasContent() {
-      return CustomLoginInfo.hasContent !== false;
-    },
-    showUnavailableAuthMechanisms() {
-      return !LOGIN_HIDE_UNAVAILABLE_AUTH;
-    },
-    showGitHub() {
-      return this.authMechanisms?.github ?? false;
-    },
-    showORCID() {
-      return this.authMechanisms?.orcid ?? false;
-    },
-    showGoogle() {
-      return this.authMechanisms?.google ?? false;
-    },
-    showMicrosoft() {
-      return this.authMechanisms?.microsoft ?? false;
-    },
-    showEmail() {
-      return this.authMechanisms?.email ?? false;
+    visibleOAuthProviders() {
+      return OAUTH_PROVIDERS.filter(({ name }) => this.shouldShowAuthMechanism(name));
     },
     noAuthMechanismsAvailable() {
-      return this.authMechanisms != null && !Object.values(this.authMechanisms).some(Boolean);
+      return !Object.values(this.authMechanisms).some(Boolean);
     },
     currentUserDisplayName() {
-      return (
-        this.currentUser?.display_name ||
-        this.currentUser?.name ||
-        this.currentUser?.email ||
-        "this account"
-      );
+      return this.currentUser?.display_name || this.currentUser?.contact_email || "this account";
     },
   },
   async mounted() {
-    try {
-      this.currentUser = await getUserInfo();
-    } finally {
-      this.userInfoLoaded = true;
-    }
-
-    try {
-      this.authMechanisms = await getAuthMechanisms();
-    } catch {
-      this.authMechanisms = {};
-    }
+    [this.currentUser, this.authMechanisms] = await Promise.all([
+      this.$store.dispatch("fetchCurrentUser", { fullInfo: true }),
+      getAuthMechanisms().catch(() => ({})),
+    ]);
+    this.isLoaded = true;
   },
   methods: {
+    authMechanismEnabled(name) {
+      return this.authMechanisms[name] ?? false;
+    },
+    shouldShowAuthMechanism(name) {
+      return !LOGIN_HIDE_UNAVAILABLE_AUTH || this.authMechanismEnabled(name);
+    },
+    oauthLoginUrl(provider) {
+      const next = Array.isArray(this.$route.query.next)
+        ? this.$route.query.next[0]
+        : this.$route.query.next;
+      const query = typeof next === "string" ? `?next=${encodeURIComponent(next)}` : "";
+      return `${this.apiUrl}/login/${provider}${query}`;
+    },
     goToApp() {
       window.location.href = "/samples";
     },
@@ -254,5 +218,27 @@ a > .logo-banner:hover {
 
 .orcid-icon {
   color: #a6ce39;
+}
+
+@media (max-width: 767.98px) {
+  .login-container {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .welcome-section,
+  .login-options {
+    flex: none;
+    min-height: 50vh;
+  }
+
+  .login-button {
+    width: min(100%, 20rem);
+  }
+
+  .logo-container {
+    position: static;
+  }
 }
 </style>

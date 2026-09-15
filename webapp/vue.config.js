@@ -43,13 +43,10 @@ module.exports = {
       );
     }
 
-    // If a deployment provides a custom CustomLoginInfo.vue, use it instead of the skeleton
+    // Replace the default login information with deployment-specific content when provided
     if (fs.existsSync(customLoginInfoPath)) {
       plugins.push(
-        new NormalModuleReplacementPlugin(
-          /\/components\/CustomLoginInfo\.vue$/,
-          customLoginInfoPath,
-        ),
+        new NormalModuleReplacementPlugin(/\/components\/LoginInfo\.vue$/, customLoginInfoPath),
       );
     }
 
