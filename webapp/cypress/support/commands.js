@@ -460,6 +460,22 @@ Cypress.Commands.add("getColumnIndices", (columnMap = {}) => {
 });
 
 /**
+ * Get the index of the DataTable column whose header shows the given FontAwesome icon.
+ * For icon-only headers (e.g. blocks, files) that `getColumnIndices` cannot find by name.
+ * @param {string} icon - The icon name, e.g. "cubes" for the `fa-cubes` icon
+ * @returns {Cypress.Chainable<number>} The column index, or -1 if no header shows the icon
+ * @example
+ * cy.getIconColumnIndex("cubes").then((index) => {
+ *   cy.get("tr>td").eq(index).should("be.empty");
+ * });
+ */
+Cypress.Commands.add("getIconColumnIndex", (icon) => {
+  return cy
+    .get(".p-datatable-thead th")
+    .then(($headers) => $headers.toArray().findIndex((th) => th.querySelector(`.fa-${icon}`)));
+});
+
+/**
  * Add a block to the current item via the top "Add a block" dropdown and yield
  * that block, identified by the ID the API hands back. Callers can then scope
  * their assertions to the new block rather than indexing across every block on
