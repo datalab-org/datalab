@@ -561,6 +561,61 @@ export function searchCollections(query, nresults = 100) {
   });
 }
 
+export function createTag(data) {
+  // data: { name, description?, color?, scope? }. `scope` is "user" (user-defined,
+  // default) or "global" (admins only). The caller refreshes the list via
+  // getTags(). Rejects with the server message on error (e.g. 409 duplicate name).
+  return fetch_put(`${API_URL}/tags`, { data }).then(function (response_json) {
+    return response_json.data;
+  });
+}
+
+export function updateTag(tagId, data) {
+  // Update a tag's metadata (name/description/color). Rejects with the server message (e.g. 409).
+  return fetch_patch(`${API_URL}/tags/${tagId}`, { data });
+}
+
+export function deleteTag(tagId) {
+  return fetch_delete(`${API_URL}/tags/${tagId}`)
+    .then(function (response_json) {
+      if (response_json.status !== "success") {
+        throw new Error("Failed to delete tag: " + response_json.message);
+      }
+      store.commit("deleteFromTagList", tagId);
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Unable to delete tag",
+        message: `Failed to delete tag: ${error}`,
+      });
+      throw error;
+    });
+}
+
+export function getTags() {
+  return fetch_get(`${API_URL}/tags`)
+    .then(function (response_json) {
+      store.commit("setTagList", response_json.data);
+    })
+    .catch((error) => {
+      if (error === "UNAUTHORIZED") {
+        store.commit("setTagList", []);
+      } else {
+        throw error;
+      }
+    });
+}
+
+export function searchTags(query, nresults = 100) {
+  // construct a url with parameters:
+  var url = new URL(`${API_URL}/search-tags`);
+  var params = { query: query, nresults: nresults };
+  Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
+  return fetch_get(url).then(function (response_json) {
+    return response_json.data;
+  });
+}
+
 export function searchGroups(query, nresults = 100) {
   // construct a url with parameters:
   var url = new URL(`${API_URL}/search/groups`);

@@ -184,6 +184,105 @@ def test_file():
     assert sample.files[1].type == "files"
 
 
+def test_tag_model():
+    from pydatalab.models.tags import Tag
+    from pydatalab.models.utils import AccessScope
+
+    tag = Tag(name="test_tag", description="This is an example", color="#f1c40f", scope="global")
+    assert tag.type == "tags"
+    assert tag.name == "test_tag"
+    assert tag.description == "This is an example"
+    assert tag.color == "#f1c40f"
+    assert tag.scope == AccessScope.GLOBAL
+    assert tag.owner is None
+
+    # Scope is modelled explicitly via `scope`/`owner` (not the `HasOwner` mixin).
+    assert not hasattr(tag, "creator_ids")
+    assert not hasattr(tag, "group_ids")
+
+    oid = ObjectId("0123456789ab0123456789ab")
+    doc = {"_id": oid, "type": "tags", "name": "glovebox", "scope": "global"}
+    stored_tag = Tag(**doc)
+    assert stored_tag.immutable_id == oid
+    assert stored_tag.description is None
+    assert stored_tag.color is None
+    assert stored_tag.model_dump()["immutable_id"] == oid
+    assert stored_tag.scope == AccessScope.GLOBAL
+
+    # Both `name` and `scope` are required.
+    with pytest.raises(pydantic.ValidationError):
+        Tag(scope="global", description="missing a name")
+    with pytest.raises(pydantic.ValidationError):
+        Tag(name="missing-a-scope")
+
+
+def test_tag_scope_owner_consistency():
+    """A user-scoped tag must have an owner; a global tag must not."""
+    from pydatalab.models.tags import Tag
+    from pydatalab.models.utils import AccessScope
+
+    owner = ObjectId()
+
+    # A valid user-defined tag.
+    user_defined = Tag(name="mine", scope="user", owner=owner)
+    assert user_defined.scope == AccessScope.USER
+    assert user_defined.owner == owner
+    # `owner` is preserved as an ObjectId in the stored (python-mode) dump.
+    assert isinstance(user_defined.model_dump(exclude_none=True)["owner"], ObjectId)
+    # ... and stringified in the JSON dump sent to clients.
+    assert json.loads(user_defined.model_dump_json())["owner"] == str(owner)
+
+    # A valid global tag has no owner.
+    glob = Tag(name="shared", scope="global")
+    assert glob.owner is None
+
+    # A user-scoped tag without an owner is rejected.
+    with pytest.raises(pydantic.ValidationError):
+        Tag(name="bad", scope="user")
+
+    # A global tag with an owner is rejected.
+    with pytest.raises(pydantic.ValidationError):
+        Tag(name="bad", scope="global", owner=owner)
+
+
+def test_item_tags_coercion():
+    """The `HasTags` mixin coerces references and de-duplicates tags on items."""
+    from pydatalab.models.samples import Sample
+    from pydatalab.models.utils import EntryReference
+
+    oid = ObjectId("0123456789ab0123456789ab")
+
+    sample = Sample(
+        item_id="tagged",
+        tags=[
+            {"type": "tags", "immutable_id": str(oid), "name": "Curated"},
+            {"type": "tags", "immutable_id": str(oid)},  # same reference by id -> dropped
+        ],
+    )
+
+    assert len(sample.tags) == 1
+    ref = sample.tags[0]
+    assert isinstance(ref, EntryReference)
+    assert ref.type == "tags"
+    assert ref.immutable_id == oid
+    assert ref.name == "Curated"
+
+    # Default is an empty list, so existing tag-less documents stay valid.
+    assert Sample(item_id="untagged").tags == []
+
+    # A reference to a (possibly deleted) tag still validates.
+    dangling = Sample(item_id="dangling", tags=[{"type": "tags", "immutable_id": str(ObjectId())}])
+    assert len(dangling.tags) == 1
+
+    # Bare string tags are not allowed: only references to tags entries.
+    with pytest.raises(pydantic.ValidationError):
+        Sample(item_id="string-tag", tags=["custom"])
+
+    # Re-validating a dumped item round-trips the reference tags list.
+    roundtrip = Sample(**json.loads(sample.model_dump_json()))
+    assert [type(t).__name__ for t in roundtrip.tags] == ["EntryReference"]
+
+
 def test_custom_and_inherited_items():
     class TestItem(Item):
         type: str = "items_custom"
