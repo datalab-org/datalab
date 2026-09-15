@@ -12,7 +12,7 @@ import Admin from "@/views/Admin.vue";
 import Login from "../views/Login.vue";
 import Login2 from "../views/Login2.vue";
 import Login3 from "../views/Login3.vue";
-import { API_URL } from "@/resources.js";
+import { API_URL, ENABLE_LOGIN_PAGE } from "@/resources.js";
 
 const routes = [
   {
@@ -30,9 +30,9 @@ const routes = [
     component: Samples,
   },
   {
-    path: "/next/login",
+    path: "/login",
     name: "login",
-    alias: "/",
+    alias: "/next/login",
     component: Login,
   },
   {
@@ -118,7 +118,15 @@ router.beforeEach(async (to, from, next) => {
     return;
   }
 
-  if (to.path === "/" || (to.name === "samples" && from.path === "/")) {
+  if (ENABLE_LOGIN_PAGE) {
+    const { getUserInfo } = await import("@/server_fetch_utils.js");
+    const user = await getUserInfo();
+
+    if (!user && to.name !== "login") {
+      next({ name: "login", query: { next: to.fullPath } });
+      return;
+    }
+  } else if (to.path === "/" || (to.name === "samples" && from.path === "/")) {
     const { getUserInfo } = await import("@/server_fetch_utils.js");
     const user = await getUserInfo();
 

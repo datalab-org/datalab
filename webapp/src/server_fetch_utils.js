@@ -366,6 +366,12 @@ export async function getInfo() {
     });
 }
 
+export async function getAuthMechanisms() {
+  return fetch_get(`${API_URL}/info/auth-mechanisms`).then(function (response_json) {
+    return response_json.data.attributes;
+  });
+}
+
 export function getSampleList() {
   return fetch_get(`${API_URL}/samples/`)
     .then(function (response_json) {

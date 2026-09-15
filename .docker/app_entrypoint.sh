@@ -37,6 +37,8 @@ echo "  EDITABLE_INVENTORY: ${VUE_APP_EDITABLE_INVENTORY}"
 echo "  WEBSITE_TITLE: ${VUE_APP_WEBSITE_TITLE}"
 echo "  QR_CODE_RESOLVER_URL: ${VUE_APP_QR_CODE_RESOLVER_URL}"
 echo "  AUTOMATICALLY_GENERATE_ID_DEFAULT: ${VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT}"
+echo "  ENABLE_LOGIN_PAGE: ${VUE_APP_ENABLE_LOGIN_PAGE}"
+echo "  LOGIN_HIDE_UNAVAILABLE_AUTH: ${VUE_APP_LOGIN_HIDE_UNAVAILABLE_AUTH}"
 echo ""
 echo "Patching..."
 
@@ -51,6 +53,8 @@ for file in $ROOT_DIR/js/app.*.js* $ROOT_DIR/*html; do
     sed -i "s|magic-title|${VUE_APP_WEBSITE_TITLE}|g" $file
     sed -i "s|magic-qr-code-resolver-url|${VUE_APP_QR_CODE_RESOLVER_URL}|g" $file
     sed -i "s|magic-generate-id-setting|${VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT}|g" $file
+    sed -i "s|magic-enable-login-page|${VUE_APP_ENABLE_LOGIN_PAGE}|g" $file
+    sed -i "s|magic-login-hide-unavailable-auth|${VUE_APP_LOGIN_HIDE_UNAVAILABLE_AUTH}|g" $file
     done
 
 echo "Done!"

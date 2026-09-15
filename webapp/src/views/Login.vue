@@ -1,19 +1,7 @@
 <template>
   <div class="login-container">
     <div class="welcome-section">
-      <h1 style="font-size: 4rem">Welcome to Datalab</h1>
-      <p>datalab is a place to store experimental data and the connections between them.</p>
-      <p>
-        datalab is open source (MIT license) and development occurs on GitHub at
-        <a href="https://github.com/datalab-org/datalab"
-          ><font-awesome-icon :icon="['fab', 'github']" />&nbsp;datalab-org/datalab</a
-        >
-        with documentation available on
-        <a href="https://the-datalab.readthedocs.io"
-          ><font-awesome-icon icon="book" />&nbsp;ReadTheDocs</a
-        >.
-      </p>
-      <router-link to="/about" class="btn btn-default">Learn More</router-link>
+      <LoginInfo />
     </div>
 
     <div class="login-options">
@@ -27,41 +15,61 @@
           :href="homepage_url"
           style="display: inline-block"
           target="_blank"
+          rel="noopener noreferrer"
         >
           <img class="logo-banner" :src="logo_url" />
         </a>
         <img v-else class="logo-banner" :src="logo_url" />
       </div>
 
-      <!-- <pre style="white-space: pre-wrap">{{ ASCII }}</pre> -->
-      <div class="login-button">
-        <a
-          type="button"
-          :class="{ disabled: !showGitHub }"
-          class="btn btn-default btn-login p-3"
-          aria-label="Login via GitHub"
-          :href="apiUrl + '/login/github'"
-        >
-          <font-awesome-icon :icon="['fab', 'github']" /> Login via GitHub
+      <div v-if="!isLoaded" class="text-muted text-center">
+        <font-awesome-icon icon="spinner" spin /> Loading...
+      </div>
+
+      <div v-else-if="currentUser != null" class="login-button logged-in-options text-center">
+        <div>
+          <h2 class="logged-in-title">You are already logged in</h2>
+          <p class="text-muted mb-0">
+            Signed in as <strong>{{ currentUserDisplayName }}</strong>
+          </p>
+        </div>
+        <button type="button" class="btn btn-default btn-login p-3" @click="goToApp">
+          <font-awesome-icon icon="home" /> Go to app
+        </button>
+        <a type="button" class="btn btn-default btn-login p-3" :href="apiUrl + '/logout'">
+          <font-awesome-icon icon="sign-out-alt" /> Logout
         </a>
+      </div>
+
+      <div v-else class="login-button">
         <a
-          type="button"
-          :class="{ disabled: !showORCID }"
+          v-for="provider in visibleOAuthProviders"
+          :key="provider.name"
+          :class="{ disabled: !authMechanismEnabled(provider.name) }"
           class="btn btn-default btn-login p-3"
-          aria-label="Login via ORCID"
-          :href="apiUrl + '/login/orcid'"
+          :aria-label="`Login via ${provider.label}`"
+          :aria-disabled="!authMechanismEnabled(provider.name)"
+          :href="authMechanismEnabled(provider.name) ? oauthLoginUrl(provider.name) : null"
         >
-          <font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Login via ORCID
+          <font-awesome-icon
+            :class="{ 'orcid-icon': provider.name === 'orcid' }"
+            :icon="provider.icon"
+          />
+          Login via {{ provider.label }}
         </a>
-        <a
+        <button
+          v-if="shouldShowAuthMechanism('email')"
           type="button"
-          :class="{ disabled: !showEmail }"
           class="btn btn-default btn-login p-3"
           aria-label="Login via email"
+          :disabled="!authMechanismEnabled('email')"
           @click="emailModalIsOpen = true"
         >
           <font-awesome-icon :icon="['fa', 'envelope']" /> Login via email
-        </a>
+        </button>
+        <div v-if="noAuthMechanismsAvailable" class="text-muted text-center">
+          No login methods are currently available. Please contact the admin of this datalab server.
+        </div>
       </div>
     </div>
   </div>
@@ -69,12 +77,21 @@
 </template>
 
 <script>
+import LoginInfo from "@/components/LoginInfo.vue";
 import GetEmailModal from "@/components/GetEmailModal.vue";
-import { getInfo } from "@/server_fetch_utils.js";
-import { API_URL, LOGO_URL, HOMEPAGE_URL } from "@/resources.js";
+import { getAuthMechanisms } from "@/server_fetch_utils.js";
+import { API_URL, LOGO_URL, HOMEPAGE_URL, LOGIN_HIDE_UNAVAILABLE_AUTH } from "@/resources.js";
+
+const OAUTH_PROVIDERS = [
+  { name: "github", label: "GitHub", icon: ["fab", "github"] },
+  { name: "orcid", label: "ORCID", icon: ["fab", "orcid"] },
+  { name: "google", label: "Google", icon: ["fab", "google"] },
+  { name: "microsoft", label: "Microsoft", icon: ["fab", "microsoft"] },
+];
 
 export default {
   components: {
+    LoginInfo,
     GetEmailModal,
   },
   data() {
@@ -83,28 +100,46 @@ export default {
       apiUrl: API_URL,
       logo_url: LOGO_URL,
       homepage_url: HOMEPAGE_URL,
-      ASCII: `
-              oooo              o8              o888             oooo
-           ooooo888    ooooooo o888oo  ooooooo    888   ooooooo    888ooooo
-         888    888    ooooo888 888    ooooo888   888   ooooo888   888    888
-         888    888  888    888 888  888    888   888 888    888   888    888
-           88ooo888o  88ooo88 8o 888o 88ooo88 8o o888o 88ooo88 8o o888ooo88
-      `,
+      authMechanisms: {},
+      currentUser: null,
+      isLoaded: false,
     };
   },
   computed: {
-    showGitHub() {
-      return this.$store.state.serverInfo?.features?.auth_mechanisms?.github ?? false;
+    visibleOAuthProviders() {
+      return OAUTH_PROVIDERS.filter(({ name }) => this.shouldShowAuthMechanism(name));
     },
-    showORCID() {
-      return this.$store.state.serverInfo?.features?.auth_mechanisms?.orcid ?? false;
+    noAuthMechanismsAvailable() {
+      return !Object.values(this.authMechanisms).some(Boolean);
     },
-    showEmail() {
-      return this.$store.state.serverInfo?.features?.auth_mechanisms?.email ?? false;
+    currentUserDisplayName() {
+      return this.currentUser?.display_name || this.currentUser?.contact_email || "this account";
     },
   },
   async mounted() {
-    getInfo();
+    [this.currentUser, this.authMechanisms] = await Promise.all([
+      this.$store.dispatch("fetchCurrentUser", { fullInfo: true }),
+      getAuthMechanisms().catch(() => ({})),
+    ]);
+    this.isLoaded = true;
+  },
+  methods: {
+    authMechanismEnabled(name) {
+      return this.authMechanisms[name] ?? false;
+    },
+    shouldShowAuthMechanism(name) {
+      return !LOGIN_HIDE_UNAVAILABLE_AUTH || this.authMechanismEnabled(name);
+    },
+    oauthLoginUrl(provider) {
+      const next = Array.isArray(this.$route.query.next)
+        ? this.$route.query.next[0]
+        : this.$route.query.next;
+      const query = typeof next === "string" ? `?next=${encodeURIComponent(next)}` : "";
+      return `${this.apiUrl}/login/${provider}${query}`;
+    },
+    goToApp() {
+      window.location.href = "/samples";
+    },
   },
 };
 </script>
@@ -125,7 +160,8 @@ export default {
   justify-content: center;
   text-align: center;
   align-items: center;
-  background-color: lightblue;
+  background-color: var(--login-welcome-background, lightblue);
+  color: var(--login-welcome-color, inherit);
 }
 
 .login-options {
@@ -136,6 +172,8 @@ export default {
   justify-content: center;
   gap: 1rem;
   padding: 2rem;
+  background-color: var(--login-options-background, transparent);
+  color: var(--login-options-color, inherit);
 }
 
 .login-button {
@@ -143,6 +181,15 @@ export default {
   flex-direction: column;
   width: 50%;
   gap: 2em;
+}
+
+.logged-in-options {
+  gap: 1.25rem;
+}
+
+.logged-in-title {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .logo-container {
@@ -171,5 +218,27 @@ a > .logo-banner:hover {
 
 .orcid-icon {
   color: #a6ce39;
+}
+
+@media (max-width: 767.98px) {
+  .login-container {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .welcome-section,
+  .login-options {
+    flex: none;
+    min-height: 50vh;
+  }
+
+  .login-button {
+    width: min(100%, 20rem);
+  }
+
+  .logo-container {
+    position: static;
+  }
 }
 </style>
