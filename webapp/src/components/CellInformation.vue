@@ -44,6 +44,16 @@
           </div>
         </div>
         <div class="form-row">
+          <div class="form-group col-lg-12 col-sm-12">
+            <label for="cell-location">Location</label>
+            <LocationInput
+              v-model="Location"
+              :suggestions="uniqueLocations"
+              input-id="cell-location"
+            />
+          </div>
+        </div>
+        <div class="form-row">
           <div class="form-group col-sm-4 pr-2">
             <label for="cell-format-dropdown">Cell format</label>
             <select id="cell-format-dropdown" v-model="CellFormat" class="form-control">
@@ -126,7 +136,9 @@ import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionForm
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
 import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
+import LocationInput from "@/components/LocationInput";
 import { cellFormats } from "@/resources.js";
+import { getLocations } from "@/server_fetch_utils.js";
 
 export default {
   components: {
@@ -140,6 +152,7 @@ export default {
     ToggleableCreatorsFormGroup,
     ToggleableItemStatusFormGroup,
     ToggleableGroupsFormGroup,
+    LocationInput,
   },
   props: {
     item_id: {
@@ -175,12 +188,21 @@ export default {
     CharacteristicMass: createComputedSetterForItemField("characteristic_mass"),
     Collections: createComputedSetterForItemField("collections"),
     Status: createComputedSetterForItemField("status"),
+    Location: createComputedSetterForItemField("location"),
     schema() {
       return this.$store.state.schemas[this.item?.type];
     },
     possibleItemStatuses() {
       return this.schema?.attributes?.schema?.["$defs"]?.CellStatus?.enum;
     },
+    uniqueLocations() {
+      return [...(this.$store.state.locations_list?.flat_locations || [])].sort();
+    },
+  },
+  created() {
+    if (this.$store.state.locations_list === null) {
+      getLocations();
+    }
   },
 };
 </script>
