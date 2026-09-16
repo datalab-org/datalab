@@ -109,67 +109,82 @@
         <div class="form-row">
           <div class="form-group col-md-12">
             <label class="col-form-label">API Keys:</label>
+            <APIKeyHelp />
 
             <ul v-if="apiKeys.length" class="list-group mb-2">
+              <li class="list-group-item d-flex align-items-center api-key-header">
+                <span class="api-key-name">Label</span>
+                <span class="api-key-middle text-center mx-2">Key</span>
+                <span class="api-key-date text-right">Creation date</span>
+                <span class="api-key-revoke-spacer ml-3"></span>
+              </li>
               <li
                 v-for="key in apiKeys"
                 :key="key._id"
-                class="list-group-item d-flex align-items-center"
+                class="list-group-item d-flex align-items-center api-key-row"
               >
-                <strong class="flex-shrink-0 api-key-name">{{ key.name }}</strong>
+                <strong class="api-key-name" :title="key.name">{{ key.name }}</strong>
 
-                <code v-if="!key.show" class="ml-2">{{ key.digest }}</code>
-                <div v-if="key.show" class="input-group input-group-sm api-key-input-group ml-2">
-                  <StyledInput
-                    v-model="apiKey"
-                    :readonly="true"
-                    :help-message="apiKeyHelpMessage"
-                    class="form-control form-control-sm"
-                  />
-                  <span class="input-group-append">
-                    <button
-                      class="btn btn-sm btn-outline-secondary"
-                      type="button"
-                      @click="copyToClipboard"
-                    >
-                      <font-awesome-icon icon="copy" />
-                    </button>
-                  </span>
+                <div class="api-key-middle d-flex justify-content-center mx-2">
+                  <div v-if="key.show" class="input-group input-group-sm api-key-input-group">
+                    <StyledInput
+                      v-model="apiKey"
+                      :readonly="true"
+                      :help-message="apiKeyHelpMessage"
+                      class="form-control form-control-sm"
+                    />
+                    <span class="input-group-append">
+                      <button
+                        class="btn btn-sm btn-outline-secondary"
+                        type="button"
+                        @click="copyToClipboard"
+                      >
+                        <font-awesome-icon icon="copy" />
+                      </button>
+                    </span>
+                  </div>
+                  <code v-else class="api-key-digest">{{ key.digest }}</code>
                 </div>
 
-                <span class="text-muted text-nowrap ml-auto">
-                  {{ key.created_at ? humanDate(key.created_at) : "Unknown creation date" }}
+                <span class="small text-muted text-nowrap text-right api-key-date">
+                  {{ key.created_at ? humanDate(key.created_at) : "Unknown" }}
                 </span>
 
                 <button
-                  class="btn btn-sm btn-outline-danger ml-2"
+                  class="btn btn-sm btn-outline-danger ml-3 api-key-revoke"
                   type="button"
                   @click="deleteKey(key._id)"
                 >
-                  <font-awesome-icon icon="trash" />
+                  Revoke
                 </button>
               </li>
             </ul>
             <div v-else class="text-muted mb-2">You have no API keys yet.</div>
 
-            <div class="input-group">
+            <div class="input-group new-key-input-group">
               <input
                 v-model="newKeyName"
                 type="text"
                 class="form-control"
-                placeholder="Add a key (e.g. laptop, CI)"
+                :class="{ 'is-invalid': newKeyNameError }"
+                placeholder="Add new key with label (e.g., laptop, CI)"
+                aria-label="Add new key with label"
+                @input="newKeyNameError = false"
               />
               <div class="input-group-append">
                 <button
-                  class="btn btn-default"
+                  class="btn"
+                  :class="newKeyNameError ? 'btn-outline-danger' : 'btn-default'"
                   type="button"
-                  :disabled="!newKeyName"
+                  title="Generate new key"
+                  aria-label="Generate new key"
                   @click="requestAPIKey"
                 >
-                  Generate New Key
+                  <font-awesome-icon icon="plus" />
                 </button>
               </div>
             </div>
+            <div v-if="newKeyNameError" class="form-error small mt-1">A new key needs a label.</div>
           </div>
         </div>
         <div class="form-row">
@@ -207,6 +222,7 @@ import {
   deleteAPIKey,
 } from "@/server_fetch_utils.js";
 import StyledInput from "./StyledInput.vue";
+import APIKeyHelp from "@/components/APIKeyHelp.vue";
 
 import { invalidateCurrentUserCache } from "@/server_fetch_utils.js";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
@@ -214,6 +230,7 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 export default {
   name: "EditAccountSettingsModal",
   components: {
+    APIKeyHelp,
     FontAwesomeIcon,
     Modal,
     StyledInput,
@@ -236,6 +253,7 @@ export default {
       apiKeys: [],
       apiKey: null,
       newKeyName: "",
+      newKeyNameError: false,
       apiKeyHelpMessage:
         'You can use your API key via the datalab-api Python package, or pass it as an HTTP header "DATALAB-API-KEY" with the tool of your choice (e.g., curl).',
     };
@@ -293,7 +311,8 @@ export default {
     },
     async requestAPIKey(event) {
       event.preventDefault();
-      if (!this.newKeyName) {
+      if (!this.newKeyName || /^\s*$/.test(this.newKeyName)) {
+        this.newKeyNameError = true;
         return;
       }
       const confirmed = await DialogService.confirm({
@@ -338,6 +357,7 @@ export default {
       this.apiKeyDisplayed = false;
       this.apiKey = null;
       this.newKeyName = "";
+      this.newKeyNameError = false;
       this.$emit("update:modelValue", false);
     },
   },
@@ -365,11 +385,52 @@ export default {
 }
 
 .api-key-name {
-  display: inline-block;
-  min-width: 6rem;
+  flex: 0 0 8rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.api-key-digest {
+  font-size: 75%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.api-key-middle {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.api-key-date {
+  flex: 0 0 7rem;
+}
+
+.api-key-revoke,
+.api-key-revoke-spacer {
+  flex: 0 0 4.5rem;
+}
+
+.api-key-header {
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+  background-color: #f8f9fa;
+  color: #6c757d;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.api-key-row {
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+}
+
+.new-key-input-group {
+  max-width: 26rem;
 }
 
 .api-key-input-group {
