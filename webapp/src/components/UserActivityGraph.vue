@@ -8,31 +8,40 @@
     </div>
     <div v-else-if="!error" class="heatmap-wrapper">
       <h5 v-if="title">{{ title }}</h5>
-      <div class="heatmap-container">
-        <div class="months-labels">
-          <span
-            v-for="(month, index) in monthLabels"
-            :key="index"
-            class="month-label"
-            :style="{
-              position: 'absolute',
-              left: month.weekIndex * (cellSize + cellGap) + 10 + 'px',
-            }"
-          >
-            {{ month.month }}
-          </span>
+      <div v-if="showSummary" class="activity-summary">
+        <div v-for="stat in summaryStats" :key="stat.label" class="activity-stat">
+          <div class="activity-stat-value">{{ stat.value }}</div>
+          <div v-if="stat.detail" class="activity-stat-detail">{{ stat.detail }}</div>
+          <div class="activity-stat-label">{{ stat.label }}</div>
         </div>
-        <div class="heatmap-grid">
-          <div v-for="(week, weekIndex) in weeks" :key="weekIndex" class="week-column">
-            <div
-              v-for="(day, dayIndex) in week"
-              v-show="day.count !== -1"
-              :key="dayIndex"
-              :class="['day-cell', getIntensityClass(day.count)]"
-              :data-date="day.date"
-              @mouseenter="showTooltip($event, day.date, day.count)"
-              @mouseleave="hideTooltip"
-            ></div>
+      </div>
+      <div class="heatmap-container">
+        <div class="heatmap-inner">
+          <div class="months-labels">
+            <span
+              v-for="(month, index) in monthLabels"
+              :key="index"
+              class="month-label"
+              :style="{
+                position: 'absolute',
+                left: month.weekIndex * (cellSize + cellGap) + gridPadding + 'px',
+              }"
+            >
+              {{ month.month }}
+            </span>
+          </div>
+          <div class="heatmap-grid">
+            <div v-for="(week, weekIndex) in weeks" :key="weekIndex" class="week-column">
+              <div
+                v-for="(day, dayIndex) in week"
+                v-show="day.count !== -1"
+                :key="dayIndex"
+                :class="['day-cell', getIntensityClass(day.count)]"
+                :data-date="day.date"
+                @mouseenter="showTooltip($event, day.date, day.count)"
+                @mouseleave="hideTooltip"
+              ></div>
+            </div>
           </div>
         </div>
       </div>
@@ -48,6 +57,7 @@
 </template>
 
 <script>
+import { format, parseISO } from "date-fns";
 import { fetchUserActivity } from "@/server_fetch_utils";
 import { createPopper } from "@popperjs/core";
 
@@ -74,6 +84,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    showSummary: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
@@ -87,8 +101,34 @@ export default {
     };
   },
   computed: {
+    summaryStats() {
+      const days = Object.keys(this.activityData)
+        .filter((day) => this.activityData[day] > 0)
+        .sort();
+
+      let total = 0;
+      let busiestDay = null;
+      for (const day of days) {
+        const count = this.activityData[day];
+        total += count;
+        if (!busiestDay || count > this.activityData[busiestDay]) busiestDay = day;
+      }
+
+      return [
+        { label: "Items recorded", value: total },
+        { label: "Active days", value: days.length },
+        {
+          label: "Busiest day",
+          value: busiestDay ? this.activityData[busiestDay] : "–",
+          detail: busiestDay ? format(parseISO(busiestDay), "d MMM yyyy") : null,
+        },
+      ];
+    },
     cellSize() {
       return this.compact ? 10 : 10;
+    },
+    gridPadding() {
+      return this.compact ? 8 : 10;
     },
     cellGap() {
       return this.compact ? 2 : 2;
@@ -257,11 +297,54 @@ export default {
   overflow-x: visible;
 }
 
+.activity-graph-container.compact .heatmap-wrapper {
+  width: fit-content;
+  max-width: 100%;
+}
+
 .heatmap-wrapper {
   display: flex;
   flex-direction: column;
   gap: 10px;
   width: 100%;
+}
+
+.activity-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.activity-stat {
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 8.5rem;
+  padding: 0.6rem 0.75rem;
+  text-align: center;
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+}
+
+.activity-stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #00695c;
+}
+
+.activity-stat-label {
+  margin-top: auto;
+  font-size: 0.75rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.activity-stat-detail {
+  font-size: 0.75rem;
+  color: #6c757d;
 }
 
 .heatmap-container {
@@ -274,6 +357,11 @@ export default {
   background: #fafafa;
   border-radius: 12px;
   border: 1px solid #e0e0e0;
+}
+
+.heatmap-inner {
+  width: fit-content;
+  max-width: 100%;
 }
 
 .months-labels {
