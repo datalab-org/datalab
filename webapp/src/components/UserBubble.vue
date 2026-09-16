@@ -1,22 +1,30 @@
 <template>
   <StyledTooltip :delay="500">
     <template #anchor>
-      <img
-        :src="
-          'https://www.gravatar.com/avatar/' +
-          (creator.gravatar_hash || '') +
-          '?d=' +
-          gravatar_style +
-          '&s=' +
-          size
-        "
-        class="avatar"
-        :width="size"
-        :height="size"
-      />
+      <component
+        :is="href ? 'a' : 'span'"
+        :href="href"
+        :target="href ? '_blank' : undefined"
+        :rel="href ? 'noopener' : undefined"
+        :class="{ 'avatar-link': href }"
+      >
+        <img
+          :src="
+            'https://www.gravatar.com/avatar/' +
+            (creator.gravatar_hash || '') +
+            '?d=' +
+            gravatar_style +
+            '&s=' +
+            size
+          "
+          class="avatar"
+          :width="size"
+          :height="size"
+        />
+      </component>
     </template>
     <template #content>
-      {{ creator.display_name }}
+      <slot name="tooltip">{{ creator.display_name }}</slot>
     </template>
   </StyledTooltip>
 </template>
@@ -39,6 +47,10 @@ export default {
       default: 32,
       required: false,
     },
+    href: {
+      type: String,
+      default: null,
+    },
   },
   data() {
     return {
@@ -49,6 +61,11 @@ export default {
 </script>
 
 <style scoped>
+.avatar-link {
+  display: inline-block;
+  line-height: 0;
+}
+
 .avatar {
   border-radius: 50%;
   border: 2px solid grey;
