@@ -81,7 +81,7 @@
 
 <script>
 import AutoComplete from "primevue/autocomplete";
-import { getStartingMaterialList, getEquipmentList } from "@/server_fetch_utils.js";
+import { getStartingMaterialList, getEquipmentList, getLocations } from "@/server_fetch_utils.js";
 import { createComputedSetterForItemField } from "@/field_utils.js";
 import LocationInput from "@/components/LocationInput";
 import TiptapInline from "@/components/TiptapInline";
@@ -138,16 +138,7 @@ export default {
       return this.schema?.attributes?.schema?.["$defs"]?.EquipmentStatus?.enum;
     },
     uniqueLocations() {
-      return [
-        ...new Set(
-          [
-            ...(this.$store.state.starting_material_list || []),
-            ...(this.$store.state.equipment_list || []),
-          ]
-            .map((item) => item.location)
-            .filter(Boolean),
-        ),
-      ].sort();
+      return [...(this.$store.state.locations_list?.flat_locations || [])].sort();
     },
   },
   created() {
@@ -156,6 +147,9 @@ export default {
     }
     if (this.$store.state.equipment_list === null) {
       getEquipmentList();
+    }
+    if (this.$store.state.locations_list === null) {
+      getLocations();
     }
   },
   methods: {},

@@ -541,6 +541,20 @@ export function getEquipmentList() {
     });
 }
 
+export function getLocations() {
+  return fetch_get(`${API_URL}/locations`)
+    .then(function (response_json) {
+      store.commit("setLocationsList", response_json.data);
+    })
+    .catch((error) => {
+      if (error === "UNAUTHORIZED") {
+        store.commit("setLocationsList", null);
+      } else {
+        throw error;
+      }
+    });
+}
+
 export function searchItems(query, nresults = 100, types = null) {
   // construct a url with parameters:
   var url = new URL(`${API_URL}/search-items/`);

@@ -17,6 +17,7 @@ export default createStore({
     sample_list: null,
     equipment_list: null,
     starting_material_list: null,
+    locations_list: null,
     collection_list: null,
     groups_list: null,
     saved_status_items: {},
@@ -116,6 +117,10 @@ export default createStore({
     setEquipmentList(state, equipmentSummaries) {
       // equipmentSummary is an array of json objects summarizing the available samples
       state.equipment_list = equipmentSummaries || [];
+    },
+    setLocationsList(state, locations) {
+      // locations is { flat_locations: [...], nested_locations: {...} } from GET /locations
+      state.locations_list = locations || { flat_locations: [], nested_locations: {} };
     },
     appendToSampleList(state, sampleSummary) {
       // sampleSummary is a json object summarizing the new sample
