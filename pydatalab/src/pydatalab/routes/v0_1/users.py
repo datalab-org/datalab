@@ -73,6 +73,24 @@ def save_user(user_id):
             )
             or {}
         )
+        # An unchanged contact email is skipped if already verified; otherwise it is processed
+        # again below so that the verification email is re-sent
+        if "contact_email" in update and update["contact_email"] == existing.get("contact_email"):
+            already_verified = update["contact_email"] is None or flask_mongo.db.users.find_one(
+                {
+                    "_id": ObjectId(user_id),
+                    "identities": {
+                        "$elemMatch": {
+                            "identity_type": "email",
+                            "identifier": update["contact_email"],
+                            "verified": True,
+                        }
+                    },
+                },
+                {"_id": 1},
+            )
+            if already_verified:
+                update.pop("contact_email")
         update["gravatar_hash"] = gravatar_hash_for(
             update.get("contact_email", existing.get("contact_email")),
             update.get("display_name", existing.get("display_name")),
@@ -80,37 +98,32 @@ def save_user(user_id):
 
     trigger_email_verification = False
     if update.get("contact_email"):
-        # Check if this email identity already exists for this user
-        existing_email_identity = False
-        if update.get("contact_email") is not None:
-            existing_email_identity = flask_mongo.db.users.find_one(
-                {
-                    "_id": ObjectId(user_id),
-                    "identities": {
-                        "$elemMatch": {"identity_type": "email", "identifier": contact_email}
-                    },
+        email_identity_match = {"identity_type": "email", "identifier": contact_email}
+        # Push the email as a new unverified identity only if the user does not already have it;
+        # doing this in a single conditional update avoids duplicates from concurrent requests
+        push_result = flask_mongo.db.users.update_one(
+            {
+                "_id": ObjectId(user_id),
+                "identities": {"$not": {"$elemMatch": email_identity_match}},
+            },
+            {
+                "$push": {
+                    "identities": {**email_identity_match, "name": contact_email, "verified": False}
                 }
-            )
-            if not existing_email_identity:
-                # If not, push it as a new unverified identity
-                flask_mongo.db.users.update_one(
-                    {"_id": ObjectId(user_id)},
-                    {
-                        "$push": {
-                            "identities": {
-                                "identity_type": "email",
-                                "identifier": contact_email,
-                                "name": contact_email,
-                                "verified": False,
-                            }
-                        }
-                    },
-                )
-                trigger_email_verification = True
-
-        if existing_email_identity and not existing_email_identity.get("verified"):
-            # If this did exist, but is not yet verified, also trigger an email
+            },
+        )
+        if push_result.modified_count:
             trigger_email_verification = True
+        else:
+            # If this did exist, but is not yet verified, also trigger an email
+            trigger_email_verification = bool(
+                flask_mongo.db.users.find_one(
+                    {
+                        "_id": ObjectId(user_id),
+                        "identities": {"$elemMatch": {**email_identity_match, "verified": False}},
+                    }
+                )
+            )
 
         if trigger_email_verification:
             token = _generate_and_store_token(
