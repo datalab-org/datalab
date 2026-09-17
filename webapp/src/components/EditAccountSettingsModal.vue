@@ -46,7 +46,7 @@
               <div class="form-row">
                 <div class="col profile-fields">
                   <div class="form-group">
-                    <label for="account-name">Name</label>
+                    <label for="account-name">Display name</label>
                     <input
                       id="account-name"
                       v-model="user.display_name"
