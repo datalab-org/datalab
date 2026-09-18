@@ -51,7 +51,17 @@ describe("UserBubble", () => {
     cy.get("img.avatar")
       .parent("a")
       .should("have.attr", "href", "https://gravatar.com")
-      .and("have.attr", "target", "_blank");
+      .and("have.attr", "target", "_blank")
+      .and("have.attr", "aria-label", creator.display_name);
+  });
+
+  it("uses linkLabel as the accessible name of the link", () => {
+    cy.mount(
+      <UserBubble creator={creator} href="https://gravatar.com" linkLabel="Change avatar" />,
+    );
+
+    cy.get("img.avatar").parent("a").should("have.attr", "aria-label", "Change avatar");
+    cy.get("img.avatar").should("have.attr", "alt", "");
   });
 
   it("allows overriding the tooltip content via a slot", () => {

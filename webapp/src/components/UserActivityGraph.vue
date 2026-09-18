@@ -8,7 +8,7 @@
     </div>
     <div v-else-if="!error" class="heatmap-wrapper">
       <h5 v-if="title">{{ title }}</h5>
-      <div v-if="showSummary" class="activity-summary">
+      <div v-if="showSummary && weeks.length" class="activity-summary">
         <div v-for="stat in summaryStats" :key="stat.label" class="activity-stat">
           <div class="activity-stat-value">{{ stat.value }}</div>
           <div v-if="stat.detail" class="activity-stat-detail">{{ stat.detail }}</div>
@@ -102,16 +102,14 @@ export default {
   },
   computed: {
     summaryStats() {
-      const days = Object.keys(this.activityData)
-        .filter((day) => this.activityData[day] > 0)
-        .sort();
+      // Derived from the rendered weeks, so the totals match the visible heatmap
+      const days = this.weeks.flat().filter((day) => day.count > 0);
 
       let total = 0;
       let busiestDay = null;
       for (const day of days) {
-        const count = this.activityData[day];
-        total += count;
-        if (!busiestDay || count > this.activityData[busiestDay]) busiestDay = day;
+        total += day.count;
+        if (!busiestDay || day.count > busiestDay.count) busiestDay = day;
       }
 
       return [
@@ -119,8 +117,8 @@ export default {
         { label: "Active days", value: days.length },
         {
           label: "Busiest day",
-          value: busiestDay ? this.activityData[busiestDay] : "–",
-          detail: busiestDay ? format(parseISO(busiestDay), "d MMM yyyy") : null,
+          value: busiestDay ? busiestDay.count : "–",
+          detail: busiestDay ? format(parseISO(busiestDay.date), "d MMM yyyy") : null,
         },
       ];
     },

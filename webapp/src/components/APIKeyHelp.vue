@@ -31,40 +31,55 @@
         <li>Automating workflows, e.g., syncing with other databases or running in CI.</li>
       </ul>
 
-      <ul class="nav nav-tabs mb-2">
-        <li v-for="tab in tabs" :key="tab.id" class="nav-item">
-          <a
+      <ul class="nav nav-tabs mb-2" role="tablist" aria-label="API key examples">
+        <li v-for="tab in tabs" :key="tab.id" class="nav-item" role="presentation">
+          <button
+            :id="`api-key-example-tab-${tab.id}`"
+            ref="tabButtons"
             class="nav-link"
             :class="{ active: activeTab === tab.id }"
-            href="#"
-            @click.prevent="activeTab = tab.id"
+            type="button"
+            role="tab"
+            :aria-selected="activeTab === tab.id"
+            aria-controls="api-key-example-panel"
+            :tabindex="activeTab === tab.id ? 0 : -1"
+            @click="activeTab = tab.id"
+            @keydown.left.prevent="moveTabFocus(-1)"
+            @keydown.right.prevent="moveTabFocus(1)"
           >
             {{ tab.label }}
-          </a>
+          </button>
         </li>
       </ul>
 
-      <p v-if="activeTab === 'python'">
-        The
-        <a href="https://github.com/datalab-org/datalab-api" target="_blank">datalab-api</a>
-        Python package (<code>pip install datalab-api</code>) reads your key from the
-        <code>DATALAB_API_KEY</code> environment variable. To list your samples:
-      </p>
-      <p v-else>
-        Pass the key in the <code>DATALAB-API-KEY</code> HTTP header with any HTTP client, e.g.,
-        <code>curl</code>. To list your samples:
-      </p>
+      <div
+        id="api-key-example-panel"
+        role="tabpanel"
+        :aria-labelledby="`api-key-example-tab-${activeTab}`"
+        tabindex="0"
+      >
+        <p v-if="activeTab === 'python'">
+          The
+          <a href="https://github.com/datalab-org/datalab-api" target="_blank">datalab-api</a>
+          Python package (<code>pip install datalab-api</code>) reads your key from the
+          <code>DATALAB_API_KEY</code> environment variable. To list your samples:
+        </p>
+        <p v-else>
+          Pass the key in the <code>DATALAB-API-KEY</code> HTTP header with any HTTP client, e.g.,
+          <code>curl</code>. To list your samples:
+        </p>
 
-      <div class="api-key-help-code-wrapper">
-        <pre class="api-key-help-code"><code>{{ currentExample }}</code></pre>
-        <button
-          class="btn btn-sm btn-outline-secondary api-key-help-copy"
-          type="button"
-          :title="copied ? 'Copied!' : 'Copy to clipboard'"
-          @click="copyExample"
-        >
-          <font-awesome-icon :icon="copied ? 'check' : 'copy'" />
-        </button>
+        <div class="api-key-help-code-wrapper">
+          <pre class="api-key-help-code"><code>{{ currentExample }}</code></pre>
+          <button
+            class="btn btn-sm btn-outline-secondary api-key-help-copy"
+            type="button"
+            :title="copied ? 'Copied!' : 'Copy to clipboard'"
+            @click="copyExample"
+          >
+            <font-awesome-icon :icon="copied ? 'check' : 'copy'" />
+          </button>
+        </div>
       </div>
 
       <p class="mt-2 mb-0">
@@ -119,6 +134,12 @@ curl -H "DATALAB-API-KEY: $DATALAB_API_KEY" \\
     },
   },
   methods: {
+    moveTabFocus(offset) {
+      const current = this.tabs.findIndex((tab) => tab.id === this.activeTab);
+      const index = (current + offset + this.tabs.length) % this.tabs.length;
+      this.activeTab = this.tabs[index].id;
+      this.$nextTick(() => this.$refs.tabButtons?.[index]?.focus());
+    },
     async copyExample() {
       await navigator.clipboard.writeText(this.currentExample);
       this.copied = true;
@@ -153,6 +174,10 @@ curl -H "DATALAB-API-KEY: $DATALAB_API_KEY" \\
 
 .api-key-help-card .nav-tabs {
   border-bottom-color: #ebe3d2;
+}
+
+.api-key-help-card .nav-tabs .nav-link {
+  background-color: transparent;
 }
 
 .api-key-help-card .nav-tabs .nav-link.active {
