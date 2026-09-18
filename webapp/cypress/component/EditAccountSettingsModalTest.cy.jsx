@@ -66,19 +66,18 @@ describe("EditAccountSettingsModal profile submission", () => {
     cy.wait("@saveUser").its("request.body").should("deep.equal", { display_name: "New Name" });
   });
 
-  it("does not send a request when nothing changed and the contact email is verified", () => {
+  it("cannot be saved when nothing changed and the contact email is verified", () => {
     mountModal(baseUser);
 
-    submit();
-
-    cy.get("@closed").should("have.been.calledWith", false);
-    cy.get("@saveUser.all").should("have.length", 0);
+    cy.get("input[type='submit']").should("be.disabled");
   });
 
   it("warns about and re-sends an unchanged, unverified contact email", () => {
     mountModal({ ...baseUser, contact_email: "pending@example.org" });
 
     cy.contains(".alert-warning", "Your contact email is not verified").should("exist");
+    // Saving is still allowed with no changes, so that the verification email can be re-sent
+    cy.get("input[type='submit']").should("not.be.disabled");
     submit();
 
     cy.wait("@saveUser")
@@ -135,9 +134,6 @@ describe("EditAccountSettingsModal profile submission", () => {
     cy.contains("button", "Cancel").click();
 
     cy.get("select#account-email").should("have.value", "verified@example.org");
-    submit();
-
-    cy.get("@closed").should("have.been.calledWith", false);
-    cy.get("@saveUser.all").should("have.length", 0);
+    cy.get("input[type='submit']").should("be.disabled");
   });
 });
