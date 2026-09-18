@@ -1,3 +1,4 @@
+<!-- This file was edited with the assistance of an AI model and requires human review from the contributor. -->
 <template>
   <router-view />
   <DialogContainer />
@@ -5,7 +6,12 @@
 
 <script>
 import DialogContainer from "@/components/DialogContainer.vue";
-import { getApiConfig, loadItemSchemas, getBlocksInfos } from "@/server_fetch_utils.js";
+import {
+  getApiConfig,
+  loadItemSchemas,
+  getBlocksInfos,
+  getStatsHistory,
+} from "@/server_fetch_utils.js";
 
 export default {
   components: {
@@ -17,6 +23,8 @@ export default {
     await loadItemSchemas();
     await getApiConfig();
     await getBlocksInfos();
+    // Warm the deployment stats in the background; failures are handled where they are shown
+    getStatsHistory().catch(() => {});
   },
 };
 </script>
