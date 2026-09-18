@@ -4,8 +4,9 @@ from pydantic import (
     model_validator,
 )
 
+from pydatalab.models.blocks import HasBlocks
 from pydatalab.models.entries import Entry
-from pydatalab.models.traits import HasBlocks, HasOwner
+from pydatalab.models.traits import HasOwner
 from pydatalab.models.utils import HumanReadableIdentifier
 
 

@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from pydatalab import __version__
+from pydatalab.blocks.store import load_blocks_obj
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
@@ -377,6 +378,8 @@ def create_eln_file(
         try:
             item_data = list(cursor)[0]
 
+            if item_data.get("blocks_obj"):
+                item_data["blocks_obj"] = load_blocks_obj(item_data)
             ItemModel = ITEM_MODELS[item_data["type"]]
             item_data = ItemModel(**item_data).model_dump()
 
@@ -419,6 +422,8 @@ def create_eln_file(
     _all_items = []
 
     for ind, item in enumerate(all_items):
+        if item.get("blocks_obj"):
+            item["blocks_obj"] = load_blocks_obj(item)
         ItemModel = ITEM_MODELS[item["type"]]
         _all_items.append(ItemModel(**item).model_dump())
 
