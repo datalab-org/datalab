@@ -228,6 +228,9 @@
                 </li>
               </ul>
               <div v-else class="text-muted mb-2">You have no API keys yet.</div>
+              <div class="small text-muted mb-2">
+                Keys are only shown once, when they are created.
+              </div>
 
               <div class="input-group new-key-input-group">
                 <input
@@ -276,12 +279,9 @@
           v-if="activeTab === 'profile'"
           type="submit"
           class="btn btn-info"
-          :disabled="
-            Boolean(displayNameValidationMessage) ||
-            Boolean(contactEmailValidationMessage) ||
-            (addingEmail && !user.contact_email)
-          "
-          value="Submit"
+          :disabled="submitDisabled"
+          :title="submitDisabled && !hasChanges ? 'No changes to save' : undefined"
+          value="Save"
         />
         <button type="button" class="btn btn-secondary" @click="resetForm">Close</button>
       </template>
@@ -391,6 +391,17 @@ export default {
     },
     emailVerificationEnabled() {
       return this.$store.state.serverInfo?.features?.auth_mechanisms?.email ?? false;
+    },
+    hasChanges() {
+      return ["display_name", "contact_email"].some(
+        (field) => (this.user[field] || null) !== (this.savedUser[field] || null),
+      );
+    },
+    submitDisabled() {
+      if (this.displayNameValidationMessage || this.contactEmailValidationMessage) return true;
+      if (this.addingEmail) return !this.user.contact_email;
+      // Saving an unchanged but unverified email is how a new verification email is requested
+      return !this.hasChanges && !(this.contactEmailUnverified && this.emailVerificationEnabled);
     },
     contactEmailUnverified() {
       const saved = this.savedUser.contact_email?.toLowerCase();
@@ -563,6 +574,10 @@ export default {
       if (this.addingEmail) this.cancelAddEmail();
       this.apiKeyDisplayed = false;
       this.apiKey = null;
+      // A generated key is only available once, so stop showing its (now empty) input
+      this.apiKeys.forEach((key) => {
+        key.show = false;
+      });
       this.newKeyName = "";
       this.newKeyNameError = false;
       this.activeTab = "profile";
