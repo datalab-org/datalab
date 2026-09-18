@@ -842,6 +842,10 @@ export async function updateBlockFromServer(item_id, block_id, block_data, event
   delete block_data.b64_encoded_image;
   delete block_data.computed;
   delete block_data.metadata;
+  // Derived from the metadata and larger than it: every source's value for every
+  // field. The server rebuilds it and refuses to load it, so sending it is waste.
+  delete block_data.metadata_fields;
+  delete block_data.metadata_source_labels;
 
   store.commit("setBlockUpdating", block_id);
   return fetch_post(`${API_URL}/update-block/`, {
