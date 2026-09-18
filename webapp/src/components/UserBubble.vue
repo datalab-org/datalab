@@ -6,6 +6,7 @@
         :href="href"
         :target="href ? '_blank' : undefined"
         :rel="href ? 'noopener' : undefined"
+        :aria-label="href ? linkLabel || creator.display_name : undefined"
         :class="{ 'avatar-link': href }"
       >
         <img
@@ -17,6 +18,7 @@
             '&s=' +
             size
           "
+          :alt="href ? '' : creator.display_name || ''"
           class="avatar"
           :width="size"
           :height="size"
@@ -48,6 +50,11 @@ export default {
       required: false,
     },
     href: {
+      type: String,
+      default: null,
+    },
+    // Accessible name for the link created by `href`; defaults to the creator's display name
+    linkLabel: {
       type: String,
       default: null,
     },

@@ -6,7 +6,12 @@
       <template #body>
         <div class="account-layout">
           <div class="account-sidebar">
-            <UserBubble :creator="user" :size="128" href="https://gravatar.com">
+            <UserBubble
+              :creator="user"
+              :size="128"
+              href="https://gravatar.com"
+              link-label="Manage your avatar on gravatar.com"
+            >
               <template #tooltip>
                 <template v-if="hasGravatar">Change your avatar at gravatar.com</template>
                 <template v-else>
@@ -28,21 +33,38 @@
             </div>
           </div>
 
-          <ul class="nav nav-tabs mb-3">
-            <li v-for="tab in tabs" :key="tab.id" class="nav-item">
-              <a
+          <ul class="nav nav-tabs mb-3" role="tablist" aria-label="Account settings sections">
+            <li v-for="tab in tabs" :key="tab.id" class="nav-item" role="presentation">
+              <button
+                :id="`account-tab-${tab.id}`"
+                ref="tabButtons"
                 class="nav-link"
                 :class="{ active: activeTab === tab.id }"
-                href="#"
-                @click.prevent="activeTab = tab.id"
+                type="button"
+                role="tab"
+                :aria-selected="activeTab === tab.id"
+                :aria-controls="`account-panel-${tab.id}`"
+                :tabindex="activeTab === tab.id ? 0 : -1"
+                @click="activeTab = tab.id"
+                @keydown.left.prevent="moveTabFocus(-1)"
+                @keydown.right.prevent="moveTabFocus(1)"
+                @keydown.home.prevent="moveTabFocus(0, true)"
+                @keydown.end.prevent="moveTabFocus(tabs.length - 1, true)"
               >
                 {{ tab.label }}
-              </a>
+              </button>
             </li>
           </ul>
 
           <div class="account-panes scroll-shadows">
-            <div v-show="activeTab === 'profile'" class="account-tab">
+            <div
+              v-show="activeTab === 'profile'"
+              id="account-panel-profile"
+              role="tabpanel"
+              aria-labelledby="account-tab-profile"
+              tabindex="0"
+              class="account-tab"
+            >
               <div class="form-row">
                 <div class="col profile-fields">
                   <div class="form-group">
@@ -176,7 +198,14 @@
               </div>
             </div>
 
-            <div v-show="activeTab === 'api-keys'" class="account-tab api-keys-tab">
+            <div
+              v-show="activeTab === 'api-keys'"
+              id="account-panel-api-keys"
+              role="tabpanel"
+              aria-labelledby="account-tab-api-keys"
+              tabindex="0"
+              class="account-tab api-keys-tab"
+            >
               <APIKeyHelp />
 
               <ul v-if="apiKeys.length" class="list-group mb-2 api-key-list scroll-shadows">
@@ -261,7 +290,14 @@
               </div>
             </div>
 
-            <div v-show="activeTab === 'activity'" class="account-tab account-activity">
+            <div
+              v-show="activeTab === 'activity'"
+              id="account-panel-activity"
+              role="tabpanel"
+              aria-labelledby="account-tab-activity"
+              tabindex="0"
+              class="account-tab account-activity"
+            >
               <UserActivityGraph
                 v-if="user && user.immutable_id"
                 :key="user.immutable_id"
@@ -556,6 +592,12 @@ export default {
         );
       }
     },
+    moveTabFocus(target, absolute = false) {
+      const current = this.tabs.findIndex((tab) => tab.id === this.activeTab);
+      const index = absolute ? target : (current + target + this.tabs.length) % this.tabs.length;
+      this.activeTab = this.tabs[index].id;
+      this.$nextTick(() => this.$refs.tabButtons?.[index]?.focus());
+    },
     selectContactEmail(value) {
       if (value === this.ADD_EMAIL_OPTION) {
         this.previousContactEmail = this.user.contact_email;
@@ -611,6 +653,7 @@ export default {
 .nav-tabs .nav-link {
   color: #0056b3;
   font-weight: 600;
+  background-color: transparent;
 }
 
 .nav-tabs .nav-link.active {
