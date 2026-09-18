@@ -157,7 +157,7 @@ You must somehow download the latest *datalab* changes to your server (ideally w
     you will need to prepare for the upgrade by running `mongodump` with the original database version
     and then `mongorestore` after upgrading.
 
-    If you are unsure, please ask for help on GitHub or Slack before attmepting this.
+    If you are unsure, please ask for help on GitHub or Slack before attempting this.
 
 ```shell
 cd datalab-deployment/datalab;
