@@ -1,3 +1,4 @@
+<!-- This file was edited with the assistance of an AI model and requires human review from the contributor. -->
 # Deploying *datalab* and server administration
 
 This document will describe the process of manually deploying a *datalab* instance with
@@ -195,6 +196,12 @@ If a future export is made and reimported, the old entries will be kept and upda
 
 If a two-way or realtime sync with ChemInventory is desired, this can be
 achieved with the [`datalab-cheminventory-plugin`](https://github.com/datalab-industries/datalab-cheminventory-plugin).
+
+### Usage statistics
+
+The About page of the web app shows usage statistics for the deployment (items, users, files, active users and blocks over time), served by the `/info/stats/history` endpoint.
+Monthly histograms are stored in the `deployment_stats` database collection and updated incrementally (at most every 6 hours) from the creation times embedded in each entry's ID; closed-off months are kept as a historical record, so deleting entries does not rewrite them.
+To rebuild the histograms from the current database contents, drop the `deployment_stats` collection (or call `pydatalab.deployment_stats.update_deployment_stats(db, full=True)`); it will be recomputed on the next request.
 
 ### Backups
 

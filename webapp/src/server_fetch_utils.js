@@ -1,3 +1,4 @@
+// This file was edited with the assistance of an AI model and requires human review from the contributor.
 // utility functions to deal with fetch server calls
 // all code using fetch should be collected into this file
 
@@ -337,18 +338,28 @@ export async function createNewCollection(
   });
 }
 
-export async function getStats() {
-  return fetch_get(`${API_URL}/info/stats`)
-    .then(function (response_json) {
-      return response_json.counts;
-    })
-    .catch((error) => {
-      if (error === "UNAUTHORIZED") {
-        return null;
-      } else {
+let statsHistoryPromise = null;
+
+export function getStatsHistory() {
+  // Fetched at most once per session; the server also caches and incrementally updates it
+  if (store.state.statsHistory) {
+    return Promise.resolve(store.state.statsHistory);
+  }
+  if (!statsHistoryPromise) {
+    statsHistoryPromise = fetch_get(`${API_URL}/info/stats/history`)
+      .then(function (response_json) {
+        store.commit("setStatsHistory", response_json.data);
+        return response_json.data;
+      })
+      .catch((error) => {
+        statsHistoryPromise = null;
+        if (error === "UNAUTHORIZED") {
+          return null;
+        }
         throw error;
-      }
-    });
+      });
+  }
+  return statsHistoryPromise;
 }
 
 export async function getInfo() {

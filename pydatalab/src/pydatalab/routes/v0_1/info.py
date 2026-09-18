@@ -1,3 +1,4 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 """This submodule defines introspective info endpoints of the API."""
 
 from datetime import datetime
@@ -18,6 +19,7 @@ from pydantic import (
 from pydatalab import __version__
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
+from pydatalab.deployment_stats import STATS_REFRESH_INTERVAL, get_stats_summary
 from pydatalab.feature_flags import FEATURE_FLAGS, FeatureFlags
 from pydatalab.models import ITEM_SCHEMAS, Person
 from pydatalab.mongo import flask_mongo
@@ -135,6 +137,24 @@ def get_stats():
         jsonify({"counts": {"users": user_count, "samples": sample_count, "cells": cell_count}}),
         200,
     )
+
+
+@INFO.route("/info/stats/history", methods=["GET"])
+@active_users_or_get_only
+def get_stats_history():
+    """Returns monthly histograms of new entries (items by type, users, files,
+    collections, active users and item saves) across the lifetime of the deployment,
+    alongside the current totals and a breakdown of block types in use.
+
+    The histograms are stored in the `deployment_stats` collection and incrementally
+    updated when stale; the response itself is cached in memory.
+
+    """
+    response = jsonify({"status": "success", "data": get_stats_summary(flask_mongo.db)})
+    response.headers["Cache-Control"] = (
+        f"private, max-age={int(STATS_REFRESH_INTERVAL.total_seconds())}"
+    )
+    return response, 200
 
 
 @INFO.route("/info/blocks", methods=["GET"])
