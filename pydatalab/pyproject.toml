@@ -1,3 +1,4 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 [project]
 name = "datalab-server"
 keywords = ["research data management", "materials", "chemistry"]
@@ -120,7 +121,10 @@ dev = [
     "pytest>=8.2,<10.0",
     "pytest-cov>=5,<8",
     "pytest-dependency ~= 0.6",
-    "pytest-memray ~= 1.8",
+    # memray has no Windows support at all (its build refuses with
+    # "memray does not support this platform (win32)"), which makes the whole
+    # dev group uninstallable there rather than just dropping the profiler.
+    "pytest-memray ~= 1.8 ; sys_platform != 'win32'",
     "pre-commit ~= 4.0",
     "mkdocs ~= 1.6",
     "mkdocs-material ~= 9.5",
@@ -152,6 +156,11 @@ datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-
 datalab-app-plugin-xps = { git = "https://github.com/datalab-industries/datalab-app-plugin-xps.git", rev = "v0.2.0" }
 
 [tool.pytest.ini_options]
+# registered here as well as by pytest-memray, so that the mark still
+# collects where memray is unavailable instead of tripping `filterwarnings = error`
+markers = [
+    "limit_memory: fail the test if it allocates more than the given amount (needs pytest-memray)",
+]
 filterwarnings = [
     "error",
     "ignore:.*Capacity columns are not equal, replacing with new capacity column calculated from current and time columns and renaming the old capacity column to Old Capacity:UserWarning",
