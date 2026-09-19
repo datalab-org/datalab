@@ -30,6 +30,7 @@ def test_magic_link_account_creation(unauthenticated_client, app, database):
 
     doc = database.magic_links.find_one()
     assert "jwt" in doc
+    assert doc["used_at"] is None
 
     with app.extensions["mail"].record_messages() as outbox:
         response = unauthenticated_client.get(f"/login/email?token={doc['jwt']}")
@@ -38,6 +39,38 @@ def test_magic_link_account_creation(unauthenticated_client, app, database):
         assert new_user
         assert new_user["account_status"] == "unverified"
         assert len(outbox) == 1  # Should be a notification to admins
+
+    used_doc = database.magic_links.find_one({"jwt": doc["jwt"]})
+    assert used_doc["used_at"] is not None
+    response = unauthenticated_client.get(f"/login/email?token={doc['jwt']}")
+    assert response.status_code == 500
+    assert "Token has already been used, please request a new one." in response.json["message"]
+
+
+def test_magic_link_legacy_document_without_used_at(unauthenticated_client, app, database):
+    with app.extensions["mail"].record_messages() as outbox:
+        response = unauthenticated_client.post(
+            "/login/magic-link",
+            json={"email": "test@ml-evs.science", "referrer": "datalab.example.org"},
+        )
+        assert response.status_code == 200
+        assert len(outbox) == 1
+
+    legacy_doc = database.magic_links.find_one()
+    database.magic_links.update_one({"_id": legacy_doc["_id"]}, {"$unset": {"used_at": ""}})
+
+    legacy_doc = database.magic_links.find_one({"_id": legacy_doc["_id"]})
+    assert "used_at" not in legacy_doc
+
+    response = unauthenticated_client.get(f"/login/email?token={legacy_doc['jwt']}")
+    assert response.status_code == 307
+
+    updated_doc = database.magic_links.find_one({"_id": legacy_doc["_id"]})
+    assert updated_doc["used_at"] is not None
+
+    response = unauthenticated_client.get(f"/login/email?token={legacy_doc['jwt']}")
+    assert response.status_code == 500
+    assert "Token has already been used, please request a new one." in response.json["message"]
 
 
 def test_magic_links_expected_failures(unauthenticated_client, app):

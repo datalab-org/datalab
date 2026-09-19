@@ -57,6 +57,7 @@ If left unconfigured, then the corresponding registration mechanism will not be 
 To support sign-in via email magic-links, you must currently provide additional configuration for authorized SMTP server.
 The SMTP server must be configured via the settings [`EMAIL_AUTH_SMTP_SETTINGS`][pydatalab.config.ServerConfig.EMAIL_AUTH_SMTP_SETTINGS], with expected values `MAIL_SERVER`, `MAIL_USER`, `MAIL_DEFAULT_SENDER`, `MAIL_PORT` and `MAIL_USE_TLS`, following the environment variables described in the [Flask-Mail documentation](https://flask-mail.readthedocs.io/en/latest/#configuring-flask-mail).
 The `MAIL_PASSWORD` setting should then be provided via a `.env` file.
+Magic links expire after one hour and are marked as used after their first use.
 
 Third-party options with a free tier include [resend](https://resend.com/), which can be configured to use an appropriate API key, after verifying ownership of the `MAIL_DEFAULT_SENDER` address via DNS (see [resend](https://resend.com/docs/dashboard/domains/introduction) for an example configuration).
 
