@@ -52,7 +52,7 @@
             <label for="startmat-location">Location</label>
             <LocationInput
               v-model="Location"
-              :suggestions="uniqueLocations"
+              :suggestions="$store.getters.getUniqueLocations"
               :readonly="!isEditable"
               input-id="startmat-location"
             />
@@ -129,7 +129,7 @@ import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
 import LocationInput from "@/components/LocationInput";
 
 import AutoComplete from "primevue/autocomplete";
-import { getStartingMaterialList, getEquipmentList, getLocations } from "@/server_fetch_utils.js";
+import { getStartingMaterialList, getLocations } from "@/server_fetch_utils.js";
 import { EDITABLE_INVENTORY } from "@/resources.js";
 
 export default {
@@ -196,21 +196,13 @@ export default {
         ),
       ].sort();
     },
-    uniqueLocations() {
-      return [...(this.$store.state.locations_list?.flat_locations || [])].sort();
-    },
   },
   created() {
     this.isEditable = EDITABLE_INVENTORY;
     if (this.$store.state.starting_material_list === null) {
       getStartingMaterialList();
     }
-    if (this.$store.state.equipment_list === null) {
-      getEquipmentList();
-    }
-    if (this.$store.state.locations_list === null) {
-      getLocations();
-    }
+    getLocations();
   },
   methods: {
     filterSuppliers(event) {

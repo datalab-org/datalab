@@ -48,7 +48,7 @@
             <label for="cell-location">Location</label>
             <LocationInput
               v-model="Location"
-              :suggestions="uniqueLocations"
+              :suggestions="$store.getters.getUniqueLocations"
               input-id="cell-location"
             />
           </div>
@@ -195,14 +195,9 @@ export default {
     possibleItemStatuses() {
       return this.schema?.attributes?.schema?.["$defs"]?.CellStatus?.enum;
     },
-    uniqueLocations() {
-      return [...(this.$store.state.locations_list?.flat_locations || [])].sort();
-    },
   },
   created() {
-    if (this.$store.state.locations_list === null) {
-      getLocations();
-    }
+    getLocations();
   },
 };
 </script>

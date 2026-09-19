@@ -49,7 +49,7 @@
             <label for="samp-location">Location</label>
             <LocationInput
               v-model="Location"
-              :suggestions="uniqueLocations"
+              :suggestions="$store.getters.getUniqueLocations"
               input-id="samp-location"
             />
           </div>
@@ -142,14 +142,9 @@ export default {
     possibleItemStatuses() {
       return this.schema?.attributes?.schema?.["$defs"]?.ItemStatus?.enum;
     },
-    uniqueLocations() {
-      return [...(this.$store.state.locations_list?.flat_locations || [])].sort();
-    },
   },
   created() {
-    if (this.$store.state.locations_list === null) {
-      getLocations();
-    }
+    getLocations();
   },
 };
 </script>

@@ -473,6 +473,10 @@ export default createStore({
       const cacheKey = userId || "combined";
       return state.userActivityCache[cacheKey];
     },
+    getUniqueLocations(state) {
+      // sorted flat locations from GET /locations, used to drive LocationInput suggestions
+      return [...(state.locations_list?.flat_locations || [])].sort();
+    },
     isAdminSuperUserModeActive() {
       // Super-user mode is only active if: flag is set, user is logged in, and user is an admin
       return sessionStorage.getItem("adminSuperUserMode");

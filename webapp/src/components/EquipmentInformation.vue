@@ -53,7 +53,7 @@
         <label class="mr-2">Location</label>
         <LocationInput
           v-model="Location"
-          :suggestions="uniqueLocations"
+          :suggestions="$store.getters.getUniqueLocations"
           input-id="equip-location"
         />
       </div>
@@ -81,7 +81,7 @@
 
 <script>
 import AutoComplete from "primevue/autocomplete";
-import { getStartingMaterialList, getEquipmentList, getLocations } from "@/server_fetch_utils.js";
+import { getLocations } from "@/server_fetch_utils.js";
 import { createComputedSetterForItemField } from "@/field_utils.js";
 import LocationInput from "@/components/LocationInput";
 import TiptapInline from "@/components/TiptapInline";
@@ -137,20 +137,9 @@ export default {
     possibleItemStatuses() {
       return this.schema?.attributes?.schema?.["$defs"]?.EquipmentStatus?.enum;
     },
-    uniqueLocations() {
-      return [...(this.$store.state.locations_list?.flat_locations || [])].sort();
-    },
   },
   created() {
-    if (this.$store.state.starting_material_list === null) {
-      getStartingMaterialList();
-    }
-    if (this.$store.state.equipment_list === null) {
-      getEquipmentList();
-    }
-    if (this.$store.state.locations_list === null) {
-      getLocations();
-    }
+    getLocations();
   },
   methods: {},
 };

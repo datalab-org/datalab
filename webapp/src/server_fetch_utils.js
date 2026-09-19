@@ -541,7 +541,12 @@ export function getEquipmentList() {
     });
 }
 
-export function getLocations() {
+export function getLocations({ force = false } = {}) {
+  // Locations are shared across every item type, so only fetch them once per
+  // session unless a caller explicitly asks for a refresh.
+  if (!force && store.state.locations_list !== null) {
+    return Promise.resolve();
+  }
   return fetch_get(`${API_URL}/locations`)
     .then(function (response_json) {
       store.commit("setLocationsList", response_json.data);
