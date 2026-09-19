@@ -5,6 +5,8 @@
       :id="inputId || undefined"
       class="form-control location-display"
       :class="{ 'location-display--readonly': readonly }"
+      :role="readonly ? undefined : 'button'"
+      :aria-labelledby="labelledBy || undefined"
       :tabindex="readonly ? -1 : 0"
       @click="startEditing"
       @keydown.enter.prevent="startEditing"
@@ -12,13 +14,19 @@
       <span v-if="modelValue">{{ modelValue }}</span>
       <span v-else class="text-muted placeholder-text">Add location…</span>
     </div>
-    <div v-else class="location-inline d-flex align-items-center flex-wrap">
+    <div
+      v-else
+      class="location-inline d-flex align-items-center flex-wrap"
+      role="group"
+      :aria-labelledby="labelledBy || undefined"
+    >
       <template v-for="(segment, i) in editableSegments" :key="i">
         <font-awesome-icon v-if="i > 0" icon="chevron-right" class="location-chevron" />
         <div class="location-segment-wrap">
           <AutoComplete
             :model-value="segment"
             :suggestions="filteredSuggestions[i] || []"
+            :aria-label="`Location level ${i + 1}`"
             input-class="form-control location-segment-input"
             @complete="(e) => onComplete(e, i)"
             @update:model-value="(val) => updateSegment(i, val)"
@@ -27,13 +35,16 @@
             v-if="editableSegments.length > 1"
             type="button"
             class="remove-btn"
+            :aria-label="`Remove location level ${i + 1}`"
             @click="removeSegment(i)"
           >
             <font-awesome-icon icon="times" />
           </button>
         </div>
       </template>
-      <button type="button" class="add-btn" @click="addSegment">+</button>
+      <button type="button" class="add-btn" aria-label="Add location level" @click="addSegment">
+        +
+      </button>
     </div>
   </div>
 </template>
@@ -45,9 +56,13 @@ export default {
   components: { AutoComplete },
   props: {
     modelValue: { type: String, default: "" },
-    suggestions: { type: Array, default: () => [] },
+    // The `nested_locations` tree from GET /locations: each key is a location
+    // segment mapping to an object of its child segments.
+    hierarchy: { type: Object, default: () => ({}) },
     readonly: { type: Boolean, default: false },
     inputId: { type: String, default: "" },
+    // id of the external <label> naming this control
+    labelledBy: { type: String, default: "" },
   },
   emits: ["update:modelValue"],
   data() {
@@ -105,21 +120,15 @@ export default {
       this.$emit("update:modelValue", this.buildValue(this.editableSegments));
     },
     getSegmentOptions(level) {
-      const parentPath = this.editableSegments.slice(0, level).filter(Boolean).join(" > ");
-      return [
-        ...new Set(
-          this.suggestions
-            .filter((loc) => {
-              if (level === 0) return true;
-              return loc.startsWith(parentPath + " > ");
-            })
-            .map((loc) => {
-              const parts = loc.split(" > ");
-              return parts[level]?.trim() || null;
-            })
-            .filter(Boolean),
-        ),
-      ].sort();
+      // Walk down the hierarchy along the segments already filled in, so each
+      // level only ever offers the children of the path above it.
+      let node = this.hierarchy;
+      for (const segment of this.editableSegments.slice(0, level)) {
+        const key = (segment || "").trim();
+        if (!key || !node[key]) return [];
+        node = node[key];
+      }
+      return Object.keys(node).sort();
     },
     onComplete(event, level) {
       const query = event.query.toLowerCase();
