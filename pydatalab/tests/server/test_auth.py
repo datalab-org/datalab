@@ -1,9 +1,69 @@
 import datetime
 from unittest.mock import MagicMock
 
+import pytest
 from bson import ObjectId
 
 from pydatalab.routes.v0_1.auth import _check_email_domain
+
+
+@pytest.fixture()
+def unsafe_testing_passwordless_app(app_config):
+    from pydatalab.config import CONFIG
+    from pydatalab.feature_flags import FEATURE_FLAGS
+    from pydatalab.main import create_app
+    from pydatalab.routes.v0_1.info import _get_deployment_metadata_once
+
+    old_config_value = CONFIG.ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN
+    old_feature_value = FEATURE_FLAGS.auth_mechanisms.unsafe_testing_passwordless_login
+    app = create_app(
+        {**app_config, "ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN": True},
+        env_file=False,
+    )
+    _get_deployment_metadata_once.cache_clear()
+    try:
+        yield app
+    finally:
+        CONFIG.ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN = old_config_value
+        FEATURE_FLAGS.auth_mechanisms.unsafe_testing_passwordless_login = old_feature_value
+        _get_deployment_metadata_once.cache_clear()
+
+
+@pytest.fixture()
+def unsafe_testing_passwordless_client(unsafe_testing_passwordless_app):
+    with unsafe_testing_passwordless_app.test_client() as client:
+        yield client
+
+
+@pytest.fixture()
+def testing_passwordless_users(
+    database,
+    user_id,
+    unverified_user_id,
+    deactivated_user_id,
+):
+    configured_users = (
+        (user_id, "active-user"),
+        (unverified_user_id, "unverified-user"),
+        (deactivated_user_id, "deactivated-user"),
+    )
+    for configured_user_id, username in configured_users:
+        database.users.update_one(
+            {"_id": configured_user_id},
+            {
+                "$set": {
+                    "identities": [
+                        {
+                            "identity_type": "testing_passwordless",
+                            "identifier": username,
+                            "name": username,
+                            "verified": False,
+                        }
+                    ]
+                },
+            },
+        )
+    yield
 
 
 def test_allow_emails():
@@ -91,6 +151,71 @@ def test_magic_link_auth_can_be_disabled(unauthenticated_client, app, database, 
             == "Magic-link authentication is disabled for this datalab instance."
         )
         assert len(outbox) == 0
+
+
+def test_testing_passwordless_routes_are_absent_when_disabled(unauthenticated_client):
+    assert unauthenticated_client.get("/login/testing-passwordless/users").status_code == 404
+    assert (
+        unauthenticated_client.post(
+            "/login/testing-passwordless", json={"username": "active-user"}
+        ).status_code
+        == 404
+    )
+
+
+def test_testing_passwordless_user_list_is_restricted(
+    unsafe_testing_passwordless_client,
+    testing_passwordless_users,
+):
+    info = unsafe_testing_passwordless_client.get("/info")
+    assert (
+        info.json["data"]["attributes"]["features"]["auth_mechanisms"][
+            "unsafe_testing_passwordless_login"
+        ]
+        is True
+    )
+
+    response = unsafe_testing_passwordless_client.get("/login/testing-passwordless/users")
+    assert response.status_code == 200
+    users = response.json["users"]
+    assert [user["username"] for user in users] == ["active-user"]
+    assert users[0]["account_status"] == "active"
+    assert users[0]["role"] == "user"
+
+
+def test_testing_passwordless_login_preserves_user_access(
+    unsafe_testing_passwordless_client,
+    testing_passwordless_users,
+    user_id,
+):
+    response = unsafe_testing_passwordless_client.post(
+        "/login/testing-passwordless", json={"username": "active-user"}
+    )
+    assert response.status_code == 200
+
+    current_user = unsafe_testing_passwordless_client.get("/get-current-user/")
+    assert current_user.status_code == 200
+    assert current_user.json["immutable_id"] == str(user_id)
+    assert current_user.json["role"] == "user"
+    assert current_user.json["groups"]
+
+
+def test_testing_passwordless_login_rejects_unavailable_users(
+    unsafe_testing_passwordless_client,
+    testing_passwordless_users,
+):
+    unknown = unsafe_testing_passwordless_client.post(
+        "/login/testing-passwordless", json={"username": "unknown-user"}
+    )
+    deactivated = unsafe_testing_passwordless_client.post(
+        "/login/testing-passwordless", json={"username": "deactivated-user"}
+    )
+    unverified = unsafe_testing_passwordless_client.post(
+        "/login/testing-passwordless", json={"username": "unverified-user"}
+    )
+    assert unknown.status_code == 401
+    assert deactivated.status_code == 401
+    assert unverified.status_code == 401
 
 
 # ──────────────────────────────────────────────
