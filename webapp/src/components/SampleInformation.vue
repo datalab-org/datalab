@@ -46,11 +46,12 @@
         </div>
         <div class="form-row">
           <div class="form-group col-lg-12 col-sm-12">
-            <label for="samp-location">Location</label>
+            <label id="samp-location-label">Location</label>
             <LocationInput
               v-model="Location"
-              :suggestions="$store.getters.getUniqueLocations"
+              :hierarchy="$store.getters.getLocationHierarchy"
               input-id="samp-location"
+              labelled-by="samp-location-label"
             />
           </div>
         </div>

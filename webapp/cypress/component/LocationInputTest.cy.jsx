@@ -6,16 +6,18 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
 library.add(faChevronRight, faTimes);
 
-// The suggestions this component receives are the `flat_locations` returned by
-// `GET /locations` (via the `locations_list` Vuex state), i.e. a flat list of
-// ' > '-delimited paths.
-const SUGGESTIONS = [
-  "Lab A > Fridge 1 > Shelf 2",
-  "Lab A > Fridge 1 > Shelf 3",
-  "Lab A > Glovebox",
-  "Lab B > Fridge 1",
-  "Store room",
-];
+// The tree this component receives is the `nested_locations` returned by
+// `GET /locations` (via the `locations_list` Vuex state), i.e. the flat
+// locations 'Lab A > Fridge 1 > Shelf 2', 'Lab A > Fridge 1 > Shelf 3',
+// 'Lab A > Glovebox', 'Lab B > Fridge 1' and 'Store room'.
+const HIERARCHY = {
+  "Lab A": {
+    "Fridge 1": { "Shelf 2": {}, "Shelf 3": {} },
+    Glovebox: {},
+  },
+  "Lab B": { "Fridge 1": {} },
+  "Store room": {},
+};
 
 function mountLocationInput(props = {}) {
   return cy.mount(LocationInput, {
@@ -140,7 +142,7 @@ describe("LocationInput segment editing", () => {
 
 describe("LocationInput suggestions", () => {
   beforeEach(() => {
-    mountLocationInput({ modelValue: "", suggestions: SUGGESTIONS });
+    mountLocationInput({ modelValue: "", hierarchy: HIERARCHY });
     cy.get(".location-display").click();
   });
 
@@ -169,7 +171,7 @@ describe("LocationInput suggestions", () => {
     cy.get(".p-autocomplete-option").eq(0).should("have.text", "Fridge 1");
   });
 
-  it("deduplicates repeated segment names across sibling paths", () => {
+  it("offers every child of the chosen parent path", () => {
     cy.get(".location-segment-input").eq(0).type("Lab A");
     cy.get(".p-autocomplete-option").first().click();
     cy.get(".add-btn").click();
@@ -188,5 +190,45 @@ describe("LocationInput suggestions", () => {
     cy.get(".add-btn").click();
     cy.get(".location-segment-input").eq(1).type("{selectall}{backspace}a");
     cy.get(".p-autocomplete-option").should("not.exist");
+  });
+
+  it("offers nothing below a segment that is not in the hierarchy", () => {
+    cy.get(".location-segment-input").eq(0).type("Somewhere new");
+    cy.get(".add-btn").click();
+    cy.get(".location-segment-input").eq(1).type("{selectall}{backspace}a");
+    cy.get(".p-autocomplete-option").should("not.exist");
+  });
+});
+
+describe("LocationInput accessibility", () => {
+  it("names the collapsed control from the external label", () => {
+    mountLocationInput({ modelValue: "Lab A", labelledBy: "samp-location-label" });
+    cy.get(".location-display")
+      .should("have.attr", "role", "button")
+      .and("have.attr", "aria-labelledby", "samp-location-label");
+  });
+
+  it("does not present a readonly control as a button", () => {
+    mountLocationInput({ modelValue: "Lab A", readonly: true });
+    cy.get(".location-display").should("not.have.attr", "role");
+  });
+
+  it("names the editing row and each of its segments", () => {
+    mountLocationInput({ modelValue: "Lab A > Glovebox", labelledBy: "samp-location-label" });
+    cy.get(".location-display").click();
+
+    cy.get(".location-inline")
+      .should("have.attr", "role", "group")
+      .and("have.attr", "aria-labelledby", "samp-location-label");
+    cy.get(".location-segment-input").eq(0).should("have.attr", "aria-label", "Location level 1");
+    cy.get(".location-segment-input").eq(1).should("have.attr", "aria-label", "Location level 2");
+  });
+
+  it("gives the icon-only buttons accessible names", () => {
+    mountLocationInput({ modelValue: "Lab A > Glovebox" });
+    cy.get(".location-display").click();
+
+    cy.get(".remove-btn").eq(1).should("have.attr", "aria-label", "Remove location level 2");
+    cy.get(".add-btn").should("have.attr", "aria-label", "Add location level");
   });
 });

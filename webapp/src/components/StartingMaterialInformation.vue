@@ -49,12 +49,13 @@
 
         <div class="form-row">
           <div class="form-group col-lg-12 col-sm-12">
-            <label for="startmat-location">Location</label>
+            <label id="startmat-location-label">Location</label>
             <LocationInput
               v-model="Location"
-              :suggestions="$store.getters.getUniqueLocations"
+              :hierarchy="$store.getters.getLocationHierarchy"
               :readonly="!isEditable"
               input-id="startmat-location"
+              labelled-by="startmat-location-label"
             />
           </div>
         </div>

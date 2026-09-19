@@ -1024,6 +1024,11 @@ export function saveItem(item_id) {
         store.state.all_item_data[item_id].display_order.forEach((block_id) => {
           store.commit("setBlockSaved", { block_id: block_id, isSaved: true });
         });
+        // A location typed here is not in the cached suggestions until refetched,
+        // so refresh them (only) when this save introduced a new one.
+        if (item_data.location && !store.getters.getUniqueLocations.includes(item_data.location)) {
+          getLocations({ force: true });
+        }
       }
     })
     .catch(function (error) {

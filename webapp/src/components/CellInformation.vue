@@ -45,11 +45,12 @@
         </div>
         <div class="form-row">
           <div class="form-group col-lg-12 col-sm-12">
-            <label for="cell-location">Location</label>
+            <label id="cell-location-label">Location</label>
             <LocationInput
               v-model="Location"
-              :suggestions="$store.getters.getUniqueLocations"
+              :hierarchy="$store.getters.getLocationHierarchy"
               input-id="cell-location"
+              labelled-by="cell-location-label"
             />
           </div>
         </div>

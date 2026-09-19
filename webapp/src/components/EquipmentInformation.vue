@@ -50,11 +50,12 @@
         <input id="equip-manufacturer" v-model="Manufacturer" class="form-control" />
       </div>
       <div class="form-group col-md-6">
-        <label class="mr-2">Location</label>
+        <label id="equip-location-label" class="mr-2">Location</label>
         <LocationInput
           v-model="Location"
-          :suggestions="$store.getters.getUniqueLocations"
+          :hierarchy="$store.getters.getLocationHierarchy"
           input-id="equip-location"
+          labelled-by="equip-location-label"
         />
       </div>
     </div>
