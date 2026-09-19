@@ -553,7 +553,9 @@ export function getLocations({ force = false } = {}) {
     })
     .catch((error) => {
       if (error === "UNAUTHORIZED") {
-        store.commit("setLocationsList", null);
+        // Commit the empty shape rather than null: the guard above treats null
+        // as "not yet fetched", so nulling it here would refetch on every mount.
+        store.commit("setLocationsList", { flat_locations: [], nested_locations: {} });
       } else {
         throw error;
       }
