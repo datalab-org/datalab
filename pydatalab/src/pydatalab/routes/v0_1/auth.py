@@ -669,7 +669,7 @@ def _generate_and_store_token(email: str, intent: str = "register") -> str:
         algorithm="HS256",
     )
 
-    flask_mongo.db.magic_links.insert_one({"jwt": token})
+    flask_mongo.db.magic_links.insert_one({"jwt": token, "used_at": None})
 
     return token
 
@@ -819,7 +819,15 @@ def email_logged_in():
     if not token:
         raise ValueError("Token not provided")
 
-    if not flask_mongo.db.magic_links.find_one({"jwt": token}):
+    now = datetime.datetime.now(tz=datetime.timezone.utc)
+
+    magic_link = flask_mongo.db.magic_links.find_one_and_update(
+        {"jwt": token, "$or": [{"used_at": None}, {"used_at": {"$exists": False}}]},
+        {"$set": {"used_at": now}},
+    )
+    if not magic_link:
+        if flask_mongo.db.magic_links.find_one({"jwt": token}):
+            raise ValueError("Token has already been used, please request a new one.")
         raise ValueError("Token not found, please request a new one.")
 
     data = jwt.decode(
@@ -828,9 +836,7 @@ def email_logged_in():
         algorithms=["HS256"],
     )
 
-    if datetime.datetime.fromtimestamp(
-        data["exp"], tz=datetime.timezone.utc
-    ) < datetime.datetime.now(tz=datetime.timezone.utc):
+    if datetime.datetime.fromtimestamp(data["exp"], tz=datetime.timezone.utc) < now:
         raise ValueError("Token expired, please request a new one.")
 
     email = data["email"]
