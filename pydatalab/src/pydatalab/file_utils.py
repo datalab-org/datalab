@@ -1,3 +1,4 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 import datetime
 import hashlib
 import os
@@ -32,17 +33,18 @@ class NotModified(RuntimeError):
 
 
 def get_space_available_bytes() -> int:
-    """For the configured file location, return the number of available bytes, as
-    ascertained from the filesystem blocksize and available block count (via Unix-specific
-    statvfs system call).
+    """For the configured file location, return the number of bytes available to
+    this user.
+
+    Uses `shutil.disk_usage`, which is available on every platform; the previous
+    `os.statvfs` call exists only on Unix, so every upload raised
+    `AttributeError: module 'os' has no attribute 'statvfs'` on Windows.
 
     """
     try:
-        stats = os.statvfs(CONFIG.FILE_DIRECTORY)
+        return shutil.disk_usage(CONFIG.FILE_DIRECTORY).free
     except FileNotFoundError:
         raise RuntimeError(f"{CONFIG.FILE_DIRECTORY=} was not safely initialised.")
-
-    return stats.f_bsize * stats.f_bavail
 
 
 def compute_file_hashes_and_sizes(
