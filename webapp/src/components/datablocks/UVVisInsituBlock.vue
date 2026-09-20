@@ -178,7 +178,7 @@ export default {
           ...this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
         };
 
-        updateBlockFromServer(this.item_id, this.block_id, blockToUpdate, { trigger_async: true })
+        updateBlockFromServer(this.item_id, this.block_id, blockToUpdate)
           .then(() => {
             this.isUpdating = false;
           })
@@ -208,7 +208,7 @@ export default {
           ...this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
         };
 
-        updateBlockFromServer(this.item_id, this.block_id, blockToUpdate, { trigger_async: true })
+        updateBlockFromServer(this.item_id, this.block_id, blockToUpdate)
           .then(() => {
             this.isUpdating = false;
           })
@@ -234,7 +234,7 @@ export default {
           ...this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
         };
 
-        updateBlockFromServer(this.item_id, this.block_id, blockToUpdate, { trigger_async: true })
+        updateBlockFromServer(this.item_id, this.block_id, blockToUpdate)
           .then(() => {
             this.isUpdating = false;
           })
