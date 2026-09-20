@@ -44,6 +44,17 @@
           </div>
         </div>
         <div class="form-row">
+          <div class="form-group col-lg-12 col-sm-12">
+            <label id="cell-location-label">Location</label>
+            <LocationInput
+              v-model="Location"
+              :hierarchy="$store.getters.getLocationHierarchy"
+              input-id="cell-location"
+              labelled-by="cell-location-label"
+            />
+          </div>
+        </div>
+        <div class="form-row">
           <div class="form-group col-sm-4 pr-2">
             <label for="cell-format-dropdown">Cell format</label>
             <select id="cell-format-dropdown" v-model="CellFormat" class="form-control">
@@ -170,7 +181,9 @@ import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionForm
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
 import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
+import LocationInput from "@/components/LocationInput";
 import { cellFormats } from "@/resources.js";
+import { getLocations } from "@/server_fetch_utils.js";
 
 export default {
   components: {
@@ -184,6 +197,7 @@ export default {
     ToggleableCreatorsFormGroup,
     ToggleableItemStatusFormGroup,
     ToggleableGroupsFormGroup,
+    LocationInput,
   },
   props: {
     item_id: {
@@ -222,6 +236,7 @@ export default {
     TheoreticalCapacity: createComputedSetterForItemField("theoretical_capacity"),
     NominalCapacityUnit: createComputedSetterForItemField("nominal_capacity_unit"),
     NominalCapacityManual: createComputedSetterForItemField("nominal_capacity_manual"),
+    Location: createComputedSetterForItemField("location"),
     schema() {
       return this.$store.state.schemas[this.item?.type];
     },
@@ -301,6 +316,9 @@ export default {
         },
       });
     },
+  },
+  created() {
+    getLocations();
   },
 };
 </script>
