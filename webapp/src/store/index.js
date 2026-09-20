@@ -17,6 +17,7 @@ export default createStore({
     sample_list: null,
     equipment_list: null,
     starting_material_list: null,
+    locations_list: null,
     collection_list: null,
     groups_list: null,
     saved_status_items: {},
@@ -116,6 +117,10 @@ export default createStore({
     setEquipmentList(state, equipmentSummaries) {
       // equipmentSummary is an array of json objects summarizing the available samples
       state.equipment_list = equipmentSummaries || [];
+    },
+    setLocationsList(state, locations) {
+      // locations is { flat_locations: [...], nested_locations: {...} } from GET /locations
+      state.locations_list = locations || { flat_locations: [], nested_locations: {} };
     },
     appendToSampleList(state, sampleSummary) {
       // sampleSummary is a json object summarizing the new sample
@@ -467,6 +472,14 @@ export default createStore({
       // userId can be a user ID string or null/undefined for combined activity
       const cacheKey = userId || "combined";
       return state.userActivityCache[cacheKey];
+    },
+    getUniqueLocations(state) {
+      // sorted flat locations from GET /locations
+      return [...(state.locations_list?.flat_locations || [])].sort();
+    },
+    getLocationHierarchy(state) {
+      // nested location tree from GET /locations, used to drive LocationInput suggestions
+      return state.locations_list?.nested_locations || {};
     },
     isAdminSuperUserModeActive() {
       // Super-user mode is only active if: flag is set, user is logged in, and user is an admin
