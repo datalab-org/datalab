@@ -29,6 +29,12 @@ function mountLocationInput(props = {}) {
   });
 }
 
+function selectOption(text) {
+  // the option list is shown on focus and re-filtered as you type, so match on
+  // the text rather than a position that a pending re-render could shift
+  cy.contains(".p-autocomplete-option", new RegExp(`^${text}$`)).click();
+}
+
 describe("LocationInput display mode", () => {
   it("shows a placeholder when no location is set", () => {
     mountLocationInput({ modelValue: "" });
@@ -146,24 +152,51 @@ describe("LocationInput suggestions", () => {
     cy.get(".location-display").click();
   });
 
-  it("suggests the distinct top-level locations for the first segment", () => {
-    cy.get(".location-segment-input").eq(0).type("La");
-    cy.get(".p-autocomplete-option").should("have.length", 2);
+  it("shows the top-level options on focus, before anything is typed", () => {
+    cy.get(".location-segment-input").eq(0).should("have.focus").and("have.value", "");
+    cy.get(".p-autocomplete-option").should("have.length", 3);
     cy.get(".p-autocomplete-option").eq(0).should("have.text", "Lab A");
     cy.get(".p-autocomplete-option").eq(1).should("have.text", "Lab B");
+    cy.get(".p-autocomplete-option").eq(2).should("have.text", "Store room");
   });
 
-  it("filters suggestions by the typed query", () => {
+  it("filters the options by the typed query", () => {
     cy.get(".location-segment-input").eq(0).type("store");
     cy.get(".p-autocomplete-option").should("have.length", 1);
     cy.get(".p-autocomplete-option").eq(0).should("have.text", "Store room");
   });
 
-  it("restricts later segments to children of the chosen parent", () => {
-    cy.get(".location-segment-input").eq(0).type("Lab A");
-    cy.get(".p-autocomplete-option").first().click();
+  it("opens the next segment with its options when an option is selected", () => {
+    selectOption("Lab A");
 
-    cy.get(".add-btn").click();
+    // no '+' click needed: the next level opens itself
+    cy.get(".location-segment-input").should("have.length", 2);
+    cy.get(".location-segment-input").eq(1).should("have.focus").and("have.value", "");
+    cy.get(".p-autocomplete-option").should("have.length", 2);
+    cy.get(".p-autocomplete-option").eq(0).should("have.text", "Fridge 1");
+    cy.get(".p-autocomplete-option").eq(1).should("have.text", "Glovebox");
+  });
+
+  it("steps down level by level as options are selected", () => {
+    selectOption("Lab A");
+    selectOption("Fridge 1");
+
+    cy.get(".location-segment-input").should("have.length", 3);
+    cy.get(".location-segment-input").eq(2).should("have.focus");
+    cy.get(".p-autocomplete-option").should("have.length", 2);
+    cy.get(".p-autocomplete-option").eq(0).should("have.text", "Shelf 2");
+    cy.get(".p-autocomplete-option").eq(1).should("have.text", "Shelf 3");
+  });
+
+  it("does not open a further segment when a leaf is selected", () => {
+    selectOption("Store room");
+
+    cy.get(".location-segment-input").should("have.length", 1).and("have.value", "Store room");
+    cy.get(".location-inline").should("exist");
+  });
+
+  it("restricts later segments to children of the chosen parent", () => {
+    selectOption("Lab A");
     cy.get(".location-segment-input").eq(1).type("{selectall}{backspace}F");
 
     // only 'Fridge 1' sits under 'Lab A'; 'Lab B > Fridge 1' must not leak in
@@ -171,22 +204,8 @@ describe("LocationInput suggestions", () => {
     cy.get(".p-autocomplete-option").eq(0).should("have.text", "Fridge 1");
   });
 
-  it("offers every child of the chosen parent path", () => {
-    cy.get(".location-segment-input").eq(0).type("Lab A");
-    cy.get(".p-autocomplete-option").first().click();
-    cy.get(".add-btn").click();
-    cy.get(".location-segment-input").eq(1).type("{selectall}{backspace}Fridge 1");
-    cy.get(".p-autocomplete-option").first().click();
-
-    // 'Shelf 2' and 'Shelf 3' both hang off 'Lab A > Fridge 1'
-    cy.get(".add-btn").click();
-    cy.get(".location-segment-input").eq(2).type("{selectall}{backspace}Shelf");
-    cy.get(".p-autocomplete-option").should("have.length", 2);
-  });
-
-  it("offers no child suggestions for a leaf location", () => {
-    cy.get(".location-segment-input").eq(0).type("Store room");
-    cy.get(".p-autocomplete-option").first().click();
+  it("offers no child options for a leaf location", () => {
+    selectOption("Store room");
     cy.get(".add-btn").click();
     cy.get(".location-segment-input").eq(1).type("{selectall}{backspace}a");
     cy.get(".p-autocomplete-option").should("not.exist");
@@ -197,6 +216,51 @@ describe("LocationInput suggestions", () => {
     cy.get(".add-btn").click();
     cy.get(".location-segment-input").eq(1).type("{selectall}{backspace}a");
     cy.get(".p-autocomplete-option").should("not.exist");
+  });
+
+  it("drops deeper segments that do not exist under a newly chosen parent", () => {
+    selectOption("Lab A");
+    selectOption("Glovebox");
+    cy.get(".location-segment-input").eq(0).should("have.value", "Lab A");
+    cy.get(".location-segment-input").eq(1).should("have.value", "Glovebox");
+
+    // 'Lab B' has no 'Glovebox', so the stale child must not survive the switch
+    cy.get(".location-segment-input").eq(0).type("{selectall}{backspace}Lab B");
+    cy.get(".p-autocomplete-option").should("have.length", 1);
+    cy.get(".p-autocomplete-option").first().click();
+
+    cy.get(".location-segment-input").eq(0).should("have.value", "Lab B");
+    cy.get(".location-segment-input").eq(1).should("have.value", "");
+    cy.get(".p-autocomplete-option").should("have.length", 1);
+    cy.get(".p-autocomplete-option").first().should("have.text", "Fridge 1");
+  });
+
+  it("keeps deeper segments that are still valid under the new parent", () => {
+    selectOption("Lab A");
+    selectOption("Fridge 1");
+    selectOption("Shelf 2");
+    cy.get(".location-segment-input").should("have.length", 3);
+
+    // 'Lab B' also has a 'Fridge 1', so that level survives the switch, but it
+    // has no 'Shelf 2' below it, so only the deepest segment is dropped
+    cy.get(".location-segment-input").eq(0).type("{selectall}{backspace}Lab B");
+    cy.get(".p-autocomplete-option").should("have.length", 1);
+    cy.get(".p-autocomplete-option").first().click();
+
+    cy.get(".location-segment-input").should("have.length", 2);
+    cy.get(".location-segment-input").eq(0).should("have.value", "Lab B");
+    cy.get(".location-segment-input").eq(1).should("have.value", "Fridge 1");
+  });
+
+  it("shows the children of a typed parent as soon as a segment is added", () => {
+    // typing the parent rather than picking it, so '+' is still needed
+    cy.get(".location-segment-input").eq(0).type("Lab A");
+    cy.get(".add-btn").click();
+
+    cy.get(".location-segment-input").eq(1).should("have.focus");
+    cy.get(".p-autocomplete-option").should("have.length", 2);
+    cy.get(".p-autocomplete-option").eq(0).should("have.text", "Fridge 1");
+    cy.get(".p-autocomplete-option").eq(1).should("have.text", "Glovebox");
   });
 });
 
@@ -230,5 +294,23 @@ describe("LocationInput accessibility", () => {
 
     cy.get(".remove-btn").eq(1).should("have.attr", "aria-label", "Remove location level 2");
     cy.get(".add-btn").should("have.attr", "aria-label", "Add location level");
+  });
+});
+
+describe("LocationInput hierarchy pruning", () => {
+  it("emits the pruned value when a stale child is dropped", () => {
+    const onUpdate = cy.spy().as("pruneSpy");
+    mountLocationInput({ modelValue: "", hierarchy: HIERARCHY, "onUpdate:modelValue": onUpdate });
+    cy.get(".location-display").click();
+
+    selectOption("Lab A");
+    selectOption("Glovebox");
+    cy.get("@pruneSpy").should("have.been.calledWith", "Lab A > Glovebox");
+
+    cy.get(".location-segment-input").eq(0).type("{selectall}{backspace}Lab B");
+    cy.get(".p-autocomplete-option").should("have.length", 1);
+    cy.get(".p-autocomplete-option").first().click();
+
+    cy.get("@pruneSpy").should("have.been.calledWith", "Lab B");
   });
 });

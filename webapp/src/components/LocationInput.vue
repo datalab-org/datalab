@@ -27,7 +27,9 @@
             :model-value="segment"
             :suggestions="filteredSuggestions[i] || []"
             :aria-label="`Location level ${i + 1}`"
+            complete-on-focus
             input-class="form-control location-segment-input"
+            @option-select="(e) => onOptionSelect(i, e)"
             @complete="(e) => onComplete(e, i)"
             @update:model-value="(val) => updateSegment(i, val)"
           />
@@ -94,8 +96,12 @@ export default {
     startEditing() {
       if (this.readonly) return;
       this.isEditing = true;
+      this.focusSegment(0);
+    },
+    focusSegment(index) {
       this.$nextTick(() => {
-        const input = this.$el.querySelector("input");
+        const inputs = this.$el.querySelectorAll("input");
+        const input = inputs[index] || inputs[inputs.length - 1];
         if (input) input.focus();
       });
     },
@@ -113,30 +119,85 @@ export default {
     },
     addSegment() {
       this.editableSegments = [...this.editableSegments, ""];
+      // focusing the new segment surfaces its options straight away
+      this.focusSegment(this.editableSegments.length - 1);
     },
     removeSegment(index) {
       const segs = this.editableSegments.filter((_, i) => i !== index);
       this.editableSegments = segs.length ? segs : [""];
       this.$emit("update:modelValue", this.buildValue(this.editableSegments));
     },
-    getSegmentOptions(level) {
-      // Walk down the hierarchy along the segments already filled in, so each
-      // level only ever offers the children of the path above it.
+    nodeAt(segments, level) {
+      // Walk down the hierarchy along the given segments, returning the node
+      // reached, or null when the path does not exist in the hierarchy.
       let node = this.hierarchy;
-      for (const segment of this.editableSegments.slice(0, level)) {
+      for (const segment of segments.slice(0, level)) {
         const key = (segment || "").trim();
-        if (!key || !node[key]) return [];
+        if (!key || !node[key]) return null;
         node = node[key];
       }
-      return Object.keys(node).sort();
+      return node;
+    },
+    getSegmentOptions(level) {
+      // Each level only ever offers the children of the path above it.
+      return Object.keys(this.nodeAt(this.editableSegments, level) || {}).sort();
+    },
+    onOptionSelect(level, event) {
+      // Picking a location steps straight into it: open the next segment so its
+      // own options are listed, without having to reach for the '+' button.
+      const selected = event?.value ?? this.editableSegments[level];
+      const segments = this.editableSegments.map((s, i) => (i === level ? selected : s));
+
+      // Deeper segments survive only while they still exist under the location
+      // just picked, so switching branch cannot leave a stale child behind;
+      // re-picking the same one keeps what was already there.
+      const kept = segments.slice(0, level + 1);
+      let node = this.nodeAt(segments, level + 1) || {};
+      for (const segment of segments.slice(level + 1)) {
+        const key = (segment || "").trim();
+        if (!key || !node[key]) break;
+        kept.push(segment);
+        node = node[key];
+      }
+
+      // A leaf has nothing to step into, so focus simply stays put (which also
+      // keeps it inside the component, see `onFocusOut`).
+      const hasChildren = Object.keys(this.nodeAt(segments, level + 1) || {}).length > 0;
+      if (hasChildren && kept.length === level + 1) {
+        kept.push("");
+      }
+      this.editableSegments = kept;
+      this.$emit("update:modelValue", this.buildValue(kept));
+
+      // PrimeVue restores focus to the segment just picked from a `setTimeout`
+      // queued right after this event, so queue ours behind it rather than
+      // racing it: the `$nextTick` defers scheduling until that timeout exists.
+      const target = hasChildren ? level + 1 : level;
+      this.$nextTick(() => setTimeout(() => this.focusSegment(target)));
+    },
+    setFilteredSuggestions(level, options) {
+      // Only ever keep one level's list: PrimeVue leaves the previous segment's
+      // overlay open when focus moves on, which would otherwise stack the
+      // options of two levels on top of each other.
+      this.filteredSuggestions = { [level]: options };
     },
     onComplete(event, level) {
-      const query = event.query.toLowerCase();
+      // PrimeVue refocuses an input after one of its options is picked, which
+      // re-runs the query for a segment the user has already moved on from.
+      // Ignore those so a stale level cannot reopen over the focused one.
+      const input = this.$el.querySelectorAll("input")[level];
+      if (input && document.activeElement !== input) {
+        return;
+      }
+      // `complete-on-focus` runs this with an empty query as soon as a segment is
+      // focused, so the whole branch is offered for browsing before anything is
+      // typed; typing then narrows it.
+      const query = (event.query || "").toLowerCase();
       const options = this.getSegmentOptions(level);
-      this.filteredSuggestions = {
-        ...this.filteredSuggestions,
-        [level]: options.filter((s) => s.toLowerCase().includes(query)),
-      };
+      this.setFilteredSuggestions(
+        level,
+        query ? options.filter((s) => s.toLowerCase().includes(query)) : options,
+      );
     },
   },
 };
