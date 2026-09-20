@@ -351,9 +351,8 @@ def update_block():
     use_async = block_type in CONFIG.ASYNC_BLOCK_TYPES or getattr(
         BLOCK_TYPES[block_type], "_prefers_async", False
     )
-    trigger_async = event_data and event_data.get("trigger_async", True) if event_data else True
 
-    if use_async and trigger_async:
+    if use_async:
         task_id = str(uuid.uuid4())
 
         creator_id = current_user.person.immutable_id
