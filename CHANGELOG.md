@@ -4,6 +4,16 @@
 > Release candidates and other pre-releases are not included in this changelog; there may be more
 recent changes described in the [release notes on GitHub](https://github.com/datalab-org/datalab/releases).
 
+## v0.7.9 (September 2026)
+
+This minor release backrpots a fix for the in situ plugin that was using a defunct option to the async processing API.
+
+### What's Changed
+
+* Backport "Remove defunct trigger_async causing KeyError when using in situ plugin" by @ml-evs in https://github.com/datalab-org/datalab/pull/2109
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.8...v0.7.9
+
 ## v0.7.8 (September 2026)
 
 This minor release bumps the Debian version used in the app container and updates navani to fix a bug with Neware data import.
