@@ -45,11 +45,9 @@
         <a
           v-for="provider in visibleOAuthProviders"
           :key="provider.name"
-          :class="{ disabled: !authMechanismEnabled(provider.name) }"
           class="btn btn-default btn-login p-3"
           :aria-label="`Login via ${provider.label}`"
-          :aria-disabled="!authMechanismEnabled(provider.name)"
-          :href="authMechanismEnabled(provider.name) ? oauthLoginUrl(provider.name) : null"
+          :href="oauthLoginUrl(provider.name)"
         >
           <font-awesome-icon
             :class="{ 'orcid-icon': provider.name === 'orcid' }"
@@ -58,11 +56,10 @@
           Login via {{ provider.label }}
         </a>
         <button
-          v-if="shouldShowAuthMechanism('email')"
+          v-if="authMechanismEnabled('email')"
           type="button"
           class="btn btn-default btn-login p-3"
           aria-label="Login via email"
-          :disabled="!authMechanismEnabled('email')"
           @click="emailModalIsOpen = true"
         >
           <font-awesome-icon :icon="['fa', 'envelope']" /> Login via email
@@ -79,8 +76,8 @@
 <script>
 import LoginInfo from "@/components/LoginInfo.vue";
 import GetEmailModal from "@/components/GetEmailModal.vue";
-import { getAuthMechanisms } from "@/server_fetch_utils.js";
-import { API_URL, LOGO_URL, HOMEPAGE_URL, LOGIN_HIDE_UNAVAILABLE_AUTH } from "@/resources.js";
+import { getInfo } from "@/server_fetch_utils.js";
+import { API_URL, LOGO_URL, HOMEPAGE_URL } from "@/resources.js";
 
 const OAUTH_PROVIDERS = [
   { name: "github", label: "GitHub", icon: ["fab", "github"] },
@@ -107,7 +104,7 @@ export default {
   },
   computed: {
     visibleOAuthProviders() {
-      return OAUTH_PROVIDERS.filter(({ name }) => this.shouldShowAuthMechanism(name));
+      return OAUTH_PROVIDERS.filter(({ name }) => this.authMechanismEnabled(name));
     },
     noAuthMechanismsAvailable() {
       return !Object.values(this.authMechanisms).some(Boolean);
@@ -115,30 +112,36 @@ export default {
     currentUserDisplayName() {
       return this.currentUser?.display_name || this.currentUser?.contact_email || "this account";
     },
+    nextPath() {
+      const next = Array.isArray(this.$route.query.next)
+        ? this.$route.query.next[0]
+        : this.$route.query.next;
+      return typeof next === "string" ? next : null;
+    },
   },
   async mounted() {
-    [this.currentUser, this.authMechanisms] = await Promise.all([
+    let info;
+    [this.currentUser, info] = await Promise.all([
       this.$store.dispatch("fetchCurrentUser", { fullInfo: true }),
-      getAuthMechanisms().catch(() => ({})),
+      getInfo().catch(() => null),
     ]);
+    this.authMechanisms = info?.features?.auth_mechanisms ?? {};
     this.isLoaded = true;
   },
   methods: {
     authMechanismEnabled(name) {
       return this.authMechanisms[name] ?? false;
     },
-    shouldShowAuthMechanism(name) {
-      return !LOGIN_HIDE_UNAVAILABLE_AUTH || this.authMechanismEnabled(name);
-    },
     oauthLoginUrl(provider) {
-      const next = Array.isArray(this.$route.query.next)
-        ? this.$route.query.next[0]
-        : this.$route.query.next;
-      const query = typeof next === "string" ? `?next=${encodeURIComponent(next)}` : "";
+      const query = this.nextPath ? `?next=${encodeURIComponent(this.nextPath)}` : "";
       return `${this.apiUrl}/login/${provider}${query}`;
     },
     goToApp() {
-      window.location.href = "/samples";
+      const next = this.nextPath;
+      const isLocalPath =
+        next != null && next.startsWith("/") && !next.startsWith("//") && !next.includes("\\");
+      // Full page load so that App.vue runs the startup fetches it skips on the login route
+      window.location.href = this.$router.resolve(isLocalPath ? next : { name: "samples" }).href;
     },
   },
 };

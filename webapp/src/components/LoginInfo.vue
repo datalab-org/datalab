@@ -1,5 +1,5 @@
 <template>
-  <h1 style="font-size: 4rem">Welcome to Datalab</h1>
+  <h1 style="font-size: 4rem">Welcome to <i>datalab</i></h1>
   <p>datalab is a place to store experimental data and the connections between them.</p>
   <p>
     datalab is open source (MIT license) and development occurs on GitHub at
@@ -7,8 +7,8 @@
       ><font-awesome-icon :icon="['fab', 'github']" />&nbsp;datalab-org/datalab</a
     >
     with documentation available on
-    <a href="https://the-datalab.readthedocs.io"
-      ><font-awesome-icon icon="book" />&nbsp;ReadTheDocs</a
+    <a href="https://docs.datalab-org.io"
+      ><font-awesome-icon icon="book" />&nbsp;docs.datalab-org.io</a
     >.
   </p>
   <a

@@ -16,7 +16,6 @@ services:
       - VUE_APP_QR_CODE_RESOLVER_URL
       - VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT
       - VUE_APP_ENABLE_LOGIN_PAGE
-      - VUE_APP_LOGIN_HIDE_UNAVAILABLE_AUTH
     ports:
       - "8081:8081"
 
@@ -121,7 +120,6 @@ services:
       - NODE_ENV=development
       - VUE_APP_API_URL=${VUE_APP_API_URL:-http://localhost:5001}
       - VUE_APP_ENABLE_LOGIN_PAGE
-      - VUE_APP_LOGIN_HIDE_UNAVAILABLE_AUTH
       - CHOKIDAR_USEPOLLING=true
 
 networks:
