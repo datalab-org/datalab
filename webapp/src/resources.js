@@ -41,6 +41,8 @@ export const GRAVATAR_STYLE = "identicon";
 // determine whether inventory should be readonly (except blocks).
 export const EDITABLE_INVENTORY = CONFIG.EDITABLE_INVENTORY;
 
+export const HIDE_COLLECTIONS = CONFIG.HIDE_COLLECTIONS;
+
 export const AUTOMATICALLY_GENERATE_ID_DEFAULT = CONFIG.AUTOMATICALLY_GENERATE_ID_DEFAULT;
 
 // Eventually this should be pulled from the schema
