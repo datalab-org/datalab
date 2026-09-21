@@ -33,6 +33,7 @@ We have some instructions for AI agents that may also be useful for humans at
 - **Extend tests rather than editing existing assertions.** If an existing expected value genuinely has to change, change it deliberately and explain why in the pull request.
 - **Stay backwards-compatible.** Where a breaking change is unavoidable, provide a migration path and flag it clearly.
 - **Document what you add.** Update the README, the installation guide or the relevant page under `pydatalab/docs/` rather than relying on code comments alone.
+- **Changes adhere to the security policy.** All changes must be made with our security policy in mind, in particular when adding or updating dependencies, or making deployment-related changes: see [`SECURITY.md`](https://github.com/datalab-org/datalab/blob/main/SECURITY.md) for details.
 
 ## AI-assisted contributions
 
