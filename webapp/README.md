@@ -22,7 +22,7 @@ yarn build
 
 ### Run component tests
 
-Component tests use port 8082 for the Cypress webpack development server so they can run alongside
+Component tests use port 8082 for the Cypress Vite development server so they can run alongside
 the local development frontend on port 8081.
 
 ```
