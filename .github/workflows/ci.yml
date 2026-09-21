@@ -284,11 +284,14 @@ jobs:
       - name: Set some environment variables for CI containers pre-build
         run: |
           cp webapp/.env.test_e2e .env
-          echo "PYDATALAB_TESTING=true" >> .env
-          echo "PYDATALAB_TESTING=true" >> pydatalab/.env
-          # Enable the tags feature for the e2e backend (frontend flag is in .env.test_e2e).
-          echo "PYDATALAB_ENABLE_TAGS=true" >> .env
-          echo "PYDATALAB_ENABLE_TAGS=true" >> pydatalab/.env
+          SECRET_KEY=$(openssl rand -hex 32)
+          for f in .env pydatalab/.env; do
+            echo "PYDATALAB_TESTING=false" >> $f
+            echo "PYDATALAB_ENABLE_TEST_EMAIL_AUTH=true" >> $f
+            echo "PYDATALAB_SECRET_KEY=$SECRET_KEY" >> $f
+            # Enable the tags feature for the e2e backend (frontend flag is in .env.test_e2e).
+            echo "PYDATALAB_ENABLE_TAGS=true" >> $f
+          done
 
       - name: Build Docker images
         uses: docker/bake-action@v7
