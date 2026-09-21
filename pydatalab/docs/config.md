@@ -21,9 +21,9 @@ These can be provided as either:
     - The main options include (a full list can be found in the `docker-compose.yml` file):
         - `VUE_APP_API_URL`: the URL of the *datalab* API, which is used by the web app to communicate with the server.
         - `VUE_APP_LOGO_URL`: the URL of an image to use as the logo header in the web app.
-        - `VUE_APP_HOMEPAGE_URL`: a URL to provide as a link from the web app header.
+        - `VUE_APP_HOMEPAGE_URL`: a URL to provide as a link from the web app header, and as a button on the dedicated login page.
         - `VUE_APP_EDITABLE_INVENTORY`: whether the inventory can be edited by non-admin users in the web app.
-        - `VUE_APP_WEBSITE_TITLE`: the title of the web app, which is displayed in the browser tab and header.
+        - `VUE_APP_WEBSITE_TITLE`: the title of the web app, which is displayed in the browser tab and header. It is also used in the heading of the dedicated login page, as "Welcome to the <title>".
         - `VUE_APP_QR_CODE_RESOLVER_URL`: the URL of a service that can resolve QR codes to *datalab* entries, which is used by the web app to display QR codes for entries (see [datalab-org/datalab-purl](https://github.com/datalab-org/datalab-purl) for more information).
         - `VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT`: whether to automatically generate IDs for new entries in the web app by default, or require a checkbox to be ticked at item creation.
         - `VUE_APP_ENABLE_LOGIN_PAGE`: whether unauthenticated users should be directed to the dedicated login page. If unset or set to `false`, the web app keeps the original unauthenticated routing behaviour.
@@ -183,21 +183,25 @@ No special configuration or flags are needed — if the file exists, it will be 
 
 ### Custom login page content (`public/custom/components/CustomLoginInfo.vue`)
 
-Deployments can provide a custom Vue component for the left-hand content of the login page.
+Deployments can provide a custom Vue component for the content of the login box.
 This is only relevant when the dedicated login page is enabled with `VUE_APP_ENABLE_LOGIN_PAGE=true`.
 Place a `CustomLoginInfo.vue` file in `public/custom/components/` and it will automatically replace the built-in `LoginInfo.vue` component at build time.
 If no custom component is provided, the built-in login welcome content is used.
 
 Authentication buttons and login behaviour remain managed by *datalab*.
-The custom component should only provide branding, text, links, images, and styling for the welcome panel.
+The login controls are passed to the component as a `login` slot: place `<slot name="login" />` wherever they should appear (the built-in component puts them directly under the title).
+If the slot is omitted, users will have no way to log in from this page.
+The custom component should otherwise only provide branding, text, links, images, and styling for the login box.
+To reuse content from [`CustomAbout.vue`](#custom-about-page-publiccustomcomponentscustomaboutvue), copy it into this component.
+The deployment logo (`VUE_APP_LOGO_URL`) is already shown at the top of the box, so it does not need to be included.
 
 For example:
 
 ```vue
 <template>
-  <img src="/custom/logos/mylogo.png" alt="My lab" class="login-logo" />
   <h1>My lab datalab</h1>
   <p>Research data management for our group.</p>
+  <slot name="login" />
 </template>
 
 <script>
@@ -207,14 +211,16 @@ export default {
 </script>
 ```
 
-Login colours can also be tuned from `public/custom/override.css` without providing a custom component:
+Login page colours and sizes can also be tuned from `public/custom/override.css` without providing a custom component:
 
 ```css
 :root {
-  --login-welcome-background: #123456;
-  --login-welcome-color: white;
-  --login-options-background: white;
-  --login-options-color: #222;
+  --login-background: #f5f5f5; /* page background */
+  --login-box-background: white;
+  --login-box-color: #222;
+  --login-max-width: 1080px; /* maximum width of the login box */
+  --login-logo-max-width: 400px;
+  --login-logo-max-height: 200px;
 }
 ```
 

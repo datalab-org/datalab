@@ -10,7 +10,7 @@ import ExampleGraph from "@/views/ExampleGraph.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
 import Admin from "@/views/Admin.vue";
 import Login from "../views/Login.vue";
-import { API_URL, ENABLE_LOGIN_PAGE } from "@/resources.js";
+import { API_URL, ENABLE_LOGIN_PAGE, WEBSITE_TITLE } from "@/resources.js";
 
 const routes = [
   {
@@ -122,8 +122,6 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
-  const websiteTitle = process.env.VUE_APP_WEBSITE_TITLE || "datalab";
-
   const capitalizeFirstLetter = (string) => {
     return string ? string.charAt(0).toUpperCase() + string.slice(1) : "";
   };
@@ -137,9 +135,9 @@ router.beforeEach(async (to, from, next) => {
 
   document.title = to.name
     ? to.params.id
-      ? `${websiteTitle} - ${formattedName}: ${to.params.id}`
-      : `${websiteTitle} - ${formattedName}`
-    : websiteTitle;
+      ? `${WEBSITE_TITLE} - ${formattedName}: ${to.params.id}`
+      : `${WEBSITE_TITLE} - ${formattedName}`
+    : WEBSITE_TITLE;
 
   next();
 });

@@ -1,28 +1,31 @@
 <template>
-  <h1 style="font-size: 4rem">Welcome to <i>datalab</i></h1>
-  <p>datalab is a place to store experimental data and the connections between them.</p>
-  <p>
-    datalab is open source (MIT license) and development occurs on GitHub at
-    <a href="https://github.com/datalab-org/datalab"
-      ><font-awesome-icon :icon="['fab', 'github']" />&nbsp;datalab-org/datalab</a
-    >
-    with documentation available on
-    <a href="https://docs.datalab-org.io"
-      ><font-awesome-icon icon="book" />&nbsp;docs.datalab-org.io</a
-    >.
-  </p>
+  <h1 style="font-size: 2.5rem">
+    Welcome to
+    <i v-if="websiteTitle === 'datalab'">datalab</i>
+    <template v-else>the {{ websiteTitle }}</template>
+  </h1>
+  <slot name="login" />
   <a
-    href="https://docs.datalab-org.io/en/stable/"
+    v-if="homepageUrl != null"
+    :href="homepageUrl"
     class="btn btn-default"
     target="_blank"
     rel="noopener noreferrer"
   >
-    Learn More
+    <font-awesome-icon icon="home" /> Homepage
   </a>
 </template>
 
 <script>
+import { WEBSITE_TITLE, HOMEPAGE_URL } from "@/resources.js";
+
 export default {
   name: "LoginInfo",
+  data() {
+    return {
+      websiteTitle: WEBSITE_TITLE,
+      homepageUrl: HOMEPAGE_URL,
+    };
+  },
 };
 </script>
