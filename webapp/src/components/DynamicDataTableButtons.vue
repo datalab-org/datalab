@@ -100,7 +100,7 @@
           />
         </IconField>
 
-        <div class="dropdown">
+        <div v-on-click-outside="() => (isSettingsDropdownVisible = false)" class="dropdown">
           <button
             data-testid="table-settings-button"
             class="btn btn-default"
@@ -115,6 +115,7 @@
           </button>
           <div
             v-show="isSettingsDropdownVisible"
+            data-testid="table-settings-menu"
             class="dropdown-menu dropdown-menu-right settings-dropdown"
             style="display: block"
           >
@@ -124,6 +125,7 @@
                 :model-value="selectedColumns"
                 :options="availableColumns"
                 :option-label="columnLabel"
+                append-to="self"
                 placeholder="Select column(s) to display"
                 display="chip"
                 class="column-select-dropdown"
@@ -147,7 +149,7 @@
     </div>
 
     <div v-if="itemsSelected.length > 0" class="d-flex justify-content-end align-items-center mt-2">
-      <div class="dropdown">
+      <div v-on-click-outside="() => (isSelectedDropdownVisible = false)" class="dropdown">
         <button
           data-testid="selected-dropdown"
           class="btn btn-default dropdown-toggle"
@@ -296,6 +298,7 @@ import InputIcon from "primevue/inputicon";
 import InputText from "primevue/inputtext";
 import MultiSelect from "primevue/multiselect";
 import "primeicons/primeicons.css";
+import { vOnClickOutside } from "@vueuse/components";
 
 import BulkChangeRoleModal from "@/components/BulkChangeRoleModal.vue";
 import BulkAddToGroupModal from "@/components/BulkAddToGroupModal.vue";
@@ -316,6 +319,9 @@ import {
 } from "@/server_fetch_utils.js";
 
 export default {
+  directives: {
+    onClickOutside: vOnClickOutside,
+  },
   components: {
     IconField,
     InputIcon,

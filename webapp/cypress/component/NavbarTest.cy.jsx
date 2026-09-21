@@ -79,6 +79,19 @@ describe("Navbar", () => {
       });
   });
 
+  it("closes the login dropdown when clicking outside", () => {
+    cy.mount(Navbar, {
+      global: {
+        plugins: [store, router],
+      },
+    });
+
+    cy.get('[data-testid="login-dropdown-button"]').click();
+    cy.get('[data-testid="login-dropdown-menu"]').should("be.visible");
+    cy.get('[data-testid="navbar-navigation"]').click();
+    cy.get('[data-testid="login-dropdown-menu"]').should("not.be.visible");
+  });
+
   it("renders all navigation links with correct URLs", () => {
     cy.mount(Navbar, {
       global: {
