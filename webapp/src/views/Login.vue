@@ -38,7 +38,11 @@
                 server.
               </p>
 
-              <div v-else class="dropdown d-inline-block">
+              <div
+                v-else
+                v-on-click-outside="() => (isLoginDropdownVisible = false)"
+                class="dropdown d-inline-block"
+              >
                 <button
                   id="loginDropdown"
                   class="btn btn-default dropdown-toggle"
@@ -71,8 +75,12 @@ import LoginInfo from "@/components/LoginInfo.vue";
 import LoginDropdown from "@/components/LoginDropdown.vue";
 import { getInfo } from "@/server_fetch_utils.js";
 import { API_URL, LOGO_URL, HOMEPAGE_URL } from "@/resources.js";
+import { vOnClickOutside } from "@vueuse/components";
 
 export default {
+  directives: {
+    onClickOutside: vOnClickOutside,
+  },
   components: {
     LoginInfo,
     LoginDropdown,
