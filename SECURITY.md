@@ -24,6 +24,8 @@ What to expect:
 
 We will keep you updated as we work, credit you in the advisory unless you would
 rather we didn't, and publish a GitHub Security Advisory when a fix is released, where appropriate.
+Severity is assessed using a risk-based approach that considers how easy the vulnerability is to exploit, what data or systems are affected, how exposed the deployment is, and whether the vulnerability is already being exploited. 
+Critical vulnerabilities, or those known to be actively exploited, may require emergency mitigations, faster operator notification, and emergency releases.
 If we conclude a report is not a vulnerability, we will explain why.
 
 *datalab* is maintained by a small academic-focused team (with commercial support
@@ -47,8 +49,8 @@ Security fixes are typically issued for the **latest released minor version** on
 
 ### What the software enforces
 
-- **Authenticated access.** Users authenticate via OAuth (ORCID, GitHub), magic-link email, or API keys.
-  Registration can be restricted by GitHub organisation membership or email domain, and accounts require admin activation by default.
+- **Authenticated access.** Users authenticate via OAuth (Microsoft, Google, ORCID, GitHub), magic-link email, or API keys.
+  Registration can be restricted by GitHub organisation membership or email domain, and accounts require admin activation by default. Administrative users are encouraged to authenticate through an identity provider with MFA enabled.
 - **Per-item and per-group permissions.** Every read and write is filtered by a permission query derived from the requesting user's identity, their group memberships, and any managed users.
   Items may inherit read access from collections they belong to; write access is never inherited.
 - **Hashed credentials at rest.** API keys and item access tokens are stored as hashes, never in plaintext.
@@ -63,8 +65,8 @@ Security fixes are typically issued for the **latest released minor version** on
 - **Plugins.** Plugins are Python packages loaded into the server process.
   They have full access to the database, the filesystem, and the network.
   **Installing a plugin is therefore deployment decision with the same weight as a code change**, and should be reviewed as one.
-  There is no sandbox, and adding one is [non-trivial](#planned-work).
-- **Malicious authenticated users.** Users are treated as semi-trusted colleagues.
+  There is no sandbox, and adding one is [non-trivial](#planned-work). Operators should use an approved list of plugins, keep plugin versions fixed, verify their source and maintainers, and track plugin changes and inventory.
+- **Malicious authenticated users.** Users are treated as semi-trusted colleagues, but deployments should still account for risks such as stolen credentials, compromised endpoints, malicious insiders, and maliciously crafted files.
   Permissions constrain which data they reach, but a user who is authenticated and actively hostile has a large surface to work with, notably file uploads, which are parsed by a wide range of third-party scientific libraries which may be vulnerable to exploitation.
 - **Infrastructure compromise.** Host, container runtime, database, and network security are the operator's responsibility.
 
@@ -77,7 +79,7 @@ Practices in place in this repository today:
 - Security advisories are provided by GitHub and Dependabot, and are triaged by the maintainers. Critical advisories are addressed in patch releases as soon as possible.
 - A scheduled workflow refreshes `uv.lock` pins monthly, so transitive dependencies don't drift and quietly retain known-vulnerable versions.
 - Server dependencies are fully pinned via `uv.lock`; CI and container builds install from the lockfile.
-- Aside from internal Python packages, no dependency newer than 5 days old is used in production.
+- Aside from internal Python packages, no dependency newer than 5 days old is used in production. Security fixes may bypass this delay following maintainer review.
 - JavaScript app dependencies are pinned to exact versions in `yarn.lock`; `yarn install --frozen-lockfile` is used in CI and container builds.
 
 **Static analysis and CI**
