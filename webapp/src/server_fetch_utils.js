@@ -547,6 +547,27 @@ export function getEquipmentList() {
     });
 }
 
+export function getLocations({ force = false } = {}) {
+  // Locations are shared across every item type, so only fetch them once per
+  // session unless a caller explicitly asks for a refresh.
+  if (!force && store.state.locations_list !== null) {
+    return Promise.resolve();
+  }
+  return fetch_get(`${API_URL}/locations`)
+    .then(function (response_json) {
+      store.commit("setLocationsList", response_json.data);
+    })
+    .catch((error) => {
+      if (error === "UNAUTHORIZED") {
+        // Commit the empty shape rather than null: the guard above treats null
+        // as "not yet fetched", so nulling it here would refetch on every mount.
+        store.commit("setLocationsList", { flat_locations: [], nested_locations: {} });
+      } else {
+        throw error;
+      }
+    });
+}
+
 export function searchItems(query, nresults = 100, types = null) {
   // construct a url with parameters:
   var url = new URL(`${API_URL}/search-items/`);
@@ -1011,6 +1032,11 @@ export function saveItem(item_id) {
         store.state.all_item_data[item_id].display_order.forEach((block_id) => {
           store.commit("setBlockSaved", { block_id: block_id, isSaved: true });
         });
+        // A location typed here is not in the cached suggestions until refetched,
+        // so refresh them (only) when this save introduced a new one.
+        if (item_data.location && !store.getters.getUniqueLocations.includes(item_data.location)) {
+          getLocations({ force: true });
+        }
       }
     })
     .catch(function (error) {
