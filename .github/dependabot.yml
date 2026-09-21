@@ -21,6 +21,9 @@ updates:
       update-types:
         - minor
         - patch
+    python-security:
+      applies-to: security-updates
+      patterns: ["*"]
     python-development:
       applies-to: version-updates
       dependency-type: development
@@ -65,6 +68,9 @@ updates:
       update-types:
         - minor
         - patch
+    js-security:
+      applies-to: security-updates
+      patterns: ["*"]
     js-development:
       applies-to: version-updates
       dependency-type: development
