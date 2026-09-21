@@ -189,7 +189,7 @@ def check_feature_flags(app):
 
     if CONFIG.TESTING:
         LOGGER.critical(
-            "Running in testing mode, with no authentication required; this is not recommended for production use: set `CONFIG.TESTING`"
+            "Running in testing mode (deterministic secret key, backups disabled); this is not recommended for production use: unset `CONFIG.TESTING`"
         )
 
     if CONFIG.ENABLE_TEST_EMAIL_AUTH:

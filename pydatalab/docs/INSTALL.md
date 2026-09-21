@@ -142,7 +142,7 @@ See the [plugins documentation](plugins.md) for the `plugins.toml` format and a 
     ```
 
 This is a thin wrapper around `flask run` that defaults to port 5001 with `--reload` enabled and injects an insecure development secret key if `PYDATALAB_SECRET_KEY` is not already set in the environment.
-Pass `--no-reload` to disable the Werkzeug reloader, or `--testing` to enable `CONFIG.TESTING` (which disables authentication — see below).
+Pass `--no-reload` to disable the Werkzeug reloader, or `--testing` to enable `CONFIG.TESTING` and `CONFIG.ENABLE_TEST_EMAIL_AUTH` (which allows logging in as any user without email verification — see below).
 
 If you would rather invoke Flask directly, the equivalent command is:
 
@@ -217,13 +217,12 @@ uv lock
 
 There are three approaches to authentication when developing *datalab* features locally.
 
-1. Disable authentication entirely with the `PYDATALAB_TESTING=true` environment
-   variable (or corresponding config file option `TESTING`). This will perform
-   every API operation as if the user is authenticated, and will not require any
-   further configuration.
-   - This mode of development is fine for e.g., developing new blocks, but in
-     cases where new API functionality is being added, it is recommended to set
-     up authentication locally (see below).
+1. Enable the test login endpoint with `PYDATALAB_ENABLE_TEST_EMAIL_AUTH=true` (or the
+   corresponding config file option `ENABLE_TEST_EMAIL_AUTH`). `POST /testing/create-magic-link`
+   with `{"email": ..., "role": "user" | "admin"}` then returns a token that logs in as an
+   active user with that email via `GET /login/email?token=<token>`, with no further
+   configuration. This is what the Cypress e2e tests use (`cy.loginViaTestMagicLink`).
+   This MUST NOT be enabled in production.
 2. Local OAuth setup. This requires registering an OAuth app with one of the
    implemented providers (e.g., GitHub, ORCID), configuring the credentials
    locally (see the [configuration documentation](https://docs.datalab-org.io/en/latest/config/) for more details) and then logging into *datalab* normally.

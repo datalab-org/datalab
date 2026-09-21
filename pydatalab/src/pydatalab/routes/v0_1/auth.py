@@ -493,9 +493,6 @@ def _check_email_domain(email: str, allow_list: list[str] | None) -> bool:
         Whether the email address is allowed to register an account.
 
     """
-    if CONFIG.TESTING:
-        return True
-
     domain = email.split("@")[-1]
     if isinstance(allow_list, list) and not allow_list:
         return False
