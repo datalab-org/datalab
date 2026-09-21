@@ -1,9 +1,17 @@
 import datetime
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from bson import ObjectId
+from flask import session
 
-from pydatalab.routes.v0_1.auth import _check_email_domain
+from pydatalab.routes.v0_1.auth import (
+    _check_email_domain,
+    _is_safe_oauth_next_path,
+    _oauth_next_session_key,
+    redirect_to_ui,
+    store_oauth_next_path,
+)
 
 
 def test_allow_emails():
@@ -16,6 +24,74 @@ def test_allow_emails():
     assert _check_email_domain("test@example2.org", None)
     assert not _check_email_domain("test@example.org", ["subdomain.example.org"])
     assert not _check_email_domain("test@example2.org", ["example.org"])
+
+
+def test_oauth_next_path_validation():
+    assert _is_safe_oauth_next_path("/collections?view=mine#results")
+    assert not _is_safe_oauth_next_path(None)
+    assert not _is_safe_oauth_next_path("collections")
+    assert not _is_safe_oauth_next_path("//other-site.example/collections")
+    assert not _is_safe_oauth_next_path("https://other-site.example/collections")
+    assert not _is_safe_oauth_next_path("/\\other-site.example/collections")
+    assert not _is_safe_oauth_next_path("/collections\nLocation: https://other-site.example")
+    assert not _is_safe_oauth_next_path(f"/{'a' * 2048}")
+
+
+def test_store_oauth_next_path(app):
+    blueprint = SimpleNamespace(name="github")
+    session_key = _oauth_next_session_key(blueprint.name)
+
+    with app.test_request_context(
+        "/login/github", query_string={"next": "/collections?view=mine#results"}
+    ):
+        store_oauth_next_path(blueprint, "https://github.com/login/oauth/authorize")
+        assert session[session_key] == "/collections?view=mine#results"
+
+
+def test_store_oauth_next_path_rejects_external_url(app):
+    blueprint = SimpleNamespace(name="github")
+    session_key = _oauth_next_session_key(blueprint.name)
+
+    with app.test_request_context(
+        "/login/github", query_string={"next": "//other-site.example/collections"}
+    ):
+        session[session_key] = "/stale-path"
+        store_oauth_next_path(blueprint, "https://github.com/login/oauth/authorize")
+        assert session_key not in session
+
+
+def test_oauth_redirect_uses_next_path_once(app, monkeypatch):
+    from pydatalab import config
+
+    blueprint = SimpleNamespace(name="github")
+    session_key = _oauth_next_session_key(blueprint.name)
+    monkeypatch.setattr(config.CONFIG, "APP_URL", "https://datalab.example/app")
+
+    with app.test_request_context("/"):
+        session[session_key] = "/collections?view=mine#results"
+        response = redirect_to_ui(blueprint, None)
+
+        assert response.location == "https://datalab.example/app/collections?view=mine#results"
+        assert session_key not in session
+
+        session[session_key] = "/https://other-site.example/collections"
+        response = redirect_to_ui(blueprint, None)
+        assert (
+            response.location
+            == "https://datalab.example/app/https://other-site.example/collections"
+        )
+
+
+def test_oauth_redirect_without_next_uses_app_url(app, monkeypatch):
+    from pydatalab import config
+
+    blueprint = SimpleNamespace(name="github")
+    monkeypatch.setattr(config.CONFIG, "APP_URL", "https://datalab.example/app")
+
+    with app.test_request_context("/"):
+        response = redirect_to_ui(blueprint, None)
+
+        assert response.location == "https://datalab.example/app"
 
 
 def test_magic_link_account_creation(unauthenticated_client, app, database):
