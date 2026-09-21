@@ -51,7 +51,15 @@ Remove those comments once you have done that review.
 
 ## Development setup
 
-The [installation guide](https://docs.datalab-org.io/en/latest/INSTALL/) covers running the server and web app locally. In short:
+The [installation guide](https://docs.datalab-org.io/en/latest/INSTALL/) covers running the server and web app locally.
+(Recent, mainstream) Linux is the only offically supported OS, but the macOS and Windows via WSL should also work.
+For unsupported OS's (e.g., Windows) the Docker-based development setup is the only supported option.
+For more details, see the [development setup](https://docs.datalab-org.io/en/latest/INSTALL/#development-setup) section of the installation guide.
+
+Please open issues with any platform-specific problems.
+Minor adjustments for unsupported OS's are welcome as pull requests, but we cannot guarantee that they will be maintained if not easily testable.
+
+In short:
 
 ```bash
 # Python server
