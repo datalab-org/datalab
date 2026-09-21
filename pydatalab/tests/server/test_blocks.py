@@ -1,4 +1,5 @@
 import datetime
+import sys
 from pathlib import Path
 
 import pytest
@@ -822,6 +823,7 @@ def create_large_xye_file(tmpdir):
     yield fname
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="pytest-memray is unavailable on Windows")
 @pytest.mark.limit_memory("110MB")
 def test_large_fake_xrd_data_block_serialization(
     admin_client, default_sample_dict, tmpdir, create_large_xye_file
