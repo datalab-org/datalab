@@ -44,6 +44,17 @@
             <ToggleableGroupsFormGroup v-model="ItemGroups" :refcode="Refcode" />
           </div>
         </div>
+        <div class="form-row">
+          <div class="form-group col-lg-12 col-sm-12">
+            <label id="samp-location-label">Location</label>
+            <LocationInput
+              v-model="Location"
+              :hierarchy="$store.getters.getLocationHierarchy"
+              input-id="samp-location"
+              labelled-by="samp-location-label"
+            />
+          </div>
+        </div>
       </div>
       <div class="col-md-4">
         <ItemRelationshipVisualization :item_id="item_id" />
@@ -78,6 +89,8 @@ import SynthesisInformation from "@/components/SynthesisInformation";
 import SubstanceInformation from "@/components/SubstanceInformation";
 import TableOfContents from "@/components/TableOfContents";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
+import LocationInput from "@/components/LocationInput";
+import { getLocations } from "@/server_fetch_utils.js";
 
 export default {
   components: {
@@ -91,6 +104,7 @@ export default {
     ToggleableCreatorsFormGroup,
     ToggleableItemStatusFormGroup,
     ToggleableGroupsFormGroup,
+    LocationInput,
   },
   props: {
     item_id: { type: String, required: true },
@@ -122,12 +136,16 @@ export default {
     ItemGroups: createComputedSetterForItemField("groups"),
     Collections: createComputedSetterForItemField("collections"),
     Status: createComputedSetterForItemField("status"),
+    Location: createComputedSetterForItemField("location"),
     schema() {
       return this.$store.state.schemas[this.item?.type];
     },
     possibleItemStatuses() {
       return this.schema?.attributes?.schema?.["$defs"]?.ItemStatus?.enum;
     },
+  },
+  created() {
+    getLocations();
   },
 };
 </script>
