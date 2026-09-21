@@ -40,6 +40,8 @@ if TYPE_CHECKING:
 
 __all__ = (
     "is_block_reference",
+    "blocks_preview_stages",
+    "blocks_preview_projection",
     "authorize_and_get_blocks_data",
     "load_blocks_obj",
     "resolve_snapshot_blocks_obj",
@@ -99,6 +101,95 @@ def is_block_reference(blocks_obj_value: Any) -> bool:
         and "immutable_id" in blocks_obj_value
         and set(blocks_obj_value.keys()) <= _REFERENCE_KEYS
     )
+
+
+_BLOCKS_OBJ_AS_ARRAY = {"$objectToArray": {"$ifNull": ["$blocks_obj", {}]}}
+"""Aggregation expression turning `blocks_obj` into an array of
+`{"k": <block_id>, "v": <entry>}` documents."""
+
+_BLOCKS_OBJ_ENTRY_IS_REFERENCE = {"$ne": [{"$type": "$$b.v.immutable_id"}, "missing"]}
+"""Aggregation condition telling a `{"immutable_id": ...}` block reference apart
+from a legacy embedded block payload (bound to a `blocks_obj` entry as `$$b`).
+
+The aggregation counterpart of `is_block_reference()`, but looser: it only
+checks for the presence of `immutable_id`, not the absence of other keys."""
+
+
+def blocks_preview_stages() -> list[dict]:
+    """Aggregation stages that resolve the previews (block_id/blocktype/title) of an item's
+    referenced blocks from the `blocks` collection into a temporary
+    `_referenced_blocks` field, for use by `blocks_preview_projection()`.
+
+    Must be placed before the `$project` stage that consumes the result. Safe to
+    use on any permission-filtered items query: previews carry no payload beyond
+    the block ID, type and title.
+    """
+    return [
+        {
+            "$set": {
+                "_referenced_block_ids": {
+                    "$map": {
+                        "input": {
+                            "$filter": {
+                                "input": _BLOCKS_OBJ_AS_ARRAY,
+                                "as": "b",
+                                "cond": _BLOCKS_OBJ_ENTRY_IS_REFERENCE,
+                            }
+                        },
+                        "as": "b",
+                        "in": "$$b.v.immutable_id",
+                    }
+                }
+            }
+        },
+        {
+            "$lookup": {
+                "from": "blocks",
+                "let": {"refs": "$_referenced_block_ids"},
+                "pipeline": [
+                    {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$refs", []]}]}}},
+                    {
+                        "$project": {
+                            "_id": 0,
+                            "block_id": 1,
+                            "blocktype": 1,
+                            "title": "$data.title",
+                        }
+                    },
+                ],
+                "as": "_referenced_blocks",
+            }
+        },
+    ]
+
+
+def blocks_preview_projection() -> dict:
+    """Projection expression for the `blocks` preview array (block_id/blocktype/title
+    per block), combining legacy embedded `blocks_obj` entries with the referenced
+    blocks resolved by `blocks_preview_stages()`.
+    """
+    return {
+        "$concatArrays": [
+            {
+                "$map": {
+                    "input": {
+                        "$filter": {
+                            "input": _BLOCKS_OBJ_AS_ARRAY,
+                            "as": "b",
+                            "cond": {"$not": _BLOCKS_OBJ_ENTRY_IS_REFERENCE},
+                        }
+                    },
+                    "as": "b",
+                    "in": {
+                        "block_id": "$$b.k",
+                        "blocktype": "$$b.v.blocktype",
+                        "title": "$$b.v.title",
+                    },
+                }
+            },
+            {"$ifNull": ["$_referenced_blocks", []]},
+        ]
+    }
 
 
 def authorize_and_get_blocks_data(item_id: str | None, block_id: str) -> dict | None:
