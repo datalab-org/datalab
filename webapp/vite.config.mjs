@@ -57,24 +57,50 @@ export default defineConfig(({ mode }) => {
   // tooling (e.g. the datalab-api Python client) scrapes it from the served
   // webapp to auto-discover the API URL. In the production image the value is
   // the `magic-api-url` placeholder, which app_entrypoint.sh patches at runtime.
+  // The <title> is likewise set from VUE_APP_WEBSITE_TITLE (the `magic-title`
+  // placeholder in production), as html-webpack-plugin's `title` option did.
   const apiUrlMetaPlugin = {
     name: "datalab-api-url-meta",
-    transformIndexHtml() {
-      return [
-        {
-          tag: "meta",
-          attrs: {
-            name: "x_datalab_api_url",
-            content: env.VUE_APP_API_URL || "magic-api-url",
+    transformIndexHtml(html) {
+      const title = (env.VUE_APP_WEBSITE_TITLE || "datalab")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;");
+      return {
+        html: html.replaceAll("<title>datalab</title>", `<title>${title}</title>`),
+        tags: [
+          {
+            tag: "meta",
+            attrs: {
+              name: "x_datalab_api_url",
+              // Same fallback as API_URL in src/resources.js.
+              content: env.VUE_APP_API_URL ?? "http://localhost:5001",
+            },
+            injectTo: "head",
           },
-          injectTo: "head",
-        },
-      ];
+        ],
+      };
+    },
+  };
+
+  // Move @import rules to the top of each stylesheet. Browsers (and Vite's CSS
+  // pipeline) ignore an @import that follows other rules, whereas webpack
+  // accepted them anywhere; deployment-provided CustomAbout.vue files may
+  // rely on that. Runs before Vite's own CSS handling, which drops them.
+  const hoistCssImports = {
+    name: "datalab-hoist-css-imports",
+    enforce: "pre",
+    transform(code, id) {
+      if (!/\.css($|\?)|[?&]lang\.css/.test(id)) return;
+      const imports = code.match(/^\s*@import\s[^;]+;/gm);
+      if (!imports) return;
+      const rest = code.replace(/^\s*@import\s[^;]+;/gm, "");
+      return { code: imports.map((i) => i.trim()).join("\n") + "\n" + rest, map: null };
     },
   };
 
   return {
     plugins: [
+      hoistCssImports,
       vue(),
       // Compile JSX (used by the .cy.jsx Cypress component specs) as Vue JSX,
       // matching the old vue-cli/@vue/babel-plugin-jsx behaviour.
@@ -86,6 +112,8 @@ export default defineConfig(({ mode }) => {
       }),
     ],
     define,
+    // Strip console.* calls from production builds, as babel-plugin-transform-remove-console did.
+    esbuild: mode === "production" ? { drop: ["console"] } : {},
     resolve: {
       alias,
       // Allow extensionless imports (e.g. `@/components/Navbar`) that the
