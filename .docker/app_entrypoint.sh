@@ -34,6 +34,7 @@ echo "  LOGO_URL: ${VUE_APP_LOGO_URL}"
 echo "  LOGO_WIDTH: ${VUE_APP_LOGO_WIDTH}"
 echo "  HOMEPAGE_URL: ${VUE_APP_HOMPAGE_URL}"
 echo "  EDITABLE_INVENTORY: ${VUE_APP_EDITABLE_INVENTORY}"
+echo "  HIDE_COLLECTIONS: ${VUE_APP_HIDE_COLLECTIONS}"
 echo "  WEBSITE_TITLE: ${VUE_APP_WEBSITE_TITLE}"
 echo "  QR_CODE_RESOLVER_URL: ${VUE_APP_QR_CODE_RESOLVER_URL}"
 echo "  AUTOMATICALLY_GENERATE_ID_DEFAULT: ${VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT}"
@@ -48,6 +49,7 @@ for file in $ROOT_DIR/js/app.*.js* $ROOT_DIR/*html; do
     sed -i "s|magic-logo-width|${VUE_APP_LOGO_WIDTH}|g" $file
     sed -i "s|magic-homepage-url|${VUE_APP_HOMEPAGE_URL}|g" $file
     sed -i "s|magic-setting|${VUE_APP_EDITABLE_INVENTORY}|g" $file
+    sed -i "s|magic-hide-collections-setting|${VUE_APP_HIDE_COLLECTIONS}|g" $file
     sed -i "s|magic-title|${VUE_APP_WEBSITE_TITLE}|g" $file
     sed -i "s|magic-qr-code-resolver-url|${VUE_APP_QR_CODE_RESOLVER_URL}|g" $file
     sed -i "s|magic-generate-id-setting|${VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT}|g" $file

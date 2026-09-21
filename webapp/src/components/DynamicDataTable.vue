@@ -141,9 +141,10 @@
   />
   <BatchCreateItemModal v-model="batchCreateItemModalIsOpen" />
   <QRScannerModal v-model="qrScannerModalIsOpen" />
-  <CreateCollectionModal v-model="createCollectionModalIsOpen" />
+  <CreateCollectionModal v-if="!hideCollections" v-model="createCollectionModalIsOpen" />
   <CreateEquipmentModal v-model="createEquipmentModalIsOpen" />
   <AddToCollectionModal
+    v-if="!hideCollections"
     v-model="addToCollectionModalIsOpen"
     :items-selected="itemsSelected"
     @items-updated="handleItemsUpdated"
@@ -165,7 +166,7 @@ import CreateEquipmentModal from "@/components/CreateEquipmentModal";
 import AddToCollectionModal from "@/components/AddToCollectionModal";
 import BatchShareModal from "@/components/BatchShareModal";
 
-import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY } from "@/resources.js";
+import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY, HIDE_COLLECTIONS } from "@/resources.js";
 
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
@@ -245,6 +246,7 @@ export default {
       filteredData: [],
       allowedTypes: INVENTORY_TABLE_TYPES,
       editable_inventory: EDITABLE_INVENTORY,
+      hideCollections: HIDE_COLLECTIONS,
       selectedColumns: [],
       // Names of the per-column matchers this instance registered with the global
       // FilterService, so that they can be removed again when it unmounts.
@@ -284,7 +286,9 @@ export default {
       );
     },
     availableColumns() {
-      return this.columns.map((col) => ({ ...col }));
+      return this.columns
+        .filter((col) => !this.hideCollections || col.field !== "collections")
+        .map((col) => ({ ...col }));
     },
   },
   created() {

@@ -12,6 +12,7 @@ services:
       - VUE_APP_LOGO_URL
       - VUE_APP_HOMEPAGE_URL
       - VUE_APP_EDITABLE_INVENTORY
+      - VUE_APP_HIDE_COLLECTIONS
       - VUE_APP_WEBSITE_TITLE
       - VUE_APP_QR_CODE_RESOLVER_URL
       - VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT
@@ -118,6 +119,7 @@ services:
     environment:
       - NODE_ENV=development
       - VUE_APP_API_URL=${VUE_APP_API_URL:-http://localhost:5001}
+      - VUE_APP_HIDE_COLLECTIONS
       - CHOKIDAR_USEPOLLING=true
 
 networks:

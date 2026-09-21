@@ -61,7 +61,7 @@
         </button>
       </div>
       <button
-        v-if="dataType === 'collections'"
+        v-if="!hideCollections && dataType === 'collections'"
         data-testid="add-collection-button"
         class="btn btn-default"
         @click="$emit('open-create-collection-modal')"
@@ -167,6 +167,7 @@
         >
           <a
             v-if="
+              !hideCollections &&
               !['collections', 'collectionItems', 'users', 'tokens', 'groups'].includes(dataType)
             "
             data-testid="add-to-collection-button"
@@ -176,7 +177,7 @@
             Add to collection
           </a>
           <a
-            v-if="dataType === 'collectionItems'"
+            v-if="!hideCollections && dataType === 'collectionItems'"
             data-testid="remove-from-collection-dropdown"
             class="dropdown-item"
             @click="confirmRemoveFromCollection"
@@ -300,6 +301,7 @@ import "primeicons/primeicons.css";
 import BulkChangeRoleModal from "@/components/BulkChangeRoleModal.vue";
 import BulkAddToGroupModal from "@/components/BulkAddToGroupModal.vue";
 import BulkChangeManagersModal from "@/components/BulkChangeManagersModal.vue";
+import { HIDE_COLLECTIONS } from "@/resources.js";
 
 import {
   deleteSample,
@@ -397,6 +399,7 @@ export default {
       showBulkChangeRoleModal: false,
       showBulkAddToGroupModal: false,
       showBulkChangeManagersModal: false,
+      hideCollections: HIDE_COLLECTIONS,
     };
   },
   computed: {
