@@ -13,7 +13,7 @@ from pydatalab.export import create_eln_file
 from pydatalab.logger import LOGGER
 from pydatalab.models.tasks import ExportTaskSpec, Task, TaskStage, TaskStatus, TaskType
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only
+from pydatalab.permissions import active_users_or_get_only
 from pydatalab.scheduler import task_scheduler
 
 EXPORT = Blueprint("export", __name__)
@@ -205,10 +205,7 @@ def start_collection_export(collection_id: str):
 
     task_id = str(uuid.uuid4())
 
-    if not CONFIG.TESTING:
-        creator_id = current_user.person.immutable_id
-    else:
-        creator_id = PUBLIC_USER_ID
+    creator_id = current_user.person.immutable_id
 
     export_task = Task(
         task_id=task_id,
@@ -317,13 +314,10 @@ def _serve_export_file(file_path: str, filename: str):
 
 @EXPORT.route("/exports/<string:task_id>/download", methods=["GET"])
 def download_export(task_id: str):
-    if not CONFIG.TESTING:
-        current_creator_id = current_user.person.immutable_id
-        task = flask_mongo.db.tasks.find_one(
-            {"task_id": task_id, "creator_id": current_creator_id, "type": TaskType.EXPORT}
-        )
-    else:
-        task = flask_mongo.db.tasks.find_one({"task_id": task_id, "type": TaskType.EXPORT})
+    current_creator_id = current_user.person.immutable_id
+    task = flask_mongo.db.tasks.find_one(
+        {"task_id": task_id, "creator_id": current_creator_id, "type": TaskType.EXPORT}
+    )
 
     if not task:
         return jsonify({"status": "error", "message": "Export task not found"}), 404
@@ -359,10 +353,7 @@ def start_item_export(item_id: str):
 
     task_id = str(uuid.uuid4())
 
-    if not CONFIG.TESTING:
-        creator_id = current_user.person.immutable_id
-    else:
-        creator_id = PUBLIC_USER_ID
+    creator_id = current_user.person.immutable_id
 
     export_type = "item"
     related_item_ids = None

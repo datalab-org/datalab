@@ -124,7 +124,7 @@ dev.add_task(generate_schemas)
         "host": "Host to bind",
         "port": "Port to bind",
         "reload": "Enable the Werkzeug reloader and debugger (disable with --no-reload)",
-        "testing": "Enable CONFIG.TESTING if PYDATALAB_TESTING is not already set",
+        "testing": "Enable CONFIG.TESTING and CONFIG.ENABLE_TEST_EMAIL_AUTH if not already set",
         "debug": "Enable CONFIG.DEBUG if PYDATALAB_DEBUG is not already set",
     }
 )
@@ -153,6 +153,9 @@ def serve(
 
     if testing and "PYDATALAB_TESTING" not in os.environ:
         os.environ["PYDATALAB_TESTING"] = "1"
+
+    if testing and "PYDATALAB_ENABLE_TEST_EMAIL_AUTH" not in os.environ:
+        os.environ["PYDATALAB_ENABLE_TEST_EMAIL_AUTH"] = "1"
 
     if debug and "PYDATALAB_DEBUG" not in os.environ:
         os.environ["PYDATALAB_DEBUG"] = "1"

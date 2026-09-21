@@ -82,16 +82,12 @@ def active_users_or_get_only(func):
                 return func(*args, **kwargs)
 
         if (
-            (
-                current_user.is_authenticated
-                and (
-                    current_user.account_status == AccountStatus.ACTIVE
-                    or request.method in ("OPTIONS", "GET")
-                )
+            current_user.is_authenticated
+            and (
+                current_user.account_status == AccountStatus.ACTIVE
+                or request.method in ("OPTIONS", "GET")
             )
-            or CONFIG.TESTING
-            or request.method in ("OPTIONS",)
-        ):
+        ) or request.method in ("OPTIONS",):
             return func(*args, **kwargs)
 
         return {"error": "Unauthorized"}, 401
@@ -121,16 +117,12 @@ def access_token_or_active_users(func):
                 return {"error": "Invalid access token"}, 401
 
         if (
-            (
-                current_user.is_authenticated
-                and (
-                    current_user.account_status == AccountStatus.ACTIVE
-                    or request.method in ("OPTIONS", "GET")
-                )
+            current_user.is_authenticated
+            and (
+                current_user.account_status == AccountStatus.ACTIVE
+                or request.method in ("OPTIONS", "GET")
             )
-            or CONFIG.TESTING
-            or request.method in ("OPTIONS",)
-        ):
+        ) or request.method in ("OPTIONS",):
             return func(*args, elevate_permissions=False, **kwargs)
 
         return {"error": "Unauthorized"}, 401
@@ -226,9 +218,6 @@ def _get_base_permissions(
     i.e., based purely on `creator_ids`/`group_ids` and the various admin/
     testing/access-token short-circuits.
     """
-    if CONFIG.TESTING:
-        return {}
-
     # Super-user mode for admins: only activates on GET with ?sudo=1
     # For non-GET methods, admins always have full access
     if (
@@ -314,8 +303,7 @@ def get_default_permissions(
 ) -> dict[str, Any]:
     """Return the MongoDB query terms corresponding to the current user.
 
-    Will return open permissions if a) the `CONFIG.TESTING` parameter is `True`,
-    or b) if the current user is registered as an admin and has opted into super-user
+    Will return open permissions if the current user is registered as an admin and has opted into super-user
     mode via `?sudo=1` (for GET requests) or is performing a write operation.
 
     For read paths (`user_only=False`), the filter is by default widened to

@@ -142,7 +142,8 @@ class ServerConfig(BaseSettings):
     )
 
     TESTING: bool = Field(
-        False, description="Whether to run the server in testing mode, i.e., without user auth."
+        False,
+        description="Whether to run the server in testing mode, i.e., with a deterministic secret key and backups disabled. This no longer disables authentication; see `ENABLE_TEST_EMAIL_AUTH` for logging in during tests.",
     )
 
     ENABLE_TEST_EMAIL_AUTH: bool = Field(
