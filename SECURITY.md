@@ -24,7 +24,7 @@ What to expect:
 
 We will keep you updated as we work, credit you in the advisory unless you would
 rather we didn't, and publish a GitHub Security Advisory when a fix is released, where appropriate.
-Severity is assessed using a risk-based approach that considers how easy the vulnerability is to exploit, what data or systems are affected, how exposed the deployment is, and whether the vulnerability is already being exploited. 
+Severity is assessed using a risk-based approach that considers how easy the vulnerability is to exploit, what data or systems are affected, how exposed the deployment is, and whether the vulnerability is already being exploited.
 Critical vulnerabilities, or those known to be actively exploited, may require emergency mitigations, faster operator notification, and emergency releases.
 If we conclude a report is not a vulnerability, we will explain why.
 
