@@ -3,6 +3,7 @@ import UserBubble from "@/components/UserBubble.vue";
 import StyledTooltip from "@/components/StyledTooltip.vue";
 import PrimeVue from "primevue/config";
 import { createStore } from "vuex";
+import "bootstrap/dist/css/bootstrap.css";
 
 describe("CollectionTable Component Tests", () => {
   let store;
@@ -56,6 +57,52 @@ describe("CollectionTable Component Tests", () => {
     cy.get('[data-testid="add-to-collection-button"]').should("not.exist");
     cy.get('[data-testid="delete-selected-button"]').should("not.exist");
     cy.get('[data-testid="search-input"]').should("exist");
+    cy.get('[data-testid="selection-summary"]').should("contain.text", "Number of collections: 2");
+  });
+
+  it("uses collection wording for selected rows", () => {
+    cy.get(".p-datatable-tbody > tr").first().find("input[type='checkbox']").click({ force: true });
+    cy.get('[data-testid="selection-summary"]').should("contain.text", "1 collection selected");
+  });
+
+  it("moves the toolbar to separate rows below the large breakpoint", () => {
+    const toolbarControls = [
+      '[data-testid="add-collection-button"]',
+      '[data-testid="selection-summary"]',
+      '[data-testid="search-input"]',
+    ].join(", ");
+    let initialRowTop;
+
+    cy.viewport(900, 720);
+    cy.get(toolbarControls).should(($controls) => {
+      const tops = [...$controls].map((control) => control.getBoundingClientRect().top);
+      expect(tops[0]).to.be.lessThan(tops[1]);
+      expect(tops[1]).to.be.lessThan(tops[2]);
+    });
+    cy.get('[data-testid="selection-summary"]')
+      .should("contain.text", "Number of collections: 2")
+      .should(($summary) => {
+        expect($summary[0].scrollWidth).to.be.at.most($summary[0].clientWidth);
+      });
+    cy.get(".p-datatable-tbody > tr")
+      .first()
+      .then(($row) => {
+        initialRowTop = $row[0].getBoundingClientRect().top;
+      });
+
+    cy.get(".p-datatable-tbody > tr").first().find("input[type='checkbox']").click({ force: true });
+    cy.get('[data-testid="selected-dropdown"]').should("contain.text", "Actions");
+    cy.get(".p-datatable-tbody > tr")
+      .first()
+      .should(($row) => {
+        expect($row[0].getBoundingClientRect().top).to.equal(initialRowTop);
+      });
+
+    cy.viewport(1000, 720);
+    cy.get(toolbarControls).should(($controls) => {
+      const tops = [...$controls].map((control) => Math.round(control.getBoundingClientRect().top));
+      expect(new Set(tops).size).to.equal(1);
+    });
   });
 
   it("renders the correct columns in the table", () => {
