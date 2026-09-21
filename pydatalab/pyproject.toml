@@ -56,7 +56,6 @@ server = [
     "Flask-Compress ~= 1.15",
     "APScheduler ~= 3.10",
     "Werkzeug ~= 3.0",
-    "python-dotenv ~= 1.0",
     "pillow>=11,<13",
     "pyjwt ~= 2.9",
     "invoke>=2.2,<4.0",
