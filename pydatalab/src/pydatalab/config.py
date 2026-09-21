@@ -145,6 +145,11 @@ class ServerConfig(BaseSettings):
         False, description="Whether to run the server in testing mode, i.e., without user auth."
     )
 
+    ENABLE_TEST_EMAIL_AUTH: bool = Field(
+        False,
+        description="Whether to enable the `/testing/create-magic-link` endpoint, which allows anyone to log in as any user (with any role) without verifying their email address. This is intended only for end-to-end testing and MUST NOT be enabled in production.",
+    )
+
     SECRET_KEY: str | None = Field(
         None,
         description="The secret key to use for Flask. This value should be changed and/or loaded from an environment variable for production deployments.",
