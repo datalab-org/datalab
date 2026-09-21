@@ -215,12 +215,12 @@ Login page colours and sizes can also be tuned from `public/custom/override.css`
 
 ```css
 :root {
-  --login-background: #f5f5f5; /* page background */
+  --login-background: #f5f6f8; /* page background */
   --login-box-background: white;
   --login-box-color: #222;
-  --login-max-width: 1080px; /* maximum width of the login box */
-  --login-logo-max-width: 400px;
-  --login-logo-max-height: 200px;
+  --login-max-width: 26rem; /* maximum width of the login box */
+  --login-logo-max-width: 240px;
+  --login-logo-max-height: 120px;
 }
 ```
 

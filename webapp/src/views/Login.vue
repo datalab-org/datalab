@@ -1,46 +1,44 @@
 <template>
-  <div class="login-page">
-    <div class="login-box">
-      <div v-if="logo_url != null" class="logo-container">
-        <a
-          v-if="homepage_url != null"
-          :href="homepage_url"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img class="logo-banner" :src="logo_url" />
-        </a>
-        <img v-else class="logo-banner" :src="logo_url" />
-      </div>
+  <div class="login-page min-vh-100 px-3 py-5">
+    <main class="login-box card shadow-sm mx-auto">
+      <div class="card-body p-4 p-sm-5 text-center">
+        <div v-if="logo_url != null" class="mb-4">
+          <a
+            v-if="homepage_url != null"
+            :href="homepage_url"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img class="logo-banner d-block mx-auto" :src="logo_url" alt="Logo" />
+          </a>
+          <img v-else class="logo-banner d-block mx-auto" :src="logo_url" alt="Logo" />
+        </div>
 
-      <div class="login-info">
         <LoginInfo>
           <template #login>
-            <div v-if="!isLoaded" class="text-muted text-center">
-              <font-awesome-icon icon="spinner" spin /> Loading...
-            </div>
+            <div class="login-controls mx-auto">
+              <div v-if="!isLoaded" class="text-muted">
+                <font-awesome-icon icon="spinner" spin /> Loading...
+              </div>
 
-            <div v-else-if="currentUser != null" class="login-buttons text-center">
-              <div>
-                <h2 class="logged-in-title">You are already logged in</h2>
-                <p class="text-muted mb-0">
+              <template v-else-if="currentUser != null">
+                <p class="text-muted mb-3">
                   Signed in as <strong>{{ currentUserDisplayName }}</strong>
                 </p>
-              </div>
-              <button type="button" class="btn btn-default btn-login p-3" @click="goToApp">
-                <font-awesome-icon icon="home" /> Go to app
-              </button>
-              <a type="button" class="btn btn-default btn-login p-3" :href="apiUrl + '/logout'">
-                <font-awesome-icon icon="sign-out-alt" /> Logout
-              </a>
-            </div>
+                <button type="button" class="btn btn-default btn-block" @click="goToApp">
+                  Continue to app
+                </button>
+                <a class="d-inline-block mt-3 small text-muted" :href="apiUrl + '/logout'">
+                  <font-awesome-icon icon="sign-out-alt" /> Log out
+                </a>
+              </template>
 
-            <div v-else class="login-buttons">
-              <div v-if="noAuthMechanismsAvailable" class="text-muted text-center">
+              <p v-else-if="noAuthMechanismsAvailable" class="text-muted mb-0">
                 No login methods are currently available. Please contact the admin of this datalab
                 server.
-              </div>
-              <div v-else class="dropdown align-self-center">
+              </p>
+
+              <div v-else class="dropdown d-inline-block">
                 <button
                   id="loginDropdown"
                   class="btn btn-default dropdown-toggle"
@@ -64,7 +62,7 @@
           </template>
         </LoginInfo>
       </div>
-    </div>
+    </main>
   </div>
 </template>
 
@@ -126,69 +124,28 @@ export default {
 </script>
 
 <style scoped>
+/* Only deployment-overridable values live here; layout uses Bootstrap utilities */
 .login-page {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2rem;
-  min-height: 100vh;
-  padding: 2rem 1rem;
-  background-color: var(--login-background, transparent);
-}
-
-.logo-container {
-  display: flex;
-  justify-content: center;
-}
-
-.logo-banner {
-  display: block;
-  width: 100%;
-  max-width: var(--login-logo-max-width, 400px);
-  max-height: var(--login-logo-max-height, 200px);
-  object-fit: contain;
-}
-
-a > .logo-banner:hover {
-  opacity: 0.6;
+  background-color: var(--login-background, #f5f6f8);
 }
 
 .login-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  width: 100%;
-  max-width: var(--login-max-width, 1080px);
-  padding: 2rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  max-width: var(--login-max-width, 26rem);
   background: var(--login-box-background, #fff);
   color: var(--login-box-color, inherit);
 }
 
-.login-info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  width: 100%;
-  text-align: center;
+.logo-banner {
+  max-width: min(100%, var(--login-logo-max-width, 240px));
+  max-height: var(--login-logo-max-height, 120px);
+  object-fit: contain;
 }
 
-.login-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  width: min(100%, 24rem);
+a > .logo-banner:hover {
+  opacity: 0.7;
 }
 
-.btn-login {
-  font-size: 1.3rem;
-}
-
-.logged-in-title {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
+.login-controls {
+  max-width: 16rem;
 }
 </style>
