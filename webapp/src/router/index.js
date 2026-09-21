@@ -10,9 +10,7 @@ import ExampleGraph from "@/views/ExampleGraph.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
 import Admin from "@/views/Admin.vue";
 import Login from "../views/Login.vue";
-import Login2 from "../views/Login2.vue";
-import Login3 from "../views/Login3.vue";
-import { API_URL } from "@/resources.js";
+import { API_URL, ENABLE_LOGIN_PAGE, WEBSITE_TITLE } from "@/resources.js";
 
 const routes = [
   {
@@ -30,22 +28,10 @@ const routes = [
     component: Samples,
   },
   {
-    path: "/next/login",
+    path: "/login",
     name: "login",
-    alias: "/",
+    alias: "/next/login",
     component: Login,
-  },
-  {
-    path: "/next/login2",
-    name: "login2",
-    alias: "/",
-    component: Login2,
-  },
-  {
-    path: "/next/login3",
-    name: "login3",
-    alias: "/",
-    component: Login3,
   },
   {
     path: "/equipment",
@@ -118,7 +104,15 @@ router.beforeEach(async (to, from, next) => {
     return;
   }
 
-  if (to.path === "/" || (to.name === "samples" && from.path === "/")) {
+  if (ENABLE_LOGIN_PAGE) {
+    const { getUserInfo } = await import("@/server_fetch_utils.js");
+    const user = await getUserInfo();
+
+    if (!user && to.name !== "login") {
+      next({ name: "login", query: { next: to.fullPath } });
+      return;
+    }
+  } else if (to.path === "/" || (to.name === "samples" && from.path === "/")) {
     const { getUserInfo } = await import("@/server_fetch_utils.js");
     const user = await getUserInfo();
 
@@ -127,8 +121,6 @@ router.beforeEach(async (to, from, next) => {
       return;
     }
   }
-
-  const websiteTitle = process.env.VUE_APP_WEBSITE_TITLE || "datalab";
 
   const capitalizeFirstLetter = (string) => {
     return string ? string.charAt(0).toUpperCase() + string.slice(1) : "";
@@ -143,9 +135,9 @@ router.beforeEach(async (to, from, next) => {
 
   document.title = to.name
     ? to.params.id
-      ? `${websiteTitle} - ${formattedName}: ${to.params.id}`
-      : `${websiteTitle} - ${formattedName}`
-    : websiteTitle;
+      ? `${WEBSITE_TITLE} - ${formattedName}: ${to.params.id}`
+      : `${WEBSITE_TITLE} - ${formattedName}`
+    : WEBSITE_TITLE;
 
   next();
 });
