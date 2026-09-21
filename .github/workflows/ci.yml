@@ -236,7 +236,7 @@ jobs:
       - name: Start dev services
         run: |
           # Boot the hot-reloading dev profile and block on healthchecks
-          # (webpack dev server compiled, API answering /healthcheck/is_ready).
+          # (Vite dev server up, API answering /healthcheck/is_ready).
           docker compose --profile dev up --no-build --force-recreate -d --wait
 
       - name: Check the dev API and app respond
@@ -261,7 +261,7 @@ jobs:
       fail-fast: false
       max-parallel: 3
       matrix:
-        browser-backend: ["electron", "chrome"] # , "firefox"]  # Temporarily disable Firefox until migration to Cypress v14 (https://github.com/datalab-org/datalab/issues/1289)
+        browser-backend: ["electron", "chrome", "firefox"]
 
     steps:
       - uses: actions/checkout@v7
@@ -342,9 +342,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: 2
+      max-parallel: 3
       matrix:
-        browser-backend: ["electron", "chrome"]
+        browser-backend: ["electron", "chrome", "firefox"]
 
     steps:
       - uses: actions/checkout@v7

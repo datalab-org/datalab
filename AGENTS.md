@@ -58,7 +58,7 @@ cd webapp
 # Install dependencies
 yarn install
 
-# Run development server (serves at localhost:8081)
+# Run development server (prints its local URL on startup)
 yarn serve
 
 # Build for production

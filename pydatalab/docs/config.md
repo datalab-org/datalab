@@ -174,7 +174,7 @@ The main instance logo can also be customised via the `VUE_APP_LOGO_URL` environ
 ### Custom about page (`public/custom/components/CustomAbout.vue`)
 
 Deployments can provide a custom Vue component that will be displayed in a collapsible panel on the About page.
-Place a `CustomAbout.vue` file in `public/custom/components/` and it will automatically replace the default empty skeleton at build time (via webpack's `NormalModuleReplacementPlugin`).
+Place a `CustomAbout.vue` file in `public/custom/components/` and it will automatically replace the default empty skeleton at build time (via a Vite alias in `webapp/vite.config.mjs`).
 
 The component can contain any valid Vue template, script and scoped styles.
 No special configuration or flags are needed — if the file exists, it will be used.

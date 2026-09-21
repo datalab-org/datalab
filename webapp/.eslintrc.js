@@ -12,16 +12,10 @@ module.exports = {
     "plugin:cypress/recommended",
   ],
   parserOptions: {
-    parser: "@babel/eslint-parser",
-    requireConfigFile: false,
-    babelOptions: {
-      babelrc: false,
-      configFile: false,
-      presets: ["@vue/cli-plugin-babel/preset"],
-      plugins: [
-        "@babel/plugin-transform-export-namespace-from",
-        "@babel/plugin-transform-class-static-block",
-      ],
+    ecmaVersion: "latest",
+    sourceType: "module",
+    ecmaFeatures: {
+      jsx: true,
     },
   },
   rules: {

@@ -32,11 +32,11 @@ RUN apt update \
         xvfb \
     && rm -rf /var/lib/apt/lists/*
 
-CMD [ "/node_modules/.bin/vue-cli-service", "serve", "--host", "0.0.0.0", "--port", "8081" ]
+CMD [ "/node_modules/.bin/vite", "--host", "0.0.0.0", "--port", "8081" ]
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD node -e "fetch('http://localhost:8081').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
 
-# build target: runs the production webpack bundle. Derives from `base` rather
+# build target: runs the production Vite build. Derives from `base` rather
 # than `dev` so production builds don't pull in the Cypress system libraries.
 FROM base AS build
 COPY webapp ./
@@ -55,7 +55,7 @@ ARG VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT=magic-generate-id-setting
 ARG VUE_APP_GIT_VERSION=0.0.0-git
 ENV VUE_APP_GIT_VERSION=${VUE_APP_GIT_VERSION}
 
-RUN /node_modules/.bin/vue-cli-service build
+RUN /node_modules/.bin/vite build
 
 FROM node:22.22-trixie-slim AS production
 

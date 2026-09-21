@@ -6,13 +6,15 @@ export default defineConfig({
     baseUrl: "http://localhost:8080",
     apiUrl: "http://localhost:5001",
     defaultCommandTimeout: 10000,
+    specPattern: "cypress/e2e/**/*.cy.{js,jsx,ts,tsx}",
   },
   component: {
     // Avoid port 8080's macOS WebSocket issue and the usual local dev-server port, 8081.
     port: 8082,
     devServer: {
-      framework: "vue-cli",
-      bundler: "webpack",
+      framework: "vue",
+      bundler: "vite",
     },
+    specPattern: "cypress/component/**/*.cy.{js,jsx,ts,tsx}",
   },
 });
