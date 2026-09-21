@@ -35,10 +35,6 @@ def get_space_available_bytes() -> int:
     """For the configured file location, return the number of bytes available to
     this user.
 
-    Uses `shutil.disk_usage`, which is available on every platform; the previous
-    `os.statvfs` call exists only on Unix, so every upload raised
-    `AttributeError: module 'os' has no attribute 'statvfs'` on Windows.
-
     """
     try:
         return shutil.disk_usage(CONFIG.FILE_DIRECTORY).free
