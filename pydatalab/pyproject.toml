@@ -37,7 +37,7 @@ documentation = "https://docs.datalab-org.io"
 changelog = "https://github.com/datalab-org/datalab/releases"
 
 [build-system]
-requires = ["setuptools >= 77.0.3", "setuptools_scm>=8.1,<10.0", "wheel"]
+requires = ["setuptools >= 77.0.3", "setuptools_scm>=8.1,<11.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
@@ -67,7 +67,7 @@ apps = [
     "nmrglue ~= 0.12",
     # Electrochemistry
     "navani >= 0.1.22",
-    "pyarrow ~= 23.0.1",
+    "pyarrow ~= 25.0.1",
     # Raman
     "pybaselines ~= 1.1",
     "renishawwire >= 0.1.16",
