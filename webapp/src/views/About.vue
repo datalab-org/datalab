@@ -1,3 +1,4 @@
+<!-- This file was edited with the assistance of an AI model and requires human review from the contributor. -->
 <template>
   <Navbar />
   <div class="container">
@@ -19,11 +20,17 @@
           <div class="about-panel-content">
             <DeploymentInfo :title="'Software versions'" />
           </div>
+        </details>
+
+        <details class="about-panel" open>
+          <summary>
+            <span class="h5 d-inline">Usage statistics</span>
+          </summary>
           <div class="about-panel-content">
-            <StatisticsTable :title="'Deployment statistics'" />
+            <DeploymentStats />
           </div>
           <div class="about-panel-content">
-            <UserActivityGraph :combined="true" :title="'User activity'" />
+            <UserActivityGraph :combined="true" :title="'Daily activity'" />
           </div>
         </details>
 
@@ -135,13 +142,13 @@
 
 <script>
 import Navbar from "@/components/Navbar";
-import StatisticsTable from "@/components/StatisticsTable";
+import DeploymentStats from "@/components/DeploymentStats.vue";
 import UserActivityGraph from "@/components/UserActivityGraph.vue";
 import DeploymentInfo from "@/components/DeploymentInfo.vue";
 import CustomAbout from "@/components/CustomAbout.vue";
 
 export default {
-  components: { Navbar, StatisticsTable, UserActivityGraph, DeploymentInfo, CustomAbout },
+  components: { Navbar, DeploymentStats, UserActivityGraph, DeploymentInfo, CustomAbout },
   computed: {
     customAboutHasContent() {
       return CustomAbout.hasContent !== false;

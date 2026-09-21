@@ -1,3 +1,4 @@
+// This file was edited with the assistance of an AI model and requires human review from the contributor.
 import { createStore } from "vuex";
 // import { createLogger } from "vuex";
 // import { set } from 'vue'
@@ -81,6 +82,7 @@ export default createStore({
     },
     schemas: {}, // keys: item types, vals: schema objects
     userActivityCache: {}, // keys: userId (or 'combined' for combined activity), vals: { data, timestamp }
+    statsHistory: null, // monthly histograms of deployment usage from /info/stats/history
   },
   mutations: {
     setServerInfo(state, serverInfo) {
@@ -430,6 +432,9 @@ export default createStore({
     },
     setSchema(state, { type, schema }) {
       state.schemas[type] = schema;
+    },
+    setStatsHistory(state, statsHistory) {
+      state.statsHistory = statsHistory;
     },
     setUserActivityCache(state, { userId, data }) {
       // userId can be a user ID string or 'combined' for combined activity
