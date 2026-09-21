@@ -23,12 +23,15 @@ These can be provided as either:
         - `VUE_APP_LOGO_URL`: the URL of an image to use as the logo header in the web app.
         - `VUE_APP_HOMEPAGE_URL`: a URL to provide as a link from the web app header.
         - `VUE_APP_EDITABLE_INVENTORY`: whether the inventory can be edited by non-admin users in the web app.
+        - `VUE_APP_HIDE_COLLECTIONS`: whether to hide collection pages and controls in the web app. This defaults to `false` and does not disable collection API routes or alter stored collection data.
         - `VUE_APP_WEBSITE_TITLE`: the title of the web app, which is displayed in the browser tab and header.
         - `VUE_APP_QR_CODE_RESOLVER_URL`: the URL of a service that can resolve QR codes to *datalab* entries, which is used by the web app to display QR codes for entries (see [datalab-org/datalab-purl](https://github.com/datalab-org/datalab-purl) for more information).
         - `VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT`: whether to automatically generate IDs for new entries in the web app by default, or require a checkbox to be ticked at item creation.
 
 > [!NOTE]
 > The possible ways to set configuration options can be inconsistent with each other, e.g., values required to be `None` in Python should be set to `null` in the JSON config file and as .env values. Similarly, boolean values may be set to `true` or `false` in the JSON config file, but can be set to {`1`, `yes`, `true`} or {`0`, `no`, `false`} in a `.env` file.
+
+Changes to `VUE_APP_HIDE_COLLECTIONS` require restarting the web app. This setting only hides collections from the web interface and is not an access-control mechanism.
 
 ## Mandatory settings
 

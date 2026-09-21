@@ -25,7 +25,9 @@
   <div id="nav">
     <router-link to="/about">About</router-link> |
     <router-link to="/samples">Samples</router-link> |
-    <router-link to="/collections">Collections</router-link> |
+    <template v-if="!hideCollections">
+      <router-link to="/collections">Collections</router-link> |
+    </template>
     <router-link to="/starting-materials">Inventory</router-link> |
     <router-link to="/equipment">Equipment</router-link> |
     <router-link to="/item-graph"
@@ -53,7 +55,7 @@
 </template>
 
 <script>
-import { API_URL, LOGO_URL, LOGO_WIDTH, HOMEPAGE_URL } from "@/resources.js";
+import { API_URL, LOGO_URL, LOGO_WIDTH, HOMEPAGE_URL, HIDE_COLLECTIONS } from "@/resources.js";
 import LoginDetails from "@/components/LoginDetails.vue";
 
 export default {
@@ -67,6 +69,7 @@ export default {
       logo_url: LOGO_URL,
       logo_width: LOGO_WIDTH,
       homepage_url: HOMEPAGE_URL,
+      hideCollections: HIDE_COLLECTIONS,
       user: null,
     };
   },

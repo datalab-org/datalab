@@ -1,5 +1,6 @@
 import "bootstrap/dist/css/bootstrap.css";
 import DynamicDataTable from "@/components/DynamicDataTable.vue";
+import DynamicDataTableButtons from "@/components/DynamicDataTableButtons.vue";
 import SampleTable from "@/components/SampleTable.vue";
 import UserBubble from "@/components/UserBubble.vue";
 import StyledTooltip from "@/components/StyledTooltip.vue";
@@ -197,6 +198,29 @@ describe("SampleTable Component Tests", () => {
     cy.get('[data-testid="add-to-collection-button"]').should("not.exist");
     cy.get('[data-testid="delete-selected-button"]').should("not.exist");
     cy.get('[data-testid="search-input"]').should("exist");
+  });
+
+  it("hides collection table controls when configured", () => {
+    cy.then(() => {
+      const dataTable = wrapper.findComponent(DynamicDataTable);
+      dataTable.vm.hideCollections = true;
+      dataTable.vm.selectedColumns = dataTable.vm.availableColumns.filter((col) => !col.hidden);
+      dataTable.vm.itemsSelected = [store.state.sample_list[0]];
+
+      const buttons = dataTable.findComponent(DynamicDataTableButtons);
+      buttons.vm.hideCollections = true;
+
+      expect(dataTable.vm.availableColumns.some((col) => col.field === "collections")).to.be.false;
+      return dataTable.vm.$nextTick().then(() => {
+        expect(buttons.props("availableColumns").some((col) => col.field === "collections")).to.be
+          .false;
+      });
+    });
+
+    cy.get(".p-datatable-column-title").should("not.contain.text", "Collections");
+    cy.get('[data-testid="add-to-collection-button"]').should("not.exist");
+    cy.get('[data-testid="add-to-collection-form"]').should("not.exist");
+    cy.contains("Create new collection").should("not.exist");
   });
 
   it("renders the table with correct headers", () => {

@@ -12,7 +12,7 @@ import Admin from "@/views/Admin.vue";
 import Login from "../views/Login.vue";
 import Login2 from "../views/Login2.vue";
 import Login3 from "../views/Login3.vue";
-import { API_URL } from "@/resources.js";
+import { API_URL, HIDE_COLLECTIONS } from "@/resources.js";
 
 const routes = [
   {
@@ -105,7 +105,7 @@ const routes = [
     alias: "/",
     component: Admin,
   },
-];
+].filter((route) => !HIDE_COLLECTIONS || !["collections", "Collection"].includes(route.name));
 
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),

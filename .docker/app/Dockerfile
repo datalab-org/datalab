@@ -47,6 +47,7 @@ ARG VUE_APP_API_URL=magic-api-url
 ARG VUE_APP_LOGO_URL=magic-logo-url
 ARG VUE_APP_HOMEPAGE_URL=magic-homepage-url
 ARG VUE_APP_EDITABLE_INVENTORY=magic-setting
+ARG VUE_APP_HIDE_COLLECTIONS=magic-hide-collections-setting
 ARG VUE_APP_WEBSITE_TITLE=magic-title
 ARG VUE_APP_QR_CODE_RESOLVER_URL=magic-qr-code-resolver-url
 ARG VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT=magic-generate-id-setting

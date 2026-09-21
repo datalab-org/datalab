@@ -23,7 +23,7 @@
           :possible-item-statuses="possibleItemStatuses"
         />
       </div>
-      <div class="form-group col-md-3 col-sm-3">
+      <div v-if="!hideCollections" class="form-group col-md-3 col-sm-3">
         <label id="collections" class="mr-2">Collections</label>
         <div>
           <CollectionList aria-labelledby="collections" :collections="Collections" />
@@ -92,6 +92,7 @@ import FormattedRefcode from "@/components/FormattedRefcode";
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
 import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
+import { HIDE_COLLECTIONS } from "@/resources.js";
 
 export default {
   components: {
@@ -110,6 +111,7 @@ export default {
   },
   data() {
     return {
+      hideCollections: HIDE_COLLECTIONS,
       tableOfContentsSections: [
         { title: "Equipment Information", targetID: "equipment-information" },
         { title: "Table of Contents", targetID: "table-of-contents" },

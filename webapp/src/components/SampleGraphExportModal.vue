@@ -94,7 +94,7 @@
             </label>
           </div>
           <hr />
-          <div class="form-check">
+          <div v-if="!hideCollections" class="form-check">
             <input
               id="create-collection"
               v-model="createCollection"
@@ -164,6 +164,7 @@ import ExportProgressModal from "@/components/ExportProgressModal";
 
 import { startItemExport, createNewCollection, getItemGraph } from "@/server_fetch_utils";
 import { DialogService } from "@/services/DialogService";
+import { HIDE_COLLECTIONS } from "@/resources.js";
 
 export default {
   name: "SampleGraphExportModal",
@@ -187,6 +188,7 @@ export default {
       selectedSampleIds: [],
       selectAll: false,
       createCollection: false,
+      hideCollections: HIDE_COLLECTIONS,
       collectionId: "",
       collectionTitle: "",
       graphDepth: 1,

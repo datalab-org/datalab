@@ -96,6 +96,22 @@ describe("Navbar", () => {
     });
   });
 
+  it("hides the collections navigation link when configured", () => {
+    cy.mount(Navbar, {
+      global: {
+        plugins: [store, router],
+      },
+      data() {
+        return { hideCollections: true };
+      },
+    });
+
+    cy.get("#nav").within(() => {
+      cy.contains("Collections").should("not.exist");
+      cy.contains("Inventory").should("have.attr", "href", "/starting-materials");
+    });
+  });
+
   it("navigates to the correct route on link click", () => {
     cy.mount(Navbar, {
       global: {

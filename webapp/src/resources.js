@@ -39,6 +39,9 @@ export const GRAVATAR_STYLE = "identicon";
 const editable_inventory = process.env.VUE_APP_EDITABLE_INVENTORY || "false";
 export const EDITABLE_INVENTORY = editable_inventory.toLowerCase() == "true";
 
+const hide_collections = process.env.VUE_APP_HIDE_COLLECTIONS || "false";
+export const HIDE_COLLECTIONS = hide_collections.toLowerCase() == "true";
+
 const automatically_generate_id_default =
   process.env.VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT || "false";
 export const AUTOMATICALLY_GENERATE_ID_DEFAULT =
