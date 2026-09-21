@@ -32,7 +32,12 @@ export const LOGO_WIDTH = process.env.VUE_APP_LOGO_WIDTH || "100";
 export const HOMEPAGE_URL = process.env.VUE_APP_HOMEPAGE_URL;
 export const APP_VERSION = process.env.VUE_APP_GIT_VERSION;
 
+export const WEBSITE_TITLE = process.env.VUE_APP_WEBSITE_TITLE || "datalab";
+
 export const GRAVATAR_STYLE = "identicon";
+
+const enable_login_page = process.env.VUE_APP_ENABLE_LOGIN_PAGE || "false";
+export const ENABLE_LOGIN_PAGE = enable_login_page.toLowerCase() == "true";
 
 // determine whether inventory should be readonly (except blocks). Note: environment
 // variables can only be strings, not bools.
