@@ -597,7 +597,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-dependency" },
-    { name = "pytest-memray" },
+    { name = "pytest-memray", marker = "sys_platform != 'win32'" },
 ]
 
 [package.metadata]
@@ -660,7 +660,7 @@ dev = [
     { name = "pytest", specifier = ">=8.2,<10.0" },
     { name = "pytest-cov", specifier = ">=5,<8" },
     { name = "pytest-dependency", specifier = "~=0.6" },
-    { name = "pytest-memray", specifier = "~=1.8" },
+    { name = "pytest-memray", marker = "sys_platform != 'win32'", specifier = "~=1.8" },
 ]
 
 [[package]]
