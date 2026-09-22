@@ -185,15 +185,14 @@ def test_file():
 
 
 def test_tag_model():
-    from pydatalab.models.tags import Tag
-    from pydatalab.models.utils import AccessScope
+    from pydatalab.models.tags import Tag, TagAccessScope
 
     tag = Tag(name="test_tag", description="This is an example", color="#f1c40f", scope="global")
     assert tag.type == "tags"
     assert tag.name == "test_tag"
     assert tag.description == "This is an example"
     assert tag.color == "#f1c40f"
-    assert tag.scope == AccessScope.GLOBAL
+    assert tag.scope == TagAccessScope.GLOBAL
     assert tag.owner is None
 
     # Scope is modelled explicitly via `scope`/`owner` (not the `HasOwner` mixin).
@@ -207,7 +206,7 @@ def test_tag_model():
     assert stored_tag.description is None
     assert stored_tag.color is None
     assert stored_tag.model_dump()["immutable_id"] == oid
-    assert stored_tag.scope == AccessScope.GLOBAL
+    assert stored_tag.scope == TagAccessScope.GLOBAL
 
     # Both `name` and `scope` are required.
     with pytest.raises(pydantic.ValidationError):
@@ -218,14 +217,13 @@ def test_tag_model():
 
 def test_tag_scope_owner_consistency():
     """A user-scoped tag must have an owner; a global tag must not."""
-    from pydatalab.models.tags import Tag
-    from pydatalab.models.utils import AccessScope
+    from pydatalab.models.tags import Tag, TagAccessScope
 
     owner = ObjectId()
 
     # A valid user-defined tag.
     user_defined = Tag(name="mine", scope="user", owner=owner)
-    assert user_defined.scope == AccessScope.USER
+    assert user_defined.scope == TagAccessScope.USER
     assert user_defined.owner == owner
     # `owner` is preserved as an ObjectId in the stored (python-mode) dump.
     assert isinstance(user_defined.model_dump(exclude_none=True)["owner"], ObjectId)

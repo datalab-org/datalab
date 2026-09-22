@@ -1,9 +1,17 @@
+from enum import Enum
 from typing import Literal
 
 from pydantic import model_validator
 
 from pydatalab.models.entries import Entry
-from pydatalab.models.utils import AccessScope, PyObjectId
+from pydatalab.models.utils import PyObjectId
+
+
+class TagAccessScope(str, Enum):
+    """The scope that controls who can list, use and manage a tag."""
+
+    GLOBAL = "global"
+    USER = "user"
 
 
 class Tag(Entry):
@@ -11,9 +19,9 @@ class Tag(Entry):
 
     Tags have a `scope` that controls who can list, use and manage them:
 
-    - `AccessScope.GLOBAL`: available to (and usable by) everyone; created and
+    - `TagAccessScope.GLOBAL`: available to (and usable by) everyone; created and
       managed by administrators only. Global tags have no `owner`.
-    - `AccessScope.USER`: a user-defined tag owned by exactly one user; only that
+    - `TagAccessScope.USER`: a user-defined tag owned by exactly one user; only that
       user can list, use, edit and delete it.
 
     Names are only required to be unique within a scope.
@@ -30,7 +38,7 @@ class Tag(Entry):
     color: str | None = None
     """An optional display color for the tag (e.g. a CSS hex string like `#f1c40f`)."""
 
-    scope: AccessScope
+    scope: TagAccessScope
     """The scope controlling who can list, use and manage this tag (required)."""
 
     owner: PyObjectId | None = None
@@ -39,8 +47,8 @@ class Tag(Entry):
     @model_validator(mode="after")
     def _check_scope_owner_consistency(self):
         """Ensure `scope` and `owner` are mutually consistent."""
-        if self.scope == AccessScope.USER and self.owner is None:
+        if self.scope == TagAccessScope.USER and self.owner is None:
             raise ValueError("A user-scoped tag must have an owner.")
-        if self.scope == AccessScope.GLOBAL and self.owner is not None:
+        if self.scope == TagAccessScope.GLOBAL and self.owner is not None:
             raise ValueError("A global tag cannot have an owner.")
         return self

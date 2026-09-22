@@ -10,8 +10,8 @@ from werkzeug.exceptions import BadRequest, Conflict, Forbidden, NotFound, Unaut
 
 from pydatalab.feature_flags import FEATURE_FLAGS
 from pydatalab.logger import logged_route
-from pydatalab.models.tags import Tag
-from pydatalab.models.utils import AccessScope, UserRole
+from pydatalab.models.tags import Tag, TagAccessScope
+from pydatalab.models.utils import UserRole
 from pydatalab.mongo import (
     TAGS_FTS_FIELDS,
     build_search_pipeline,
@@ -19,6 +19,7 @@ from pydatalab.mongo import (
     insert_pydantic_model_fork_safe,
 )
 from pydatalab.permissions import active_users_or_get_only
+from pydatalab.tags import get_usable_tags_filter
 
 TAGS = Blueprint("tags", __name__)
 
@@ -55,19 +56,9 @@ def _current_user_id() -> ObjectId | None:
     return None
 
 
-def _usable_tags_filter(user_id: ObjectId | None) -> dict:
-    """The Mongo filter for tags the given user may list and use.
-
-    This is global tags plus the user's own user-defined tags.
-    """
-    if user_id is None:
-        return {"scope": AccessScope.GLOBAL.value}
-    return {"$or": [{"scope": AccessScope.GLOBAL.value}, {"owner": user_id}]}
-
-
 def _name_conflict_exists(
     name: str,
-    scope: AccessScope,
+    scope: TagAccessScope,
     owner: ObjectId | None = None,
     exclude_id: ObjectId | None = None,
 ) -> bool:
@@ -76,7 +67,7 @@ def _name_conflict_exists(
     The same name may exist across scopes (e.g. a global `x` and a user-defined `x`).
     """
     query: dict = {"name": name, "scope": scope.value}
-    if scope == AccessScope.USER:
+    if scope == TagAccessScope.USER:
         query["owner"] = owner
 
     if exclude_id is not None:
@@ -90,7 +81,7 @@ def _authorize_tag_write(tag_doc: dict) -> bool:
 
     Global tags require an administrator; user-defined tags require the owner.
     """
-    if tag_doc["scope"] == AccessScope.USER.value:
+    if tag_doc["scope"] == TagAccessScope.USER.value:
         user_id = _current_user_id()
         return user_id is not None and tag_doc.get("owner") == user_id
     return _is_admin()
@@ -111,11 +102,11 @@ def create_tag():
         raise BadRequest("A tag name is required.")
 
     try:
-        scope = AccessScope(data.get("scope") or AccessScope.USER.value)
+        scope = TagAccessScope(data.get("scope") or TagAccessScope.USER.value)
     except ValueError:
         raise BadRequest(f"Invalid tag scope {data.get('scope')!r}.")
 
-    if scope == AccessScope.GLOBAL:
+    if scope == TagAccessScope.GLOBAL:
         if not _is_admin():
             raise Forbidden("Only administrators can create global tags.")
         owner = None
@@ -147,7 +138,7 @@ def create_tag():
 @TAGS.route("/tags", methods=["GET"])
 def get_tags():
     """Return the tags usable by the current user: global tags plus their own."""
-    tags = flask_mongo.db.tags.find(_usable_tags_filter(_current_user_id())).sort("name", 1)
+    tags = flask_mongo.db.tags.find(get_usable_tags_filter(_current_user_id())).sort("name", 1)
     data = [Tag(**doc).model_dump(mode="json") for doc in tags]
     return jsonify({"status": "success", "data": data})
 
@@ -172,7 +163,7 @@ def search_tags():
         raise BadRequest("No query provided.")
 
     pipeline = build_search_pipeline(
-        query, TAGS_FTS_FIELDS, _usable_tags_filter(_current_user_id())
+        query, TAGS_FTS_FIELDS, get_usable_tags_filter(_current_user_id())
     )
     pipeline.append({"$limit": nresults})
     pipeline.append({"$project": {"_id": 1, "name": 1, "description": 1, "color": 1, "scope": 1}})
@@ -226,7 +217,7 @@ def save_tag(tag_id):
 
     # Keep names unique within the tag's own scope on rename.
     if "name" in updated_data:
-        scope = AccessScope(tag["scope"])
+        scope = TagAccessScope(tag["scope"])
         if _name_conflict_exists(
             updated_data["name"], scope, tag.get("owner"), exclude_id=object_id
         ):
