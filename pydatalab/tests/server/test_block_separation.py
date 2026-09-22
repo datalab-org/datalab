@@ -934,3 +934,77 @@ def test_block_write_permissions(
     )
     assert response.status_code == 400
     assert database.blocks.find_one({"_id": immutable_id}) is not None
+
+
+def test_save_item_without_write_access_leaves_blocks_untouched(
+    sample_with_block, admin_client, another_client, database
+):
+    """`/save-item/` requires write access to the item, so a user with only read
+    access must not be able to create, update or delete its referenced blocks
+    through it: the request must be refused before any block document is written.
+    """
+    sample_id, _, block_id = sample_with_block
+
+    immutable_id = database.items.find_one({"item_id": sample_id}, {"blocks_obj": 1})["blocks_obj"][
+        block_id
+    ]["immutable_id"]
+    original_data = database.blocks.find_one({"_id": immutable_id})["data"]
+
+    # The fixture sample grants the demo group (which `another_client` belongs
+    # to) read access only.
+    block_data = _get_item_data(another_client, sample_id)["blocks_obj"][block_id]
+
+    # Omitting the block from the payload would delete it for a user with write access
+    delete_payload = {"item_id": sample_id, "data": {"blocks_obj": {}, "display_order": []}}
+    response = another_client.post("/save-item/", json=delete_payload)
+    assert response.status_code != 200, response.json
+    assert database.blocks.find_one({"_id": immutable_id}) is not None
+
+    # Modifying the block, or adding a new one, must not land either
+    new_block_id = "readonlynewblock"
+    edit_payload = {
+        "item_id": sample_id,
+        "data": {
+            "blocks_obj": {
+                block_id: {**block_data, "freeform_comment": "edited"},
+                new_block_id: {
+                    "blocktype": "comment",
+                    "block_id": new_block_id,
+                    "item_id": sample_id,
+                    "freeform_comment": "new block",
+                },
+            },
+            "display_order": [block_id, new_block_id],
+        },
+    }
+    response = another_client.post("/save-item/", json=edit_payload)
+    assert response.status_code != 200, response.json
+    assert database.blocks.find_one({"_id": immutable_id})["data"] == original_data
+    assert database.blocks.find_one({"block_id": new_block_id}) is None
+
+    # The item is unchanged from the owner's point of view
+    item_data = _get_item_data(admin_client, sample_id)
+    assert list(item_data["blocks_obj"]) == [block_id]
+    assert item_data["display_order"] == [block_id]
+
+    # The same requests from a user with write access do make the changes, so the
+    # refusals above are down to permissions rather than the payloads themselves
+    response = admin_client.post("/save-item/", json=edit_payload)
+    assert response.status_code == 200, response.json
+    assert database.blocks.find_one({"_id": immutable_id})["data"]["freeform_comment"] == "edited"
+    new_block_doc = database.blocks.find_one({"block_id": new_block_id})
+    assert new_block_doc is not None
+    assert new_block_doc["data"]["freeform_comment"] == "new block"
+
+    item_data = _get_item_data(admin_client, sample_id)
+    assert set(item_data["blocks_obj"]) == {block_id, new_block_id}
+    assert item_data["display_order"] == [block_id, new_block_id]
+
+    response = admin_client.post("/save-item/", json=delete_payload)
+    assert response.status_code == 200, response.json
+    assert database.blocks.find_one({"_id": immutable_id}) is None
+    assert database.blocks.find_one({"_id": new_block_doc["_id"]}) is None
+
+    item_data = _get_item_data(admin_client, sample_id)
+    assert item_data["blocks_obj"] == {}
+    assert item_data["display_order"] == []
