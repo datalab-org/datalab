@@ -43,13 +43,20 @@
           </div>
         </div>
 
+        <div v-if="enableTags && !hiddenFields.includes('tags')" class="form-row">
+          <div class="form-group col-12 pb-3">
+            <ToggleableTagsFormGroup v-model="Tags" />
+          </div>
+        </div>
+
         <div v-if="!hiddenFields.includes('location')" class="form-row">
           <div class="form-group col-12">
-            <label for="item-location">Location</label>
+            <label id="item-location-label">Location</label>
             <LocationInput
               v-model="Location"
-              :suggestions="knownLocations"
+              :hierarchy="$store.getters.getLocationHierarchy"
               input-id="item-location"
+              labelled-by="item-location-label"
             />
           </div>
         </div>
@@ -71,6 +78,7 @@
 
 <script>
 import { createComputedSetterForItemField } from "@/field_utils.js";
+import { getLocations } from "@/server_fetch_utils.js";
 import FormattedRefcode from "@/components/FormattedRefcode.vue";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization.vue";
 import LocationInput from "@/components/LocationInput.vue";
@@ -79,6 +87,7 @@ import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionForm
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup.vue";
 import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup.vue";
 import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup.vue";
+import ToggleableTagsFormGroup from "@/components/ToggleableTagsFormGroup.vue";
 
 const DEFAULT_ITEM_STATUSES = ["active", "planned", "disposed", "completed", "failed", "other"];
 
@@ -107,6 +116,7 @@ export default {
     ToggleableCreatorsFormGroup,
     ToggleableGroupsFormGroup,
     ToggleableItemStatusFormGroup,
+    ToggleableTagsFormGroup,
   },
   props: {
     item_id: { type: String, required: true },
@@ -123,18 +133,8 @@ export default {
       const schemaStatuses = resolveEnum(this.schema.properties?.status, this.schema.$defs);
       return schemaStatuses.length ? schemaStatuses : DEFAULT_ITEM_STATUSES;
     },
-    knownLocations() {
-      return [
-        ...new Set(
-          [
-            ...(this.$store.state.sample_list || []),
-            ...(this.$store.state.starting_material_list || []),
-            ...(this.$store.state.equipment_list || []),
-          ]
-            .map((item) => item.location)
-            .filter(Boolean),
-        ),
-      ].sort();
+    enableTags() {
+      return this.$store.state.serverInfo?.features?.tags ?? false;
     },
     Name: createComputedSetterForItemField("name"),
     DateCreated: createComputedSetterForItemField("date"),
@@ -143,8 +143,12 @@ export default {
     Collections: createComputedSetterForItemField("collections"),
     Creators: createComputedSetterForItemField("creators"),
     Groups: createComputedSetterForItemField("groups"),
+    Tags: createComputedSetterForItemField("tags"),
     Location: createComputedSetterForItemField("location"),
     Description: createComputedSetterForItemField("description"),
+  },
+  created() {
+    getLocations();
   },
 };
 </script>
