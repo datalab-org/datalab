@@ -115,6 +115,38 @@ Cypress.Commands.add("deleteSampleViaAPI", (item_id) => {
   });
 });
 
+Cypress.Commands.add("createTagViaAPI", (data) => {
+  // data: { name, description?, color?, scope? }. `scope` defaults to "user"
+  // (a user-defined tag owned by the logged-in user); pass scope: "global" (as an
+  // admin) for a tag every user can use. Returns the new tag's id.
+  return cy
+    .request({
+      method: "PUT",
+      url: API_URL + "/tags",
+      body: { data },
+      failOnStatusCode: false,
+    })
+    .then((response) => response.body?.data?.immutable_id ?? null);
+});
+
+Cypress.Commands.add("deleteTagByNameViaAPI", (name) => {
+  // Best-effort cleanup: delete every tag with this name (requires admin auth).
+  cy.request({ method: "GET", url: API_URL + "/tags", failOnStatusCode: false }).then(
+    (response) => {
+      const tags = response.body?.data ?? [];
+      tags
+        .filter((tag) => tag.name === name)
+        .forEach((tag) => {
+          cy.request({
+            method: "DELETE",
+            url: API_URL + "/tags/" + tag.immutable_id,
+            failOnStatusCode: false,
+          });
+        });
+    },
+  );
+});
+
 Cypress.Commands.add("uploadFileViaAPI", (itemId, path) => {
   cy.log("Upload a test file via the API: " + path);
   cy.fixture(path, "binary")
@@ -425,6 +457,22 @@ Cypress.Commands.add("getColumnIndices", (columnMap = {}) => {
       }
     })
     .then(() => columnIndices);
+});
+
+/**
+ * Get the index of the DataTable column whose header shows the given FontAwesome icon.
+ * For icon-only headers (e.g. blocks, files) that `getColumnIndices` cannot find by name.
+ * @param {string} icon - The icon name, e.g. "cubes" for the `fa-cubes` icon
+ * @returns {Cypress.Chainable<number>} The column index, or -1 if no header shows the icon
+ * @example
+ * cy.getIconColumnIndex("cubes").then((index) => {
+ *   cy.get("tr>td").eq(index).should("be.empty");
+ * });
+ */
+Cypress.Commands.add("getIconColumnIndex", (icon) => {
+  return cy
+    .get(".p-datatable-thead th")
+    .then(($headers) => $headers.toArray().findIndex((th) => th.querySelector(`.fa-${icon}`)));
 });
 
 /**

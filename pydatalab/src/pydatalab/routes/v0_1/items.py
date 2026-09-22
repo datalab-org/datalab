@@ -16,6 +16,7 @@ from werkzeug.exceptions import BadRequest, Conflict, InternalServerError, NotFo
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.blocks import store as block_store
 from pydatalab.config import CONFIG
+from pydatalab.feature_flags import FEATURE_FLAGS
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS, ItemVersion, flagged_summary_fields
 from pydatalab.models.items import Item
@@ -37,6 +38,7 @@ from pydatalab.mongo import (
     flask_mongo,
     get_items_fts_fields,
     groups_lookup,
+    resolve_tags_for_docs,
 )
 from pydatalab.permissions import (
     PUBLIC_USER_ID,
@@ -45,6 +47,11 @@ from pydatalab.permissions import (
     active_users_or_get_only,
     check_access_token,
     get_default_permissions,
+)
+from pydatalab.tags import (
+    authorize_added_tags,
+    strip_tag_display_fields,
+    tag_immutable_ids,
 )
 from pydatalab.versioning import (
     apply_protected_fields,
@@ -313,6 +320,8 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
         "refcode": 1,
         "status": 1,
     }
+    if FEATURE_FLAGS.tags:
+        _project["tags"] = 1
 
     # Include any fields on samples/cells (including custom subclasses) that opt
     # into summaries via `datalab_include_field_in_summary`.
@@ -327,7 +336,7 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
             else:
                 _project[key] = 1
 
-    return list(
+    samples = list(
         flask_mongo.db.items.aggregate(
             [
                 {"$match": match},
@@ -340,6 +349,10 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
             ]
         )
     )
+    if FEATURE_FLAGS.tags:
+        resolve_tags_for_docs(samples)
+
+    return samples
 
 
 def entry_reference_lookup(item_doc: dict) -> dict:
@@ -731,9 +744,10 @@ def _create_sample(
     # TODO: encode this at the model level, via custom schema properties or hard-coded `.store()` methods
     # the `Entry` model.
     try:
-        result = flask_mongo.db.items.insert_one(
-            data_model.model_dump(exclude={"creators", "collections", "groups"})
-        )
+        to_store = data_model.model_dump(exclude={"creators", "collections", "groups"})
+        authorize_added_tags(to_store.get("tags"), set())
+        strip_tag_display_fields(to_store)
+        result = flask_mongo.db.items.insert_one(to_store)
     except DuplicateKeyError as error:
         raise Conflict(f"Duplicate key error: {str(error)}.")
 
@@ -1179,6 +1193,9 @@ def get_item_data(
 
     try:
         doc = entry_reference_lookup(doc)
+        # Resolve tag references for display only (a read-time concern): inline
+        # current tag names and drop references to deleted tags.
+        resolve_tags_for_docs([doc])
         doc = ItemModel(**doc)
     except ValidationError as error:
         # The stored document doesn't validate against its declared schema.
@@ -1831,6 +1848,10 @@ def save_item():
     preserve_relationships = "collections" not in updated_data
     original_relationships = item.get("relationships", []) if preserve_relationships else None
 
+    # Snapshot the tags already on the item so we only authorize newly added
+    # tags below.
+    existing_tag_ids = tag_immutable_ids(item.get("tags"))
+
     item.update(updated_data)
 
     try:
@@ -1858,6 +1879,9 @@ def save_item():
     if isinstance(existing_last_modified, datetime.datetime):
         existing_last_modified = existing_last_modified.isoformat()
 
+    # A user may not add another user's user-defined tag.
+    authorize_added_tags(item.get("tags"), existing_tag_ids)
+
     # Now that the item payload has passed validation, apply the deferred block
     # document writes and swap `{"immutable_id": ...}` references back into the
     # document in place of the full payloads of referenced blocks.
@@ -1872,6 +1896,9 @@ def save_item():
     if block_reference_map:
         item.setdefault("blocks_obj", {})
         item["blocks_obj"].update(block_reference_map)
+
+    # Store tag references minimally; see `strip_tag_display_fields`.
+    strip_tag_display_fields(item)
 
     # Update the item FIRST (transaction safety: item update before version save)
     result = flask_mongo.db.items.update_one(

@@ -3,6 +3,7 @@ import Samples from "../views/Samples.vue";
 import Equipment from "../views/Equipment.vue";
 import StartingMaterials from "../views/StartingMaterials.vue";
 import Collections from "@/views/Collections.vue";
+import Tags from "@/views/Tags.vue";
 import NotFound from "../views/NotFound.vue";
 import EditPage from "../views/EditPage.vue";
 import CollectionPage from "../views/CollectionPage.vue";
@@ -11,6 +12,8 @@ import ItemGraphPage from "@/views/ItemGraphPage.vue";
 import Admin from "@/views/Admin.vue";
 import Login from "../views/Login.vue";
 import { API_URL, ENABLE_LOGIN_PAGE, WEBSITE_TITLE } from "@/resources.js";
+import { getInfo } from "@/server_fetch_utils.js";
+import store from "@/store/index.js";
 
 const routes = [
   {
@@ -58,6 +61,20 @@ const routes = [
     path: "/collections",
     name: "collections",
     component: Collections,
+  },
+  {
+    path: "/tags",
+    name: "tags",
+    component: Tags,
+    // Only reachable when the backend reports the tags feature as enabled.
+    beforeEnter: async (to, from, next) => {
+      const serverInfo = store.state.serverInfo ?? (await getInfo());
+      if (serverInfo.features?.tags) {
+        next();
+      } else {
+        next({ path: "/" });
+      }
+    },
   },
   {
     path: "/collections/:id",

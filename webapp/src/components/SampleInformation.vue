@@ -44,6 +44,11 @@
             <ToggleableGroupsFormGroup v-model="ItemGroups" :refcode="Refcode" />
           </div>
         </div>
+        <div v-if="enableTags" class="form-row">
+          <div class="form-group col-12 pb-3">
+            <ToggleableTagsFormGroup v-model="Tags" />
+          </div>
+        </div>
         <div class="form-row">
           <div class="form-group col-lg-12 col-sm-12">
             <label id="samp-location-label">Location</label>
@@ -85,6 +90,7 @@ import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGrou
 import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import TiptapInline from "@/components/TiptapInline";
 import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
+import ToggleableTagsFormGroup from "@/components/ToggleableTagsFormGroup";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import SubstanceInformation from "@/components/SubstanceInformation";
 import TableOfContents from "@/components/TableOfContents";
@@ -104,6 +110,7 @@ export default {
     ToggleableCreatorsFormGroup,
     ToggleableItemStatusFormGroup,
     ToggleableGroupsFormGroup,
+    ToggleableTagsFormGroup,
     LocationInput,
   },
   props: {
@@ -135,8 +142,12 @@ export default {
     ItemCreators: createComputedSetterForItemField("creators"),
     ItemGroups: createComputedSetterForItemField("groups"),
     Collections: createComputedSetterForItemField("collections"),
+    Tags: createComputedSetterForItemField("tags"),
     Status: createComputedSetterForItemField("status"),
     Location: createComputedSetterForItemField("location"),
+    enableTags() {
+      return this.$store.state.serverInfo?.features?.tags ?? false;
+    },
     schema() {
       return this.$store.state.schemas[this.item?.type];
     },
