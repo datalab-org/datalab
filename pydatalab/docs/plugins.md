@@ -181,7 +181,7 @@ A few keys on the model's `model_config` control the type as a whole:
 |---|---|
 | `title` | display name of the type (navbar, create dialog) |
 | `datalab_ui_color` | accent colour for the navbar, field labels and the item's reference badge |
-| `datalab_ui_hidden_fields` | base-component sections to hide (`status`, `collections`, `description`, `substance_information`, `synthesis_information`) |
+| `datalab_ui_hidden_fields` | base-component sections to hide (`status`, `collections`, `description`, `substance_information`, `synthesis_information`, `tags`, `location`) |
 | `datalab_section_title` | title of the default custom-fields card |
 
 Only **scalar-like** fields are rendered automatically: strings, numbers, enums, booleans, unit

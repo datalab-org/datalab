@@ -50,12 +50,12 @@
             <ToggleableGroupsFormGroup v-model="ItemGroups" :refcode="Refcode" />
           </div>
         </div>
-        <div v-if="enableTags" class="form-row">
+        <div v-if="enableTags && !hiddenFields.includes('tags')" class="form-row">
           <div class="form-group col-12 pb-3">
             <ToggleableTagsFormGroup v-model="Tags" />
           </div>
         </div>
-        <div class="form-row">
+        <div v-if="!hiddenFields.includes('location')" class="form-row">
           <div class="form-group col-lg-12 col-sm-12">
             <label id="samp-location-label">Location</label>
             <LocationInput
