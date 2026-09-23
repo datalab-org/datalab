@@ -35,7 +35,11 @@
             <div class="text-left flex-grow-1">
               <Creators :creators="[user]" :size="32" />
               <small class="d-block text-muted">{{ user.username }}</small>
-              <div v-if="user.groups?.length" class="d-flex flex-wrap gap-2 mt-2">
+              <div
+                v-if="user.groups?.length"
+                class="d-flex flex-wrap align-items-center gap-2 mt-2"
+              >
+                <small class="text-muted">Groups:</small>
                 <FormattedGroupName
                   v-for="group in user.groups"
                   :key="group.immutable_id"
@@ -45,7 +49,10 @@
               </div>
               <small v-else class="d-block text-muted">No groups</small>
             </div>
-            <RoleBadge :role="user.role" class="ml-2" />
+            <div class="d-flex align-items-center ml-2">
+              <small class="text-muted mr-1">Role:</small>
+              <RoleBadge :role="user.role" />
+            </div>
           </div>
         </button>
       </div>
