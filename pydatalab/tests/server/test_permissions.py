@@ -206,6 +206,140 @@ def test_group_permissions(client, another_client, user_id, another_user_id, gro
     assert another_client.get(f"/items/{refcode}").status_code == 404
 
 
+def test_group_restricted_inventory(client, another_client, unverified_client, group_id):
+    """Inventory items are open to all by default, but can be restricted to groups,
+    in which case group members can both read and edit them, and others cannot see them."""
+    for item_type, list_endpoint in (
+        ("starting_materials", "/starting-materials/"),
+        ("equipment", "/equipment/"),
+    ):
+        item_id = f"group-restricted-{item_type}"
+        response = client.post(
+            "/new-sample/",
+            json={
+                "type": item_type,
+                "item_id": item_id,
+                "groups": [{"immutable_id": str(group_id)}],
+            },
+        )
+        assert response.status_code == 201, response.json
+        refcode = response.json["sample_list_entry"]["refcode"]
+
+        # Other group members can read and edit
+        assert another_client.get(f"/items/{refcode}").status_code == 200
+        response = another_client.post(
+            "/save-item/", json={"item_id": item_id, "data": {"name": "edited by group member"}}
+        )
+        assert response.status_code == 200, response.json
+
+        # Users outside the group cannot see the item at all
+        assert unverified_client.get(f"/items/{refcode}").status_code == 404
+        response = unverified_client.get(list_endpoint)
+        assert response.status_code == 200
+        assert item_id not in {item["item_id"] for item in response.json["items"]}
+
+        # Removing the groups opens the item back up to everyone
+        response = another_client.patch(f"/items/{refcode}/permissions", json={"groups": []})
+        assert response.status_code == 200, response.json
+        assert unverified_client.get(f"/items/{refcode}").status_code == 200
+        response = unverified_client.get(list_endpoint)
+        assert item_id in {item["item_id"] for item in response.json["items"]}
+
+
+def test_ungrouped_inventory_error(client, group_id, monkeypatch):
+    """When `UNGROUPED_INVENTORY` is set to "error", inventory items must be created
+    with at least one group, and cannot have all their groups removed."""
+    from pydatalab.config import CONFIG
+
+    monkeypatch.setattr(CONFIG, "UNGROUPED_INVENTORY", "error")
+
+    response = client.post(
+        "/new-sample/", json={"type": "equipment", "item_id": "ungrouped-equipment"}
+    )
+    assert response.status_code == 400
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "type": "equipment",
+            "item_id": "grouped-equipment",
+            "groups": [{"immutable_id": str(group_id)}],
+        },
+    )
+    assert response.status_code == 201, response.json
+    refcode = response.json["sample_list_entry"]["refcode"]
+
+    response = client.patch(f"/items/{refcode}/permissions", json={"groups": []})
+    assert response.status_code == 400
+
+    # Other item types are unaffected
+    response = client.post(
+        "/new-sample/", json={"type": "samples", "item_id": "ungrouped-sample-in-error-mode"}
+    )
+    assert response.status_code == 201, response.json
+
+
+def test_shared_item_connections_to_inaccessible_items(client, another_client, group_id):
+    """When an item is shared, connected items that the viewer cannot access should not
+    leak their latest data, but their identifiers should still be kept up to date."""
+
+    def _constituent(item_id, name):
+        return {"item": {"item_id": item_id, "type": "samples", "name": name}, "quantity": 1}
+
+    response = client.post(
+        "/new-sample/", json={"type": "samples", "item_id": "hidden-parent", "name": "Old name"}
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "type": "samples",
+            "item_id": "shared-child",
+            "synthesis_constituents": [_constituent("hidden-parent", "Old name")],
+        },
+    )
+    assert response.status_code == 201, response.json
+    refcode = response.json["sample_list_entry"]["refcode"]
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "type": "samples",
+            "item_id": "hidden-grandchild",
+            "synthesis_constituents": [_constituent("shared-child", "Shared child")],
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.patch(
+        f"/items/{refcode}/permissions", json={"groups": [{"immutable_id": str(group_id)}]}
+    )
+    assert response.status_code == 200, response.json
+
+    response = client.post(
+        "/save-item/", json={"item_id": "hidden-parent", "data": {"name": "New name"}}
+    )
+    assert response.status_code == 200, response.json
+
+    # The owner sees the latest data for the constituent and all connected items
+    response = client.get("/get-item-data/shared-child")
+    assert response.status_code == 200
+    assert response.json["item_data"]["synthesis_constituents"][0]["item"]["name"] == "New name"
+    assert response.json["child_items"] == ["hidden-grandchild"]
+
+    # The group member only sees the stored data for the inaccessible constituent,
+    # with refreshed identifiers, and does not see the inaccessible child item
+    response = another_client.get("/get-item-data/shared-child")
+    assert response.status_code == 200
+    constituent = response.json["item_data"]["synthesis_constituents"][0]["item"]
+    assert constituent["name"] == "Old name"
+    assert constituent["item_id"] == "hidden-parent"
+    assert constituent["refcode"]
+    assert response.json["parent_items"] == ["hidden-parent"]
+    assert response.json["child_items"] == []
+
+
 def test_append_permissions_creators(client, another_client, user_id, another_user_id):
     response = client.post(
         "/new-sample/", json={"type": "samples", "item_id": "sample-for-append-test"}

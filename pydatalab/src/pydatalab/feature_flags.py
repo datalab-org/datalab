@@ -1,6 +1,7 @@
 import math
 import os
 from collections import Counter
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -28,6 +29,7 @@ class FeatureFlags(BaseModel):
     ai_integrations: AIIntegrations = AIIntegrations()
     email_notifications: bool = False
     tags: bool = False
+    ungrouped_inventory: Literal["none", "warn", "error"] = "none"
 
 
 FEATURE_FLAGS: FeatureFlags = FeatureFlags()
@@ -61,6 +63,7 @@ def check_feature_flags(app):
     """
 
     FEATURE_FLAGS.tags = CONFIG.ENABLE_TAGS
+    FEATURE_FLAGS.ungrouped_inventory = CONFIG.UNGROUPED_INVENTORY
 
     if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is None:
         LOGGER.warning(

@@ -721,6 +721,15 @@ def _create_sample(
         for g in sample_dict["groups"]:
             new_sample["group_ids"].append(ObjectId(g["immutable_id"]))
 
+    if (
+        type_ in INVENTORY_TYPES
+        and CONFIG.UNGROUPED_INVENTORY == "error"
+        and not new_sample.get("group_ids")
+    ):
+        raise BadRequest(
+            f"Items of type {type_!r} must be assigned to at least one group in this deployment."
+        )
+
     # Generate a unique refcode for the sample
     new_sample["refcode"] = generate_unique_refcode()
     if generate_id_automatically:
@@ -915,6 +924,17 @@ def _process_item_permissions(
 
     if not groups_requested and not creators_requested:
         raise BadRequest("No valid creator or group IDs found in the request.")
+
+    if (
+        groups_requested
+        and not group_ids
+        and not append_mode
+        and current_item.get("type") in INVENTORY_TYPES
+        and CONFIG.UNGROUPED_INVENTORY == "error"
+    ):
+        raise BadRequest(
+            f"Items of type {current_item['type']!r} must be assigned to at least one group in this deployment."
+        )
 
     # Validate all creator IDs are present in the database
     if creator_ids:

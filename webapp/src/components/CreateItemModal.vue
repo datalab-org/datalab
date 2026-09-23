@@ -129,7 +129,7 @@ import ItemSelect from "@/components/ItemSelect.vue";
 import GroupSelect from "@/components/GroupSelect.vue";
 import UserSelect from "@/components/UserSelect.vue";
 import { createNewItem } from "@/server_fetch_utils.js";
-import { validateEntryID } from "@/field_utils.js";
+import { validateEntryID, confirmUngroupedInventory } from "@/field_utils.js";
 import { itemTypes, SAMPLE_TABLE_TYPES, AUTOMATICALLY_GENERATE_ID_DEFAULT } from "@/resources.js";
 import CollectionSelect from "@/components/CollectionSelect.vue";
 export default {
@@ -215,6 +215,10 @@ export default {
       }
       const groupsData = this.shareWithGroups.length > 0 ? this.shareWithGroups : null;
       const creatorsData = this.additionalCreators.length > 0 ? this.additionalCreators : null;
+
+      if (!(await confirmUngroupedInventory(this.item_type, groupsData))) {
+        return;
+      }
 
       // Custom (dynamic) types have no list page to land on, so navigate to the
       // new item's editor after creation.
