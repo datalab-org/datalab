@@ -59,7 +59,23 @@
                   style="display: block"
                   aria-labelledby="loginDropdown"
                 >
-                  <LoginDropdown :next="nextPath" />
+                  <LoginDropdown :next="nextPath" :remember="rememberMe" />
+                </div>
+                <div class="form-check mt-3">
+                  <input
+                    id="rememberMe"
+                    v-model="rememberMe"
+                    type="checkbox"
+                    class="form-check-input"
+                    data-testid="remember-me-checkbox"
+                  />
+                  <label
+                    class="form-check-label small text-muted"
+                    for="rememberMe"
+                    title="Remember me on this machine (do not use on shared machines)"
+                  >
+                    Remember me on this device
+                  </label>
                 </div>
               </div>
             </div>
@@ -94,6 +110,7 @@ export default {
       authMechanisms: {},
       currentUser: null,
       isLoaded: false,
+      rememberMe: false,
     };
   },
   computed: {

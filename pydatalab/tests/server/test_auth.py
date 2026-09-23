@@ -2,10 +2,12 @@ import datetime
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+import pytest
 from bson import ObjectId
 from flask import session
 
 from pydatalab.routes.v0_1.auth import (
+    REMEMBER_ME_SESSION_KEY,
     _check_email_domain,
     _is_safe_oauth_next_path,
     _oauth_next_session_key,
@@ -167,6 +169,35 @@ def test_magic_link_auth_can_be_disabled(unauthenticated_client, app, database, 
             == "Magic-link authentication is disabled for this datalab instance."
         )
         assert len(outbox) == 0
+
+
+@pytest.mark.parametrize("remember", [True, False])
+def test_magic_link_remember_me(unauthenticated_client, app, database, remember):
+    """Only magic-link logins that opt in to "remember me" should get a persistent session
+    cookie; others should end when the browser is closed."""
+    database.magic_links.delete_many({})
+
+    with app.extensions["mail"].record_messages():
+        response = unauthenticated_client.post(
+            "/login/magic-link",
+            json={
+                "email": "remember-me@ml-evs.science",
+                "referrer": "datalab.example.org",
+                "remember": remember,
+            },
+        )
+        assert response.status_code == 200
+
+        doc = database.magic_links.find_one()
+        response = unauthenticated_client.get(f"/login/email?token={doc['jwt']}")
+        assert response.status_code == 307
+
+    cookies = [c for c in response.headers.getlist("Set-Cookie") if c.startswith("session=")]
+    assert len(cookies) == 1
+    assert ("Expires=" in cookies[0]) is remember
+
+    with unauthenticated_client.session_transaction() as sess:
+        assert REMEMBER_ME_SESSION_KEY not in sess
 
 
 # ──────────────────────────────────────────────
@@ -458,6 +489,32 @@ def test_github_login_success(database, app, monkeypatch):
     user = database.users.find_one({"identities.identifier": "12345"})
     assert user is not None
     assert user["display_name"] == "The Octocat"
+
+
+@pytest.mark.parametrize("remember", [True, False])
+def test_oauth_login_remember_me(database, app, monkeypatch, remember):
+    """The "remember me" flag passed when starting an OAuth login should decide
+    whether the resulting session persists beyond the browser session."""
+    from pydatalab import config
+    from pydatalab.routes.v0_1.auth import github_logged_in
+
+    monkeypatch.setattr(config.CONFIG, "GITHUB_ORG_ALLOW_LIST", None)
+
+    fake_resp = MagicMock()
+    fake_resp.ok = True
+    fake_resp.json.return_value = {"id": 54321, "login": "rememberer", "name": "Remember Me"}
+    fake_blueprint = MagicMock()
+    fake_blueprint.name = "github"
+    fake_blueprint.session.get.return_value = fake_resp
+
+    query_string = {"remember": "1"} if remember else {}
+    with app.test_request_context("/login/github", query_string=query_string):
+        store_oauth_next_path(fake_blueprint, "https://github.com/login/oauth/authorize")
+        assert (REMEMBER_ME_SESSION_KEY in session) is remember
+
+        github_logged_in(fake_blueprint, token={"access_token": "fake-token"})
+        assert session.permanent is remember
+        assert REMEMBER_ME_SESSION_KEY not in session
 
 
 def test_github_login_no_token(database, app):
