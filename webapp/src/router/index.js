@@ -7,7 +7,6 @@ import Tags from "@/views/Tags.vue";
 import NotFound from "../views/NotFound.vue";
 import EditPage from "../views/EditPage.vue";
 import CollectionPage from "../views/CollectionPage.vue";
-import ExampleGraph from "@/views/ExampleGraph.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
 import Admin from "@/views/Admin.vue";
 import Login from "../views/Login.vue";
@@ -80,11 +79,6 @@ const routes = [
     path: "/collections/:id",
     name: "Collection",
     component: CollectionPage,
-  },
-  {
-    path: "/test-graph/",
-    name: "test-graph",
-    component: ExampleGraph,
   },
   {
     path: "/item-graph/",
