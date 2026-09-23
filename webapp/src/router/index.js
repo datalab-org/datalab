@@ -118,7 +118,11 @@ router.beforeEach(async (to, from, next) => {
   const { getUserInfo } = await import("@/server_fetch_utils.js");
   const user = await getUserInfo();
 
-  if (!user && to.name !== "login") {
+  // Let unauthenticated users through to item pages with an access token (`at`)
+  // so that sharing links work; the API will reject the request if the token is invalid.
+  const hasItemAccessToken = to.name === "edit item" && Boolean(to.query.at);
+
+  if (!user && to.name !== "login" && !hasItemAccessToken) {
     next({ name: "login", query: { next: to.fullPath } });
     return;
   }
