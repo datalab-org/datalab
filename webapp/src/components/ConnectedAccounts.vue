@@ -1,4 +1,3 @@
-<!-- This file was edited with the assistance of an AI model and requires human review from the contributor. -->
 <template>
   <div class="connected-accounts">
     <div v-if="uniqueIdentities.length" class="d-flex flex-wrap">
