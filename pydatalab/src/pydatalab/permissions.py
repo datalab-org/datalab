@@ -60,6 +60,21 @@ class ApiKey(Key):
     """The hash of the token"""
 
 
+def active_users_only(func):
+    """Decorator to ensure that only active users can access the route, excluding
+    deactivated accounts and those via access tokens (c.f., `active_users_or_get_only`).
+    """
+
+    @wraps(func)
+    def wrapped_route(*args, **kwargs):
+        if current_user.is_authenticated and current_user.account_status == AccountStatus.ACTIVE:
+            return func(*args, **kwargs)
+
+        return {"error": "Unauthorized"}, 401
+
+    return wrapped_route
+
+
 def active_users_or_get_only(func):
     """Decorator to ensure that only active user accounts can access the route,
     unless it is a GET-route, in which case deactivated accounts can also access it.
@@ -159,7 +174,7 @@ def admin_only(func):
 
 
 def authenticate(authentication_error):
-    """Decorator to ensure the client is authenticated"""
+    """Decorator to ensure the is authenticated"""
 
     def function_wrap(func):
         @wraps(func)
