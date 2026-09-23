@@ -257,6 +257,7 @@ def test_testing_passwordless_user_list_is_restricted(
     assert [user["username"] for user in users] == ["active-user"]
     assert users[0]["account_status"] == "active"
     assert users[0]["role"] == "user"
+    assert users[0]["groups"][0]["display_name"] == "Demo Group"
 
 
 def test_testing_passwordless_login_preserves_user_access(

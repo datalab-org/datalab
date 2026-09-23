@@ -73,8 +73,8 @@ uv run invoke dev.create-test-user \
 ```
 
 The command stores a `testing_passwordless` identity on the normal user document. It does not
-create or store a password. Only active users with that identity appear in the test-login modal;
-their normal roles, groups, and permissions still apply.
+create or store a password. Only active users with that identity appear in the test-login modal,
+along with their role and group membership; their normal permissions still apply.
 
 ### Email magic links
 

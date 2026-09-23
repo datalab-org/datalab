@@ -425,7 +425,6 @@ def wrapped_login_user(*args, **kwargs):
 
 
 EMAIL_BLUEPRINT = Blueprint("email", __name__)
-TESTING_PASSWORDLESS_BLUEPRINT = Blueprint("testing_passwordless", __name__)
 
 AUTH = Blueprint("auth", __name__)
 
@@ -894,7 +893,7 @@ def email_logged_in():
     return redirect(referer, 307)
 
 
-@TESTING_PASSWORDLESS_BLUEPRINT.route("/testing-passwordless/users", methods=["GET"])
+@AUTH.route("/login/testing-passwordless/users", methods=["GET"])
 def list_testing_passwordless_users():
     """List only active users explicitly configured for unsafe test login."""
 
@@ -903,10 +902,15 @@ def list_testing_passwordless_users():
     documents = flask_mongo.db.users.find(
         {
             "account_status": AccountStatus.ACTIVE.value,
-            "identities.identity_type": IdentityType.TESTING_PASSWORDLESS.value,
-        }
+            "identities": {
+                "$elemMatch": {
+                    "identity_type": IdentityType.TESTING_PASSWORDLESS.value,
+                }
+            },
+        },
+        {"_id": 1},
     )
-    users: list[dict[str, str | None]] = []
+    users: list[dict[str, object]] = []
     for document in documents:
         login_user_model = get_by_id(document["_id"])
         if login_user_model is None:
@@ -916,16 +920,24 @@ def list_testing_passwordless_users():
                 users.append(
                     {
                         "username": identity.identifier,
-                        "display_name": login_user_model.display_name,
+                        "display_name": login_user_model.display_name or identity.identifier,
+                        "gravatar_hash": login_user_model.person.gravatar_hash,
                         "role": login_user_model.role.value,
                         "account_status": login_user_model.account_status.value,
+                        "groups": [
+                            group.model_dump(
+                                mode="json",
+                                include={"immutable_id", "group_id", "display_name"},
+                            )
+                            for group in login_user_model.groups or []
+                        ],
                     }
                 )
-    users.sort(key=lambda user: (user["display_name"] or user["username"] or "").casefold())
+    users.sort(key=lambda user: str(user["display_name"] or user["username"]).casefold())
     return jsonify({"users": users}), 200
 
 
-@TESTING_PASSWORDLESS_BLUEPRINT.route("/testing-passwordless", methods=["POST"])
+@AUTH.route("/login/testing-passwordless", methods=["POST"])
 def testing_passwordless_login():
     """Impersonate a configured test user without authentication or a password."""
 
@@ -941,11 +953,22 @@ def testing_passwordless_login():
     except (TypeError, ValueError, ValidationError):
         raise Unauthorized("Unknown passwordless test user.") from None
 
-    person = find_user_with_identity(username, IdentityType.TESTING_PASSWORDLESS)
-    if person is None or person.account_status is not AccountStatus.ACTIVE:
+    document = flask_mongo.db.users.find_one(
+        {
+            "account_status": AccountStatus.ACTIVE.value,
+            "identities": {
+                "$elemMatch": {
+                    "identity_type": IdentityType.TESTING_PASSWORDLESS.value,
+                    "identifier": username,
+                }
+            },
+        },
+        {"_id": 1},
+    )
+    if document is None:
         raise Unauthorized("Unknown passwordless test user.")
 
-    login_user_model = get_by_id(person.immutable_id)
+    login_user_model = get_by_id(document["_id"])
     if login_user_model is None:
         raise Unauthorized("Unknown passwordless test user.")
     wrapped_login_user(login_user_model)

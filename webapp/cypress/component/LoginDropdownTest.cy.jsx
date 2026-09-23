@@ -38,6 +38,7 @@ describe("LoginDropdown unsafe passwordless test login", () => {
           display_name: "Alice Test User",
           role: "manager",
           account_status: "active",
+          groups: [{ immutable_id: "group-1", display_name: "Demo Group" }],
         },
       ],
     }).as("testUsers");
@@ -46,6 +47,7 @@ describe("LoginDropdown unsafe passwordless test login", () => {
     cy.get('[data-testid="testing-passwordless-open"]').click();
     cy.wait("@testUsers");
     cy.contains("Alice Test User").should("be.visible");
+    cy.contains("Demo Group").should("be.visible");
   });
 
   it("keeps the user list available after a failed login", () => {
@@ -72,6 +74,7 @@ describe("LoginDropdown unsafe passwordless test login", () => {
     mountLoginDropdown();
 
     cy.get('[data-testid="testing-passwordless-open"]').click();
+    cy.contains("No groups").should("be.visible");
     cy.contains("button", "Alice Test User").click();
     cy.get('[data-testid="testing-passwordless-users"] button').should("be.disabled");
     cy.wait("@login").its("request.body.username").should("equal", "alice");

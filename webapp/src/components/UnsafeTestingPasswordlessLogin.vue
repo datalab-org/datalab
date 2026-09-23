@@ -31,22 +31,22 @@
           :disabled="isLoggingIn"
           @click="login(user.username)"
         >
-          <span class="d-flex justify-content-between align-items-center">
-            <span class="text-left">
-              <strong>{{ user.display_name || user.username }}</strong>
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="text-left flex-grow-1">
+              <Creators :creators="[user]" :size="32" />
               <small class="d-block text-muted">{{ user.username }}</small>
-            </span>
-            <span class="d-flex align-items-center">
-              <RoleBadge :role="user.role" class="mr-2" />
-              <span
-                class="d-flex align-items-center"
-                :title="`Account status: ${user.account_status}`"
-                :aria-label="`Account status: ${user.account_status}`"
-              >
-                <UserStatusCell :status="user.account_status" />
-              </span>
-            </span>
-          </span>
+              <div v-if="user.groups?.length" class="d-flex flex-wrap gap-2 mt-2">
+                <FormattedGroupName
+                  v-for="group in user.groups"
+                  :key="group.immutable_id"
+                  :group="group"
+                  :size="24"
+                />
+              </div>
+              <small v-else class="d-block text-muted">No groups</small>
+            </div>
+            <RoleBadge :role="user.role" class="ml-2" />
+          </div>
         </button>
       </div>
     </template>
@@ -73,13 +73,14 @@
 </template>
 
 <script>
+import Creators from "@/components/Creators.vue";
+import FormattedGroupName from "@/components/FormattedGroupName.vue";
 import Modal from "@/components/Modal.vue";
 import RoleBadge from "@/components/RoleBadge.vue";
-import UserStatusCell from "@/components/UserStatusCell.vue";
 import { getTestingPasswordlessUsers, loginTestingPasswordless } from "@/server_fetch_utils.js";
 
 export default {
-  components: { Modal, RoleBadge, UserStatusCell },
+  components: { Creators, FormattedGroupName, Modal, RoleBadge },
   data() {
     return {
       isOpen: false,
