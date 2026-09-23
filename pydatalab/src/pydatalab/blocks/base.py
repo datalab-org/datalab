@@ -262,8 +262,9 @@ class DataBlock:
             events = [events]
 
         for event in events:
-            # Match the event to any registered by the block
-            if (event_name := event.pop("event_name")) in self.event_names:
+            # Match the event to any registered by the block; malformed events
+            # without an `event_name` are skipped.
+            if (event_name := event.pop("event_name", None)) in self.event_names:
                 # Bind the method to the instance before calling
                 bound_method = self.__class__.events_by_name[event_name].__get__(
                     self, self.__class__

@@ -32,7 +32,12 @@ export const LOGO_WIDTH = process.env.VUE_APP_LOGO_WIDTH || "100";
 export const HOMEPAGE_URL = process.env.VUE_APP_HOMEPAGE_URL;
 export const APP_VERSION = process.env.VUE_APP_GIT_VERSION;
 
+export const WEBSITE_TITLE = process.env.VUE_APP_WEBSITE_TITLE || "datalab";
+
 export const GRAVATAR_STYLE = "identicon";
+
+const enable_login_page = process.env.VUE_APP_ENABLE_LOGIN_PAGE || "false";
+export const ENABLE_LOGIN_PAGE = enable_login_page.toLowerCase() == "true";
 
 // determine whether inventory should be readonly (except blocks). Note: environment
 // variables can only be strings, not bools.
@@ -142,6 +147,25 @@ export const itemTypes = {
 export const SAMPLE_TABLE_TYPES = ["samples", "cells"];
 export const INVENTORY_TABLE_TYPES = ["starting_materials"];
 export const EQUIPMENT_TABLE_TYPES = ["equipment"];
+
+// Curated palette of distinguishable preset colors offered for tag colors.
+export const TAG_COLOR_PALETTE = [
+  "#e74c3c",
+  "#e67e22",
+  "#f1c40f",
+  "#2ecc71",
+  "#1abc9c",
+  "#3498db",
+  "#9b59b6",
+  "#34495e",
+  "#95a5a6",
+  "#e84393",
+  "#00b894",
+  "#fdcb6e",
+];
+
+// The color assigned to a newly created tag.
+export const DEFAULT_TAG_COLOR = "#95a5a6";
 
 export const cellFormats = {
   coin: "coin",

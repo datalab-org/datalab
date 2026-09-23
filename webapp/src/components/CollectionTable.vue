@@ -12,6 +12,12 @@
 import DynamicDataTable from "@/components/DynamicDataTable";
 import { getCollectionList } from "@/server_fetch_utils.js";
 
+import FormattedCollectionName from "@/components/FormattedCollectionName";
+import TextFilter from "@/components/TextFilter";
+
+import { FilterOperator, FilterMatchMode } from "@primevue/core/api";
+import { CREATORS_AND_GROUPS_COLUMN } from "@/utils/tableColumns";
+
 export default {
   components: { DynamicDataTable },
   data() {
@@ -20,18 +26,24 @@ export default {
         {
           field: "collection_id",
           header: "ID",
-          body: "FormattedCollectionName",
-          filter: true,
           label: "Collections",
+          body: {
+            component: FormattedCollectionName,
+            props: (row) => ({
+              collection_id: row.collection_id,
+              enableClick: true,
+              enableModifiedClick: true,
+            }),
+          },
+          filter: {
+            component: TextFilter,
+            componentProps: { placeholder: "Search by ID" },
+            matchMode: FilterMatchMode.CONTAINS,
+            operator: FilterOperator.AND,
+          },
         },
         { field: "title", header: "Title", label: "Title" },
-        {
-          field: "creatorsAndGroups",
-          header: "Creators",
-          body: "Creators",
-          filter: true,
-          label: "Creators",
-        },
+        CREATORS_AND_GROUPS_COLUMN,
       ],
     };
   },

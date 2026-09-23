@@ -1,4 +1,5 @@
 import datetime
+import sys
 from pathlib import Path
 
 import pytest
@@ -793,8 +794,13 @@ def test_create_sample_with_example_files(
     assert "blocks_obj" in item_data
 
     if block_type == "xrd":
+        # Newly created blocks are stored as `{"immutable_id": ...}` references to
+        # the `blocks` collection, so follow the reference to check the stored payload.
         doc = database.items.find_one({"item_id": sample_id}, projection={"blocks_obj": 1})
-        assert doc["blocks_obj"][block_id]["computed"]["peak_data"] is not None
+        stored_entry = doc["blocks_obj"][block_id]
+        assert set(stored_entry) == {"immutable_id"}
+        block_doc = database.blocks.find_one({"_id": stored_entry["immutable_id"]})
+        assert block_doc["data"]["computed"]["peak_data"] is not None
 
 
 @pytest.fixture()
@@ -822,6 +828,7 @@ def create_large_xye_file(tmpdir):
     yield fname
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="pytest-memray is unavailable on Windows")
 @pytest.mark.limit_memory("110MB")
 def test_large_fake_xrd_data_block_serialization(
     admin_client, default_sample_dict, tmpdir, create_large_xye_file

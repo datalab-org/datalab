@@ -22,7 +22,7 @@ This repository consists of two components:
 To run *datalab*, you will need to install the environments for each component.
 
 As is typical of server applications, *datalab* is primarily tested on Linux.
-While unsupported, the instructions should also work on Windows (via [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/install)) or macOS.
+While unsupported, the instructions should also work on Windows (via [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/install), with limited support for plain Windows) or macOS.
 For unsupported operating systems, we recommend the Docker-based installation instructions in [deployment.md](deployment.md).
 
 Firstly, from the desired folder, clone this repository from GitHub to your local machine with `git clone https://github.com/datalab-org/datalab`.

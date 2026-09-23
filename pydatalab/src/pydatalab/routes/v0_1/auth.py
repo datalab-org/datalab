@@ -9,11 +9,12 @@ import os
 import re
 import secrets
 from hashlib import sha512
+from urllib.parse import urlsplit
 
 import jwt
 from bson import ObjectId
-from flask import Blueprint, Response, g, jsonify, redirect, request
-from flask_dance.consumer import OAuth2ConsumerBlueprint, oauth_authorized
+from flask import Blueprint, Response, g, jsonify, redirect, request, session
+from flask_dance.consumer import OAuth2ConsumerBlueprint, oauth_authorized, oauth_before_login
 from flask_login import current_user, login_user
 from flask_login.utils import LocalProxy
 from pydantic import TypeAdapter, ValidationError
@@ -32,6 +33,28 @@ from pydatalab.send_email import send_mail
 
 KEY_LENGTH: int = 32
 LINK_EXPIRATION: datetime.timedelta = datetime.timedelta(hours=1)
+OAUTH_NEXT_SESSION_KEY_PREFIX = "oauth_next_"
+OAUTH_NEXT_MAX_LENGTH = 2048
+
+
+def _oauth_next_session_key(provider_name: str) -> str:
+    return f"{OAUTH_NEXT_SESSION_KEY_PREFIX}{provider_name}"
+
+
+def _is_safe_oauth_next_path(next_path: str | None) -> bool:
+    """Return whether an OAuth redirect target is a local UI path."""
+    if (
+        not next_path
+        or len(next_path) > OAUTH_NEXT_MAX_LENGTH
+        or not next_path.startswith("/")
+        or next_path.startswith("//")
+        or "\\" in next_path
+        or not next_path.isprintable()
+    ):
+        return False
+
+    parsed_path = urlsplit(next_path)
+    return not parsed_path.scheme and not parsed_path.netloc
 
 
 def make_github_blueprint(
@@ -1107,10 +1130,25 @@ def orcid_logged_in(_, token):
 @oauth_authorized.connect
 def redirect_to_ui(blueprint, token):  # pylint: disable=unused-argument
     """Intercepts the default Flask-Dance and redirects to the referring page."""
+    next_path = session.pop(_oauth_next_session_key(blueprint.name), None)
     if CONFIG.APP_URL:
-        return redirect(CONFIG.APP_URL, 307)
+        redirect_url = CONFIG.APP_URL
+        if _is_safe_oauth_next_path(next_path):
+            redirect_url = f"{CONFIG.APP_URL.rstrip('/')}{next_path}"
+        return redirect(redirect_url, 307)
     referer = request.headers.get("Referer", CONFIG.ROOT_PATH or "/")
     return redirect(referer, 307)
+
+
+@oauth_before_login.connect
+def store_oauth_next_path(blueprint, url):  # pylint: disable=unused-argument
+    """Store a safe UI path in the session before leaving for an OAuth provider."""
+    session_key = _oauth_next_session_key(blueprint.name)
+    session.pop(session_key, None)
+
+    next_path = request.args.get("next")
+    if _is_safe_oauth_next_path(next_path):
+        session[session_key] = next_path
 
 
 @AUTH.route("/get-current-user/", methods=["GET"])

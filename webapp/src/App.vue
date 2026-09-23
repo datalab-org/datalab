@@ -6,6 +6,7 @@
 <script>
 import DialogContainer from "@/components/DialogContainer.vue";
 import { getApiConfig, loadItemSchemas, getBlocksInfos } from "@/server_fetch_utils.js";
+import { ENABLE_LOGIN_PAGE } from "@/resources.js";
 
 export default {
   components: {
@@ -14,6 +15,7 @@ export default {
   async created() {
     await this.$router.isReady();
     if (this.$route.name === "files-redirect") return;
+    if (ENABLE_LOGIN_PAGE && this.$route.name === "login") return;
     await loadItemSchemas();
     await getApiConfig();
     await getBlocksInfos();

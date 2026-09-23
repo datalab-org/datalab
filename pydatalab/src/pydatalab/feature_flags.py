@@ -34,6 +34,7 @@ class FeatureFlags(BaseModel):
     auth_mechanisms: AuthMechanisms = AuthMechanisms()
     ai_integrations: AIIntegrations = AIIntegrations()
     email_notifications: bool = False
+    tags: bool = False
 
 
 FEATURE_FLAGS: FeatureFlags = FeatureFlags()
@@ -75,6 +76,8 @@ def check_feature_flags(app):
             "datalab instance can impersonate any configured passwordless test user without "
             "authentication. This must never be enabled in production."
         )
+
+    FEATURE_FLAGS.tags = CONFIG.ENABLE_TAGS
 
     if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is None:
         LOGGER.warning(

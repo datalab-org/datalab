@@ -1,80 +1,94 @@
 <template>
+  <!-- The table sets up its columns (and their filters) once, when created, so wait for the
+       server info that decides whether the tags column is shown. -->
   <DynamicDataTable
+    v-if="serverInfoLoaded"
     :columns="sampleColumns"
     :data="samples"
     :data-type="'samples'"
-    :global-filter-fields="[
-      'item_id',
-      'name',
-      'refcode',
-      'chemform',
-      'creatorsList',
-      'blocks',
-      'characteristic_chemical_formula',
-    ]"
+    :global-filter-fields="sampleGlobalFilterFields"
   />
 </template>
 
 <script>
 import DynamicDataTable from "@/components/DynamicDataTable";
-import { getSampleList } from "@/server_fetch_utils.js";
+import { getInfo, getSampleList, getTags } from "@/server_fetch_utils.js";
+
+import {
+  ITEM_ID_COLUMN,
+  TYPE_COLUMN,
+  STATUS_COLUMN,
+  NAME_COLUMN,
+  CHEMFORM_COLUMN,
+  DATE_COLUMN,
+  DATE_RANGE_FILTER,
+  COLLECTIONS_COLUMN,
+  CREATORS_AND_GROUPS_COLUMN,
+  TAGS_COLUMN,
+  BLOCKS_COLUMN,
+  FILES_COLUMN,
+  LAST_MODIFIED_COLUMN,
+} from "@/utils/tableColumns";
 
 export default {
   components: { DynamicDataTable },
   data() {
     return {
-      sampleColumns: [
+      baseSampleColumns: [
         {
-          field: "item_id",
-          header: "ID",
-          body: "FormattedItemName",
-          filter: true,
-          label: "ID",
+          ...ITEM_ID_COLUMN,
+          body: {
+            ...ITEM_ID_COLUMN.body,
+            props: (row) => ({
+              ...ITEM_ID_COLUMN.body.props(row),
+              itemType: row.type !== undefined ? row.type : "samples",
+            }),
+          },
         },
-        { field: "type", header: "Type", filter: true, label: "Type" },
-        { field: "status", header: "Status", body: "FormattedItemStatus", filter: true },
-        { field: "name", header: "Name", label: "Sample name" },
-        {
-          field: "chemform",
-          header: "Formula",
-          body: "ChemicalFormula",
-          label: "Formula",
-        },
-        { field: "date", header: "Date", label: "Date", filter: true },
-        {
-          field: "collections",
-          header: "Collections",
-          body: "CollectionList",
-          filter: true,
-          label: "Collections",
-        },
-        {
-          field: "creatorsAndGroups",
-          header: "Creators",
-          body: "Creators",
-          filter: true,
-          label: "Creators",
-        },
-        {
-          field: "blocks",
-          header: "",
-          body: "BlocksIconCounter",
-          icon: ["fa", "cubes"],
-          filter: true,
-          label: "Blocks",
-        },
-        {
-          field: "nfiles",
-          header: "",
-          body: "FilesIconCounter",
-          icon: ["fa", "file"],
-          label: "Files",
-        },
-        { field: "last_modified", header: "", label: "Last modified", icon: ["fa", "clock"] },
+        TYPE_COLUMN,
+        STATUS_COLUMN,
+        { ...NAME_COLUMN, label: "Sample name" },
+        CHEMFORM_COLUMN,
+        { ...DATE_COLUMN, filter: DATE_RANGE_FILTER },
+        COLLECTIONS_COLUMN,
+        CREATORS_AND_GROUPS_COLUMN,
+        BLOCKS_COLUMN,
+        FILES_COLUMN,
+        LAST_MODIFIED_COLUMN,
       ],
     };
   },
   computed: {
+    serverInfoLoaded() {
+      return this.$store.state.serverInfo !== null;
+    },
+    enableTags() {
+      // Tag column only if enabled globally.
+      return this.$store.state.serverInfo?.features?.tags ?? false;
+    },
+    sampleColumns() {
+      const columns = [...this.baseSampleColumns];
+      if (this.enableTags) {
+        const insertBeforeBlocks = columns.findIndex((column) => column.field === "blocks");
+        columns.splice(insertBeforeBlocks, 0, TAGS_COLUMN);
+      }
+      return columns;
+    },
+    sampleGlobalFilterFields() {
+      const fields = [
+        "item_id",
+        "name",
+        "refcode",
+        "chemform",
+        "creatorsList",
+        "blocks",
+        "characteristic_chemical_formula",
+      ];
+      if (this.enableTags) {
+        fields.push("tagsList");
+      }
+      return fields;
+    },
     samples() {
       if (!this.$store.state.sample_list) {
         return null;
@@ -90,9 +104,29 @@ export default {
             .map((collection) => collection.collection_id)
             .join(", "),
           creatorsList: sample.creators.map((creator) => creator.display_name).join(", "),
+          tagsList: (sample.tags || [])
+            .map((tag) => tag.name)
+            .filter(Boolean)
+            .join(", "),
         };
       });
     },
+  },
+  watch: {
+    enableTags: {
+      // The tags filter offers the whole global tag list, so fetch it once tags are enabled.
+      immediate: true,
+      handler(enabled) {
+        if (enabled && this.$store.state.tag_list === null) {
+          getTags();
+        }
+      },
+    },
+  },
+  created() {
+    if (!this.serverInfoLoaded) {
+      getInfo();
+    }
   },
   mounted() {
     this.getSamples();

@@ -47,14 +47,21 @@
           </div>
         </div>
 
+        <div v-if="enableTags" class="form-row">
+          <div class="form-group col-12 pb-3">
+            <ToggleableTagsFormGroup v-model="Tags" />
+          </div>
+        </div>
+
         <div class="form-row">
           <div class="form-group col-lg-12 col-sm-12">
-            <label for="startmat-location">Location</label>
+            <label id="startmat-location-label">Location</label>
             <LocationInput
               v-model="Location"
-              :suggestions="uniqueLocations"
+              :hierarchy="$store.getters.getLocationHierarchy"
               :readonly="!isEditable"
               input-id="startmat-location"
+              labelled-by="startmat-location-label"
             />
           </div>
         </div>
@@ -127,9 +134,10 @@ import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualiz
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
 import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
 import LocationInput from "@/components/LocationInput";
+import ToggleableTagsFormGroup from "@/components/ToggleableTagsFormGroup";
 
 import AutoComplete from "primevue/autocomplete";
-import { getStartingMaterialList, getEquipmentList } from "@/server_fetch_utils.js";
+import { getStartingMaterialList, getLocations } from "@/server_fetch_utils.js";
 import { EDITABLE_INVENTORY } from "@/resources.js";
 
 export default {
@@ -148,6 +156,7 @@ export default {
     ToggleableCreatorsFormGroup,
     ToggleableGroupsFormGroup,
     LocationInput,
+    ToggleableTagsFormGroup,
   },
   props: {
     item_id: { type: String, required: true },
@@ -176,10 +185,14 @@ export default {
     Location: createComputedSetterForItemField("location"),
     ItemDescription: createComputedSetterForItemField("description"),
     Collections: createComputedSetterForItemField("collections"),
+    Tags: createComputedSetterForItemField("tags"),
     Refcode: createComputedSetterForItemField("refcode"),
     Status: createComputedSetterForItemField("status"),
     ItemCreators: createComputedSetterForItemField("creators"),
     ItemGroups: createComputedSetterForItemField("groups"),
+    enableTags() {
+      return this.$store.state.serverInfo?.features?.tags ?? false;
+    },
     schema() {
       return this.$store.state.schemas[this.item?.type];
     },
@@ -196,27 +209,13 @@ export default {
         ),
       ].sort();
     },
-    uniqueLocations() {
-      return [
-        ...new Set(
-          [
-            ...(this.$store.state.starting_material_list || []),
-            ...(this.$store.state.equipment_list || []),
-          ]
-            .map((item) => item.location)
-            .filter(Boolean),
-        ),
-      ].sort();
-    },
   },
   created() {
     this.isEditable = EDITABLE_INVENTORY;
     if (this.$store.state.starting_material_list === null) {
       getStartingMaterialList();
     }
-    if (this.$store.state.equipment_list === null) {
-      getEquipmentList();
-    }
+    getLocations();
   },
   methods: {
     filterSuppliers(event) {

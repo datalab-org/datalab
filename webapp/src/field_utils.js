@@ -1,5 +1,6 @@
 import store from "@/store/index.js";
 import { DATETIME_FIELDS } from "@/resources.js";
+import { formatDistanceToNow } from "date-fns";
 
 /**
  * Parses a server-provided timestamp as UTC.
@@ -22,6 +23,19 @@ export function parseUTCDate(value) {
     value += "Z";
   }
   return new Date(value);
+}
+
+/**
+ * Formats a server-provided timestamp as a human-readable relative date, e.g. "2 months ago".
+ *
+ * @param {string} isodatetime - A server timestamp string.
+ * @returns {string} The relative date, or the original falsy value if none was given.
+ */
+export function formatRelativeDate(isodatetime) {
+  if (!isodatetime) {
+    return isodatetime;
+  }
+  return formatDistanceToNow(parseUTCDate(isodatetime), { addSuffix: true });
 }
 
 /**
@@ -184,4 +198,28 @@ export function validateEntryID(id, takenIds = [], existingIds = []) {
     return "ID must be between 1 and 40 characters.";
   }
   return "";
+}
+
+export function readableTextColor(hexColor) {
+  // Return a readable text color ("#000" or "#fff") for a given background hex
+  // color, based on its perceptual luminance. Falls back to black for invalid input.
+  if (!hexColor || typeof hexColor !== "string") {
+    return "#000";
+  }
+  let hex = hexColor.trim().replace(/^#/, "");
+  if (hex.length === 3) {
+    hex = hex
+      .split("")
+      .map((c) => c + c)
+      .join("");
+  }
+  if (hex.length !== 6 || /[^0-9a-fA-F]/.test(hex)) {
+    return "#000";
+  }
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  // Perceptual luminance (sRGB weights), normalised to [0, 1].
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? "#000" : "#fff";
 }

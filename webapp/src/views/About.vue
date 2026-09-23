@@ -38,8 +38,8 @@
                 ><font-awesome-icon :icon="['fab', 'github']" />&nbsp;datalab-org/datalab</a
               >
               with documentation available on
-              <a href="https://the-datalab.readthedocs.io"
-                ><font-awesome-icon icon="book" />&nbsp;ReadTheDocs</a
+              <a href="https://docs.datalab-org.io"
+                ><font-awesome-icon icon="book" />&nbsp;docs.datalab-org.io</a
               >.
             </p>
 
