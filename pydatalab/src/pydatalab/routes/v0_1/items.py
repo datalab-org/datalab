@@ -46,6 +46,7 @@ from pydatalab.mongo import (
     resolve_tags_for_docs,
 )
 from pydatalab.permissions import (
+    INVENTORY_TYPES,
     AccessToken,
     access_token_or_active_users,
     active_users_or_get_only,
@@ -65,9 +66,6 @@ from pydatalab.versioning import (
 )
 
 ITEMS = Blueprint("items", __name__)
-
-# item types that should be accessed by anyone with an account
-ACCESSIBLE_TYPES = ("equipment", "starting_materials")
 
 # Legacy items predate `last_modified` being set on creation, so fall back to the
 # creation time embedded in their ObjectId.
@@ -103,6 +101,7 @@ def get_equipment_summary():
                 {
                     "$match": {
                         "type": "equipment",
+                        **get_default_permissions(user_only=False, inherit_from_collections=False),
                     }
                 },
                 {"$project": _project},
@@ -385,6 +384,7 @@ def entry_reference_lookup(item_doc: dict) -> dict:
 
     # Otherwise, we need to loop do the relevant lookup
     dereferenced_fields: dict[str, list] = {}
+    read_permissions = get_default_permissions(user_only=False)
     for field in reference_fields[item_type]:
         preferred_refs: list[dict | None] = []
         dereferenced_fields[field] = []
@@ -412,9 +412,10 @@ def entry_reference_lookup(item_doc: dict) -> dict:
                 preferred_refs.append({"item_id": constituent.item.item_id})
 
         for ind, ref in enumerate(preferred_refs):
+            deref = None
             if ref:
                 deref = flask_mongo.db.items.find_one(
-                    {**ref, **get_default_permissions()},
+                    {**ref, **read_permissions},
                     projection={
                         "name": 1,
                         "item_id": 1,
@@ -424,8 +425,17 @@ def entry_reference_lookup(item_doc: dict) -> dict:
                         "_id": 0,
                     },
                 )
-            # If the source item has been deleted, is inlined or is inaccessible, use the original subitem data
-            if not ref or not deref:
+                if not deref:
+                    # If the source item exists but is inaccessible, only refresh its identifiers
+                    # and keep the rest of the originally stored data (e.g., name, chemform)
+                    identifiers = flask_mongo.db.items.find_one(
+                        ref, projection={"item_id": 1, "refcode": 1, "type": 1, "_id": 0}
+                    )
+                    if identifiers:
+                        deref = {**item_doc[field][ind].get("item", {}), **identifiers}
+
+            # If the source item has been deleted or is inlined, use the original subitem data
+            if not deref:
                 dereferenced_fields[field].append(item_doc[field][ind])
                 continue
 
@@ -686,9 +696,9 @@ def _create_sample(
 
     new_sample = sample_dict.copy()
 
-    if type_ in ACCESSIBLE_TYPES:
-        # starting_materials and equipment are open to all in the deploment at this point,
-        # so no creators are assigned
+    if type_ in INVENTORY_TYPES:
+        # starting_materials and equipment are open to all in the deployment (or to the
+        # groups they are restricted to, set below), so no creators are assigned
         new_sample["creator_ids"] = []
         new_sample["creators"] = []
 
@@ -861,7 +871,7 @@ def _process_item_permissions(
 
     current_item = flask_mongo.db.items.find_one(
         {"refcode": refcode, **get_default_permissions(user_only=True)},
-        {"_id": 1, "creator_ids": 1, "group_ids": 1},
+        {"_id": 1, "type": 1, "creator_ids": 1, "group_ids": 1},
     )
 
     if not current_item:
@@ -1216,13 +1226,19 @@ def get_item_data(
             500,
         )
 
-    # find any documents with relationships that mention this document
+    # find any documents with relationships that mention this document,
+    # that the user also has permission to see
     relationships_query_results = flask_mongo.db.items.find(
         filter={
-            "$or": [
-                {"relationships.item_id": doc.item_id},
-                {"relationships.refcode": doc.refcode},
-                {"relationships.immutable_id": doc.immutable_id},
+            "$and": [
+                {
+                    "$or": [
+                        {"relationships.item_id": doc.item_id},
+                        {"relationships.refcode": doc.refcode},
+                        {"relationships.immutable_id": doc.immutable_id},
+                    ]
+                },
+                get_default_permissions(user_only=False),
             ]
         },
         projection={
@@ -1717,11 +1733,10 @@ def save_item():
         if k in updated_data:
             del updated_data[k]
 
-    # Bit of a hack for now: starting materials and equipment should be editable by anyone,
-    # so we adjust the query above to be more permissive when the user is requesting such an item
-    # but before returning we need to check that the actual item did indeed have that type
+    # Inventory items (starting materials and equipment) are editable by their groups,
+    # or by anyone if unrestricted; this is handled by the default permissions
     item = flask_mongo.db.items.find_one(
-        {"item_id": item_id, **get_default_permissions(user_only=False)}
+        {"item_id": item_id, **get_default_permissions(user_only=True)}
     )
 
     if not item:
@@ -1733,15 +1748,6 @@ def save_item():
         raise InternalServerError(
             f"Item {item_id} does not have a refcode; please report this issue."
         )
-
-    user_only = item["type"] not in ("starting_materials", "equipment")
-
-    item = flask_mongo.db.items.find_one(
-        {"item_id": item_id, **get_default_permissions(user_only=user_only)}
-    )
-
-    if not item:
-        raise NotFound
 
     # Reconcile the incoming blocks against their stored form (the request
     # always carries full payloads, so the form is only knowable from the stored
