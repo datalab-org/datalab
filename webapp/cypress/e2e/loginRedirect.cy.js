@@ -1,4 +1,3 @@
-// This file was edited with the assistance of an AI model and requires human review from the contributor.
 // E2E coverage for the router's login guard: unauthenticated users are sent to
 // the login page, except when opening an item page with an access token (`at`).
 
