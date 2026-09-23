@@ -1,4 +1,5 @@
 import store from "@/store/index.js";
+import { DialogService } from "@/services/DialogService";
 import { DATETIME_FIELDS } from "@/resources.js";
 import { formatDistanceToNow } from "date-fns";
 
@@ -198,6 +199,40 @@ export function validateEntryID(id, takenIds = [], existingIds = []) {
     return "ID must be between 1 and 40 characters.";
   }
   return "";
+}
+
+/**
+ * Check an inventory item (starting material or equipment) that is about to be created
+ * against the deployment's `CONFIG.UNGROUPED_INVENTORY` setting: if it has not been
+ * restricted to any groups (and would therefore be visible to all users), either ask the
+ * user to confirm (`"warn"`) or refuse (`"error"`).
+ *
+ * @param {string} itemType - The type of the item being created.
+ * @param {Array|null} groups - The groups the item is being restricted to.
+ * @returns {Promise<boolean>} Whether to proceed with creating the item.
+ */
+export async function confirmUngroupedInventory(itemType, groups) {
+  const mode = store.state.serverInfo?.features?.ungrouped_inventory ?? "none";
+  if (mode === "none") {
+    return true;
+  }
+  if (!["starting_materials", "equipment"].includes(itemType) || groups?.length) {
+    return true;
+  }
+  if (mode === "error") {
+    await DialogService.error({
+      title: "No groups selected",
+      message: "This deployment requires this item to be restricted to at least one group.",
+    });
+    return false;
+  }
+  return DialogService.confirm({
+    title: "No groups selected",
+    message:
+      "This item has not been restricted to any groups, so it will be visible to and editable by all users. Do you want to continue?",
+    type: "warning",
+    confirmButtonText: "Create anyway",
+  });
 }
 
 export function readableTextColor(hexColor) {

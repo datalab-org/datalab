@@ -54,6 +54,7 @@ Security fixes are typically issued for the **latest released minor version** on
 - **Per-item and per-group permissions.** Every read and write is filtered by a permission query derived from the requesting user's identity, their group memberships, and any managed users.
   Items may inherit read access from collections they belong to; write access is never inherited.
   Inventory items (starting materials and equipment) are readable and editable by all users, unless restricted to one or more groups, in which case only members of those groups can access them.
+  Deployments can set [`UNGROUPED_INVENTORY`][pydatalab.config.ServerConfig.UNGROUPED_INVENTORY] to warn users who create inventory items without a group, or to require one.
 - **Hashed credentials at rest.** API keys and item access tokens are stored as hashes, never in plaintext.
 - **A write audit trail.** Item edits are snapshotted as versions, attributed to the user who made them.
 
