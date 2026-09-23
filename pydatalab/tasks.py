@@ -216,11 +216,13 @@ def create_test_user(
             raise SystemExit(f"Invalid display name {display_name!r}: {exc}") from None
 
     database = get_database()
+    email_identifier = f"{username}@passwordless.invalid"  # Reserved email suffix for unsafe passwordless testing login
     identity_query = {
         "identities": {
             "$elemMatch": {
-                "identity_type": IdentityType.TESTING_PASSWORDLESS.value,
-                "identifier": username,
+                "identity_type": IdentityType.EMAIL.value,
+                "identifier": email_identifier,
+                "verified": False,
             }
         }
     }
@@ -228,14 +230,15 @@ def create_test_user(
 
     if existing_user is None:
         identity = Identity(
-            identity_type=IdentityType.TESTING_PASSWORDLESS,
-            identifier=username,
+            identity_type=IdentityType.EMAIL,
+            identifier=email_identifier,
             name=username,
             display_name=display_name or username,
             verified=False,
         )
         user = Person.new_user_from_identity(
             identity,
+            use_contact_email=False,
             account_status=AccountStatus.ACTIVE,
         )
         user_id = insert_pydantic_model_fork_safe(user, "users")

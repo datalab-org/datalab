@@ -899,12 +899,16 @@ def list_testing_passwordless_users():
 
     if not CONFIG.ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN:
         raise NotFound()
+    # This reserved suffix marks users created by dev.create-test-user.
+    email_suffix = "@passwordless.invalid"
     documents = flask_mongo.db.users.find(
         {
             "account_status": AccountStatus.ACTIVE.value,
             "identities": {
                 "$elemMatch": {
-                    "identity_type": IdentityType.TESTING_PASSWORDLESS.value,
+                    "identity_type": IdentityType.EMAIL.value,
+                    "identifier": {"$regex": f"{re.escape(email_suffix)}$"},
+                    "verified": False,
                 }
             },
         },
@@ -916,11 +920,16 @@ def list_testing_passwordless_users():
         if login_user_model is None:
             continue
         for identity in login_user_model.identities:
-            if identity.identity_type is IdentityType.TESTING_PASSWORDLESS:
+            if (
+                identity.identity_type is IdentityType.EMAIL
+                and not identity.verified
+                and identity.identifier.endswith(email_suffix)
+            ):
+                username = identity.identifier.removesuffix(email_suffix)
                 users.append(
                     {
-                        "username": identity.identifier,
-                        "display_name": login_user_model.display_name or identity.identifier,
+                        "username": username,
+                        "display_name": login_user_model.display_name or username,
                         "gravatar_hash": login_user_model.person.gravatar_hash,
                         "role": login_user_model.role.value,
                         "account_status": login_user_model.account_status.value,
@@ -953,13 +962,15 @@ def testing_passwordless_login():
     except (TypeError, ValueError, ValidationError):
         raise Unauthorized("Unknown passwordless test user.") from None
 
+    email_identifier = f"{username}@passwordless.invalid"  # Reserved email suffix for unsafe passwordless testing login
     document = flask_mongo.db.users.find_one(
         {
             "account_status": AccountStatus.ACTIVE.value,
             "identities": {
                 "$elemMatch": {
-                    "identity_type": IdentityType.TESTING_PASSWORDLESS.value,
-                    "identifier": username,
+                    "identity_type": IdentityType.EMAIL.value,
+                    "identifier": email_identifier,
+                    "verified": False,
                 }
             },
         },

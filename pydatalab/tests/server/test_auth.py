@@ -62,8 +62,8 @@ def testing_passwordless_users(
                 "$set": {
                     "identities": [
                         {
-                            "identity_type": "testing_passwordless",
-                            "identifier": username,
+                            "identity_type": "email",
+                            "identifier": f"{username}@passwordless.invalid",  # Reserved email suffix for unsafe passwordless testing login
                             "name": username,
                             "verified": False,
                         }
