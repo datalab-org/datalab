@@ -2,13 +2,8 @@
   <div class="login-page min-vh-100 px-3 py-5">
     <main class="login-box card shadow-sm mx-auto">
       <div class="card-body p-4 p-sm-5 text-center">
-        <div v-if="logo_url != null" class="mb-4">
-          <a
-            v-if="homepage_url != null"
-            :href="homepage_url"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+        <div v-if="logo_url" class="mb-4">
+          <a v-if="homepage_url" :href="homepage_url" target="_blank" rel="noopener noreferrer">
             <img class="logo-banner d-block mx-auto" :src="logo_url" alt="Logo" />
           </a>
           <img v-else class="logo-banner d-block mx-auto" :src="logo_url" alt="Logo" />
