@@ -513,7 +513,12 @@ export function removeUserFromGroup(groupId, userId) {
     });
 }
 
-export function getStartingMaterialList() {
+export async function getStartingMaterialList() {
+  // Skip the request for unauthenticated users (e.g., viewing via an access token)
+  if (!(await waitForUserAuth())) {
+    store.commit("setStartingMaterialList", []);
+    return;
+  }
   return fetch_get(`${API_URL}/starting-materials/`)
     .then(function (response_json) {
       store.commit("setStartingMaterialList", response_json.items);
@@ -541,11 +546,16 @@ export function getEquipmentList() {
     });
 }
 
-export function getLocations({ force = false } = {}) {
+export async function getLocations({ force = false } = {}) {
   // Locations are shared across every item type, so only fetch them once per
   // session unless a caller explicitly asks for a refresh.
   if (!force && store.state.locations_list !== null) {
-    return Promise.resolve();
+    return;
+  }
+  // Skip the request for unauthenticated users (e.g., viewing via an access token)
+  if (!(await waitForUserAuth())) {
+    store.commit("setLocationsList", { flat_locations: [], nested_locations: {} });
+    return;
   }
   return fetch_get(`${API_URL}/locations`)
     .then(function (response_json) {
@@ -1340,6 +1350,8 @@ export async function deleteAPIKey(id) {
 }
 
 export async function getBlocksInfos() {
+  // Block info may not be public, so only request it once the user is known to be logged in
+  if (!(await waitForUserAuth())) return;
   return fetch_get(`${API_URL}/info/blocks`)
     .then(function (response_json) {
       store.commit("setBlocksInfos", response_json.data);
@@ -1425,6 +1437,8 @@ export async function ensureItemSchema(type) {
 export async function loadItemSchemas() {
   // Load schemas for every supported item type, skipping any already cached
   // in the Vuex store.
+  // Schemas may not be public, so only request them once the user is known to be logged in
+  if (!(await waitForUserAuth())) return;
   try {
     const supportedTypes = await getSupportedSchemasList();
     await Promise.all(supportedTypes.map((typeInfo) => ensureItemSchema(typeInfo.id)));

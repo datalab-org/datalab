@@ -4,7 +4,7 @@
       v-model="file_id"
       :item_id="item_id"
       :block_id="block_id"
-      :extensions="blockInfo.attributes.accepted_file_extensions"
+      :extensions="blockInfo?.attributes?.accepted_file_extensions"
       class="mb-3"
       update-block-on-change
     />
