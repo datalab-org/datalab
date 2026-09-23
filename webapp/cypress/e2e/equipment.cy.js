@@ -17,6 +17,8 @@ after(() => {
 });
 
 before(() => {
+  // Equipment has no creators, so only admins can delete it
+  cy.loginViaTestMagicLink("admin-user@example.com", "admin");
   cy.visit("/equipment");
   cy.removeAllTestSamples(item_ids);
   cy.visit("/equipment").then(() => {
@@ -25,6 +27,7 @@ before(() => {
 });
 
 after(() => {
+  cy.loginViaTestMagicLink("admin-user@example.com", "admin");
   cy.visit("/equipment");
   cy.removeAllTestSamples(item_ids);
   cy.visit("/equipment").then(() => {
@@ -94,6 +97,8 @@ describe("Equipment table page", () => {
   });
 
   it("Deletes an item", function () {
+    cy.loginViaTestMagicLink("admin-user@example.com", "admin");
+    cy.visit("/equipment");
     cy.deleteItems("equipment", ["test_e2"]);
 
     cy.contains("test_e2").should("not.exist");
