@@ -82,13 +82,16 @@
             />
           </div>
         </div>
-        <!-- dynamically insert addons to this modal for each item type. On mount, the component
-        should emit a callback that can be called to get properly formatted
-        data to provide to the server -->
-        <!--         <component
-          :is="itemCreateModalAddonComponent"
-          @startingDataCallback="(callback) => (startingDataCallback = callback)"
-        /> -->
+        <div class="form-row">
+          <div class="col-md-12 form-group">
+            <label id="shareWithGroupsLabel">(Optional) Restrict to groups:</label>
+            <GroupSelect
+              v-model="shareWithGroups"
+              aria-labelledby="shareWithGroupsLabel"
+              multiple
+            />
+          </div>
+        </div>
       </template>
     </Modal>
   </form>
