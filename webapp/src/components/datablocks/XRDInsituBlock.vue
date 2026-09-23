@@ -25,7 +25,7 @@
       v-model="file_id"
       :item_id="item_id"
       :block_id="block_id"
-      :extensions="blockInfo.attributes.accepted_file_extensions"
+      :extensions="blockInfo?.attributes?.accepted_file_extensions"
       update-block-on-change
       @change="onFileChange"
     />

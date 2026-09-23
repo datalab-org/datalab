@@ -21,7 +21,7 @@ from pydatalab.config import CONFIG
 from pydatalab.feature_flags import FEATURE_FLAGS, FeatureFlags
 from pydatalab.models import ITEM_SCHEMAS, Person
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import active_users_or_get_only
+from pydatalab.permissions import active_users_only
 
 from ._version import __api_version__
 
@@ -123,7 +123,7 @@ def get_info():
 
 
 @INFO.route("/info/stats", methods=["GET"])
-@active_users_or_get_only
+@active_users_only
 def get_stats():
     """Returns a dictionary of counts of each entry type in the deployment"""
 
@@ -138,6 +138,7 @@ def get_stats():
 
 
 @INFO.route("/info/blocks", methods=["GET"])
+@active_users_only
 def list_block_types():
     """Returns a list of all blocks implemented in this server."""
     return jsonify(
@@ -162,6 +163,7 @@ def list_block_types():
 
 
 @INFO.route("/info/types", methods=["GET"])
+@active_users_only
 def list_supported_types():
     """Returns a list of supported schemas."""
 
@@ -185,6 +187,7 @@ def list_supported_types():
 
 
 @INFO.route("/info/types/<string:item_type>", methods=["GET"])
+@active_users_only
 def get_schema_type(item_type):
     """Returns the schema of the given type."""
     if item_type not in ITEM_SCHEMAS:
@@ -231,7 +234,7 @@ def _fetch_activity_data(months: int, cache_date: str):
 
 
 @INFO.route("/info/user-activity", methods=["GET"])
-@active_users_or_get_only
+@active_users_only
 def get_combined_activity():
     """Get combined activity data for all users."""
 

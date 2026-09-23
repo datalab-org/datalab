@@ -26,7 +26,7 @@
         v-model="fileModel"
         :item_id="item_id"
         :block_id="block_id"
-        :extensions="blockInfo.attributes.accepted_file_extensions"
+        :extensions="blockInfo?.attributes?.accepted_file_extensions"
         :update-block-on-change="false"
         @update:modelValue="onFileSelectionChange"
       />
@@ -35,7 +35,7 @@
       v-model="pending_comparison_file_ids"
       :item_id="item_id"
       :block_id="block_id"
-      :extensions="blockInfo.attributes.accepted_file_extensions"
+      :extensions="blockInfo?.attributes?.accepted_file_extensions"
       :exclude-file-ids="file_ids"
       :initially-expanded="pending_comparison_file_ids.length > 0"
       :show-apply-button="false"

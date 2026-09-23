@@ -410,7 +410,10 @@ export default {
 
       const type = block.blocktype;
 
-      if (!(type in this.$store.state.blocksInfos)) {
+      // Block info is only loaded for logged-in users, so only treat unknown types as errors
+      // when it is available (i.e., not when viewing via an access token)
+      const blocksInfos = this.$store.state.blocksInfos;
+      if (Object.keys(blocksInfos).length > 0 && !(type in blocksInfos)) {
         return ErrorBlock;
       }
 
