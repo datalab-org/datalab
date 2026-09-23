@@ -11,7 +11,7 @@ import ExampleGraph from "@/views/ExampleGraph.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
 import Admin from "@/views/Admin.vue";
 import Login from "../views/Login.vue";
-import { API_URL, ENABLE_LOGIN_PAGE, WEBSITE_TITLE } from "@/resources.js";
+import { API_URL, WEBSITE_TITLE } from "@/resources.js";
 import { getInfo } from "@/server_fetch_utils.js";
 import store from "@/store/index.js";
 
@@ -121,22 +121,12 @@ router.beforeEach(async (to, from, next) => {
     return;
   }
 
-  if (ENABLE_LOGIN_PAGE) {
-    const { getUserInfo } = await import("@/server_fetch_utils.js");
-    const user = await getUserInfo();
+  const { getUserInfo } = await import("@/server_fetch_utils.js");
+  const user = await getUserInfo();
 
-    if (!user && to.name !== "login") {
-      next({ name: "login", query: { next: to.fullPath } });
-      return;
-    }
-  } else if (to.path === "/" || (to.name === "samples" && from.path === "/")) {
-    const { getUserInfo } = await import("@/server_fetch_utils.js");
-    const user = await getUserInfo();
-
-    if (!user) {
-      next("/about");
-      return;
-    }
+  if (!user && to.name !== "login") {
+    next({ name: "login", query: { next: to.fullPath } });
+    return;
   }
 
   const capitalizeFirstLetter = (string) => {
