@@ -233,26 +233,28 @@ There are three approaches to authentication when developing *datalab* features 
      invoke task.
    - For testing admin functionality, the user can also be promoted with
      the `admin.change-user-role` invoke task.
-3. Test users with magic-link login URLs. Create a test user (an active account with
-   the email address `<username>@datalab.test`) with:
+3. Test users with magic-link login URLs. Create some test users (active accounts
+   with random `@datalab.test` email addresses) with:
 
    ```shell
-   uv run invoke dev.create-test-user \
-     --username alice \
-     --display-name "Alice Test User" \
-     --role user
+   uv run invoke dev.create-test-user --count 3
+   uv run invoke dev.create-test-user --role admin
    ```
 
-   Then list the test users with their roles, groups and login links:
+   A specific user can be created or updated with
+   `--username alice --display-name "Alice" --role manager`.
+
+   Then list all users with their roles, groups and login links:
 
    ```shell
-   uv run invoke dev.list-test-users
+   uv run invoke dev.list-users
    ```
 
    Each link is a standard email login token (valid for one hour), minted
    directly instead of being sent by email, pointing at `PYDATALAB_APP_URL`.
    Open each link in a separate private browser window to test roles, groups
-   and permissions as several users at once.
+   and permissions as several users at once. Users without an email identity
+   (e.g., OAuth-only accounts) are listed without a link.
 
 Finally, all API tests can be run with variable authentication.
 There are [pytest fixtures](https://docs.pytest.org/en/7.1.x/how-to/fixtures.html) that provide
