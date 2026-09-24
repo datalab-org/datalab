@@ -4,6 +4,7 @@ import pathlib
 import re
 import shutil
 import subprocess
+import sys
 import time
 
 import tomlkit
@@ -137,6 +138,30 @@ def serve(
     debug: bool = False,
 ):
     """Boot the Flask development server."""
+    env_path = _load_dev_env()
+
+    if testing and "PYDATALAB_TESTING" not in os.environ:
+        os.environ["PYDATALAB_TESTING"] = "1"
+
+    if debug and "PYDATALAB_DEBUG" not in os.environ:
+        os.environ["PYDATALAB_DEBUG"] = "1"
+
+    from pydatalab.main import create_app
+
+    create_app(env_file=env_path).run(host=host, port=port, debug=debug, use_reloader=reload)
+
+
+dev.add_task(serve)
+
+
+def _load_dev_env() -> pathlib.Path:
+    """Load the development `.env` file and apply the insecure dev secret key fallback.
+
+    This must be called before importing anything that instantiates `CONFIG`, and is
+    shared between `dev.serve` and the test-user tasks so that login tokens minted in
+    the terminal are signed with the same key as the running dev server.
+
+    """
     from dotenv import load_dotenv
 
     # Load .env into os.environ *first*, before the guards below and before
@@ -151,25 +176,215 @@ def serve(
 
     load_dotenv(env_path)
 
-    if testing and "PYDATALAB_TESTING" not in os.environ:
-        os.environ["PYDATALAB_TESTING"] = "1"
-
-    if testing and "PYDATALAB_ENABLE_TEST_EMAIL_AUTH" not in os.environ:
-        os.environ["PYDATALAB_ENABLE_TEST_EMAIL_AUTH"] = "1"
-
-    if debug and "PYDATALAB_DEBUG" not in os.environ:
-        os.environ["PYDATALAB_DEBUG"] = "1"
-
     if "PYDATALAB_SECRET_KEY" not in os.environ:
         os.environ["PYDATALAB_SECRET_KEY"] = "dev-insecure-secret-key-do-not-use-in-production"  # noqa: S105
         os.environ["PYDATALAB_ALLOW_INSECURE_SECRET_KEY"] = "1"  # noqa: S105
 
+    return env_path
+
+
+# Test users are ordinary email users on this reserved domain (RFC 2606), so that
+# they can be logged in via standard magic-link tokens from `dev.list-users`.
+TEST_USER_EMAIL_DOMAIN = "datalab.test"
+
+
+@task(
+    help={
+        "username": "Username for the test user; their email will be <username>@datalab.test "
+        "(random if omitted)",
+        "display_name": "Display name for the test user (defaults to the username)",
+        "role": "User role: user, manager, or admin",
+        "count": "Number of users to create with random usernames (only without --username)",
+    }
+)
+def create_test_user(
+    _,
+    username: str | None = None,
+    display_name: str | None = None,
+    role: str = "user",
+    count: int = 1,
+):
+    """Create or update active test users that can log in via `dev.list-users` links."""
+
+    _load_dev_env()
+
+    import secrets
+
+    from pydantic import TypeAdapter, ValidationError
+
+    from pydatalab.models.people import AccountStatus, DisplayName, Identity, IdentityType, Person
+    from pydatalab.models.utils import HumanReadableIdentifier, UserRole
+    from pydatalab.mongo import get_database, insert_pydantic_model_fork_safe
+
+    try:
+        role_value = UserRole(role.lower())
+    except ValueError:
+        allowed_roles = ", ".join(value.value for value in UserRole)
+        raise SystemExit(f"Invalid role {role!r}; expected one of: {allowed_roles}.") from None
+
+    if display_name is not None:
+        try:
+            display_name = TypeAdapter(DisplayName).validate_python(display_name)
+        except ValidationError as exc:
+            raise SystemExit(f"Invalid display name {display_name!r}: {exc}") from None
+
+    if count < 1:
+        raise SystemExit("--count must be at least 1.")
+
+    database = get_database()
+
+    def find_user(email: str):
+        return database.users.find_one(
+            {"identities.identifier": email, "identities.identity_type": IdentityType.EMAIL.value}
+        )
+
+    if username is not None:
+        if count != 1:
+            raise SystemExit("--count cannot be combined with --username.")
+        try:
+            username = TypeAdapter(HumanReadableIdentifier).validate_python(username)
+        except ValidationError as exc:
+            raise SystemExit(f"Invalid test username {username!r}: {exc}") from None
+        new_users = [(username, display_name)]
+    else:
+        if count != 1 and display_name is not None:
+            raise SystemExit("--display-name cannot be combined with --count.")
+        new_users = [(secrets.token_hex(3), display_name) for _ in range(count)]
+
+    for username, user_display_name in new_users:
+        email = f"{username}@{TEST_USER_EMAIL_DOMAIN}"
+        existing_user = find_user(email)
+
+        if existing_user is None:
+            identity = Identity(
+                identity_type=IdentityType.EMAIL,
+                identifier=email,
+                name=email,
+                display_name=user_display_name or username,
+                verified=True,
+            )
+            user = Person.new_user_from_identity(
+                identity,
+                use_contact_email=False,
+                account_status=AccountStatus.ACTIVE,
+            )
+            user_id = insert_pydantic_model_fork_safe(user, "users")
+            action = "Created"
+        else:
+            user_id = existing_user["_id"]
+            user_updates = {"account_status": AccountStatus.ACTIVE.value}
+            if user_display_name is not None:
+                user_updates["display_name"] = user_display_name
+            database.users.update_one({"_id": user_id}, {"$set": user_updates})
+            action = "Updated"
+
+        database.roles.update_one(
+            {"_id": user_id},
+            {"$set": {"role": role_value.value}},
+            upsert=True,
+        )
+        print(f"{action} test user {email!r} with role {role_value.value!r}.")
+
+
+dev.add_task(create_test_user)
+
+
+@task
+def list_users(_):
+    """List all users with magic-link login URLs for the local webapp.
+
+    Each link is a standard email login token (valid for one hour), minted directly
+    rather than sent by email. Open each in a separate private browser window to be
+    logged in as several users at once. Users without an email identity (e.g., those
+    who only log in via OAuth) are listed without a link.
+
+    """
+
+    env_path = _load_dev_env()
+
+    from pydatalab.config import CONFIG
     from pydatalab.main import create_app
+    from pydatalab.models.people import IdentityType
+    from pydatalab.models.utils import UserRole
+    from pydatalab.mongo import get_database
+    from pydatalab.routes.v0_1.auth import _generate_and_store_token
 
-    create_app(env_file=env_path).run(host=host, port=port, debug=debug, use_reloader=reload)
+    if CONFIG.DISABLE_MAGIC_LINK_AUTH:
+        raise SystemExit("User login links require magic-link auth to be enabled.")
+    if not CONFIG.APP_URL:
+        raise SystemExit("User login links require PYDATALAB_APP_URL to point to the webapp.")
+
+    database = get_database()
+
+    users = []
+    for document in database.users.find():
+        identities = document.get("identities", [])
+        email = next(
+            (
+                identity["identifier"]
+                for identity in identities
+                if identity.get("identity_type") == IdentityType.EMAIL.value
+            ),
+            None,
+        )
+        role_document = database.roles.find_one({"_id": document["_id"]}, {"role": 1})
+        role = role_document["role"] if role_document else UserRole.USER.value
+        group_ids = [
+            group["immutable_id"]
+            for group in document.get("groups", [])
+            if group.get("immutable_id") is not None
+        ]
+        groups = database.groups.find(
+            {"_id": {"$in": group_ids}},
+            {"display_name": 1, "group_id": 1},
+        )
+        group_names = sorted(
+            (
+                group.get("display_name") or group.get("group_id") or str(group["_id"])
+                for group in groups
+            ),
+            key=str.casefold,
+        )
+        users.append(
+            {
+                "email": email,
+                "display_name": document.get("display_name") or email or str(document["_id"]),
+                "identity_types": sorted({i.get("identity_type") for i in identities}),
+                "role": role,
+                "status": document.get("account_status"),
+                "groups": group_names,
+            }
+        )
+
+    users.sort(key=lambda user: (user["display_name"].casefold(), user["email"] or ""))
+    if not users:
+        print("No users found; create one with `invoke dev.create-test-user`.")
+        return
+
+    use_color = sys.stdout.isatty() and "NO_COLOR" not in os.environ
+
+    def styled(value: str, code: str) -> str:
+        return f"\033[{code}m{value}\033[0m" if use_color and code else value
+
+    login_base_url = f"{CONFIG.APP_URL.rstrip('/')}/?token="
+    role_colors = {"admin": "31", "manager": "33", "user": "32"}
+    print(styled("Users (links valid for 1 hour)", "1;36"))
+    with create_app(env_file=env_path).app_context():
+        for user in users:
+            groups = ", ".join(user["groups"]) if user["groups"] else "No groups"
+            print(f"\n{styled(user['display_name'], '1')} ({user['email'] or 'no email'})")
+            print(f"  Role:   {styled(user['role'], role_colors.get(user['role'], ''))}")
+            print(f"  Status: {user['status']}")
+            print(f"  Groups: {groups}")
+            if user["email"]:
+                token = _generate_and_store_token(user["email"], intent="login")
+                print(f"  Login:  {styled(login_base_url + token, '36')}")
+            else:
+                identity_types = ", ".join(user["identity_types"]) or "none"
+                print(f"  Login:  no email identity (identities: {identity_types})")
 
 
-dev.add_task(serve)
+dev.add_task(list_users)
 
 
 @task
