@@ -138,6 +138,30 @@ def serve(
     debug: bool = False,
 ):
     """Boot the Flask development server."""
+    env_path = _load_dev_env()
+
+    if testing and "PYDATALAB_TESTING" not in os.environ:
+        os.environ["PYDATALAB_TESTING"] = "1"
+
+    if debug and "PYDATALAB_DEBUG" not in os.environ:
+        os.environ["PYDATALAB_DEBUG"] = "1"
+
+    from pydatalab.main import create_app
+
+    create_app(env_file=env_path).run(host=host, port=port, debug=debug, use_reloader=reload)
+
+
+dev.add_task(serve)
+
+
+def _load_dev_env() -> pathlib.Path:
+    """Load the development `.env` file and apply the insecure dev secret key fallback.
+
+    This must be called before importing anything that instantiates `CONFIG`, and is
+    shared between `dev.serve` and the test-user tasks so that login tokens minted in
+    the terminal are signed with the same key as the running dev server.
+
+    """
     from dotenv import load_dotenv
 
     # Load .env into os.environ *first*, before the guards below and before
@@ -152,27 +176,21 @@ def serve(
 
     load_dotenv(env_path)
 
-    if testing and "PYDATALAB_TESTING" not in os.environ:
-        os.environ["PYDATALAB_TESTING"] = "1"
-
-    if debug and "PYDATALAB_DEBUG" not in os.environ:
-        os.environ["PYDATALAB_DEBUG"] = "1"
-
     if "PYDATALAB_SECRET_KEY" not in os.environ:
         os.environ["PYDATALAB_SECRET_KEY"] = "dev-insecure-secret-key-do-not-use-in-production"  # noqa: S105
         os.environ["PYDATALAB_ALLOW_INSECURE_SECRET_KEY"] = "1"  # noqa: S105
 
-    from pydatalab.main import create_app
-
-    create_app(env_file=env_path).run(host=host, port=port, debug=debug, use_reloader=reload)
+    return env_path
 
 
-dev.add_task(serve)
+# Test users are ordinary email users on this reserved domain (RFC 2606), so that
+# they can be listed and logged in via standard magic-link tokens.
+TEST_USER_EMAIL_DOMAIN = "datalab.test"
 
 
 @task(
     help={
-        "username": "Case-sensitive username for unsafe passwordless testing login",
+        "username": "Username for the test user; their email will be <username>@datalab.test",
         "display_name": "Display name for the test user (defaults to the username)",
         "role": "User role: user, manager, or admin",
     }
@@ -183,21 +201,15 @@ def create_test_user(
     display_name: str | None = None,
     role: str = "user",
 ):
-    """Create or update a user for unsafe passwordless testing login."""
+    """Create or update an active test user that can log in via `dev.list-test-users` links."""
+
+    _load_dev_env()
 
     from pydantic import TypeAdapter, ValidationError
 
-    from pydatalab.config import CONFIG
     from pydatalab.models.people import AccountStatus, DisplayName, Identity, IdentityType, Person
     from pydatalab.models.utils import HumanReadableIdentifier, UserRole
     from pydatalab.mongo import get_database, insert_pydantic_model_fork_safe
-
-    if not CONFIG.ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN:
-        raise SystemExit(
-            "Unsafe passwordless test users require "
-            "PYDATALAB_ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN=true. "
-            "Never enable this option in production."
-        )
 
     try:
         username = TypeAdapter(HumanReadableIdentifier).validate_python(username)
@@ -217,26 +229,18 @@ def create_test_user(
             raise SystemExit(f"Invalid display name {display_name!r}: {exc}") from None
 
     database = get_database()
-    # This reserved suffix identifies users accepted by the passwordless login route.
-    email_identifier = f"{username}@passwordless.invalid"
-    identity_query = {
-        "identities": {
-            "$elemMatch": {
-                "identity_type": IdentityType.EMAIL.value,
-                "identifier": email_identifier,
-                "verified": False,
-            }
-        }
-    }
-    existing_user = database.users.find_one(identity_query)
+    email = f"{username}@{TEST_USER_EMAIL_DOMAIN}"
+    existing_user = database.users.find_one(
+        {"identities.identifier": email, "identities.identity_type": IdentityType.EMAIL.value}
+    )
 
     if existing_user is None:
         identity = Identity(
             identity_type=IdentityType.EMAIL,
-            identifier=email_identifier,
-            name=username,
+            identifier=email,
+            name=email,
             display_name=display_name or username,
-            verified=False,
+            verified=True,
         )
         user = Person.new_user_from_identity(
             identity,
@@ -258,7 +262,7 @@ def create_test_user(
         {"$set": {"role": role_value.value}},
         upsert=True,
     )
-    print(f"{action} unsafe passwordless test user {username!r} with role {role_value.value!r}.")
+    print(f"{action} test user {email!r} with role {role_value.value!r}.")
 
 
 dev.add_task(create_test_user)
@@ -266,34 +270,36 @@ dev.add_task(create_test_user)
 
 @task
 def list_test_users(_):
-    """List unsafe passwordless test users and their direct login links."""
+    """List test users with magic-link login URLs for the local webapp.
+
+    Each link is a standard email login token (valid for one hour), minted directly
+    rather than sent by email. Open each in a separate private browser window to be
+    logged in as several users at once.
+
+    """
+
+    env_path = _load_dev_env()
 
     from pydatalab.config import CONFIG
-    from pydatalab.models.people import AccountStatus, IdentityType
+    from pydatalab.main import create_app
+    from pydatalab.models.people import IdentityType
     from pydatalab.models.utils import UserRole
     from pydatalab.mongo import get_database
+    from pydatalab.routes.v0_1.auth import _generate_and_store_token
 
-    if not CONFIG.ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN:
-        raise SystemExit(
-            "Unsafe passwordless test users require "
-            "PYDATALAB_ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN=true. "
-            "Never enable this option in production."
-        )
+    if CONFIG.DISABLE_MAGIC_LINK_AUTH:
+        raise SystemExit("Test-user login links require magic-link auth to be enabled.")
     if not CONFIG.APP_URL:
-        raise SystemExit(
-            "Passwordless test-user links require PYDATALAB_APP_URL to point to the webapp."
-        )
+        raise SystemExit("Test-user login links require PYDATALAB_APP_URL to point to the webapp.")
 
     database = get_database()
-    email_suffix = "@passwordless.invalid"
+    email_suffix = f"@{TEST_USER_EMAIL_DOMAIN}"
     documents = database.users.find(
         {
-            "account_status": AccountStatus.ACTIVE.value,
             "identities": {
                 "$elemMatch": {
                     "identity_type": IdentityType.EMAIL.value,
                     "identifier": {"$regex": f"{re.escape(email_suffix)}$"},
-                    "verified": False,
                 }
             },
         }
@@ -301,14 +307,12 @@ def list_test_users(_):
 
     users = []
     for document in documents:
-        identity = next(
-            identity
+        email = next(
+            identity["identifier"]
             for identity in document["identities"]
             if identity.get("identity_type") == IdentityType.EMAIL.value
-            and not identity.get("verified", False)
             and identity.get("identifier", "").endswith(email_suffix)
         )
-        username = identity["identifier"].removesuffix(email_suffix)
         role_document = database.roles.find_one({"_id": document["_id"]}, {"role": 1})
         role = role_document["role"] if role_document else UserRole.USER.value
         group_ids = [
@@ -329,16 +333,17 @@ def list_test_users(_):
         )
         users.append(
             {
-                "username": username,
-                "display_name": document.get("display_name") or username,
+                "email": email,
+                "display_name": document.get("display_name") or email,
                 "role": role,
+                "status": document.get("account_status"),
                 "groups": group_names,
             }
         )
 
-    users.sort(key=lambda user: (user["display_name"].casefold(), user["username"].casefold()))
+    users.sort(key=lambda user: (user["display_name"].casefold(), user["email"].casefold()))
     if not users:
-        print("No passwordless test users are configured.")
+        print("No test users found; create one with `invoke dev.create-test-user`.")
         return
 
     use_color = sys.stdout.isatty() and "NO_COLOR" not in os.environ
@@ -346,16 +351,18 @@ def list_test_users(_):
     def styled(value: str, code: str) -> str:
         return f"\033[{code}m{value}\033[0m" if use_color and code else value
 
-    login_base_url = f"{CONFIG.APP_URL.rstrip('/')}/login?testing-passwordless="
+    login_base_url = f"{CONFIG.APP_URL.rstrip('/')}/?token="
     role_colors = {"admin": "31", "manager": "33", "user": "32"}
-    print(styled("Passwordless test users", "1;36"))
-    for user in users:
-        groups = ", ".join(user["groups"]) if user["groups"] else "No groups"
-        login_url = f"{login_base_url}{user['username']}"
-        print(f"\n{styled(user['display_name'], '1')} ({user['username']})")
-        print(f"  Role:   {styled(user['role'], role_colors.get(user['role'], ''))}")
-        print(f"  Groups: {groups}")
-        print(f"  Login:  {styled(login_url, '36')}")
+    print(styled("Test users (links valid for 1 hour)", "1;36"))
+    with create_app(env_file=env_path).app_context():
+        for user in users:
+            token = _generate_and_store_token(user["email"], intent="login")
+            groups = ", ".join(user["groups"]) if user["groups"] else "No groups"
+            print(f"\n{styled(user['display_name'], '1')} ({user['email']})")
+            print(f"  Role:   {styled(user['role'], role_colors.get(user['role'], ''))}")
+            print(f"  Status: {user['status']}")
+            print(f"  Groups: {groups}")
+            print(f"  Login:  {styled(login_base_url + token, '36')}")
 
 
 dev.add_task(list_test_users)

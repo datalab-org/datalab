@@ -17,8 +17,7 @@ from flask import Blueprint, Response, g, jsonify, redirect, request, session
 from flask_dance.consumer import OAuth2ConsumerBlueprint, oauth_authorized, oauth_before_login
 from flask_login import current_user, login_user
 from flask_login.utils import LocalProxy
-from pydantic import TypeAdapter, ValidationError
-from werkzeug.exceptions import BadRequest, Forbidden, NotFound, Unauthorized
+from werkzeug.exceptions import BadRequest, Forbidden, NotFound
 
 from pydatalab.config import CONFIG
 from pydatalab.errors import UserRegistrationForbidden
@@ -26,7 +25,6 @@ from pydatalab.feature_flags import FEATURE_FLAGS
 from pydatalab.logger import LOGGER
 from pydatalab.login import get_by_id
 from pydatalab.models.people import AccountStatus, Identity, IdentityType, Person
-from pydatalab.models.utils import HumanReadableIdentifier
 from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
 from pydatalab.permissions import ApiKey, authenticate, exclude_api_key
 from pydatalab.send_email import send_mail
@@ -891,43 +889,6 @@ def email_logged_in():
         return redirect(CONFIG.APP_URL, 307)
     referer = request.headers.get("Referer", CONFIG.ROOT_PATH or "/")
     return redirect(referer, 307)
-
-
-@AUTH.route("/login/testing-passwordless/<username>", methods=["GET"])
-def testing_passwordless_login(username: str):
-    """Impersonate a configured test user without authentication or a password."""
-
-    if not CONFIG.ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN:
-        raise NotFound()
-    try:
-        username = TypeAdapter(HumanReadableIdentifier).validate_python(username)
-    except (TypeError, ValueError, ValidationError):
-        raise BadRequest("Invalid passwordless test username.") from None
-
-    # This reserved suffix marks users created by dev.create-test-user.
-    email_identifier = f"{username}@passwordless.invalid"
-    document = flask_mongo.db.users.find_one(
-        {
-            "account_status": AccountStatus.ACTIVE.value,
-            "identities": {
-                "$elemMatch": {
-                    "identity_type": IdentityType.EMAIL.value,
-                    "identifier": email_identifier,
-                    "verified": False,
-                }
-            },
-        },
-        {"_id": 1},
-    )
-    if document is None:
-        raise Unauthorized("Unknown passwordless test user.")
-
-    login_user_model = get_by_id(document["_id"])
-    if login_user_model is None:
-        raise Unauthorized("Unknown passwordless test user.")
-    wrapped_login_user(login_user_model)
-    redirect_url = CONFIG.APP_URL or request.headers.get("Referer", CONFIG.ROOT_PATH or "/")
-    return redirect(redirect_url, 307)
 
 
 @oauth_authorized.connect_via(OAUTH[IdentityType.GITHUB])
