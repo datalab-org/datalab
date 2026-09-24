@@ -1,3 +1,4 @@
+<!-- This file was edited with the assistance of an AI model and requires human review from the contributor. -->
 <template>
   <DynamicDataTable
     :columns="startingMaterialColumn"
@@ -32,6 +33,7 @@ import {
   CHEMFORM_COLUMN,
   DATE_COLUMN,
   COLLECTIONS_COLUMN,
+  INVENTORY_ACCESS_COLUMN,
   BLOCKS_COLUMN,
   FILES_COLUMN,
   LAST_MODIFIED_COLUMN,
@@ -71,6 +73,7 @@ export default {
         CHEMFORM_COLUMN,
         DATE_COLUMN,
         COLLECTIONS_COLUMN,
+        INVENTORY_ACCESS_COLUMN,
         {
           field: "supplier",
           header: "Supplier",
@@ -107,7 +110,13 @@ export default {
         return null;
       }
 
-      return this.$store.state.starting_material_list;
+      return this.$store.state.starting_material_list.map((item) => ({
+        ...item,
+        creatorsAndGroups: [
+          ...(item.creators || []).map((c) => ({ ...c, type: "creator" })),
+          ...(item.groups || []).map((g) => ({ ...g, type: "group" })),
+        ],
+      }));
     },
   },
   mounted() {

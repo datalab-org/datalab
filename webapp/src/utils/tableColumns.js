@@ -1,3 +1,4 @@
+// This file was edited with the assistance of an AI model and requires human review from the contributor.
 import { FilterOperator, FilterMatchMode } from "@primevue/core/api";
 
 import { formatRelativeDate } from "@/field_utils.js";
@@ -11,6 +12,7 @@ import FilesIconCounter from "@/components/FilesIconCounter";
 import FormattedCollectionName from "@/components/FormattedCollectionName";
 import FormattedItemName from "@/components/FormattedItemName";
 import FormattedItemStatus from "@/components/FormattedItemStatus";
+import InventoryAccess from "@/components/InventoryAccess";
 import TagBadge from "@/components/TagBadge";
 import TagList from "@/components/TagList";
 
@@ -216,6 +218,22 @@ export const CREATORS_AND_GROUPS_COLUMN = {
     match: matchCreatorsAndGroups,
     operator: FilterOperator.AND,
     options: creatorsAndGroupsOptions,
+  },
+};
+
+/** Who can access an inventory item: its groups and any maintainers, or everyone if it has
+ * not been restricted to any groups. Rows must provide `creatorsAndGroups` for filtering. */
+export const INVENTORY_ACCESS_COLUMN = {
+  ...CREATORS_AND_GROUPS_COLUMN,
+  header: "",
+  label: "Access",
+  icon: ["fa", "users"],
+  body: {
+    component: InventoryAccess,
+    props: (row) => ({
+      creators: row.creators || [],
+      groups: row.groups || [],
+    }),
   },
 };
 

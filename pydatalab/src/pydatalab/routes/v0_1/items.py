@@ -1,3 +1,4 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 import copy
 import datetime
 import json
@@ -90,6 +91,14 @@ def get_equipment_summary():
         "refcode": 1,
         "location": 1,
         "status": 1,
+        "creators": {
+            "display_name": 1,
+            "gravatar_hash": 1,
+        },
+        "groups": {
+            "display_name": 1,
+            "group_id": 1,
+        },
     }
 
     for field in flagged_summary_fields(("equipment",)):
@@ -105,6 +114,8 @@ def get_equipment_summary():
                         **get_default_permissions(user_only=False, inherit_from_collections=False),
                     }
                 },
+                {"$lookup": creators_lookup()},
+                {"$lookup": groups_lookup()},
                 {"$project": _project},
             ]
         )
@@ -147,6 +158,14 @@ def get_starting_materials():
         "location": 1,
         "status": 1,
         "CAS": 1,
+        "creators": {
+            "display_name": 1,
+            "gravatar_hash": 1,
+        },
+        "groups": {
+            "display_name": 1,
+            "group_id": 1,
+        },
     }
 
     for field in flagged_summary_fields(("starting_materials",)):
@@ -162,6 +181,8 @@ def get_starting_materials():
                         **get_default_permissions(user_only=False, inherit_from_collections=False),
                     }
                 },
+                {"$lookup": creators_lookup()},
+                {"$lookup": groups_lookup()},
                 {"$lookup": collections_lookup()},
                 *block_store.blocks_preview_stages(),
                 {
@@ -190,6 +211,14 @@ def get_starting_materials():
                         "location": 1,
                         "status": 1,
                         "CAS": 1,
+                        "creators": {
+                            "display_name": 1,
+                            "gravatar_hash": 1,
+                        },
+                        "groups": {
+                            "display_name": 1,
+                            "group_id": 1,
+                        },
                     }
                 },
                 {
