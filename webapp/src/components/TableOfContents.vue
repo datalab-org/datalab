@@ -25,29 +25,32 @@
           :class="{'collapse-icon-rotated': sidebarShown}"
           @click="sidebarShown = !sidebarShown"
         /> -->
-        <ol id="contents-ol">
-          <li
-            v-for="section in informationSections"
-            :key="section.targetID"
-            class="contents-item"
-            @click="scrollToID($event, section.targetID)"
-          >
-            <span class="contents-blocktitle"> {{ section.title }} </span>
-          </li>
-          <li
-            v-for="block_id in display_order"
-            :key="block_id"
-            class="contents-item"
-            @click="scrollToID($event, block_id)"
-          >
-            <span class="contents-blocktitle">{{ blocks[block_id].title }}</span>
-          </li>
-        </ol>
+        <div ref="sidenavScroll" class="sidenav-scroll" @scroll="checkOverflowSoon">
+          <ol id="contents-ol">
+            <li
+              v-for="section in informationSections"
+              :key="section.targetID"
+              class="contents-item"
+              @click="scrollToID($event, section.targetID)"
+            >
+              <span class="contents-blocktitle"> {{ section.title }} </span>
+            </li>
+            <li
+              v-for="block_id in display_order"
+              :key="block_id"
+              class="contents-item"
+              @click="scrollToID($event, block_id)"
+            >
+              <span class="contents-blocktitle">{{ blocks[block_id].title }}</span>
+            </li>
+          </ol>
+        </div>
+        <div v-if="sidenavHasMore" class="contents-more-indicator">⋯</div>
       </div>
     </transition>
     <label class="mr-2">Contents</label>
     <div class="card">
-      <div class="card-body overflow-auto">
+      <div ref="cardScroll" class="card-body overflow-auto" @scroll="checkOverflowSoon">
         <ol id="contents-ol">
           <li
             v-for="section in informationSections"
@@ -67,6 +70,7 @@
           </li>
         </ol>
       </div>
+      <div v-if="cardHasMore" class="contents-more-indicator">⋯</div>
     </div>
   </div>
 </template>
@@ -84,6 +88,8 @@ export default {
     return {
       sidebarShown: false,
       sidebarWidth: 250,
+      sidenavHasMore: false,
+      cardHasMore: false,
     };
   },
   computed: {
@@ -100,10 +106,37 @@ export default {
       return this.sidebarShown ? `calc(${this.sidebarWidth}px - 2.4rem)` : 0;
     },
   },
+  watch: {
+    sidebarShown() {
+      this.checkOverflowSoon();
+    },
+    display_order() {
+      this.checkOverflowSoon();
+    },
+  },
+  mounted() {
+    this.checkOverflow();
+    window.addEventListener("resize", this.checkOverflowSoon);
+  },
+  beforeUnmount() {
+    window.removeEventListener("resize", this.checkOverflowSoon);
+  },
   methods: {
     scrollToID(event, id) {
       var element = document.getElementById(id);
       element.scrollIntoView({ behavior: "smooth" });
+    },
+    // Whether a scrollable element still has content hidden below its
+    // visible area, i.e. it isn't scrolled all the way to the bottom.
+    hasMoreBelow(el) {
+      return !!el && el.scrollHeight - el.scrollTop - el.clientHeight > 1;
+    },
+    checkOverflow() {
+      this.sidenavHasMore = this.hasMoreBelow(this.$refs.sidenavScroll);
+      this.cardHasMore = this.hasMoreBelow(this.$refs.cardScroll);
+    },
+    checkOverflowSoon() {
+      this.$nextTick(this.checkOverflow);
     },
   },
 };
@@ -114,8 +147,27 @@ export default {
   cursor: pointer;
 }
 
+.card {
+  position: relative;
+}
+
 .card-body.overflow-auto {
   max-height: 60vh;
+}
+
+.contents-more-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.25rem 0 0.1rem;
+  text-align: center;
+  font-size: 1.2rem;
+  line-height: 1;
+  letter-spacing: 0.15em;
+  color: #6c757d;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.9) 55%);
+  pointer-events: none;
 }
 
 .contents-blocktitle {
@@ -172,15 +224,18 @@ export default {
   top: 2rem;
   left: 0px;
   background: #fff;
-  overflow-x: hidden;
-  overflow-y: auto;
-  max-height: calc(100vh - 8rem);
   padding: 1rem 1rem;
   margin-top: 3rem;
   border-radius: 0px 5px 5px 0px;
   border-width: 1px;
   border-color: lightgrey;
   border-style: solid;
+}
+
+.sidenav-scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: calc(100vh - 8rem);
 }
 
 .sidebar-open-enter-active,
