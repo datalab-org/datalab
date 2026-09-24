@@ -89,7 +89,7 @@
             </button>
           </div>
           <OnClickOutside v-if="editingGroups" @trigger="editingGroups = false">
-            <GroupSelect v-model="groupsShadow" multiple @click.stop />
+            <GroupSelect v-model="groupsShadow" multiple :member-only="isInventory" @click.stop />
           </OnClickOutside>
           <ul v-else-if="groups && groups.length" class="list-unstyled mb-0">
             <li
@@ -100,12 +100,22 @@
               <div class="flex-grow-1">
                 <FormattedGroupName :group="group" :size="36" />
               </div>
-              <div class="role-control text-muted" title="Groups currently have read-only access">
-                <span class="me-3">Viewer</span>
+              <div
+                class="role-control text-muted"
+                :title="
+                  isInventory
+                    ? 'Groups currently have edit access, and no one else can access this item'
+                    : 'Groups currently have read-only access'
+                "
+              >
+                <span class="me-3">{{ isInventory ? "Editor" : "Viewer" }}</span>
                 <font-awesome-icon icon="lock" />
               </div>
             </li>
           </ul>
+          <p v-else-if="isInventory" class="text-muted small mb-0">
+            Not restricted to any groups, so all users can access this item.
+          </p>
           <p v-else class="text-muted small mb-0">No groups have access yet.</p>
         </div>
       </div>
@@ -139,6 +149,7 @@ import Creators from "@/components/Creators.vue";
 import FormattedGroupName from "@/components/FormattedGroupName.vue";
 import { DialogService } from "@/services/DialogService";
 import { updateItemPermissions, updateCollectionPermissions } from "@/server_fetch_utils.js";
+import { INVENTORY_TYPES } from "@/resources.js";
 
 export default {
   name: "SharingModal",
@@ -180,6 +191,9 @@ export default {
     },
     itemType() {
       return this.isCollection ? "collections" : this.sourceData.type;
+    },
+    isInventory() {
+      return INVENTORY_TYPES.includes(this.itemType);
     },
     headerName() {
       return this.isCollection ? this.collectionId : this.itemId;

@@ -209,6 +209,8 @@ export function registerDynamicItemType(type, { title, base_type, hidden_fields,
 export const SAMPLE_TABLE_TYPES = ["samples", "cells"];
 export const INVENTORY_TABLE_TYPES = ["starting_materials"];
 export const EQUIPMENT_TABLE_TYPES = ["equipment"];
+// Item types that are shared across the deployment, optionally restricted to groups
+export const INVENTORY_TYPES = [...INVENTORY_TABLE_TYPES, ...EQUIPMENT_TABLE_TYPES];
 
 // Curated palette of distinguishable preset colors offered for tag colors.
 export const TAG_COLOR_PALETTE = [

@@ -1,6 +1,6 @@
 import store from "@/store/index.js";
 import { DialogService } from "@/services/DialogService";
-import { DATETIME_FIELDS } from "@/resources.js";
+import { DATETIME_FIELDS, INVENTORY_TYPES } from "@/resources.js";
 import { formatDistanceToNow } from "date-fns";
 
 /**
@@ -216,7 +216,7 @@ export async function confirmUngroupedInventory(itemType, groups) {
   if (mode === "none") {
     return true;
   }
-  if (!["starting_materials", "equipment"].includes(itemType) || groups?.length) {
+  if (!INVENTORY_TYPES.includes(itemType) || groups?.length) {
     return true;
   }
   if (mode === "error") {

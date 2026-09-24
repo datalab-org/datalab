@@ -11,7 +11,7 @@ from flask import Blueprint, jsonify, redirect, request
 from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
-from werkzeug.exceptions import BadRequest, Conflict, InternalServerError, NotFound
+from werkzeug.exceptions import BadRequest, Conflict, Forbidden, InternalServerError, NotFound
 
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.blocks import store as block_store
@@ -50,6 +50,7 @@ from pydatalab.permissions import (
     AccessToken,
     access_token_or_active_users,
     active_users_or_get_only,
+    can_assign_groups,
     check_access_token,
     get_default_permissions,
 )
@@ -730,6 +731,11 @@ def _create_sample(
             f"Items of type {type_!r} must be assigned to at least one group in this deployment."
         )
 
+    if type_ in INVENTORY_TYPES and not can_assign_groups(new_sample.get("group_ids", [])):
+        raise Forbidden(
+            f"Items of type {type_!r} can only be assigned to groups you are a member of."
+        )
+
     # Generate a unique refcode for the sample
     new_sample["refcode"] = generate_unique_refcode()
     if generate_id_automatically:
@@ -934,6 +940,16 @@ def _process_item_permissions(
     ):
         raise BadRequest(
             f"Items of type {current_item['type']!r} must be assigned to at least one group in this deployment."
+        )
+
+    # Existing groups can be kept, but inventory items can only be newly assigned to groups the user is in
+    if (
+        groups_requested
+        and current_item.get("type") in INVENTORY_TYPES
+        and not can_assign_groups(list(set(group_ids) - set(current_group_ids)))
+    ):
+        raise Forbidden(
+            f"Items of type {current_item['type']!r} can only be assigned to groups you are a member of."
         )
 
     # Validate all creator IDs are present in the database

@@ -100,11 +100,14 @@
         />
         <div class="form-row">
           <div class="col-md-6 form-group">
-            <label id="shareWithGroupsLabel">(Optional) Share with groups:</label>
+            <label id="shareWithGroupsLabel"
+              >(Optional) {{ isInventoryType ? "Restrict to" : "Share with" }} groups:</label
+            >
             <GroupSelect
               v-model="shareWithGroups"
               aria-labelledby="shareWithGroupsLabel"
               multiple
+              :member-only="isInventoryType"
             />
           </div>
           <div class="col-md-6 form-group">
@@ -130,7 +133,12 @@ import GroupSelect from "@/components/GroupSelect.vue";
 import UserSelect from "@/components/UserSelect.vue";
 import { createNewItem } from "@/server_fetch_utils.js";
 import { validateEntryID, confirmUngroupedInventory } from "@/field_utils.js";
-import { itemTypes, SAMPLE_TABLE_TYPES, AUTOMATICALLY_GENERATE_ID_DEFAULT } from "@/resources.js";
+import {
+  itemTypes,
+  SAMPLE_TABLE_TYPES,
+  INVENTORY_TYPES,
+  AUTOMATICALLY_GENERATE_ID_DEFAULT,
+} from "@/resources.js";
 import CollectionSelect from "@/components/CollectionSelect.vue";
 export default {
   name: "CreateItemModal",
@@ -180,6 +188,9 @@ export default {
           )
         : [];
       return [...new Set([...this.allowedTypes, ...dynamic])];
+    },
+    isInventoryType() {
+      return INVENTORY_TYPES.includes(this.item_type);
     },
     itemTypeDisplayName() {
       return itemTypes[this.item_type].display;

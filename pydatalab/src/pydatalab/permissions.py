@@ -293,25 +293,44 @@ def _get_base_permissions(
 
         user_perm: dict[str, Any] = {"$or": user_perm_conditions}
 
+        # Inventory items are a special case that are readable and editable by their groups
+        # (rather than just their creators), or by anyone if they have not been restricted to
+        # any groups, regardless of whether they have creators (e.g., equipment maintainers)
+        inventory_perm = {
+            "type": {"$in": list(INVENTORY_TYPES)},
+            "$or": [*no_group_perm["$or"], {"group_ids": {"$in": user_group_ids}}],
+        }
+
         if user_only:
             # If we are trying to delete, then make sure they cannot delete items that do not match their user
             if deleting:
                 return user_perm
 
-            # Inventory items are a special case that are editable by their groups (rather than just
-            # their creators), or by anyone if they have not been restricted to any groups
-            inventory_perm = {
-                "type": {"$in": list(INVENTORY_TYPES)},
-                "$or": [*no_group_perm["$or"], {"group_ids": {"$in": user_group_ids}}],
-            }
             return {"$or": [user_perm, inventory_perm]}
 
-        return {"$or": [user_perm, null_perm]}
+        return {"$or": [user_perm, null_perm, inventory_perm]}
 
     elif user_only:
         return {"_id": -1}
 
     return null_perm
+
+
+def can_assign_groups(group_ids: list[ObjectId]) -> bool:
+    """Whether the current user can restrict an inventory item to the given groups,
+    i.e., whether they are an admin or a member of all of the groups.
+    """
+    if CONFIG.TESTING or not group_ids:
+        return True
+
+    if not current_user.is_authenticated or current_user.person is None:
+        return False
+
+    if current_user.role == UserRole.ADMIN:
+        return True
+
+    user_group_ids = {group.immutable_id for group in current_user.person.groups or []}
+    return set(group_ids) <= user_group_ids
 
 
 def get_default_permissions(

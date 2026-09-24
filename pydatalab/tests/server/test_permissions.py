@@ -340,6 +340,90 @@ def test_shared_item_connections_to_inaccessible_items(client, another_client, g
     assert response.json["child_items"] == []
 
 
+def test_inventory_group_membership(
+    client, admin_client, unverified_client, database, user_id, group_id
+):
+    """Inventory items can only be newly assigned to groups that the user is a member of
+    (unless they are an admin), whereas other items can still be shared with any group."""
+    from bson import ObjectId
+
+    other_group_id = ObjectId()
+    database.groups.insert_one(
+        {"_id": other_group_id, "display_name": "Other Group", "group_id": "other-group"}
+    )
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "type": "starting_materials",
+            "item_id": "chemical-in-other-group",
+            "groups": [{"immutable_id": str(other_group_id)}],
+        },
+    )
+    assert response.status_code == 403
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "type": "starting_materials",
+            "item_id": "chemical-in-own-group",
+            "groups": [{"immutable_id": str(group_id)}],
+        },
+    )
+    assert response.status_code == 201, response.json
+    refcode = response.json["sample_list_entry"]["refcode"]
+
+    response = client.put(
+        f"/items/{refcode}/permissions", json={"groups": [{"immutable_id": str(other_group_id)}]}
+    )
+    assert response.status_code == 403
+
+    # Admins can assign any group, and existing groups can then be kept by other users
+    response = admin_client.put(
+        f"/items/{refcode}/permissions", json={"groups": [{"immutable_id": str(other_group_id)}]}
+    )
+    assert response.status_code == 200, response.json
+    response = client.patch(
+        f"/items/{refcode}/permissions",
+        json={"groups": [{"immutable_id": str(group_id)}, {"immutable_id": str(other_group_id)}]},
+    )
+    assert response.status_code == 200, response.json
+
+    # Samples can still be shared with any group
+    response = client.post(
+        "/new-sample/",
+        json={
+            "type": "samples",
+            "item_id": "sample-in-other-group",
+            "groups": [{"immutable_id": str(other_group_id)}],
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    # Group search can be restricted to the user's own groups
+    response = client.get("/search/groups?query=Other")
+    assert response.status_code == 200
+    assert "other-group" in {g["group_id"] for g in response.json["data"]}
+    response = client.get("/search/groups?query=Other&member_only=true")
+    assert response.status_code == 200
+    assert "other-group" not in {g["group_id"] for g in response.json["data"]}
+    response = admin_client.get("/search/groups?query=Other&member_only=true")
+    assert "other-group" in {g["group_id"] for g in response.json["data"]}
+
+    # Ungrouped inventory with maintainers (creators) remains accessible to everyone
+    response = client.post(
+        "/new-sample/",
+        json={
+            "type": "equipment",
+            "item_id": "maintained-equipment",
+            "creators": [{"immutable_id": str(user_id)}],
+        },
+    )
+    assert response.status_code == 201, response.json
+    maintained_refcode = response.json["sample_list_entry"]["refcode"]
+    assert unverified_client.get(f"/items/{maintained_refcode}").status_code == 200
+
+
 def test_append_permissions_creators(client, another_client, user_id, another_user_id):
     response = client.post(
         "/new-sample/", json={"type": "samples", "item_id": "sample-for-append-test"}

@@ -47,6 +47,11 @@ export default {
       type: Number,
       default: 0,
     },
+    // Only offer groups that the current user is a member of
+    memberOnly: {
+      type: Boolean,
+      default: false,
+    },
   },
   emits: ["update:modelValue"],
   data() {
@@ -75,7 +80,7 @@ export default {
       loading(true);
       clearTimeout(this.debounceTimeout);
       this.debounceTimeout = setTimeout(async () => {
-        await searchGroups(query, 100)
+        await searchGroups(query, 100, this.memberOnly)
           .then((groups) => {
             // check if the searched groups are already listed in the value
             // if so, remove it from the list of options
