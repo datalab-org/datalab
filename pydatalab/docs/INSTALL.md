@@ -233,27 +233,28 @@ There are three approaches to authentication when developing *datalab* features 
      invoke task.
    - For testing admin functionality, the user can also be promoted with
      the `admin.change-user-role` invoke task.
-3. Enable the explicitly unsafe passwordless test login with
-   `PYDATALAB_ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN=true`. Create a test user with:
+3. Test users with magic-link login URLs. Create some test users (active accounts
+   with random `@datalab.test` email addresses) with:
 
    ```shell
-   uv run invoke dev.create-test-user \
-     --username alice \
-     --display-name "Alice Test User" \
-     --role user
+   uv run invoke dev.create-test-user --count 3
+   uv run invoke dev.create-test-user --role admin
    ```
 
-   Then list the configured users and their direct login links:
+   A specific user can be created or updated with
+   `--username alice --display-name "Alice" --role manager`.
+
+   Then list all users with their roles, groups and login links:
 
    ```shell
-   uv run invoke dev.list-test-users
+   uv run invoke dev.list-users
    ```
 
-   The command uses `PYDATALAB_APP_URL` to generate links that open through the webapp.
-
-   This mode is useful for switching between users when testing roles, groups, and permissions.
-   It performs no authentication and allows user impersonation, so it must never be enabled in
-   production or used with sensitive data.
+   Each link is a standard email login token (valid for one hour), minted
+   directly instead of being sent by email, pointing at `PYDATALAB_APP_URL`.
+   Open each link in a separate private browser window to test roles, groups
+   and permissions as several users at once. Users without an email identity
+   (e.g., OAuth-only accounts) are listed without a link.
 
 Finally, all API tests can be run with variable authentication.
 There are [pytest fixtures](https://docs.pytest.org/en/7.1.x/how-to/fixtures.html) that provide

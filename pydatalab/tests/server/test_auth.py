@@ -2,7 +2,6 @@ import datetime
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-import pytest
 from bson import ObjectId
 from flask import session
 
@@ -13,59 +12,6 @@ from pydatalab.routes.v0_1.auth import (
     redirect_to_ui,
     store_oauth_next_path,
 )
-
-
-@pytest.fixture()
-def unsafe_testing_passwordless_app(app_config):
-    from pydatalab.config import CONFIG
-    from pydatalab.main import create_app
-
-    old_config_value = CONFIG.ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN
-    app = create_app(
-        {**app_config, "ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN": True},
-        env_file=False,
-    )
-    try:
-        yield app
-    finally:
-        CONFIG.ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN = old_config_value
-
-
-@pytest.fixture()
-def unsafe_testing_passwordless_client(unsafe_testing_passwordless_app):
-    with unsafe_testing_passwordless_app.test_client() as client:
-        yield client
-
-
-@pytest.fixture()
-def testing_passwordless_users(
-    database,
-    user_id,
-    unverified_user_id,
-    deactivated_user_id,
-):
-    configured_users = (
-        (user_id, "active-user"),
-        (unverified_user_id, "unverified-user"),
-        (deactivated_user_id, "deactivated-user"),
-    )
-    for configured_user_id, username in configured_users:
-        database.users.update_one(
-            {"_id": configured_user_id},
-            {
-                "$set": {
-                    "identities": [
-                        {
-                            "identity_type": "email",
-                            "identifier": f"{username}@passwordless.invalid",
-                            "name": username,
-                            "verified": False,
-                        }
-                    ]
-                },
-            },
-        )
-    yield
 
 
 def test_allow_emails():
@@ -221,42 +167,6 @@ def test_magic_link_auth_can_be_disabled(unauthenticated_client, app, database, 
             == "Magic-link authentication is disabled for this datalab instance."
         )
         assert len(outbox) == 0
-
-
-def test_testing_passwordless_route_is_absent_when_disabled(unauthenticated_client):
-    response = unauthenticated_client.get("/login/testing-passwordless/active-user")
-    assert response.status_code == 404
-
-
-def test_testing_passwordless_login_preserves_user_access(
-    unsafe_testing_passwordless_client,
-    testing_passwordless_users,
-    user_id,
-):
-    response = unsafe_testing_passwordless_client.get("/login/testing-passwordless/active-user")
-    assert response.status_code == 307
-
-    current_user = unsafe_testing_passwordless_client.get("/get-current-user/")
-    assert current_user.status_code == 200
-    assert current_user.json["immutable_id"] == str(user_id)
-    assert current_user.json["role"] == "user"
-    assert current_user.json["groups"]
-
-
-def test_testing_passwordless_login_rejects_unavailable_users(
-    unsafe_testing_passwordless_client,
-    testing_passwordless_users,
-):
-    unknown = unsafe_testing_passwordless_client.get("/login/testing-passwordless/unknown-user")
-    deactivated = unsafe_testing_passwordless_client.get(
-        "/login/testing-passwordless/deactivated-user"
-    )
-    unverified = unsafe_testing_passwordless_client.get(
-        "/login/testing-passwordless/unverified-user"
-    )
-    assert unknown.status_code == 401
-    assert deactivated.status_code == 401
-    assert unverified.status_code == 401
 
 
 # ──────────────────────────────────────────────

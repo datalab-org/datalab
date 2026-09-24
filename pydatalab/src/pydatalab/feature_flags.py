@@ -60,13 +60,6 @@ def check_feature_flags(app):
 
     """
 
-    if CONFIG.ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN:
-        LOGGER.critical(
-            "ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN is enabled. Anyone who can reach this "
-            "datalab instance can impersonate any configured passwordless test user without "
-            "authentication. This must never be enabled in production."
-        )
-
     FEATURE_FLAGS.tags = CONFIG.ENABLE_TAGS
 
     if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is None:
