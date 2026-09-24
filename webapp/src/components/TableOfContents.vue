@@ -103,7 +103,6 @@ export default {
   methods: {
     scrollToID(event, id) {
       var element = document.getElementById(id);
-      console.log(element);
       element.scrollIntoView({ behavior: "smooth" });
     },
   },
@@ -113,6 +112,10 @@ export default {
 <style scoped>
 .contents-item {
   cursor: pointer;
+}
+
+.card-body.overflow-auto {
+  max-height: 60vh;
 }
 
 .contents-blocktitle {
@@ -170,6 +173,8 @@ export default {
   left: 0px;
   background: #fff;
   overflow-x: hidden;
+  overflow-y: auto;
+  max-height: calc(100vh - 8rem);
   padding: 1rem 1rem;
   margin-top: 3rem;
   border-radius: 0px 5px 5px 0px;
