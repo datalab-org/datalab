@@ -1011,6 +1011,46 @@
       "title": "RelationshipType",
       "type": "string"
     },
+    "Section": {
+      "description": "A named, collapsible grouping of blocks.\n\nA section appears as an entry in `HasBlocks.display_order` in place of a\nblock ID. It groups every block ID that follows it in that list, up to the\nnext section (or the end of the list), under itself; it does not carry its\nown list of block IDs.",
+      "properties": {
+        "type": {
+          "const": "section",
+          "default": "section",
+          "title": "Type",
+          "type": "string"
+        },
+        "section_id": {
+          "description": "A shorthand random ID for the section, used as its key in the DOM.",
+          "title": "Section Id",
+          "type": "string"
+        },
+        "title": {
+          "description": "The title of the section.",
+          "title": "Title",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "An optional freeform description of the section.",
+          "title": "Description"
+        }
+      },
+      "required": [
+        "section_id",
+        "title"
+      ],
+      "title": "Section",
+      "type": "object"
+    },
     "TypedRelationship": {
       "additionalProperties": true,
       "properties": {
@@ -1166,9 +1206,16 @@
     },
     "display_order": {
       "default": [],
-      "description": "The order in which to display block data in the UI.",
+      "description": "The order in which to display block data in the UI, as a flat list of\nblock IDs interspersed with `Section` markers.",
       "items": {
-        "type": "string"
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "$ref": "#/$defs/Section"
+          }
+        ]
       },
       "title": "Display Order",
       "type": "array"

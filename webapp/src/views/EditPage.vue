@@ -127,8 +127,31 @@
     <!-- Display the blocks -->
     <div v-if="blocksLoaded && blockInfoLoaded" class="container block-container">
       <transition-group name="block-list" tag="div">
-        <div v-for="block_id in item_data.display_order" :key="block_id" class="block-list-item">
-          <component :is="getBlockDisplayType(block_id)" :item_id="item_id" :block_id="block_id" />
+        <div
+          v-for="group in displayGroups"
+          :key="group.type === 'section' ? group.section.section_id : group.block_id"
+          class="block-list-item"
+        >
+          <component
+            :is="getBlockDisplayType(group.block_id)"
+            v-if="group.type === 'block'"
+            :item_id="item_id"
+            :block_id="group.block_id"
+          />
+          <BlockSection
+            v-else
+            :item-id="item_id"
+            :section-id="group.section.section_id"
+            :block-count="group.block_ids.length"
+          >
+            <div v-for="block_id in group.block_ids" :key="block_id" class="block-list-item">
+              <component
+                :is="getBlockDisplayType(block_id)"
+                :item_id="item_id"
+                :block_id="block_id"
+              />
+            </div>
+          </BlockSection>
         </div>
       </transition-group>
       <div ref="blockLoadingIndicator" class="text-center">
@@ -143,6 +166,9 @@
       </div>
 
       <div class="mt-4 text-center">
+        <button class="btn btn-outline-secondary mr-2" type="button" @click="newSection">
+          <font-awesome-icon :icon="['fas', 'folder-open']" fixed-width /> Add Section
+        </button>
         <AddBlockDropdown
           variant="button"
           direction="up"
@@ -207,6 +233,9 @@ import { formatDistanceToNow } from "date-fns";
 import AddBlockDropdown from "@/components/AddBlockDropdown";
 
 import ExportDropdown from "@/components/ExportDropdown";
+import BlockSection from "@/components/BlockSection";
+
+import { groupDisplayOrder, blockIdsOf, createSection } from "@/utils/displayOrderSections.js";
 
 export default {
   components: {
@@ -221,6 +250,7 @@ export default {
     CustomFieldsPanel,
     AddBlockDropdown,
     ExportDropdown,
+    BlockSection,
   },
   provide() {
     return {
@@ -291,12 +321,15 @@ export default {
     blocks() {
       return this.item_data.blocks_obj;
     },
+    displayGroups() {
+      return groupDisplayOrder(this.item_data.display_order);
+    },
     savedStatus() {
       if (!this.itemDataLoaded) {
         return true;
       }
       let allSavedStatusBlocks = this.$store.state.saved_status_blocks;
-      let allBlocksAreSaved = this.item_data.display_order.every(
+      let allBlocksAreSaved = blockIdsOf(this.item_data.display_order).every(
         (block_id) => allSavedStatusBlocks[block_id] !== false,
       );
       return allBlocksAreSaved && this.$store.state.saved_status_items[this.item_id];
@@ -416,6 +449,13 @@ export default {
         behavior: "smooth",
       });
     },
+    newSection() {
+      const section = createSection("New section");
+      this.$store.commit("addSection", { item_id: this.item_id, section });
+      this.$nextTick(() => {
+        document.getElementById(section.section_id)?.scrollIntoView({ behavior: "smooth" });
+      });
+    },
     scrollToID(event, id) {
       var element = document.getElementById(id);
       element.scrollIntoView({
@@ -480,8 +520,7 @@ export default {
     async updateBlocks() {
       if (this.itemDataLoaded && this.item_data && this.item_data.display_order) {
         // update each block asynchronously
-        this.item_data.display_order.forEach((block_id) => {
-          console.log(`calling update on block ${block_id}`);
+        blockIdsOf(this.item_data.display_order).forEach((block_id) => {
           updateBlockFromServer(this.item_id, block_id, this.item_data.blocks_obj[block_id]).catch(
             (error) => {
               console.error(`Error updating block ${block_id}:`, error);
@@ -531,7 +570,7 @@ export default {
       // Mark item as saved (restored data is already in DB)
       this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: true });
       // Mark all blocks as saved
-      this.item_data.display_order.forEach((block_id) => {
+      blockIdsOf(this.item_data.display_order).forEach((block_id) => {
         this.$store.commit("setBlockSaved", { block_id: block_id, isSaved: true });
       });
       // Refresh the blocks
