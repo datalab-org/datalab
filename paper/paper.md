@@ -5,10 +5,12 @@ authors:
     orcid: 0000-0002-1182-9098
     affiliation: "1, 2, 3, 4"
     equal-contrib: true
+    corresponding: true
   - name: Joshua D. Bocarsly
     orcid: 0000-0002-7523-152X
     affiliation: "5, 6"
     equal-contrib: true
+    corresponding: true
   - name: Benjamin Charmes
     orcid: 0009-0007-9474-8632
     affiliation: "1, 4"
