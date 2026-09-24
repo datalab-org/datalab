@@ -2,13 +2,14 @@ import abc
 
 from pydantic import field_validator
 
+from pydatalab.models.blocks import HasBlocks
 from pydatalab.models.entries import Entry
 from pydatalab.models.files import HasFiles
 from pydatalab.models.traits import (
-    HasBlocks,
     HasLocation,
     HasOwner,
     HasRevisionControl,
+    HasTags,
     IsCollectable,
 )
 from pydatalab.models.utils import (
@@ -19,7 +20,15 @@ from pydatalab.models.utils import (
 
 
 class Item(
-    Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, HasLocation, HasFiles, abc.ABC
+    Entry,
+    HasOwner,
+    HasRevisionControl,
+    IsCollectable,
+    HasBlocks,
+    HasLocation,
+    HasFiles,
+    HasTags,
+    abc.ABC,
 ):
     """The generic model for data types that will be exposed with their own named endpoints.
 

@@ -3,17 +3,17 @@ import Samples from "../views/Samples.vue";
 import Equipment from "../views/Equipment.vue";
 import StartingMaterials from "../views/StartingMaterials.vue";
 import Collections from "@/views/Collections.vue";
+import Tags from "@/views/Tags.vue";
 import NotFound from "../views/NotFound.vue";
 import EditPage from "../views/EditPage.vue";
 import CollectionPage from "../views/CollectionPage.vue";
-import ExampleGraph from "@/views/ExampleGraph.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
 import Tools from "@/views/Tools.vue";
 import Admin from "@/views/Admin.vue";
 import Login from "../views/Login.vue";
-import Login2 from "../views/Login2.vue";
-import Login3 from "../views/Login3.vue";
-import { API_URL } from "@/resources.js";
+import { API_URL, WEBSITE_TITLE } from "@/resources.js";
+import { getInfo } from "@/server_fetch_utils.js";
+import store from "@/store/index.js";
 
 const routes = [
   {
@@ -31,22 +31,10 @@ const routes = [
     component: Samples,
   },
   {
-    path: "/next/login",
+    path: "/login",
     name: "login",
-    alias: "/",
+    alias: "/next/login",
     component: Login,
-  },
-  {
-    path: "/next/login2",
-    name: "login2",
-    alias: "/",
-    component: Login2,
-  },
-  {
-    path: "/next/login3",
-    name: "login3",
-    alias: "/",
-    component: Login3,
   },
   {
     path: "/equipment",
@@ -75,14 +63,23 @@ const routes = [
     component: Collections,
   },
   {
+    path: "/tags",
+    name: "tags",
+    component: Tags,
+    // Only reachable when the backend reports the tags feature as enabled.
+    beforeEnter: async (to, from, next) => {
+      const serverInfo = store.state.serverInfo ?? (await getInfo());
+      if (serverInfo.features?.tags) {
+        next();
+      } else {
+        next({ path: "/" });
+      }
+    },
+  },
+  {
     path: "/collections/:id",
     name: "Collection",
     component: CollectionPage,
-  },
-  {
-    path: "/test-graph/",
-    name: "test-graph",
-    component: ExampleGraph,
   },
   {
     path: "/item-graph/",
@@ -129,17 +126,17 @@ router.beforeEach(async (to, from, next) => {
     return;
   }
 
-  if (to.path === "/" || (to.name === "samples" && from.path === "/")) {
-    const { getUserInfo } = await import("@/server_fetch_utils.js");
-    const user = await getUserInfo();
+  const { getUserInfo } = await import("@/server_fetch_utils.js");
+  const user = await getUserInfo();
 
-    if (!user) {
-      next("/about");
-      return;
-    }
+  // Let unauthenticated users through to item pages with an access token (`at`)
+  // so that sharing links work; the API will reject the request if the token is invalid.
+  const hasItemAccessToken = to.name === "edit item" && Boolean(to.query.at);
+
+  if (!user && to.name !== "login" && !hasItemAccessToken) {
+    next({ name: "login", query: { next: to.fullPath } });
+    return;
   }
-
-  const websiteTitle = process.env.VUE_APP_WEBSITE_TITLE || "datalab";
 
   const capitalizeFirstLetter = (string) => {
     return string ? string.charAt(0).toUpperCase() + string.slice(1) : "";
@@ -154,9 +151,9 @@ router.beforeEach(async (to, from, next) => {
 
   document.title = to.name
     ? to.params.id
-      ? `${websiteTitle} - ${formattedName}: ${to.params.id}`
-      : `${websiteTitle} - ${formattedName}`
-    : websiteTitle;
+      ? `${WEBSITE_TITLE} - ${formattedName}: ${to.params.id}`
+      : `${WEBSITE_TITLE} - ${formattedName}`
+    : WEBSITE_TITLE;
 
   next();
 });

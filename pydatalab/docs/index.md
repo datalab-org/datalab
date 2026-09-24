@@ -12,11 +12,7 @@ If you have never seen *datalab* before, the quickest introduction is to
 [try the public demo instance](https://demo.datalab-org.io);
 for background on the project itself, see [About *datalab*](about.md).
 
-!!! important "Every *datalab* is different"
-    *datalab* can be self-hosted and is extensible via plugins, so **no two deployments are alike**.
-    These docs primarily describe the *upstream* project, rather than a specific *datalab* instance.
-
-## Where to go next
+## Getting started
 
 <div class="grid cards home-cards" markdown>
 
@@ -27,9 +23,12 @@ for background on the project itself, see [About *datalab*](about.md).
     Using a *datalab* instance: recording samples and cells,
     attaching data, and getting your data back out again.
 
+
     [:material-book-open-variant: &nbsp; User guide](https://guide.datalab-org.io)
 
-    [:material-file-tree: &nbsp; Data models](schemas/items.md)
+    [:simple-doi: &nbsp; White paper](https://doi.org/10.26434/chemrxiv.15001945/v1)
+
+    [:material-file-tree: &nbsp; Data model](schemas/items.md)
 
     [:material-cube-outline: &nbsp; Data blocks](blocks/reference/base.md)
 
@@ -41,6 +40,8 @@ for background on the project itself, see [About *datalab*](about.md).
 
     Extending *datalab* with your own blocks and plugins, or contributing to the
     core server and web app.
+
+    [:material-account-multiple: &nbsp; Contributing Guide](CONTRIBUTING.md)
 
     [:material-console: &nbsp; Development setup](INSTALL.md)
 
@@ -61,6 +62,8 @@ for background on the project itself, see [About *datalab*](about.md).
     [:material-cog-outline: &nbsp; Server configuration](config.md)
 
     [:simple-ansible: &nbsp; Ansible & Terraform Automations](https://github.com/datalab-org/datalab-ansible-terraform)
+
+    [:material-security: &nbsp; Security Policy](SECURITY.md)
 
     [:material-history: &nbsp; Changelog](CHANGELOG.md)
 

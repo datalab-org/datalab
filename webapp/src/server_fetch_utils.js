@@ -579,6 +579,27 @@ export function getEquipmentList() {
     });
 }
 
+export function getLocations({ force = false } = {}) {
+  // Locations are shared across every item type, so only fetch them once per
+  // session unless a caller explicitly asks for a refresh.
+  if (!force && store.state.locations_list !== null) {
+    return Promise.resolve();
+  }
+  return fetch_get(`${API_URL}/locations`)
+    .then(function (response_json) {
+      store.commit("setLocationsList", response_json.data);
+    })
+    .catch((error) => {
+      if (error === "UNAUTHORIZED") {
+        // Commit the empty shape rather than null: the guard above treats null
+        // as "not yet fetched", so nulling it here would refetch on every mount.
+        store.commit("setLocationsList", { flat_locations: [], nested_locations: {} });
+      } else {
+        throw error;
+      }
+    });
+}
+
 export function searchItems(query, nresults = 100, types = null) {
   // construct a url with parameters:
   var url = new URL(`${API_URL}/search-items/`);
@@ -592,6 +613,61 @@ export function searchItems(query, nresults = 100, types = null) {
 export function searchCollections(query, nresults = 100) {
   // construct a url with parameters:
   var url = new URL(`${API_URL}/search-collections`);
+  var params = { query: query, nresults: nresults };
+  Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
+  return fetch_get(url).then(function (response_json) {
+    return response_json.data;
+  });
+}
+
+export function createTag(data) {
+  // data: { name, description?, color?, scope? }. `scope` is "user" (user-defined,
+  // default) or "global" (admins only). The caller refreshes the list via
+  // getTags(). Rejects with the server message on error (e.g. 409 duplicate name).
+  return fetch_put(`${API_URL}/tags`, { data }).then(function (response_json) {
+    return response_json.data;
+  });
+}
+
+export function updateTag(tagId, data) {
+  // Update a tag's metadata (name/description/color). Rejects with the server message (e.g. 409).
+  return fetch_patch(`${API_URL}/tags/${tagId}`, { data });
+}
+
+export function deleteTag(tagId) {
+  return fetch_delete(`${API_URL}/tags/${tagId}`)
+    .then(function (response_json) {
+      if (response_json.status !== "success") {
+        throw new Error("Failed to delete tag: " + response_json.message);
+      }
+      store.commit("deleteFromTagList", tagId);
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Unable to delete tag",
+        message: `Failed to delete tag: ${error}`,
+      });
+      throw error;
+    });
+}
+
+export function getTags() {
+  return fetch_get(`${API_URL}/tags`)
+    .then(function (response_json) {
+      store.commit("setTagList", response_json.data);
+    })
+    .catch((error) => {
+      if (error === "UNAUTHORIZED") {
+        store.commit("setTagList", []);
+      } else {
+        throw error;
+      }
+    });
+}
+
+export function searchTags(query, nresults = 100) {
+  // construct a url with parameters:
+  var url = new URL(`${API_URL}/search-tags`);
   var params = { query: query, nresults: nresults };
   Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
   return fetch_get(url).then(function (response_json) {
@@ -1043,6 +1119,11 @@ export function saveItem(item_id) {
         store.state.all_item_data[item_id].display_order.forEach((block_id) => {
           store.commit("setBlockSaved", { block_id: block_id, isSaved: true });
         });
+        // A location typed here is not in the cached suggestions until refetched,
+        // so refresh them (only) when this save introduced a new one.
+        if (item_data.location && !store.getters.getUniqueLocations.includes(item_data.location)) {
+          getLocations({ force: true });
+        }
       }
     })
     .catch(function (error) {
@@ -1123,11 +1204,10 @@ export function deleteBlock(item_id, block_id) {
     // eslint-disable-next-line no-unused-vars
     .then(function (response_json) {
       // response_json should always just be {status: "success"}, so we don't actually use it
-      store.commit("removeBlockFromDisplay", {
+      store.commit("removeBlock", {
         item_id: item_id,
         block_id: block_id,
       });
-      // currently, we don't actually delete the block from the store, so it may get re-added to the db on the next save. Fix once new schemas are established
     })
     .catch((error) => {
       DialogService.error({

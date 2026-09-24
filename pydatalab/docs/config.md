@@ -20,9 +20,9 @@ These can be provided as either:
     - The main options include (a full list can be found in the `docker-compose.yml` file):
         - `VUE_APP_API_URL`: the URL of the *datalab* API, which is used by the web app to communicate with the server.
         - `VUE_APP_LOGO_URL`: the URL of an image to use as the logo header in the web app.
-        - `VUE_APP_HOMEPAGE_URL`: a URL to provide as a link from the web app header.
+        - `VUE_APP_HOMEPAGE_URL`: a URL to provide as a link from the web app header, and as a button on the dedicated login page.
         - `VUE_APP_EDITABLE_INVENTORY`: whether the inventory can be edited by non-admin users in the web app.
-        - `VUE_APP_WEBSITE_TITLE`: the title of the web app, which is displayed in the browser tab and header.
+        - `VUE_APP_WEBSITE_TITLE`: the title of the web app, which is displayed in the browser tab and header. It is also used in the heading of the dedicated login page, as "Welcome to the <title>".
         - `VUE_APP_QR_CODE_RESOLVER_URL`: the URL of a service that can resolve QR codes to *datalab* entries, which is used by the web app to display QR codes for entries (see [datalab-org/datalab-purl](https://github.com/datalab-org/datalab-purl) for more information).
         - `VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT`: whether to automatically generate IDs for new entries in the web app by default, or require a checkbox to be ticked at item creation.
 
@@ -121,6 +121,9 @@ This hides email authentication from the advertised authentication mechanisms an
 OAuth2 allows users to log in using their existing accounts with third-party providers, without the need for a password.
 Generally, you register an application with the provider, which gives you a client ID and secret that you can use to configure the OAuth2 settings in *datalab*.
 
+When the dedicated login page is enabled, the web app preserves the requested internal page through the external OAuth flow and returns the user to it after login.
+This redirect uses [`APP_URL`][pydatalab.config.ServerConfig.APP_URL] as the trusted web app origin, so `APP_URL` must be configured correctly.
+
 Each provider then has bespoke settings to control the permissions that accounts registered via the external provider will have.
 
 For developers, if you are testing locally without HTTPS, you must also set `OAUTHLIB_INSECURE_TRANSPORT=1` and `OAUTHLIB_RELAX_TOKEN_SCOPE=1` in your environment to circumvent security requirements; this should not be used in production.
@@ -137,8 +140,6 @@ application](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/crea
 These should be provided in a `.env` file local to your app and not added to your main config file.
 
 The authorization callback URL in the GitHub app settings should be set to `<YOUR_API_URL>/login/github/authorized`.
-A user's first login may direct them to this page rather than the web app, depending on their browser.
-The user will then simply have to navigate back to the URL of the web app, where they should find themselves to be logged in.
 
 Then, you can configure [`GITHUB_ORG_ALLOW_LIST`][pydatalab.config.ServerConfig.GITHUB_ORG_ALLOW_LIST] with a list of string IDs of GitHub organizations that user's must be a public member of to register an account.
 If this value is set to `None`, then any GitHub account will be able to register, and if it is set to an empty list, then no accounts will be able to register.
@@ -230,6 +231,48 @@ Place a `CustomAbout.vue` file in `public/custom/components/` and it will automa
 The component can contain any valid Vue template, script and scoped styles.
 No special configuration or flags are needed — if the file exists, it will be used.
 
+### Custom login page content (`public/custom/components/CustomLoginInfo.vue`)
+
+Deployments can provide a custom Vue component for the content of the login box.
+Place a `CustomLoginInfo.vue` file in `public/custom/components/` and it will automatically replace the built-in `LoginInfo.vue` component at build time.
+If no custom component is provided, the built-in login welcome content is used.
+
+Authentication buttons and login behaviour remain managed by *datalab*.
+The login controls are passed to the component as a `login` slot: place `<slot name="login" />` wherever they should appear (the built-in component puts them directly under the title).
+If the slot is omitted, users will have no way to log in from this page.
+The custom component should otherwise only provide branding, text, links, images, and styling for the login box.
+To reuse content from [`CustomAbout.vue`](#custom-about-page-publiccustomcomponentscustomaboutvue), copy it into this component.
+The deployment logo (`VUE_APP_LOGO_URL`) is already shown at the top of the box, so it does not need to be included.
+
+For example:
+
+```vue
+<template>
+  <h1>My lab datalab</h1>
+  <p>Research data management for our group.</p>
+  <slot name="login" />
+</template>
+
+<script>
+export default {
+  name: "CustomLoginInfo",
+};
+</script>
+```
+
+Login page colours and sizes can also be tuned from `public/custom/override.css` without providing a custom component:
+
+```css
+:root {
+  --login-background: #f5f6f8; /* page background */
+  --login-box-background: white;
+  --login-box-color: #222;
+  --login-max-width: 26rem; /* maximum width of the login box */
+  --login-logo-max-width: 240px;
+  --login-logo-max-height: 120px;
+}
+```
+
 ### Directory structure
 
 A typical deployment customisation directory looks like:
@@ -243,7 +286,8 @@ public/custom/
 ├── logos/
 │   └── mylogo.png
 └── components/
-    └── CustomAbout.vue
+    ├── CustomAbout.vue
+    └── CustomLoginInfo.vue
 ```
 
 

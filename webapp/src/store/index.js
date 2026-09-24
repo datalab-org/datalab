@@ -17,7 +17,9 @@ export default createStore({
     sample_list: null,
     equipment_list: null,
     starting_material_list: null,
+    locations_list: null,
     collection_list: null,
+    tag_list: null,
     groups_list: null,
     saved_status_items: {},
     saved_status_blocks: {},
@@ -72,6 +74,10 @@ export default createStore({
         page: 0,
         rows: 10,
       },
+      tags: {
+        page: 0,
+        rows: 20,
+      },
     },
     block_errors: {},
     block_infos: {},
@@ -98,6 +104,20 @@ export default createStore({
       // collectionSummaries is an array of json objects summarizing the available collections
       state.collection_list = collectionSummaries || [];
     },
+    setTagList(state, tags) {
+      // tags is an array of tag objects
+      state.tag_list = tags || [];
+    },
+    deleteFromTagList(state, tagId) {
+      if (state.tag_list === null) return;
+
+      const index = state.tag_list.map((t) => t.immutable_id).indexOf(tagId);
+      if (index > -1) {
+        state.tag_list.splice(index, 1);
+      } else {
+        console.warn(`deleteFromTagList couldn't find the tag with id ${tagId}`);
+      }
+    },
     setGroupsList(state, groups) {
       state.groups_list = groups;
     },
@@ -116,6 +136,10 @@ export default createStore({
     setEquipmentList(state, equipmentSummaries) {
       // equipmentSummary is an array of json objects summarizing the available samples
       state.equipment_list = equipmentSummaries || [];
+    },
+    setLocationsList(state, locations) {
+      // locations is { flat_locations: [...], nested_locations: {...} } from GET /locations
+      state.locations_list = locations || { flat_locations: [], nested_locations: {} };
     },
     appendToSampleList(state, sampleSummary) {
       // sampleSummary is a json object summarizing the new sample
@@ -320,14 +344,21 @@ export default createStore({
       // item_id, isSaved
       state.saved_status_collections[payload.collection_id] = payload.isSaved;
     },
-    removeBlockFromDisplay(state, payload) {
+    removeBlock(state, payload) {
       // requires the following fields in payload:
       // item_id, block_id
-      var display_order = state.all_item_data[payload.item_id].display_order;
-      const index = display_order.indexOf(payload.block_id);
+      // Remove the block from the display order, but also drop its data from
+      // blocks_obj so that the next save-item does not resurrect the deleted
+      // block in the database, and clear any stale saved status.
+      const item_data = state.all_item_data[payload.item_id];
+      const index = item_data.display_order.indexOf(payload.block_id);
       if (index > -1) {
-        display_order.splice(index, 1);
+        item_data.display_order.splice(index, 1);
       }
+      if (item_data.blocks_obj) {
+        delete item_data.blocks_obj[payload.block_id];
+      }
+      delete state.saved_status_blocks[payload.block_id];
     },
     addFile(state, payload) {
       // requires the following fileds in payload:
@@ -467,6 +498,14 @@ export default createStore({
       // userId can be a user ID string or null/undefined for combined activity
       const cacheKey = userId || "combined";
       return state.userActivityCache[cacheKey];
+    },
+    getUniqueLocations(state) {
+      // sorted flat locations from GET /locations
+      return [...(state.locations_list?.flat_locations || [])].sort();
+    },
+    getLocationHierarchy(state) {
+      // nested location tree from GET /locations, used to drive LocationInput suggestions
+      return state.locations_list?.nested_locations || {};
     },
     isAdminSuperUserModeActive() {
       // Super-user mode is only active if: flag is set, user is logged in, and user is an admin

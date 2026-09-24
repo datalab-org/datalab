@@ -33,6 +33,7 @@ We have some instructions for AI agents that may also be useful for humans at
 - **Extend tests rather than editing existing assertions.** If an existing expected value genuinely has to change, change it deliberately and explain why in the pull request.
 - **Stay backwards-compatible.** Where a breaking change is unavoidable, provide a migration path and flag it clearly.
 - **Document what you add.** Update the README, the installation guide or the relevant page under `pydatalab/docs/` rather than relying on code comments alone.
+- **Changes adhere to the security policy.** All changes must be made with our security policy in mind, in particular when adding or updating dependencies, or making deployment-related changes: see [`SECURITY.md`](https://github.com/datalab-org/datalab/blob/main/SECURITY.md) for details.
 
 ## AI-assisted contributions
 
@@ -51,7 +52,15 @@ Remove those comments once you have done that review.
 
 ## Development setup
 
-The [installation guide](https://docs.datalab-org.io/en/latest/INSTALL/) covers running the server and web app locally. In short:
+The [installation guide](https://docs.datalab-org.io/en/latest/INSTALL/) covers running the server and web app locally.
+(Recent, mainstream) Linux is the only offically supported OS, but the macOS and Windows via WSL should also work.
+For unsupported OS's (e.g., Windows) the Docker-based development setup is the only supported option.
+For more details, see the [development setup](https://docs.datalab-org.io/en/latest/INSTALL/#development-setup) section of the installation guide.
+
+Please open issues with any platform-specific problems.
+Minor adjustments for unsupported OS's are welcome as pull requests, but we cannot guarantee that they will be maintained if not easily testable.
+
+In short:
 
 ```bash
 # Python server

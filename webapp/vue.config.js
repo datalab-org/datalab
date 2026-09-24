@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 const customAboutPath = path.resolve(__dirname, "public/custom/components/CustomAbout.vue");
+const customLoginInfoPath = path.resolve(__dirname, "public/custom/components/CustomLoginInfo.vue");
 
 module.exports = {
   transpileDependencies: ["mermaid"],
@@ -20,10 +21,6 @@ module.exports = {
       config.stats = "none";
     }
 
-    config.externals = {
-      ...config.externals,
-      bokeh: "Bokeh",
-    };
     config.module.rules.push({
       test: /\.mjs$/,
       include: /node_modules/,
@@ -39,6 +36,13 @@ module.exports = {
     if (fs.existsSync(customAboutPath)) {
       plugins.push(
         new NormalModuleReplacementPlugin(/\/components\/CustomAbout\.vue$/, customAboutPath),
+      );
+    }
+
+    // Replace the default login information with deployment-specific content when provided
+    if (fs.existsSync(customLoginInfoPath)) {
+      plugins.push(
+        new NormalModuleReplacementPlugin(/\/components\/LoginInfo\.vue$/, customLoginInfoPath),
       );
     }
 

@@ -134,3 +134,22 @@ export function stringValuesOptions(field) {
   return (data) =>
     Array.from(new Set(data.filter((item) => item[field]).map((item) => item[field]))).sort();
 }
+
+/**
+ * Matches rows carrying the selected tags: all of them with AND, any of them with OR.
+ *
+ * Tags are compared by `immutable_id`, since a row holds tag references rather than the
+ * full tag objects offered as filter options.
+ */
+export function matchTags(value, filterValue, operator) {
+  if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) return true;
+  if (!Array.isArray(value)) return false;
+  const selected = Array.isArray(filterValue) ? filterValue : [filterValue];
+  const hasTag = (tag) => value.some((itemTag) => itemTag.immutable_id === tag.immutable_id);
+  return operator === FilterOperator.AND ? selected.every(hasTag) : selected.some(hasTag);
+}
+
+/** Every tag in the store's global tag list, sorted by name, not only those in the table. */
+export function tagsOptions(data, state) {
+  return [...(state.tag_list || [])].sort((a, b) => a.name.localeCompare(b.name));
+}
