@@ -893,76 +893,19 @@ def email_logged_in():
     return redirect(referer, 307)
 
 
-@AUTH.route("/login/testing-passwordless/users", methods=["GET"])
-def list_testing_passwordless_users():
-    """List only active users explicitly configured for unsafe test login."""
-
-    if not CONFIG.ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN:
-        raise NotFound()
-    # This reserved suffix marks users created by dev.create-test-user.
-    email_suffix = "@passwordless.invalid"
-    documents = flask_mongo.db.users.find(
-        {
-            "account_status": AccountStatus.ACTIVE.value,
-            "identities": {
-                "$elemMatch": {
-                    "identity_type": IdentityType.EMAIL.value,
-                    "identifier": {"$regex": f"{re.escape(email_suffix)}$"},
-                    "verified": False,
-                }
-            },
-        },
-        {"_id": 1},
-    )
-    users: list[dict[str, object]] = []
-    for document in documents:
-        login_user_model = get_by_id(document["_id"])
-        if login_user_model is None:
-            continue
-        for identity in login_user_model.identities:
-            if (
-                identity.identity_type is IdentityType.EMAIL
-                and not identity.verified
-                and identity.identifier.endswith(email_suffix)
-            ):
-                username = identity.identifier.removesuffix(email_suffix)
-                users.append(
-                    {
-                        "username": username,
-                        "display_name": login_user_model.display_name or username,
-                        "gravatar_hash": login_user_model.person.gravatar_hash,
-                        "role": login_user_model.role.value,
-                        "account_status": login_user_model.account_status.value,
-                        "groups": [
-                            group.model_dump(
-                                mode="json",
-                                include={"immutable_id", "group_id", "display_name"},
-                            )
-                            for group in login_user_model.groups or []
-                        ],
-                    }
-                )
-    users.sort(key=lambda user: str(user["display_name"] or user["username"]).casefold())
-    return jsonify({"users": users}), 200
-
-
-@AUTH.route("/login/testing-passwordless", methods=["POST"])
-def testing_passwordless_login():
+@AUTH.route("/login/testing-passwordless/<username>", methods=["GET"])
+def testing_passwordless_login(username: str):
     """Impersonate a configured test user without authentication or a password."""
 
     if not CONFIG.ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN:
         raise NotFound()
-    request_json = request.get_json(silent=True)
     try:
-        if not isinstance(request_json, dict):
-            raise ValueError
-        username = TypeAdapter(HumanReadableIdentifier).validate_python(
-            request_json.get("username")
-        )
+        username = TypeAdapter(HumanReadableIdentifier).validate_python(username)
     except (TypeError, ValueError, ValidationError):
-        raise Unauthorized("Unknown passwordless test user.") from None
+        raise BadRequest("Invalid passwordless test username.") from None
 
-    email_identifier = f"{username}@passwordless.invalid"  # Reserved email suffix for unsafe passwordless testing login
+    # This reserved suffix marks users created by dev.create-test-user.
+    email_identifier = f"{username}@passwordless.invalid"
     document = flask_mongo.db.users.find_one(
         {
             "account_status": AccountStatus.ACTIVE.value,
@@ -983,7 +926,8 @@ def testing_passwordless_login():
     if login_user_model is None:
         raise Unauthorized("Unknown passwordless test user.")
     wrapped_login_user(login_user_model)
-    return jsonify({"status": "success"}), 200
+    redirect_url = CONFIG.APP_URL or request.headers.get("Referer", CONFIG.ROOT_PATH or "/")
+    return redirect(redirect_url, 307)
 
 
 @oauth_authorized.connect_via(OAUTH[IdentityType.GITHUB])

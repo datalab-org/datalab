@@ -44,18 +44,15 @@
   >
     <font-awesome-icon :icon="['fa', 'envelope']" /> Login via email
   </button>
-  <UnsafeTestingPasswordlessLogin v-if="showUnsafeTestingPasswordlessLogin" />
 </template>
 
 <script>
 import GetEmailModal from "@/components/GetEmailModal.vue";
-import UnsafeTestingPasswordlessLogin from "@/components/UnsafeTestingPasswordlessLogin.vue";
 import { API_URL } from "@/resources.js";
 
 export default {
   components: {
     GetEmailModal,
-    UnsafeTestingPasswordlessLogin,
   },
   props: {
     modelValue: Boolean,
@@ -89,12 +86,6 @@ export default {
     },
     showEmail() {
       return this.$store.state.serverInfo?.features?.auth_mechanisms?.email ?? false;
-    },
-    showUnsafeTestingPasswordlessLogin() {
-      return (
-        this.$store.state.serverInfo?.features?.auth_mechanisms
-          ?.unsafe_testing_passwordless_login ?? false
-      );
     },
   },
   methods: {

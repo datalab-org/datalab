@@ -111,6 +111,14 @@ export default {
     },
   },
   async mounted() {
+    const testingPasswordlessUsername = this.$route.query["testing-passwordless"];
+    if (typeof testingPasswordlessUsername === "string") {
+      window.location.replace(
+        `${this.apiUrl}/login/testing-passwordless/${encodeURIComponent(testingPasswordlessUsername)}`,
+      );
+      return;
+    }
+
     let info;
     [this.currentUser, info] = await Promise.all([
       this.$store.dispatch("fetchCurrentUser", { fullInfo: true }),

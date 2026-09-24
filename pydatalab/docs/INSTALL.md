@@ -234,8 +234,7 @@ There are three approaches to authentication when developing *datalab* features 
    - For testing admin functionality, the user can also be promoted with
      the `admin.change-user-role` invoke task.
 3. Enable the explicitly unsafe passwordless test login with
-   `PYDATALAB_ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN=true`. This keeps any existing email and
-   OAuth options and adds a modal for selecting configured test users. Create one with:
+   `PYDATALAB_ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN=true`. Create a test user with:
 
    ```shell
    uv run invoke dev.create-test-user \
@@ -243,6 +242,14 @@ There are three approaches to authentication when developing *datalab* features 
      --display-name "Alice Test User" \
      --role user
    ```
+
+   Then list the configured users and their direct login links:
+
+   ```shell
+   uv run invoke dev.list-test-users
+   ```
+
+   The command uses `PYDATALAB_APP_URL` to generate links that open through the webapp.
 
    This mode is useful for switching between users when testing roles, groups, and permissions.
    It performs no authentication and allows user impersonation, so it must never be enabled in

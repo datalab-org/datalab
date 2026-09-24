@@ -4,6 +4,7 @@ import pathlib
 import re
 import shutil
 import subprocess
+import sys
 import time
 
 import tomlkit
@@ -216,7 +217,8 @@ def create_test_user(
             raise SystemExit(f"Invalid display name {display_name!r}: {exc}") from None
 
     database = get_database()
-    email_identifier = f"{username}@passwordless.invalid"  # Reserved email suffix for unsafe passwordless testing login
+    # This reserved suffix identifies users accepted by the passwordless login route.
+    email_identifier = f"{username}@passwordless.invalid"
     identity_query = {
         "identities": {
             "$elemMatch": {
@@ -260,6 +262,103 @@ def create_test_user(
 
 
 dev.add_task(create_test_user)
+
+
+@task
+def list_test_users(_):
+    """List unsafe passwordless test users and their direct login links."""
+
+    from pydatalab.config import CONFIG
+    from pydatalab.models.people import AccountStatus, IdentityType
+    from pydatalab.models.utils import UserRole
+    from pydatalab.mongo import get_database
+
+    if not CONFIG.ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN:
+        raise SystemExit(
+            "Unsafe passwordless test users require "
+            "PYDATALAB_ENABLE_UNSAFE_TESTING_PASSWORDLESS_LOGIN=true. "
+            "Never enable this option in production."
+        )
+    if not CONFIG.APP_URL:
+        raise SystemExit(
+            "Passwordless test-user links require PYDATALAB_APP_URL to point to the webapp."
+        )
+
+    database = get_database()
+    email_suffix = "@passwordless.invalid"
+    documents = database.users.find(
+        {
+            "account_status": AccountStatus.ACTIVE.value,
+            "identities": {
+                "$elemMatch": {
+                    "identity_type": IdentityType.EMAIL.value,
+                    "identifier": {"$regex": f"{re.escape(email_suffix)}$"},
+                    "verified": False,
+                }
+            },
+        }
+    )
+
+    users = []
+    for document in documents:
+        identity = next(
+            identity
+            for identity in document["identities"]
+            if identity.get("identity_type") == IdentityType.EMAIL.value
+            and not identity.get("verified", False)
+            and identity.get("identifier", "").endswith(email_suffix)
+        )
+        username = identity["identifier"].removesuffix(email_suffix)
+        role_document = database.roles.find_one({"_id": document["_id"]}, {"role": 1})
+        role = role_document["role"] if role_document else UserRole.USER.value
+        group_ids = [
+            group["immutable_id"]
+            for group in document.get("groups", [])
+            if group.get("immutable_id") is not None
+        ]
+        groups = database.groups.find(
+            {"_id": {"$in": group_ids}},
+            {"display_name": 1, "group_id": 1},
+        )
+        group_names = sorted(
+            (
+                group.get("display_name") or group.get("group_id") or str(group["_id"])
+                for group in groups
+            ),
+            key=str.casefold,
+        )
+        users.append(
+            {
+                "username": username,
+                "display_name": document.get("display_name") or username,
+                "role": role,
+                "groups": group_names,
+            }
+        )
+
+    users.sort(key=lambda user: (user["display_name"].casefold(), user["username"].casefold()))
+    if not users:
+        print("No passwordless test users are configured.")
+        return
+
+    use_color = sys.stdout.isatty() and "NO_COLOR" not in os.environ
+
+    def styled(value: str, code: str) -> str:
+        return f"\033[{code}m{value}\033[0m" if use_color and code else value
+
+    login_base_url = f"{CONFIG.APP_URL.rstrip('/')}/login?testing-passwordless="
+    role_colors = {"admin": "31", "manager": "33", "user": "32"}
+    print(styled("Passwordless test users", "1;36"))
+    for user in users:
+        groups = ", ".join(user["groups"]) if user["groups"] else "No groups"
+        login_url = f"{login_base_url}{user['username']}"
+        print(f"\n{styled(user['display_name'], '1')} ({user['username']})")
+        print(f"  Role:   {styled(user['role'], role_colors.get(user['role'], ''))}")
+        print(f"  Groups: {groups}")
+        print(f"  Login:  {styled(login_url, '36')}")
+
+
+dev.add_task(list_test_users)
 
 
 @task
