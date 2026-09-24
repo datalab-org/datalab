@@ -702,10 +702,11 @@ export function invalidateCurrentUserCache() {
   store.commit("setAdminSuperUserMode", false);
 }
 
-export async function requestMagicLink(email_address) {
+export async function requestMagicLink(email_address, remember = false) {
   return fetch_post(`${API_URL}/login/magic-link`, {
     email: email_address,
     referrer: window.location.origin,
+    remember: remember,
   })
     .then((response_json) => {
       return response_json;

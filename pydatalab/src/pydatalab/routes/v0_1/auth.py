@@ -29,10 +29,13 @@ from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
 from pydatalab.permissions import ApiKey, authenticate, exclude_api_key
 from pydatalab.send_email import send_mail
 
+__all__ = ("AUTH", "OAUTH", "OAUTH_PROXIES")
+
 KEY_LENGTH: int = 32
 LINK_EXPIRATION: datetime.timedelta = datetime.timedelta(hours=1)
 OAUTH_NEXT_SESSION_KEY_PREFIX = "oauth_next_"
 OAUTH_NEXT_MAX_LENGTH = 2048
+REMEMBER_ME_SESSION_KEY = "remember_me"
 
 
 def _oauth_next_session_key(provider_name: str) -> str:
@@ -419,7 +422,14 @@ orcid = LocalProxy(lambda: g.flask_dance_orcid)
 
 
 def wrapped_login_user(*args, **kwargs):
+    was_authenticated = current_user.is_authenticated
     login_user(*args, **kwargs)
+    remember = bool(session.pop(REMEMBER_ME_SESSION_KEY, False))
+    # Sessions end when the browser closes (e.g., on shared machines), unless the user
+    # opted in to "remember me" at login, in which case they last for `CONFIG.SESSION_LIFETIME`.
+    # This is set explicitly on each new login so it does not carry over from a previous session.
+    if not was_authenticated:
+        session.permanent = remember
 
 
 EMAIL_BLUEPRINT = Blueprint("email", __name__)
@@ -666,7 +676,7 @@ def _validate_magic_link_request(email: str, referrer: str) -> None:
         raise BadRequest("Referrer address not provided, please contact the datalab administrator")
 
 
-def _generate_and_store_token(email: str, intent: str = "register") -> str:
+def _generate_and_store_token(email: str, intent: str = "register", remember: bool = False) -> str:
     """Generate a JWT for the user with a short expiration and store it in the session.
 
     The session itself persists beyond the JWT expiration. The `exp` key is a standard
@@ -675,6 +685,8 @@ def _generate_and_store_token(email: str, intent: str = "register") -> str:
     Args:
         email: The user's email address to include in the token.
         intent: The intent of the magic link, e.g., "register" "verify", or "login".
+        remember: Whether the session created by the magic link should persist
+            beyond the browser session.
 
     Returns:
         The generated JWT token string.
@@ -684,6 +696,7 @@ def _generate_and_store_token(email: str, intent: str = "register") -> str:
         "exp": datetime.datetime.now(datetime.timezone.utc) + LINK_EXPIRATION,
         "email": email,
         "intent": intent,
+        "remember": remember,
     }
 
     token = jwt.encode(
@@ -817,7 +830,8 @@ def generate_and_share_magic_link():
 
     _validate_magic_link_request(email, referrer)
     _check_user_registration_allowed(email)
-    token = _generate_and_store_token(email, intent="register")
+    remember = request_json.get("remember") is True
+    token = _generate_and_store_token(email, intent="register", remember=remember)
     _send_magic_link_email(email, token, referrer)
 
     return jsonify({"status": "success", "message": "Email sent successfully."}), 200
@@ -859,6 +873,11 @@ def email_logged_in():
     email = data["email"]
     if not email:
         raise BadRequest("No email found; please request a new token.")
+
+    if data.get("remember"):
+        session[REMEMBER_ME_SESSION_KEY] = True
+    else:
+        session.pop(REMEMBER_ME_SESSION_KEY, None)
 
     # If the email domain list is explicitly configured to None, this allows any
     # email address to make an active account, otherwise the email domain must match
@@ -1081,13 +1100,18 @@ def redirect_to_ui(blueprint, token):  # pylint: disable=unused-argument
 
 @oauth_before_login.connect
 def store_oauth_next_path(blueprint, url):  # pylint: disable=unused-argument
-    """Store a safe UI path in the session before leaving for an OAuth provider."""
+    """Store a safe UI path, and whether to remember the session, in the session
+    before leaving for an OAuth provider."""
     session_key = _oauth_next_session_key(blueprint.name)
     session.pop(session_key, None)
 
     next_path = request.args.get("next")
     if _is_safe_oauth_next_path(next_path):
         session[session_key] = next_path
+
+    session.pop(REMEMBER_ME_SESSION_KEY, None)
+    if request.args.get("remember") == "1":
+        session[REMEMBER_ME_SESSION_KEY] = True
 
 
 @AUTH.route("/get-current-user/", methods=["GET"])

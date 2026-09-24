@@ -156,7 +156,7 @@ class ServerConfig(BaseSettings):
     )
     SESSION_LIFETIME: int = Field(
         7 * 24,
-        description="The lifetime of each authenticated session, in hours.",
+        description='The lifetime of authenticated sessions for users who select "remember me" at login, in hours. Other sessions end when the browser is closed.',
     )
 
     FILE_DIRECTORY: str | Path = Field(
