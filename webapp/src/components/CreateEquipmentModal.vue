@@ -78,6 +78,7 @@
               v-model="shareWithGroups"
               aria-labelledby="shareWithGroupsLabel"
               multiple
+              member-only
             />
           </div>
         </div>
