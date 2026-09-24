@@ -320,7 +320,7 @@ def can_assign_groups(group_ids: list[ObjectId]) -> bool:
     """Whether the current user can restrict an inventory item to the given groups,
     i.e., whether they are an admin or a member of all of the groups.
     """
-    if CONFIG.TESTING or not group_ids:
+    if not group_ids:
         return True
 
     if not current_user.is_authenticated or current_user.person is None:
