@@ -7,11 +7,10 @@ import Tags from "@/views/Tags.vue";
 import NotFound from "../views/NotFound.vue";
 import EditPage from "../views/EditPage.vue";
 import CollectionPage from "../views/CollectionPage.vue";
-import ExampleGraph from "@/views/ExampleGraph.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
 import Admin from "@/views/Admin.vue";
 import Login from "../views/Login.vue";
-import { API_URL, ENABLE_LOGIN_PAGE, WEBSITE_TITLE } from "@/resources.js";
+import { API_URL, WEBSITE_TITLE } from "@/resources.js";
 import { getInfo } from "@/server_fetch_utils.js";
 import store from "@/store/index.js";
 
@@ -82,11 +81,6 @@ const routes = [
     component: CollectionPage,
   },
   {
-    path: "/test-graph/",
-    name: "test-graph",
-    component: ExampleGraph,
-  },
-  {
     path: "/item-graph/",
     name: "item-graph",
     component: ItemGraphPage,
@@ -121,22 +115,16 @@ router.beforeEach(async (to, from, next) => {
     return;
   }
 
-  if (ENABLE_LOGIN_PAGE) {
-    const { getUserInfo } = await import("@/server_fetch_utils.js");
-    const user = await getUserInfo();
+  const { getUserInfo } = await import("@/server_fetch_utils.js");
+  const user = await getUserInfo();
 
-    if (!user && to.name !== "login") {
-      next({ name: "login", query: { next: to.fullPath } });
-      return;
-    }
-  } else if (to.path === "/" || (to.name === "samples" && from.path === "/")) {
-    const { getUserInfo } = await import("@/server_fetch_utils.js");
-    const user = await getUserInfo();
+  // Let unauthenticated users through to item pages with an access token (`at`)
+  // so that sharing links work; the API will reject the request if the token is invalid.
+  const hasItemAccessToken = to.name === "edit item" && Boolean(to.query.at);
 
-    if (!user) {
-      next("/about");
-      return;
-    }
+  if (!user && to.name !== "login" && !hasItemAccessToken) {
+    next({ name: "login", query: { next: to.fullPath } });
+    return;
   }
 
   const capitalizeFirstLetter = (string) => {
