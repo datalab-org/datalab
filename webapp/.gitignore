@@ -29,3 +29,6 @@ pnpm-debug.log*
 *.sw?
 
 cypress_examples/
+
+# Magic-link login tokens minted by `invoke dev.seed-e2e-users`
+cypress/fixtures/e2e_tokens.json

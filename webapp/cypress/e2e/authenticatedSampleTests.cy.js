@@ -1,6 +1,6 @@
 describe("Authenticated sample tests", () => {
   beforeEach(() => {
-    cy.loginViaTestMagicLink("test-user@example.com", "user");
+    cy.loginViaTestMagicLink("test-user@example.com");
     cy.visit("/");
   });
 
@@ -28,7 +28,7 @@ describe("Authenticated sample tests", () => {
 
 describe("Admin-specific functionality", () => {
   beforeEach(() => {
-    cy.loginViaTestMagicLink("admin-user@example.com", "admin");
+    cy.loginViaTestMagicLink("admin-user@example.com");
     cy.visit("/admin");
   });
 
@@ -51,7 +51,7 @@ describe("Multi-user sample visibility", () => {
   const user2SampleId = "user2-sample";
 
   it("User 1 creates a sample", () => {
-    cy.loginViaTestMagicLink(user1Email, "user");
+    cy.loginViaTestMagicLink(user1Email);
     cy.visit("/");
 
     cy.createSample(user1SampleId, "User 1's sample");
@@ -61,7 +61,7 @@ describe("Multi-user sample visibility", () => {
   });
 
   it("User 2 creates a different sample", () => {
-    cy.loginViaTestMagicLink(user2Email, "user");
+    cy.loginViaTestMagicLink(user2Email);
     cy.visit("/");
 
     cy.createSample(user2SampleId, "User 2's sample");
@@ -71,7 +71,7 @@ describe("Multi-user sample visibility", () => {
   });
 
   it("User 1 can see their own sample", () => {
-    cy.loginViaTestMagicLink(user1Email, "user");
+    cy.loginViaTestMagicLink(user1Email);
     cy.visit("/");
 
     cy.verifySample(user1SampleId, "User 1's sample");
@@ -80,7 +80,7 @@ describe("Multi-user sample visibility", () => {
   });
 
   it("User 2 can see their own sample", () => {
-    cy.loginViaTestMagicLink(user2Email, "user");
+    cy.loginViaTestMagicLink(user2Email);
     cy.visit("/");
 
     cy.verifySample(user2SampleId, "User 2's sample");
@@ -89,7 +89,7 @@ describe("Multi-user sample visibility", () => {
   });
 
   it("User 1 cannot see User 2's sample", () => {
-    cy.loginViaTestMagicLink(user1Email, "user");
+    cy.loginViaTestMagicLink(user1Email);
     cy.visit("/");
 
     cy.get("[data-testid=sample-table]").should("not.contain", user2SampleId);
@@ -98,7 +98,7 @@ describe("Multi-user sample visibility", () => {
   });
 
   it("User 2 cannot see User 1's sample", () => {
-    cy.loginViaTestMagicLink(user2Email, "user");
+    cy.loginViaTestMagicLink(user2Email);
     cy.visit("/");
 
     cy.get("[data-testid=sample-table]").should("not.contain", user1SampleId);
@@ -107,12 +107,12 @@ describe("Multi-user sample visibility", () => {
   });
 
   after(() => {
-    cy.loginViaTestMagicLink(user1Email, "user");
+    cy.loginViaTestMagicLink(user1Email);
     cy.visit("/");
     cy.deleteSample(user1SampleId);
     cy.logout();
 
-    cy.loginViaTestMagicLink(user2Email, "user");
+    cy.loginViaTestMagicLink(user2Email);
     cy.visit("/");
     cy.deleteSample(user2SampleId);
     cy.logout();

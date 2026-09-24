@@ -8,7 +8,7 @@ let refcode;
 let accessToken;
 
 before(() => {
-  cy.loginViaTestMagicLink("test-user@example.com", "user");
+  cy.loginViaTestMagicLink("test-user@example.com");
   cy.request({
     method: "POST",
     url: API_URL + "/delete-sample/",
@@ -31,7 +31,7 @@ before(() => {
 });
 
 after(() => {
-  cy.loginViaTestMagicLink("test-user@example.com", "user");
+  cy.loginViaTestMagicLink("test-user@example.com");
   cy.request({
     method: "POST",
     url: API_URL + "/delete-sample/",

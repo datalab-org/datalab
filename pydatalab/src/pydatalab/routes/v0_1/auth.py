@@ -12,6 +12,7 @@ from hashlib import sha512
 from urllib.parse import urlsplit
 
 import jwt
+import pymongo.database
 from bson import ObjectId
 from flask import Blueprint, Response, g, jsonify, redirect, request, session
 from flask_dance.consumer import OAuth2ConsumerBlueprint, oauth_authorized, oauth_before_login
@@ -25,7 +26,6 @@ from pydatalab.feature_flags import FEATURE_FLAGS
 from pydatalab.logger import LOGGER
 from pydatalab.login import get_by_id
 from pydatalab.models.people import AccountStatus, Identity, IdentityType, Person
-from pydatalab.models.utils import UserRole
 from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
 from pydatalab.permissions import ApiKey, authenticate, exclude_api_key
 from pydatalab.send_email import send_mail
@@ -674,7 +674,13 @@ def _validate_magic_link_request(email: str, referrer: str) -> None:
         raise BadRequest("Referrer address not provided, please contact the datalab administrator")
 
 
-def _generate_and_store_token(email: str, intent: str = "register", remember: bool = False) -> str:
+def _generate_and_store_token(
+    email: str,
+    intent: str = "register",
+    remember: bool = False,
+    expiry: datetime.timedelta = LINK_EXPIRATION,
+    database: pymongo.database.Database | None = None,
+) -> str:
     """Generate a JWT for the user with a short expiration and store it in the session.
 
     The session itself persists beyond the JWT expiration. The `exp` key is a standard
@@ -685,13 +691,16 @@ def _generate_and_store_token(email: str, intent: str = "register", remember: bo
         intent: The intent of the magic link, e.g., "register" "verify", or "login".
         remember: Whether the session created by the magic link should persist
             beyond the browser session.
+        expiry: How long the token remains valid for.
+        database: The database to store the token in, for use outside of a Flask
+            app context (e.g., in invoke tasks). Defaults to the app's database.
 
     Returns:
         The generated JWT token string.
 
     """
     payload = {
-        "exp": datetime.datetime.now(datetime.timezone.utc) + LINK_EXPIRATION,
+        "exp": datetime.datetime.now(datetime.timezone.utc) + expiry,
         "email": email,
         "intent": intent,
         "remember": remember,
@@ -703,7 +712,9 @@ def _generate_and_store_token(email: str, intent: str = "register", remember: bo
         algorithm="HS256",
     )
 
-    flask_mongo.db.magic_links.insert_one({"jwt": token})
+    if database is None:
+        database = flask_mongo.db
+    database.magic_links.insert_one({"jwt": token})
 
     return token
 
@@ -1203,49 +1214,3 @@ def delete_api_key(api_id):
         return Response("", status=204)
     else:
         raise BadRequest(description="Problem deleting the key")
-
-
-@AUTH.route("/testing/create-magic-link", methods=["POST"])
-def create_test_magic_link():
-    """Create a magic link for testing purposes.
-
-    This endpoint is only available when `CONFIG.ENABLE_TEST_EMAIL_AUTH` is set.
-    It ensures an active user exists with the specified email and role, generates
-    a magic link, and returns the token.
-    """
-    if not CONFIG.ENABLE_TEST_EMAIL_AUTH:
-        return jsonify(
-            {"status": "error", "detail": "This endpoint is only available in testing mode."}
-        ), 403
-
-    request_json = request.get_json()
-    email = request_json.get("email")
-    referrer = request_json.get("referrer", "http://localhost:8080")
-    role = UserRole(request_json.get("role", UserRole.USER.value))
-
-    _validate_magic_link_request(email, referrer)
-
-    user = find_user_with_identity(email, IdentityType.EMAIL, verify=True)
-    if user is None:
-        identity = Identity(
-            identifier=email,
-            identity_type=IdentityType.EMAIL,
-            name=email,
-            display_name=email,
-            verified=True,
-        )
-        user = Person.new_user_from_identity(identity, account_status=AccountStatus.ACTIVE)
-        user_id = insert_pydantic_model_fork_safe(user, "users")
-    else:
-        user_id = user.immutable_id
-        flask_mongo.db.users.update_one(
-            {"_id": ObjectId(user_id)}, {"$set": {"account_status": AccountStatus.ACTIVE.value}}
-        )
-
-    flask_mongo.db.roles.update_one(
-        {"_id": ObjectId(user_id)}, {"$set": {"role": role.value}}, upsert=True
-    )
-
-    token = _generate_and_store_token(email, intent="login")
-
-    return jsonify({"status": "success", "token": token}), 200

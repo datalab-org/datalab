@@ -9,7 +9,7 @@ Cypress.on("window:before:load", (win) => {
 let item_ids = ["editable_sample", "component1", "component2"];
 
 before(() => {
-  cy.loginViaTestMagicLink("test-user@example.com", "user");
+  cy.loginViaTestMagicLink("test-user@example.com");
 });
 
 after(() => {
@@ -28,7 +28,7 @@ after(() => {
 
 describe("Edit Page", () => {
   beforeEach(() => {
-    cy.loginViaTestMagicLink("test-user@example.com", "user");
+    cy.loginViaTestMagicLink("test-user@example.com");
     cy.visit("/");
   });
 

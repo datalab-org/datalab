@@ -142,7 +142,7 @@ See the [plugins documentation](plugins.md) for the `plugins.toml` format and a 
     ```
 
 This is a thin wrapper around `flask run` that defaults to port 5001 with `--reload` enabled and injects an insecure development secret key if `PYDATALAB_SECRET_KEY` is not already set in the environment.
-Pass `--no-reload` to disable the Werkzeug reloader, or `--testing` to enable `CONFIG.TESTING` and `CONFIG.ENABLE_TEST_EMAIL_AUTH` (which allows logging in as any user without email verification — see below).
+Pass `--no-reload` to disable the Werkzeug reloader, or `--testing` to enable `CONFIG.TESTING` (a deterministic secret key and backups disabled; authentication is still required — see below).
 
 If you would rather invoke Flask directly, the equivalent command is:
 
@@ -185,7 +185,7 @@ Various other development scripts are available through `yarn`:
 
 - `yarn lint`: Lint the JavaScript code using `eslint`, identifying issues and automatically fixing many. This linting process also runs automatically every time the development server reloads.
 - `yarn test:component`: run the component tests using `cypress`. These test individual functions or components, and run headless by default.
-- `yarn test:e2e`: run end-to-end tests using `cypress`. This will build and serve the app, and launch an instance of Chrome where the tests can be interactively viewed. Like the component tests, these tests can also be run without the GUI using `yarn test:e2e --headless`. Note: currently, the tests make requests to the server running on `localhost:5001`.
+- `yarn test:e2e`: run end-to-end tests using `cypress`. This will build and serve the app, and launch an instance of Chrome where the tests can be interactively viewed. Like the component tests, these tests can also be run without the GUI using `yarn test:e2e --headless`. Note: currently, the tests make requests to the server running on `localhost:5001`, and log in with tokens that must first be created with `uv run invoke dev.seed-e2e-users > ../webapp/cypress/fixtures/e2e_tokens.json` (run from `pydatalab/`, and re-run when the tokens expire after 6 hours).
 - `yarn build`: Compile an optimised, minimised, version of the app for production.
 
 ## Development notes
@@ -215,14 +215,8 @@ uv lock
 ```
 ### Test server authentication/authorisation
 
-There are three approaches to authentication when developing *datalab* features locally.
+There are two approaches to authentication when developing *datalab* features locally.
 
-1. Enable the test login endpoint with `PYDATALAB_ENABLE_TEST_EMAIL_AUTH=true` (or the
-   corresponding config file option `ENABLE_TEST_EMAIL_AUTH`). `POST /testing/create-magic-link`
-   with `{"email": ..., "role": "user" | "admin"}` then returns a token that logs in as an
-   active user with that email via `GET /login/email?token=<token>`, with no further
-   configuration. This is what the Cypress e2e tests use (`cy.loginViaTestMagicLink`).
-   This MUST NOT be enabled in production.
 1. Local OAuth setup. This requires registering an OAuth app with one of the
    implemented providers (e.g., GitHub, ORCID), configuring the credentials
    locally (see the [configuration documentation](https://docs.datalab-org.io/en/latest/config/) for more details) and then logging into *datalab* normally.
@@ -232,7 +226,7 @@ There are three approaches to authentication when developing *datalab* features 
      invoke task.
    - For testing admin functionality, the user can also be promoted with
      the `admin.change-user-role` invoke task.
-3. Test users with magic-link login URLs. Create some test users (active accounts
+2. Test users with magic-link login URLs. Create some test users (active accounts
    with random `@datalab.test` email addresses) with:
 
    ```shell
@@ -254,6 +248,9 @@ There are three approaches to authentication when developing *datalab* features 
    Open each link in a separate private browser window to test roles, groups
    and permissions as several users at once. Users without an email identity
    (e.g., OAuth-only accounts) are listed without a link.
+
+   The Cypress e2e tests log in the same way, using the users and tokens created by
+   `uv run invoke dev.seed-e2e-users` (see above).
 
 Finally, all API tests can be run with variable authentication.
 There are [pytest fixtures](https://docs.pytest.org/en/7.1.x/how-to/fixtures.html) that provide

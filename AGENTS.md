@@ -161,4 +161,3 @@ Key environment variables (can also be set in config.json):
 - `PYDATALAB_MONGO_URI` - MongoDB connection string
 - `PYDATALAB_CONFIG_FILE` - Path to JSON config file (default: /app/config.json)
 - `PYDATALAB_TESTING` - Testing mode (deterministic secret key, backups disabled); does not disable auth
-- `PYDATALAB_ENABLE_TEST_EMAIL_AUTH` - Enable `/testing/create-magic-link` for logging in as any user in tests; never in production

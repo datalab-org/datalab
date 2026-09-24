@@ -1,11 +1,11 @@
 // E2e tests for the tag management page (/tags). Needs the dev server + API (:5001) running
-// with testing auth AND the tags feature enabled (PYDATALAB_ENABLE_TAGS).
+// with seeded e2e users AND the tags feature enabled (PYDATALAB_ENABLE_TAGS).
 //
 // Tags have two scopes: "global" (admin-managed, usable by everyone) and "user" (user-defined,
 // owned and managed by a single user).
 
-// The role is whatever `cy.loginViaTestMagicLink` asks for, so every login that needs to
-// manage global tags must pass "admin" explicitly.
+// Roles are set when seeding the e2e users (`invoke dev.seed-e2e-users`), and
+// admin-user@example.com is an admin.
 const adminEmail = "admin-user@example.com";
 const userEmail = "test-user@example.com"; // a non-admin user
 
@@ -16,13 +16,13 @@ describe("Tag management page (admin, global tags)", () => {
   const renamedTag = "e2e-renamed-tag";
 
   beforeEach(() => {
-    cy.loginViaTestMagicLink(adminEmail, "admin");
+    cy.loginViaTestMagicLink(adminEmail);
     cy.deleteTagByNameViaAPI(tagName);
     cy.deleteTagByNameViaAPI(renamedTag);
   });
 
   after(() => {
-    cy.loginViaTestMagicLink(adminEmail, "admin");
+    cy.loginViaTestMagicLink(adminEmail);
     cy.deleteTagByNameViaAPI(tagName);
     cy.deleteTagByNameViaAPI(renamedTag);
   });
@@ -110,14 +110,14 @@ describe("Tag management permissions", () => {
   const tagName = "e2e-perm-tag";
 
   before(() => {
-    cy.loginViaTestMagicLink(adminEmail, "admin");
+    cy.loginViaTestMagicLink(adminEmail);
     cy.deleteTagByNameViaAPI(tagName);
     // A global tag: everyone can see it, but only admins can edit/delete it.
     cy.createTagViaAPI({ name: tagName, scope: "global" });
   });
 
   after(() => {
-    cy.loginViaTestMagicLink(adminEmail, "admin");
+    cy.loginViaTestMagicLink(adminEmail);
     cy.deleteTagByNameViaAPI(tagName);
   });
 
@@ -135,7 +135,7 @@ describe("Tag management permissions", () => {
   });
 
   it("shows edit/delete controls on a global tag for an admin", () => {
-    cy.loginViaTestMagicLink(adminEmail, "admin");
+    cy.loginViaTestMagicLink(adminEmail);
     cy.visit("/tags");
     cy.get('[data-testid="add-tag-button"]').should("exist");
     cy.contains("tr", tagName).within(() => {
@@ -150,7 +150,7 @@ describe("Applying a tag to an item", () => {
 
   before(() => {
     // A global tag so any user can apply it.
-    cy.loginViaTestMagicLink(adminEmail, "admin");
+    cy.loginViaTestMagicLink(adminEmail);
     cy.deleteTagByNameViaAPI(intTag);
     cy.createTagViaAPI({ name: intTag, scope: "global" });
   });
@@ -163,7 +163,7 @@ describe("Applying a tag to an item", () => {
   });
 
   after(() => {
-    cy.loginViaTestMagicLink(adminEmail, "admin");
+    cy.loginViaTestMagicLink(adminEmail);
     cy.deleteSampleViaAPI(sampleId);
     cy.deleteTagByNameViaAPI(intTag);
   });
@@ -188,7 +188,7 @@ describe("Applying a tag to an item", () => {
     cy.contains(".badge", intTag).should("exist");
 
     // Deleting the tag (as admin) removes the reference from the item on the next read.
-    cy.loginViaTestMagicLink(adminEmail, "admin");
+    cy.loginViaTestMagicLink(adminEmail);
     cy.deleteTagByNameViaAPI(intTag);
     cy.loginViaTestMagicLink(userEmail);
     cy.reload();

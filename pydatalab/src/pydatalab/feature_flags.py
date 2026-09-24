@@ -192,11 +192,6 @@ def check_feature_flags(app):
             "Running in testing mode (deterministic secret key, backups disabled); this is not recommended for production use: unset `CONFIG.TESTING`"
         )
 
-    if CONFIG.ENABLE_TEST_EMAIL_AUTH:
-        LOGGER.critical(
-            "Test email auth is enabled, allowing anyone to log in as any user; this MUST NOT be used in production: unset `CONFIG.ENABLE_TEST_EMAIL_AUTH`"
-        )
-
     if not CONFIG.DEPLOYMENT_METADATA:
         LOGGER.warning(
             "No deployment metadata provided, please set `CONFIG.DEPLOYMENT_METADATA` to allow the UI to provide helpful information to users"

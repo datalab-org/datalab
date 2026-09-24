@@ -9,21 +9,21 @@ Cypress.on("window:before:load", (win) => {
 });
 
 before(() => {
-  cy.loginViaTestMagicLink("test-user@example.com", "user");
+  cy.loginViaTestMagicLink("test-user@example.com");
   cy.visit("/collections");
   cy.removeAllTestCollections([collectionId], false);
   cy.createCollection(collectionId, "Smoke test collection");
 });
 
 after(() => {
-  cy.loginViaTestMagicLink("test-user@example.com", "user");
+  cy.loginViaTestMagicLink("test-user@example.com");
   cy.visit("/collections");
   cy.removeAllTestCollections([collectionId], false);
 });
 
 describe("Collection page", () => {
   beforeEach(() => {
-    cy.loginViaTestMagicLink("test-user@example.com", "user");
+    cy.loginViaTestMagicLink("test-user@example.com");
   });
 
   it("loads the collection page and navbar without console errors", () => {

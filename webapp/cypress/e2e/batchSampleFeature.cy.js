@@ -70,7 +70,7 @@ let sample_ids = [
 ];
 
 before(() => {
-  cy.loginViaTestMagicLink("test-user@example.com", "user");
+  cy.loginViaTestMagicLink("test-user@example.com");
 });
 
 after(() => {
@@ -89,7 +89,7 @@ after(() => {
 
 describe("Batch sample creation", () => {
   beforeEach(() => {
-    cy.loginViaTestMagicLink("test-user@example.com", "user");
+    cy.loginViaTestMagicLink("test-user@example.com");
     cy.visit("/");
   });
   it("Adds 3 valid samples", () => {
@@ -709,7 +709,7 @@ describe("Batch sample creation", () => {
 
 describe("Batch cell creation", () => {
   beforeEach(() => {
-    cy.loginViaTestMagicLink("test-user@example.com", "user");
+    cy.loginViaTestMagicLink("test-user@example.com");
     cy.visit("/");
   });
 

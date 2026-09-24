@@ -7,7 +7,7 @@ Cypress.on("window:before:load", (win) => {
 });
 
 before(() => {
-  cy.loginViaTestMagicLink("test-user@example.com", "user");
+  cy.loginViaTestMagicLink("test-user@example.com");
 });
 
 after(() => {
@@ -55,7 +55,7 @@ after(() => {
 
 describe("Sample table page", () => {
   beforeEach(() => {
-    cy.loginViaTestMagicLink("test-user@example.com", "user");
+    cy.loginViaTestMagicLink("test-user@example.com");
     cy.visit("/");
   });
 
@@ -205,7 +205,7 @@ describe("Sample table page", () => {
 
 describe("Advanced sample creation features", () => {
   beforeEach(() => {
-    cy.loginViaTestMagicLink("test-user@example.com", "user");
+    cy.loginViaTestMagicLink("test-user@example.com");
     cy.visit("/");
   });
   it("Adds some valid samples", () => {

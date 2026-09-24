@@ -392,18 +392,19 @@ Cypress.Commands.add("expandIfCollapsed", (selector) => {
 });
 
 /**
- * Login as a test user using a predefined magic link
+ * Login as one of the e2e test users, using a magic-link token minted ahead of time by
+ * `invoke dev.seed-e2e-users` and saved to `cypress/fixtures/e2e_tokens.json`.
+ * The user's role is set when seeding (see `E2E_TEST_USERS` in `pydatalab/tasks.py`).
  * @param {string} email - Email address of the test user (default: test-user@example.com)
- * @param {string} role - User role: 'user' or 'admin' (default: 'user')
  */
-Cypress.Commands.add("loginViaTestMagicLink", (email = "test@example.com", role = "user") => {
-  cy.request({
-    method: "POST",
-    url: API_URL + "/testing/create-magic-link",
-    body: { email: email, role: role, referrer: Cypress.config("baseUrl") },
-  }).then((response) => {
-    expect(response.status).to.eq(200);
-    const token = response.body.token;
+Cypress.Commands.add("loginViaTestMagicLink", (email = "test-user@example.com") => {
+  cy.fixture("e2e_tokens.json").then((tokens) => {
+    const token = tokens[email];
+    if (!token) {
+      throw new Error(
+        `No e2e login token for ${email}; add it to E2E_TEST_USERS and re-run \`invoke dev.seed-e2e-users\`.`,
+      );
+    }
     cy.request({
       method: "GET",
       url: API_URL + `/login/email?token=${token}`,

@@ -15,7 +15,7 @@ const height = 800;
 
 describe("EditPage navbar — responsive", () => {
   before(() => {
-    cy.loginViaTestMagicLink("test-user@example.com", "user");
+    cy.loginViaTestMagicLink("test-user@example.com");
     cy.visit("/");
     cy.removeAllTestSamples([itemId], false);
     cy.createSample(itemId, longName);
@@ -27,7 +27,7 @@ describe("EditPage navbar — responsive", () => {
   });
 
   beforeEach(() => {
-    cy.loginViaTestMagicLink("test-user@example.com", "user");
+    cy.loginViaTestMagicLink("test-user@example.com");
     cy.visit(`/edit/${itemId}`);
     // wait until the navbar has rendered the item before measuring/snapping
     cy.get("nav.editor-navbar").should("be.visible");

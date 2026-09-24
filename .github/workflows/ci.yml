@@ -284,9 +284,12 @@ jobs:
       - name: Set some environment variables for CI containers pre-build
         run: |
           cp webapp/.env.test_e2e .env
+          # An explicit secret key, so that the e2e login tokens minted by
+          # `dev.seed-e2e-users` are signed with the same key as the server uses.
+          secret_key=$(openssl rand -hex 32)
           for f in .env pydatalab/.env; do
             echo "PYDATALAB_TESTING=true" >> $f
-            echo "PYDATALAB_ENABLE_TEST_EMAIL_AUTH=true" >> $f
+            echo "PYDATALAB_SECRET_KEY=$secret_key" >> $f
             # Enable the tags feature for the e2e backend (frontend flag is in .env.test_e2e).
             echo "PYDATALAB_ENABLE_TAGS=true" >> $f
           done
@@ -327,9 +330,12 @@ jobs:
             exit 1
           fi
 
-      - name: Create the test admin user
-        # The first admin cannot be created over the API, so create one directly.
-        run: docker compose exec -T api uv run invoke dev.seed-e2e-admin
+      - name: Create the e2e test users and their login tokens
+        # Users (including the first admin) are created directly in the database, and
+        # the magic-link tokens that Cypress logs in with are written to a fixture.
+        run: |
+          docker compose exec -T api uv run invoke dev.seed-e2e-users \
+            > webapp/cypress/fixtures/e2e_tokens.json
 
       - name: Run end-to-end tests
         uses: cypress-io/github-action@v7

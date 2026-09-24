@@ -5,7 +5,7 @@
 const item_ids = ["share_test_sample"];
 
 before(() => {
-  cy.loginViaTestMagicLink("test-user@example.com", "user");
+  cy.loginViaTestMagicLink("test-user@example.com");
   cy.visit("/");
   cy.removeAllTestSamples(item_ids, true);
   cy.createSample("share_test_sample", "Sample for sharing tests");
@@ -21,7 +21,7 @@ const modal = () => cy.get(".modal.show");
 
 describe("Sharing modal", () => {
   beforeEach(() => {
-    cy.loginViaTestMagicLink("test-user@example.com", "user");
+    cy.loginViaTestMagicLink("test-user@example.com");
     cy.visit("/");
   });
 
