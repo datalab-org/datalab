@@ -135,18 +135,6 @@ def generate_schemas(_):
 dev.add_task(generate_schemas)
 
 
-def _panel_name(entry_point_value: str) -> str:
-    """Map ``my_plugin.models:MixedSolution`` to ``MixedSolutionPanel``."""
-    class_name = entry_point_value.split(":")[-1]
-    return f"{class_name}Panel"
-
-
-def _panel_item_type(entry_point) -> str:
-    """Return the exact type declared by an item plugin model."""
-    model = entry_point.load()
-    return model.model_json_schema()["properties"]["type"]["default"]
-
-
 def _write_plugin_panel_index(path: pathlib.Path, registered: dict[str, str]) -> None:
     """Write the deterministic generated Vue panel registry."""
     lines = [
@@ -228,10 +216,12 @@ def _collect_plugin_panels(src_path: pathlib.Path | None = None) -> dict[str, st
 
     for ep in eps:
         package_name = ep.value.split(":")[0].split(".")[0]
-        panel_name = _panel_name(ep.value)
+        panel_name = f"{ep.value.rsplit(':', 1)[-1]}Panel"
         dest_file = plugins_dir / package_name / f"{panel_name}.vue"
         if dest_file.is_file():
-            registered[_panel_item_type(ep)] = f"./{package_name}/{panel_name}.vue"
+            model = ep.load()
+            item_type = model.model_json_schema()["properties"]["type"]["default"]
+            registered[item_type] = f"./{package_name}/{panel_name}.vue"
 
     generated_index = plugins_dir / "panels.generated.js"
     _write_plugin_panel_index(generated_index, registered)

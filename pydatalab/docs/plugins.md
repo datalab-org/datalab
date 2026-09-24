@@ -219,7 +219,7 @@ class Solution(Sample):
             "datalab_ui_color": "#3a7ca5",
         },
     )
-    type: Literal["chemistry-solutions"] = "chemistry-solutions"
+    type: Literal["chemistry:solutions"] = "chemistry:solutions"
 
     # Fields linking to a built-in `starting_materials` or another `samples` item:
     solute: EntryReference | None = Field(
