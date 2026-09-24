@@ -25,6 +25,7 @@
           :class="{'collapse-icon-rotated': sidebarShown}"
           @click="sidebarShown = !sidebarShown"
         /> -->
+        <div v-if="sidenavHasMoreAbove" class="contents-more-indicator contents-more-above">⋯</div>
         <div ref="sidenavScroll" class="sidenav-scroll" @scroll="checkOverflowSoon">
           <ol id="contents-ol">
             <li
@@ -45,11 +46,12 @@
             </li>
           </ol>
         </div>
-        <div v-if="sidenavHasMore" class="contents-more-indicator">⋯</div>
+        <div v-if="sidenavHasMoreBelow" class="contents-more-indicator contents-more-below">⋯</div>
       </div>
     </transition>
     <label class="mr-2">Contents</label>
     <div class="card">
+      <div v-if="cardHasMoreAbove" class="contents-more-indicator contents-more-above">⋯</div>
       <div ref="cardScroll" class="card-body overflow-auto" @scroll="checkOverflowSoon">
         <ol id="contents-ol">
           <li
@@ -70,7 +72,7 @@
           </li>
         </ol>
       </div>
-      <div v-if="cardHasMore" class="contents-more-indicator">⋯</div>
+      <div v-if="cardHasMoreBelow" class="contents-more-indicator contents-more-below">⋯</div>
     </div>
   </div>
 </template>
@@ -88,8 +90,10 @@ export default {
     return {
       sidebarShown: false,
       sidebarWidth: 250,
-      sidenavHasMore: false,
-      cardHasMore: false,
+      sidenavHasMoreAbove: false,
+      sidenavHasMoreBelow: false,
+      cardHasMoreAbove: false,
+      cardHasMoreBelow: false,
     };
   },
   computed: {
@@ -126,14 +130,19 @@ export default {
       var element = document.getElementById(id);
       element.scrollIntoView({ behavior: "smooth" });
     },
-    // Whether a scrollable element still has content hidden below its
-    // visible area, i.e. it isn't scrolled all the way to the bottom.
+    // Whether a scrollable element still has content hidden above or below
+    // its visible area, i.e. it isn't scrolled all the way to that edge.
+    hasMoreAbove(el) {
+      return !!el && el.scrollTop > 1;
+    },
     hasMoreBelow(el) {
       return !!el && el.scrollHeight - el.scrollTop - el.clientHeight > 1;
     },
     checkOverflow() {
-      this.sidenavHasMore = this.hasMoreBelow(this.$refs.sidenavScroll);
-      this.cardHasMore = this.hasMoreBelow(this.$refs.cardScroll);
+      this.sidenavHasMoreAbove = this.hasMoreAbove(this.$refs.sidenavScroll);
+      this.sidenavHasMoreBelow = this.hasMoreBelow(this.$refs.sidenavScroll);
+      this.cardHasMoreAbove = this.hasMoreAbove(this.$refs.cardScroll);
+      this.cardHasMoreBelow = this.hasMoreBelow(this.$refs.cardScroll);
     },
     checkOverflowSoon() {
       this.$nextTick(this.checkOverflow);
@@ -157,17 +166,26 @@ export default {
 
 .contents-more-indicator {
   position: absolute;
-  bottom: 0;
   left: 0;
   right: 0;
-  padding: 0.25rem 0 0.1rem;
   text-align: center;
   font-size: 1.2rem;
   line-height: 1;
   letter-spacing: 0.15em;
   color: #6c757d;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.9) 55%);
   pointer-events: none;
+}
+
+.contents-more-below {
+  bottom: 0;
+  padding: 0.25rem 0 0.1rem;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.9) 55%);
+}
+
+.contents-more-above {
+  top: 0;
+  padding: 0.1rem 0 0.25rem;
+  background: linear-gradient(to top, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.9) 55%);
 }
 
 .contents-blocktitle {
