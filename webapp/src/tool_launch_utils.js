@@ -1,4 +1,5 @@
 import { launchTool } from "@/server_fetch_utils.js";
+import { findIconDefinition } from "@fortawesome/fontawesome-svg-core";
 
 const ITEM_TABLE_IDS = Object.freeze({
   samples: "samples",
@@ -19,8 +20,8 @@ export function parseToolLaunchUrl(url) {
   return parsedUrl.href;
 }
 
-export function openToolPlaceholderTab() {
-  const launchWindow = window.open("about:blank", "_blank");
+export function openToolPlaceholderTab(url = "about:blank") {
+  const launchWindow = window.open(url, "_blank");
   if (!launchWindow) {
     throw new Error(
       "The new tab was blocked by your browser. Allow pop-ups for this site and try again.",
@@ -28,6 +29,11 @@ export function openToolPlaceholderTab() {
   }
   launchWindow.opener = null;
   return launchWindow;
+}
+
+export function toolIcon(tool) {
+  const iconName = typeof tool?.icon === "string" ? tool.icon : "";
+  return iconName && findIconDefinition({ prefix: "fas", iconName }) ? iconName : "laptop-code";
 }
 
 export function isSupportedTool(tool) {
@@ -59,7 +65,27 @@ export function itemTableSelectionActions(tools, dataType) {
   );
 }
 
-function selectionLaunchPayload(selection) {
+export function normalizeStringValues(value, limit = Number.POSITIVE_INFINITY) {
+  const values = Array.isArray(value) ? value : value == null ? [] : [value];
+  const normalized = [];
+  const seen = new Set();
+  for (const candidate of values) {
+    if (typeof candidate !== "string") {
+      continue;
+    }
+    const trimmed = candidate.trim();
+    if (trimmed && !seen.has(trimmed)) {
+      seen.add(trimmed);
+      normalized.push(trimmed);
+      if (normalized.length === limit) {
+        break;
+      }
+    }
+  }
+  return normalized;
+}
+
+export function selectionLaunchPayload(selection) {
   if (!selection) {
     return {};
   }
@@ -70,12 +96,8 @@ function selectionLaunchPayload(selection) {
 }
 
 export function selectionFromRouteQuery(query) {
-  const action = Array.isArray(query?.action) ? query.action[0] : query?.action;
-  const items = Array.isArray(query?.items)
-    ? query.items
-    : query?.items == null
-      ? []
-      : [query.items];
+  const action = normalizeStringValues(query?.action, 1)[0];
+  const items = normalizeStringValues(query?.items, 100);
   if (action == null && items.length === 0) {
     return null;
   }
@@ -104,13 +126,7 @@ export async function openTool(tool, router, selection = null) {
     }
 
     const url = new URL(router.resolve(route).href, window.location.origin).href;
-    const launchWindow = window.open(url, "_blank");
-    if (!launchWindow) {
-      throw new Error(
-        "The new tab was blocked by your browser. Allow pop-ups for this site and try again.",
-      );
-    }
-    launchWindow.opener = null;
+    openToolPlaceholderTab(url);
     return;
   }
 

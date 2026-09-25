@@ -32,42 +32,43 @@
       ><font-awesome-icon icon="project-diagram" />&nbsp;Graph View</router-link
     >
     |
-    <span
-      class="tools-menu"
-      @mouseenter="openToolsMenu"
-      @mouseleave="scheduleToolsMenuClose"
-      @click.stop
-    >
+    <span v-on-click-outside="closeToolsMenu" class="dropdown d-inline-block">
       <button
-        class="tools-menu-toggle"
+        class="btn btn-link dropdown-toggle border-0 p-0 align-baseline"
         type="button"
         :aria-expanded="toolsMenuOpen"
         aria-haspopup="true"
-        @click="handleToolsMenuClick"
+        data-testid="tools-menu-toggle"
+        @click.stop="toggleToolsMenu"
       >
         <font-awesome-icon icon="laptop-code" />&nbsp;Tools
-        <font-awesome-icon icon="caret-down" class="tools-menu-caret" />
       </button>
-      <div v-if="toolsMenuOpen" class="tools-menu-dropdown" role="menu">
-        <div v-if="toolsLoading" class="tools-menu-status">Loading tools...</div>
-        <div v-else-if="toolsError" class="tools-menu-status text-danger">
+      <div v-show="toolsMenuOpen" class="dropdown-menu show" role="menu">
+        <span v-if="toolsLoading" class="dropdown-item-text text-muted">Loading tools...</span>
+        <span v-else-if="toolsError" class="dropdown-item-text text-danger">
           {{ toolsError }}
-        </div>
-        <div v-else-if="tools.length === 0" class="tools-menu-status">No tools available.</div>
+        </span>
+        <span v-else-if="tools.length === 0" class="dropdown-item-text text-muted">
+          No tools available.
+        </span>
         <template v-else>
           <button
             v-for="tool in tools"
             :key="tool.id"
-            class="tools-menu-item"
+            class="dropdown-item"
             type="button"
             role="menuitem"
             :disabled="launchingToolId === tool.id || !isSupportedTool(tool)"
             @click="openTool(tool)"
           >
-            <font-awesome-icon :icon="tool.icon || 'laptop-code'" fixed-width />
-            <span>{{ tool.name }}</span>
+            <font-awesome-icon :icon="toolIcon(tool)" fixed-width class="mr-1" />
+            {{ tool.name }}
           </button>
         </template>
+        <div class="dropdown-divider"></div>
+        <router-link class="dropdown-item" to="/tools" role="menuitem" @click="closeToolsMenu">
+          All tools
+        </router-link>
       </div>
     </span>
   </div>
@@ -94,11 +95,15 @@
 <script>
 import { API_URL, LOGO_URL, LOGO_WIDTH, HOMEPAGE_URL } from "@/resources.js";
 import LoginDetails from "@/components/LoginDetails.vue";
-import { getTools } from "@/server_fetch_utils.js";
-import { isSupportedTool, openTool } from "@/tool_launch_utils.js";
+import { vOnClickOutside } from "@vueuse/components";
+import { loadToolCatalog } from "@/tool_catalog.js";
+import { isSupportedTool, openTool, toolIcon } from "@/tool_launch_utils.js";
 
 export default {
   name: "Navbar",
+  directives: {
+    onClickOutside: vOnClickOutside,
+  },
   components: {
     LoginDetails,
   },
@@ -115,7 +120,6 @@ export default {
       toolsError: null,
       toolsMenuOpen: false,
       launchingToolId: null,
-      toolsMenuCloseTimeout: null,
     };
   },
   computed: {
@@ -126,21 +130,8 @@ export default {
       return this.$store.getters.isAdminSuperUserModeActive;
     },
   },
-  mounted() {
-    document.addEventListener("click", this.closeToolsMenu);
-  },
-  beforeUnmount() {
-    document.removeEventListener("click", this.closeToolsMenu);
-    if (this.toolsMenuCloseTimeout) {
-      window.clearTimeout(this.toolsMenuCloseTimeout);
-    }
-  },
   methods: {
     closeToolsMenu() {
-      if (this.toolsMenuCloseTimeout) {
-        window.clearTimeout(this.toolsMenuCloseTimeout);
-        this.toolsMenuCloseTimeout = null;
-      }
       this.toolsMenuOpen = false;
     },
     disableSuperUserMode() {
@@ -156,7 +147,7 @@ export default {
       this.toolsError = null;
 
       try {
-        this.tools = await getTools();
+        this.tools = await loadToolCatalog();
         this.toolsLoaded = true;
       } catch (error) {
         this.tools = [];
@@ -165,33 +156,17 @@ export default {
         this.toolsLoading = false;
       }
     },
-    async openToolsMenu() {
-      if (this.toolsMenuCloseTimeout) {
-        window.clearTimeout(this.toolsMenuCloseTimeout);
-        this.toolsMenuCloseTimeout = null;
-      }
-      this.toolsMenuOpen = true;
-      await this.loadTools();
-    },
-    scheduleToolsMenuClose() {
-      if (this.toolsMenuCloseTimeout) {
-        window.clearTimeout(this.toolsMenuCloseTimeout);
-      }
-      this.toolsMenuCloseTimeout = window.setTimeout(this.closeToolsMenu, 150);
-    },
-    async handleToolsMenuClick() {
+    async toggleToolsMenu() {
+      this.toolsMenuOpen = !this.toolsMenuOpen;
       if (this.toolsMenuOpen) {
-        this.closeToolsMenu();
-        if (this.$route.path !== "/tools") {
-          this.$router.push("/tools");
-        }
-        return;
+        await this.loadTools();
       }
-
-      await this.openToolsMenu();
     },
     isSupportedTool(tool) {
       return isSupportedTool(tool);
+    },
+    toolIcon(tool) {
+      return toolIcon(tool);
     },
     async openTool(tool) {
       this.launchingToolId = tool.id;
@@ -270,70 +245,5 @@ a > .logo-banner:hover {
 
 .super-user-banner .disable-link:hover {
   color: #721c24;
-}
-
-.tools-menu {
-  position: relative;
-  display: inline-block;
-}
-
-.tools-menu-toggle {
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: #2c3e50;
-}
-
-.tools-menu-toggle:hover {
-  color: #42b983;
-  text-decoration: underline;
-}
-
-.tools-menu-caret {
-  margin-left: 0.15rem;
-  font-size: 0.8em;
-}
-
-.tools-menu-dropdown {
-  position: absolute;
-  top: 1.6rem;
-  right: 0;
-  z-index: 1000;
-  min-width: 12rem;
-  padding: 0.25rem 0;
-  border: 1px solid #d8dee2;
-  border-radius: 0.25rem;
-  background: white;
-  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.12);
-  text-align: left;
-}
-
-.tools-menu-item {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  gap: 0.35rem;
-  border: 0;
-  padding: 0.35rem 0.65rem;
-  background: transparent;
-  color: #42b983;
-  text-align: left;
-  white-space: nowrap;
-}
-
-.tools-menu-item:hover:not(:disabled) {
-  background: #f4fbf8;
-  text-decoration: underline;
-}
-
-.tools-menu-item:disabled {
-  color: #6c757d;
-  cursor: not-allowed;
-}
-
-.tools-menu-status {
-  padding: 0.35rem 0.65rem;
-  color: #6c757d;
-  white-space: nowrap;
 }
 </style>

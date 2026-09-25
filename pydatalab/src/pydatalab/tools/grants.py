@@ -4,6 +4,7 @@ import secrets
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from hashlib import sha512
+from typing import Literal
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -12,6 +13,7 @@ from flask import current_app, has_app_context
 from pydatalab.login import get_by_id
 from pydatalab.models.people import AccountStatus
 from pydatalab.mongo import flask_mongo
+from pydatalab.permissions import Key
 
 from .base import ItemSelection, ToolContext, ToolLaunchGrantIssuer
 
@@ -22,6 +24,15 @@ MAX_TOOL_SESSION_LIFETIME_SECONDS = DEFAULT_TOOL_SESSION_LIFETIME_SECONDS
 TOOL_SELECTION_LIFETIME_SECONDS = 10 * 60
 _TOOL_LAUNCH_PURPOSE = "tool-launch"
 _TOOL_SELECTION_PURPOSE = "tool-selection"
+
+
+class _DelegatedToolAccessToken(Key):
+    """Stored credentials for one delegated tool session."""
+
+    tool_id: str
+    client_id: str
+    hash: str
+    type: Literal["tool_access_token"] = "tool_access_token"
 
 
 def _hash_secret(value: str) -> str:
@@ -169,9 +180,10 @@ def consume_tool_selection_code(
 
     session = flask_mongo.db.tool_sessions.find_one(
         {
-            "_id": _hash_secret(tool_access_token),
-            "user_id": user_id,
+            "hash": _hash_secret(tool_access_token),
+            "user": user_id,
             "tool_id": tool_id,
+            "type": "tool_access_token",
             "expires_at": {"$gt": _now()},
         },
         projection={"_id": 1},
@@ -212,16 +224,16 @@ def create_delegated_tool_session(
     created_at = _now()
     expires_at = created_at + timedelta(seconds=lifetime_seconds)
     tool_access_token = secrets.token_urlsafe(48)
-    flask_mongo.db.tool_sessions.insert_one(
-        {
-            "_id": _hash_secret(tool_access_token),
-            "user_id": ObjectId(user_id),
-            "tool_id": tool_id,
-            "client_id": client_id,
-            "created_at": created_at,
-            "expires_at": expires_at,
-        }
+    stored_token = _DelegatedToolAccessToken(
+        user=ObjectId(user_id),
+        tool_id=tool_id,
+        client_id=client_id,
+        hash=_hash_secret(tool_access_token),
+        created_at=created_at,
+        expires_at=expires_at,
+        version=1,
     )
+    flask_mongo.db.tool_sessions.insert_one(stored_token.model_dump())
     return DelegatedToolSession(
         tool_access_token=tool_access_token,
         expires_at=expires_at,
@@ -232,10 +244,11 @@ def get_tool_access_token_user_id(tool_access_token: str) -> str | None:
     """Return the user bound to an unexpired tool access token."""
     session = flask_mongo.db.tool_sessions.find_one(
         {
-            "_id": _hash_secret(tool_access_token),
+            "hash": _hash_secret(tool_access_token),
+            "type": "tool_access_token",
             "expires_at": {"$gt": _now()},
         },
-        projection={"user_id": 1, "tool_id": 1},
+        projection={"user": 1, "tool_id": 1},
     )
     if session is None:
         return None
@@ -248,7 +261,7 @@ def get_tool_access_token_user_id(tool_access_token: str) -> str | None:
     registry = current_app.extensions.get(TOOL_REGISTRY_EXTENSION)
     if not isinstance(registry, ToolRegistry) or not registry.is_enabled(tool_id):
         return None
-    return str(session["user_id"])
+    return str(session["user"])
 
 
 def exchange_launch_code(

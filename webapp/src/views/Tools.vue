@@ -19,7 +19,7 @@
       data-testid="tools-error"
     >
       <span>Unable to load tools: {{ loadError }}</span>
-      <button class="btn btn-outline-danger btn-sm ml-3" type="button" @click="loadTools">
+      <button class="btn btn-outline-danger btn-sm ml-3" type="button" @click="loadTools(true)">
         Try again
       </button>
     </div>
@@ -39,7 +39,7 @@
           <div class="card-body d-flex flex-column">
             <div class="d-flex align-items-start mb-3">
               <font-awesome-icon
-                :icon="tool.icon || 'laptop-code'"
+                :icon="toolIcon(tool)"
                 class="fa-2x text-primary mr-3"
                 aria-hidden="true"
               />
@@ -87,8 +87,8 @@
 
 <script>
 import Navbar from "@/components/Navbar.vue";
-import { getTools } from "@/server_fetch_utils.js";
-import { isSupportedTool, openTool } from "@/tool_launch_utils.js";
+import { loadToolCatalog } from "@/tool_catalog.js";
+import { isSupportedTool, openTool, toolIcon } from "@/tool_launch_utils.js";
 
 export default {
   name: "Tools",
@@ -108,12 +108,12 @@ export default {
     this.loadTools();
   },
   methods: {
-    async loadTools() {
+    async loadTools(refresh = false) {
       this.isLoading = true;
       this.loadError = null;
 
       try {
-        this.tools = await getTools();
+        this.tools = await loadToolCatalog({ refresh });
       } catch (error) {
         this.tools = [];
         this.loadError = error instanceof Error ? error.message : String(error);
@@ -123,6 +123,9 @@ export default {
     },
     isSupportedTool(tool) {
       return isSupportedTool(tool);
+    },
+    toolIcon(tool) {
+      return toolIcon(tool);
     },
     async openTool(tool) {
       this.launchError = null;

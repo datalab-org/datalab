@@ -7,6 +7,7 @@ import ItemSelect from "@/components/ItemSelect.vue";
 import { API_URL } from "@/resources.js";
 import { DialogService } from "@/services/DialogService.js";
 import { toolApiGet, toolApiPost } from "@/server_fetch_utils.js";
+import { normalizeStringValues } from "@/tool_launch_utils.js";
 
 export const TOOL_SDK_VERSION = 1;
 
@@ -15,26 +16,6 @@ const registeredInAppTools = new Map();
 const inAppToolLoads = new Map();
 const expectedRegistrations = new Set();
 let publicSdk = null;
-
-function normalizeQueryValues(value, limit = Number.POSITIVE_INFINITY) {
-  const values = Array.isArray(value) ? value : value == null ? [] : [value];
-  const normalized = [];
-  const seen = new Set();
-  for (const candidate of values) {
-    if (typeof candidate !== "string") {
-      continue;
-    }
-    const value = candidate.trim();
-    if (value && !seen.has(value)) {
-      seen.add(value);
-      normalized.push(value);
-      if (normalized.length === limit) {
-        break;
-      }
-    }
-  }
-  return normalized;
-}
 
 function registerInAppTool(component) {
   const id = document.currentScript?.dataset?.datalabToolId;
@@ -165,15 +146,15 @@ export function installToolSdk(router) {
   const selection = Object.freeze({
     current: () => {
       const query = router.currentRoute.value.query;
-      const actionId = normalizeQueryValues(query.action, 1)[0] || null;
+      const actionId = normalizeStringValues(query.action, 1)[0] || null;
       return Object.freeze({
         actionId,
-        itemRefcodes: Object.freeze(normalizeQueryValues(query.items, MAX_SELECTED_ITEM_REFCODES)),
+        itemRefcodes: Object.freeze(normalizeStringValues(query.items, MAX_SELECTED_ITEM_REFCODES)),
       });
     },
     replaceItemRefcodes: (refcodes) => {
       const query = { ...router.currentRoute.value.query };
-      const normalized = normalizeQueryValues(refcodes, MAX_SELECTED_ITEM_REFCODES);
+      const normalized = normalizeStringValues(refcodes, MAX_SELECTED_ITEM_REFCODES);
       if (normalized.length) {
         query.items = normalized;
       } else {

@@ -2,12 +2,14 @@ import Navbar from "@/components/Navbar.vue";
 import { createRouter, createWebHistory } from "vue-router";
 import { createStore } from "vuex";
 import LoginDetails from "@/components/LoginDetails.vue";
+import { clearToolCatalog } from "@/tool_catalog.js";
 
 describe("Navbar", () => {
   let store;
   let router;
 
   beforeEach(() => {
+    clearToolCatalog();
     store = createStore({
       state: {
         currentUserDisplayName: null,
@@ -23,6 +25,7 @@ describe("Navbar", () => {
         { path: "/starting-materials", name: "Inventory" },
         { path: "/equipment", name: "Equipment" },
         { path: "/item-graph", name: "GraphView" },
+        { path: "/tools", name: "Tools" },
       ],
     });
   });
@@ -168,5 +171,39 @@ describe("Navbar", () => {
     });
 
     cy.get(".alert-info").should("not.exist");
+  });
+
+  it("opens a click-driven tools menu with safe icon fallback", () => {
+    cy.intercept("GET", "**/info/tools", {
+      body: {
+        data: [
+          {
+            id: "example-tool",
+            attributes: {
+              name: "Example tool",
+              description: "Example",
+              icon: "not-registered",
+              ui: { kind: "standalone", open_mode: "new_tab" },
+            },
+          },
+        ],
+      },
+    }).as("tools");
+
+    cy.mount(Navbar, {
+      global: {
+        plugins: [store, router],
+      },
+    });
+
+    cy.get('[data-testid="tools-menu-toggle"]').click();
+    cy.wait("@tools");
+    cy.contains("button", "Example tool")
+      .should("be.visible")
+      .find("font-awesome-icon")
+      .should("have.attr", "icon", "laptop-code");
+    cy.contains("a", "All tools").should("have.attr", "href", "/tools");
+    cy.get('[data-testid="navbar-navigation"]').click();
+    cy.contains("button", "Example tool").should("not.be.visible");
   });
 });

@@ -87,7 +87,7 @@ identifiers*, and minimum/maximum selection size, and generates metadata such
 as:
 
 ```python
-launch_actions=(
+launch_actions = (
     ItemTableSelectionAction(
         id="open-selected",
         label="Open selected",
@@ -173,7 +173,7 @@ For Docker Compose development, rebuild the API image after adding the plugin:
 docker compose --profile dev up --build
 ```
 
-Open datalab, hover or click **Tools**, and choose **Hello in-app**. It will
+Open datalab, click **Tools**, and choose **Hello in-app**. It will
 open at `/tools/hello-in-app` with the normal datalab navigation still visible.
 
 ## Common errors

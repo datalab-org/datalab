@@ -22,8 +22,13 @@
 import { markRaw } from "vue";
 
 import Navbar from "@/components/Navbar.vue";
-import { getTools, launchTool } from "@/server_fetch_utils.js";
-import { isSupportedTool, selectionFromRouteQuery } from "@/tool_launch_utils.js";
+import { launchTool } from "@/server_fetch_utils.js";
+import { loadToolCatalog } from "@/tool_catalog.js";
+import {
+  isSupportedTool,
+  selectionFromRouteQuery,
+  selectionLaunchPayload,
+} from "@/tool_launch_utils.js";
 import { loadInAppTool } from "@/tool_sdk.js";
 
 export default {
@@ -62,7 +67,7 @@ export default {
       this.toolComponent = null;
 
       try {
-        const tools = await getTools();
+        const tools = await loadToolCatalog();
         const tool = tools.find((candidate) => candidate.id === this.$route.params.toolId);
         if (!tool) {
           throw new Error("The tool is disabled, unavailable, or not installed.");
@@ -72,15 +77,7 @@ export default {
         }
 
         const selection = selectionFromRouteQuery(this.$route.query);
-        await launchTool(
-          tool.id,
-          selection
-            ? {
-                action: selection.actionId,
-                items: selection.itemRefcodes,
-              }
-            : {},
-        );
+        await launchTool(tool.id, selectionLaunchPayload(selection));
 
         const component = await loadInAppTool(tool);
         if (sequence !== this.loadSequence) {

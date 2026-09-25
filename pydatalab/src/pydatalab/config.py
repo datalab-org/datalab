@@ -149,18 +149,14 @@ class SMTPSettings(BaseModel):
     )
 
 
-class _NestedSettings(BaseModel):
-    """Base model for settings populated by Pydantic's nested environment parser."""
+class ToolsSettings(BaseModel):
+    """Configuration shared by installed tool plugins."""
 
     model_config = ConfigDict(
         alias_generator=str.lower,
         populate_by_name=True,
         extra="forbid",
     )
-
-
-class ToolsSettings(_NestedSettings):
-    """Configuration shared by installed tool plugins."""
 
     ORDER: list[str] = Field(
         default_factory=list,
@@ -170,18 +166,6 @@ class ToolsSettings(_NestedSettings):
         default_factory=set,
         description="Installed tool plugin IDs disabled for this deployment.",
     )
-
-    @field_validator("ORDER", "DISABLED", mode="before")
-    @classmethod
-    def parse_tool_id_collection(cls, value):
-        """Parse the JSON list form used by nested environment settings."""
-        if value is None:
-            return []
-        if isinstance(value, str):
-            if not value.strip():
-                return []
-            value = json.loads(value)
-        return value
 
     @field_validator("ORDER")
     @classmethod

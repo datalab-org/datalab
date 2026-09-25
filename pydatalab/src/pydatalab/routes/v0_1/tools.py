@@ -7,7 +7,7 @@ from pydantic import AnyHttpUrl, TypeAdapter, ValidationError
 from pydatalab.logger import LOGGER
 from pydatalab.login import is_browser_session_user, is_tool_access_token_user
 from pydatalab.models.people import AccountStatus
-from pydatalab.permissions import active_users_or_get_only
+from pydatalab.permissions import active_users_or_get_only, read_only_permissions
 from pydatalab.tools.auth import request_origin_is_allowed
 from pydatalab.tools.base import (
     ItemSelection,
@@ -113,6 +113,7 @@ def list_tools():
 
 @TOOLS.route("/tools/<string:tool_id>/launch", methods=["POST"])
 @active_users_or_get_only
+@read_only_permissions
 def launch_tool(tool_id: str):
     """Prepare a tool launch for the active current user."""
     if not current_user.is_authenticated or not is_browser_session_user(current_user):

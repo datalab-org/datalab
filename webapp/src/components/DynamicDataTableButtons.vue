@@ -200,7 +200,7 @@
             :title="toolActionDisabledReason(action)"
             @click="openTableSelectionAction(tool, action)"
           >
-            <font-awesome-icon :icon="tool.icon || 'laptop-code'" fixed-width class="mr-2" />
+            <font-awesome-icon :icon="toolIcon(tool)" fixed-width class="mr-2" />
             {{ action.label }}
           </button>
           <span
@@ -343,7 +343,12 @@ import { vOnClickOutside } from "@vueuse/components";
 import BulkChangeRoleModal from "@/components/BulkChangeRoleModal.vue";
 import BulkAddToGroupModal from "@/components/BulkAddToGroupModal.vue";
 import BulkChangeManagersModal from "@/components/BulkChangeManagersModal.vue";
-import { itemTableSelectionActions, openToolForItemSelection } from "@/tool_launch_utils.js";
+import { loadToolCatalog } from "@/tool_catalog.js";
+import {
+  itemTableSelectionActions,
+  openToolForItemSelection,
+  toolIcon,
+} from "@/tool_launch_utils.js";
 
 import {
   deleteSample,
@@ -357,7 +362,6 @@ import {
   saveUserManagers,
   invalidateToken,
   deleteGroup,
-  getTools,
   deleteTag,
 } from "@/server_fetch_utils.js";
 
@@ -492,7 +496,7 @@ export default {
       this.toolActionsLoading = true;
       this.toolActionsError = null;
       try {
-        this.tools = await getTools();
+        this.tools = await loadToolCatalog();
       } catch (error) {
         this.toolActionsError = error instanceof Error ? error.message : String(error);
       } finally {
@@ -510,6 +514,9 @@ export default {
         return "Every selected item must have an immutable refcode.";
       }
       return "";
+    },
+    toolIcon(tool) {
+      return toolIcon(tool);
     },
     async openTableSelectionAction(tool, action) {
       if (this.toolActionDisabledReason(action)) {

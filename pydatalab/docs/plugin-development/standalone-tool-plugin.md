@@ -149,7 +149,7 @@ For Docker Compose development, rebuild the API image after adding the plugin:
 docker compose --profile dev up --build
 ```
 
-Open datalab, hover or click **Tools**, and choose **Hello standalone**.
+Open datalab, click **Tools**, and choose **Hello standalone**.
 
 ## Common errors
 

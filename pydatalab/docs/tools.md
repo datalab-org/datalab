@@ -35,8 +35,9 @@ installing it.
 
 Tools can provide one or both of these entry points:
 
-- **Tools menu:** open a tool directly from the main navigation. This is useful
-  for tools that start without a particular item selection.
+- **Tools menu:** click **Tools** in the main navigation for a quick list, or
+  choose **All tools** for the complete catalog. This is useful for tools that
+  start without a particular item selection.
 - **Selected-items action:** select one or more rows in a supported table, then
   choose the tool's action from the selected-items menu. The tool receives the
   selected items' immutable refcodes and loads the current data through
