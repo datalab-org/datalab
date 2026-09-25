@@ -4,9 +4,27 @@
 > Release candidates and other pre-releases are not included in this changelog; there may be more
 recent changes described in the [release notes on GitHub](https://github.com/datalab-org/datalab/releases).
 
+## v0.7.10 (September 2026)
+
+This release backports a security fix for email (magic-link) authentication.
+Previously, if a logged-in user followed a registration link for an email address without an account, that
+address was added to their own account as a verified identity, allowing whoever controls the
+address to subsequently log in as them.
+Magic links now always log in as the owner of the email address, logging out any current user first (see [#2142](https://github.com/datalab-org/datalab/issues/2142)).
+
+Deployments with email authentication enabled are advised to update.
+The attack surface is small: it requires a logged-in user to be persuaded to follow a link crafted by the attacker, and, where `EMAIL_DOMAIN_ALLOW_LIST` is configured, the attacker must control an address in an allowed domain.
+Deployments without email authentication are unaffected.
+
+### What's Changed
+
+* Backport of "Prevent "registration" magic links from attaching new email to existing user" by @ml-evs in https://github.com/datalab-org/datalab/pull/2144
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.9...v0.7.10
+
 ## v0.7.9 (September 2026)
 
-This minor release backrpots a fix for the in situ plugin that was using a defunct option to the async processing API.
+This minor release backports a fix for the in situ plugin that was using a defunct option to the async processing API.
 
 ### What's Changed
 
