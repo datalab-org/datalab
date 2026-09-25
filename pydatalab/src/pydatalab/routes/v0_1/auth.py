@@ -15,7 +15,7 @@ import jwt
 from bson import ObjectId
 from flask import Blueprint, Response, g, jsonify, redirect, request, session
 from flask_dance.consumer import OAuth2ConsumerBlueprint, oauth_authorized, oauth_before_login
-from flask_login import current_user, login_user
+from flask_login import current_user, login_user, logout_user
 from flask_login.utils import LocalProxy
 from werkzeug.exceptions import BadRequest, Forbidden, NotFound
 
@@ -906,6 +906,11 @@ def email_logged_in():
                 "users when the server is in testing mode."
             )
     LOGGER.info("Magic-link login for %s via %r token", email, channel)
+    
+    # A magic link always logs in as the owner of the email; log out any current user
+    # so that the email is never attached to their account as a new identity
+    if current_user.is_authenticated:
+        logout_user()
 
     if data.get("remember"):
         session[REMEMBER_ME_SESSION_KEY] = True
