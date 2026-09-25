@@ -274,6 +274,10 @@ export default {
           });
         }
       } catch (err) {
+        DialogService.error({
+          title: "Permission Update Failed",
+          message: `Error updating the people with access: ${err?.message || err}`,
+        });
         this.creatorsShadow = [...this.creators];
       }
     },
@@ -307,6 +311,10 @@ export default {
           });
         }
       } catch (err) {
+        DialogService.error({
+          title: "Permission Update Failed",
+          message: `Error updating the groups with access: ${err?.message || err}`,
+        });
         this.groupsShadow = [...this.groups];
       }
     },
