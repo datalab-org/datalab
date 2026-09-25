@@ -906,7 +906,7 @@ def email_logged_in():
                 "users when the server is in testing mode."
             )
     LOGGER.info("Magic-link login for %s via %r token", email, channel)
-    
+
     # A magic link always logs in as the owner of the email; log out any current user
     # so that the email is never attached to their account as a new identity
     if current_user.is_authenticated:
