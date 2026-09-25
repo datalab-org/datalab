@@ -396,11 +396,11 @@ Cypress.Commands.add("expandIfCollapsed", (selector) => {
  * @param {string} email - Email address of the test user (default: test-user@example.com)
  * @param {string} role - User role: 'user' or 'admin' (default: 'user')
  */
-Cypress.Commands.add("loginViaTestMagicLink", (email = "test@example.com") => {
+Cypress.Commands.add("loginViaTestMagicLink", (email = "test@example.com", role = "user") => {
   cy.request({
     method: "POST",
     url: API_URL + "/testing/create-magic-link",
-    body: { email: email, referrer: Cypress.config("baseUrl") },
+    body: { email: email, role: role, referrer: Cypress.config("baseUrl") },
   }).then((response) => {
     expect(response.status).to.eq(200);
     const token = response.body.token;

@@ -142,7 +142,7 @@ See the [plugins documentation](plugins.md) for the `plugins.toml` format and a 
     ```
 
 This is a thin wrapper around `flask run` that defaults to port 5001 with `--reload` enabled and injects an insecure development secret key if `PYDATALAB_SECRET_KEY` is not already set in the environment.
-Pass `--no-reload` to disable the Werkzeug reloader, or `--testing` to enable `CONFIG.TESTING` (which disables authentication — see below).
+Pass `--no-reload` to disable the Werkzeug reloader, or `--testing` to enable `CONFIG.TESTING` (required for logging in as test users — see below).
 
 If you would rather invoke Flask directly, the equivalent command is:
 
@@ -215,25 +215,9 @@ uv lock
 ```
 ### Test server authentication/authorisation
 
-There are three approaches to authentication when developing *datalab* features locally.
+There are two approaches to authentication when developing *datalab* features locally.
 
-1. Disable authentication entirely with the `PYDATALAB_TESTING=true` environment
-   variable (or corresponding config file option `TESTING`). This will perform
-   every API operation as if the user is authenticated, and will not require any
-   further configuration.
-   - This mode of development is fine for e.g., developing new blocks, but in
-     cases where new API functionality is being added, it is recommended to set
-     up authentication locally (see below).
-2. Local OAuth setup. This requires registering an OAuth app with one of the
-   implemented providers (e.g., GitHub, ORCID), configuring the credentials
-   locally (see the [configuration documentation](https://docs.datalab-org.io/en/latest/config/) for more details) and then logging into *datalab* normally.
-   - In this case, the user will also need to be activated when it is created.
-     This can be done by manually editing the user in the database (setting
-     `account_status` to `'active'`), or by running the `admin.activate-user`
-     invoke task.
-   - For testing admin functionality, the user can also be promoted with
-     the `admin.change-user-role` invoke task.
-3. Test users with magic-link login URLs, which requires the server to run in testing mode
+1. Test users with magic-link login URLs (recommended), which requires the server to run in testing mode
    (`uv run invoke dev.serve --testing`, or `PYDATALAB_TESTING=true`). Create some test users (active accounts
    with random `@datalab.test` email addresses) with:
 
@@ -257,6 +241,19 @@ There are three approaches to authentication when developing *datalab* features 
    several users at once. The server only accepts these links for `@datalab.test`
    users; as this domain cannot receive email, they cannot be used to log in as a
    real user.
+2. Local OAuth setup. This requires registering an OAuth app with one of the
+   implemented providers (e.g., GitHub, ORCID), configuring the credentials
+   locally (see the [configuration documentation](https://docs.datalab-org.io/en/latest/config/) for more details) and then logging into *datalab* normally.
+   - In this case, the user will also need to be activated when it is created.
+     This can be done by manually editing the user in the database (setting
+     `account_status` to `'active'`), or by running the `admin.activate-user`
+     invoke task.
+   - For testing admin functionality, the user can also be promoted with
+     the `admin.change-user-role` invoke task.
+
+The Cypress e2e tests instead log in via the `POST /testing/create-magic-link` endpoint,
+which is enabled by `PYDATALAB_ENABLE_TEST_EMAIL_AUTH=true` and allows logging in as *any* user;
+this is intended only for automated tests and MUST NOT be enabled in production.
 
 Finally, all API tests can be run with variable authentication.
 There are [pytest fixtures](https://docs.pytest.org/en/7.1.x/how-to/fixtures.html) that provide

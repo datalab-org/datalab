@@ -41,7 +41,6 @@ from pydatalab.mongo import (
     resolve_tags_for_docs,
 )
 from pydatalab.permissions import (
-    PUBLIC_USER_ID,
     AccessToken,
     access_token_or_active_users,
     active_users_or_get_only,
@@ -685,15 +684,6 @@ def _create_sample(
         new_sample["creator_ids"] = []
         new_sample["creators"] = []
 
-    elif CONFIG.TESTING and not current_user.is_authenticated:
-        # Set fake ID to ObjectId("000000000000000000000000") so a dummy user can be created
-        # locally for testing creator UI elements
-        new_sample["creator_ids"] = [str(PUBLIC_USER_ID)]
-        new_sample["creators"] = [
-            {
-                "display_name": "Public testing user",
-            }
-        ]
     else:
         new_sample["creator_ids"] = [current_user.person.immutable_id]
         new_sample["creators"] = [
