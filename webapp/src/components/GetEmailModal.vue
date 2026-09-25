@@ -37,6 +37,11 @@ export default {
   },
   props: {
     modelValue: Boolean,
+    // Whether the session created by the magic link should persist beyond the browser session
+    remember: {
+      type: Boolean,
+      default: false,
+    },
   },
   emits: ["update:modelValue"],
   data() {
@@ -54,7 +59,7 @@ export default {
       if (this.emailValidationMessage) {
         return;
       }
-      let response = await requestMagicLink(this.emailAddress);
+      let response = await requestMagicLink(this.emailAddress, this.remember);
       if (response.status == "success") {
         this.emailSent = true;
         this.successMessage =
