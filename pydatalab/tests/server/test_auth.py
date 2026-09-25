@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 from bson import ObjectId
 
-from pydatalab.routes.v0_1.auth import _check_email_domain
+from pydatalab.routes.v0_1.auth import _check_email_domain, _generate_and_store_token
 
 
 def test_allow_emails():
@@ -22,7 +22,7 @@ def test_magic_link_account_creation(unauthenticated_client, app, database):
     with app.extensions["mail"].record_messages() as outbox:
         response = unauthenticated_client.post(
             "/login/magic-link",
-            json={"email": "test@ml-evs.science", "referrer": "datalab.example.org"},
+            json={"email": "test@datalab-org.io", "referrer": "datalab.example.org"},
         )
         assert response.json["message"] == "Email sent successfully."
         assert response.status_code == 200
@@ -34,7 +34,7 @@ def test_magic_link_account_creation(unauthenticated_client, app, database):
     with app.extensions["mail"].record_messages() as outbox:
         response = unauthenticated_client.get(f"/login/email?token={doc['jwt']}")
         assert response.status_code == 307
-        new_user = database.users.find_one({"contact_email": "test@ml-evs.science"})
+        new_user = database.users.find_one({"contact_email": "test@datalab-org.io"})
         assert new_user
         assert new_user["account_status"] == "unverified"
         assert len(outbox) == 1  # Should be a notification to admins
@@ -44,7 +44,7 @@ def test_magic_links_expected_failures(unauthenticated_client, app):
     with app.extensions["mail"].record_messages() as outbox:
         response = unauthenticated_client.post(
             "/login/magic-link",
-            json={"email": "test@ml-evs.science"},
+            json={"email": "test@datalab-org.io"},
         )
         assert response.status_code == 400
         assert len(outbox) == 0
@@ -74,7 +74,7 @@ def test_magic_link_auth_can_be_disabled(unauthenticated_client, app, database, 
     with app.extensions["mail"].record_messages() as outbox:
         response = unauthenticated_client.post(
             "/login/magic-link",
-            json={"email": "test@ml-evs.science", "referrer": "datalab.example.org"},
+            json={"email": "test@datalab-org.io", "referrer": "datalab.example.org"},
         )
         assert response.status_code == 403
         assert (
@@ -91,6 +91,57 @@ def test_magic_link_auth_can_be_disabled(unauthenticated_client, app, database, 
             == "Magic-link authentication is disabled for this datalab instance."
         )
         assert len(outbox) == 0
+
+
+def test_magic_link_for_new_email_does_not_attach_to_current_user(
+    session_client, app, database, user_id
+):
+    """Following a registration link while logged in should create a new account for
+    that email, rather than attaching the email to the logged in user's account."""
+    email = "new-identity@datalab-org.io"
+    with app.app_context():
+        token = _generate_and_store_token(email, intent="register")
+
+    with app.extensions["mail"].record_messages():
+        response = session_client.get(f"/login/email?token={token}")
+    assert response.status_code == 307
+
+    assert not database.users.find_one({"_id": user_id, "identities.identifier": email})
+    new_user = database.users.find_one({"identities.identifier": email})
+    assert new_user["_id"] != user_id
+    with session_client.session_transaction() as sess:
+        assert sess["_user_id"] == str(new_user["_id"])
+
+    database.users.delete_one({"_id": new_user["_id"]})
+
+
+def test_magic_link_switches_logged_in_user(session_client, app, database, user_id):
+    """Following a login link for another user's email while logged in should log in
+    as that user, without modifying either account."""
+    email = "existing-identity@datalab-org.io"
+    other_user_id = ObjectId()
+    database.users.insert_one(
+        {
+            "_id": other_user_id,
+            "display_name": "Existing Identity",
+            "account_status": "active",
+            "identities": [
+                {"identity_type": "email", "identifier": email, "name": email, "verified": True}
+            ],
+        }
+    )
+    with app.app_context():
+        token = _generate_and_store_token(email, intent="login")
+
+    response = session_client.get(f"/login/email?token={token}")
+    assert response.status_code == 307
+
+    assert not database.users.find_one({"_id": user_id, "identities.identifier": email})
+    assert database.users.count_documents({"identities.identifier": email}) == 1
+    with session_client.session_transaction() as sess:
+        assert sess["_user_id"] == str(other_user_id)
+
+    database.users.delete_one({"_id": other_user_id})
 
 
 # ──────────────────────────────────────────────
