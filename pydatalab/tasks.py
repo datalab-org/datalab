@@ -183,11 +183,6 @@ def _load_dev_env() -> pathlib.Path:
     return env_path
 
 
-# Test users are ordinary email users on this reserved domain (RFC 2606), so that
-# they can be logged in via standard magic-link tokens from `dev.list-users`.
-TEST_USER_EMAIL_DOMAIN = "datalab.test"
-
-
 @task(
     help={
         "username": "Username for the test user; their email will be <username>@datalab.test "
@@ -204,7 +199,7 @@ def create_test_user(
     role: str = "user",
     count: int = 1,
 ):
-    """Create or update active test users that can log in via `dev.list-users` links."""
+    """Create or update active test users that can log in via `dev.list-test-users` links."""
 
     _load_dev_env()
 
@@ -215,6 +210,7 @@ def create_test_user(
     from pydatalab.models.people import AccountStatus, DisplayName, Identity, IdentityType, Person
     from pydatalab.models.utils import HumanReadableIdentifier, UserRole
     from pydatalab.mongo import get_database, insert_pydantic_model_fork_safe
+    from pydatalab.routes.v0_1.auth import TESTING_EMAIL_DOMAIN
 
     try:
         role_value = UserRole(role.lower())
@@ -252,7 +248,7 @@ def create_test_user(
         new_users = [(secrets.token_hex(3), display_name) for _ in range(count)]
 
     for username, user_display_name in new_users:
-        email = f"{username}@{TEST_USER_EMAIL_DOMAIN}"
+        email = f"{username}@{TESTING_EMAIL_DOMAIN}"
         existing_user = find_user(email)
 
         if existing_user is None:
@@ -290,13 +286,13 @@ dev.add_task(create_test_user)
 
 
 @task
-def list_users(_):
-    """List all users with magic-link login URLs for the local webapp.
+def list_test_users(_):
+    """List test users with magic-link login URLs for the local webapp.
 
-    Each link is a standard email login token (valid for one hour), minted directly
-    rather than sent by email. Open each in a separate private browser window to be
-    logged in as several users at once. Users without an email identity (e.g., those
-    who only log in via OAuth) are listed without a link.
+    Test users are those with an @datalab.test email, as created by `dev.create-test-user`.
+    Each link is a login token (valid for one hour), minted directly rather than sent by
+    email, and only accepted by the server in testing mode. Open each in a separate
+    private browser window to be logged in as several users at once.
 
     """
 
@@ -307,25 +303,34 @@ def list_users(_):
     from pydatalab.models.people import IdentityType
     from pydatalab.models.utils import UserRole
     from pydatalab.mongo import get_database
-    from pydatalab.routes.v0_1.auth import _generate_and_store_token
+    from pydatalab.routes.v0_1.auth import TESTING_EMAIL_DOMAIN, _generate_and_store_token
 
     if CONFIG.DISABLE_MAGIC_LINK_AUTH:
-        raise SystemExit("User login links require magic-link auth to be enabled.")
+        raise SystemExit("Test-user login links require magic-link auth to be enabled.")
     if not CONFIG.APP_URL:
-        raise SystemExit("User login links require PYDATALAB_APP_URL to point to the webapp.")
+        raise SystemExit("Test-user login links require PYDATALAB_APP_URL to point to the webapp.")
 
     database = get_database()
 
+    email_suffix = f"@{TESTING_EMAIL_DOMAIN}"
+    documents = database.users.find(
+        {
+            "identities": {
+                "$elemMatch": {
+                    "identity_type": IdentityType.EMAIL.value,
+                    "identifier": {"$regex": f"{re.escape(email_suffix)}$"},
+                }
+            }
+        }
+    )
+
     users = []
-    for document in database.users.find():
-        identities = document.get("identities", [])
+    for document in documents:
         email = next(
-            (
-                identity["identifier"]
-                for identity in identities
-                if identity.get("identity_type") == IdentityType.EMAIL.value
-            ),
-            None,
+            identity["identifier"]
+            for identity in document["identities"]
+            if identity.get("identity_type") == IdentityType.EMAIL.value
+            and identity.get("identifier", "").endswith(email_suffix)
         )
         role_document = database.roles.find_one({"_id": document["_id"]}, {"role": 1})
         role = role_document["role"] if role_document else UserRole.USER.value
@@ -348,17 +353,16 @@ def list_users(_):
         users.append(
             {
                 "email": email,
-                "display_name": document.get("display_name") or email or str(document["_id"]),
-                "identity_types": sorted({i.get("identity_type") for i in identities}),
+                "display_name": document.get("display_name") or email,
                 "role": role,
                 "status": document.get("account_status"),
                 "groups": group_names,
             }
         )
 
-    users.sort(key=lambda user: (user["display_name"].casefold(), user["email"] or ""))
+    users.sort(key=lambda user: (user["display_name"].casefold(), user["email"]))
     if not users:
-        print("No users found; create one with `invoke dev.create-test-user`.")
+        print("No test users found; create one with `invoke dev.create-test-user`.")
         return
 
     use_color = sys.stdout.isatty() and "NO_COLOR" not in os.environ
@@ -368,23 +372,19 @@ def list_users(_):
 
     login_base_url = f"{CONFIG.APP_URL.rstrip('/')}/?token="
     role_colors = {"admin": "31", "manager": "33", "user": "32"}
-    print(styled("Users (links valid for 1 hour)", "1;36"))
+    print(styled("Test users (links valid for 1 hour, with the server in testing mode)", "1;36"))
     with create_app(env_file=env_path).app_context():
         for user in users:
+            token = _generate_and_store_token(user["email"], intent="login", channel="cli")
             groups = ", ".join(user["groups"]) if user["groups"] else "No groups"
-            print(f"\n{styled(user['display_name'], '1')} ({user['email'] or 'no email'})")
+            print(f"\n{styled(user['display_name'], '1')} ({user['email']})")
             print(f"  Role:   {styled(user['role'], role_colors.get(user['role'], ''))}")
             print(f"  Status: {user['status']}")
             print(f"  Groups: {groups}")
-            if user["email"]:
-                token = _generate_and_store_token(user["email"], intent="login")
-                print(f"  Login:  {styled(login_base_url + token, '36')}")
-            else:
-                identity_types = ", ".join(user["identity_types"]) or "none"
-                print(f"  Login:  no email identity (identities: {identity_types})")
+            print(f"  Login:  {styled(login_base_url + token, '36')}")
 
 
-dev.add_task(list_users)
+dev.add_task(list_test_users)
 
 
 @task
