@@ -3,7 +3,9 @@ for retrieving the authenticated user for a session and their identities.
 
 """
 
+from enum import Enum
 from hashlib import sha512
+from typing import Any
 
 from bson import ObjectId
 from flask import g
@@ -15,6 +17,14 @@ from pydatalab.models.utils import UserRole
 from pydatalab.mongo import flask_mongo
 
 __all__ = ("LOGIN_MANAGER",)
+
+
+class AuthMethod(str, Enum):
+    """Authentication source for the current request."""
+
+    BROWSER_SESSION = "browser_session"
+    PERMANENT_API_KEY = "permanent_api_key"
+    TOOL_ACCESS_TOKEN = "tool_access_token"  # noqa: S105
 
 
 class LoginUser(UserMixin):
@@ -29,8 +39,15 @@ class LoginUser(UserMixin):
     id: str
     person: Person
     role: UserRole
+    auth_method: AuthMethod
 
-    def __init__(self, _id: str, data: Person, role: UserRole):
+    def __init__(
+        self,
+        _id: str,
+        data: Person,
+        role: UserRole,
+        auth_method: AuthMethod = AuthMethod.BROWSER_SESSION,
+    ):
         """Construct the logged in user from a given ID and user data.
 
         Parameters:
@@ -42,6 +59,7 @@ class LoginUser(UserMixin):
         self.id = _id
         self.person = data
         self.role = role
+        self.auth_method = auth_method
 
     @property
     def display_name(self) -> str | None:
@@ -96,7 +114,10 @@ def groups_lookup() -> dict:
     }
 
 
-def get_by_id(user_id: str | ObjectId) -> LoginUser | None:
+def get_by_id(
+    user_id: str | ObjectId,
+    auth_method: AuthMethod = AuthMethod.BROWSER_SESSION,
+) -> LoginUser | None:
     """Lookup the user database ID and create a new `LoginUser`
     with the relevant metadata.
 
@@ -128,22 +149,27 @@ def get_by_id(user_id: str | ObjectId) -> LoginUser | None:
     else:
         role = role["role"]
 
-    return LoginUser(_id=user_id, data=Person(**user), role=UserRole(role))
-
-
-def get_by_api_key(key: str):
-    """Checks if the hashed version of the key is in the keys collection,
-    if so, return the authenticated user.
-
-    """
-
-    key_hash = sha512(key.encode("utf-8")).hexdigest()
-    user = flask_mongo.db.api_keys.find_one(
-        {"hash": key_hash, "type": "api_key"}, projection={"name": 0, "_id": 0, "digest": 0}
+    return LoginUser(
+        _id=str(user_id),
+        data=Person(**user),
+        role=UserRole(role),
+        auth_method=auth_method,
     )
 
+
+def get_by_api_key(api_credential: str) -> LoginUser | None:
+    """Return the user authenticated by a DATALAB-API-KEY header value.
+
+    The bearer value may be a permanent API key or a tool access token.
+    """
+
+    key_hash = sha512(api_credential.encode("utf-8")).hexdigest()
+    user = flask_mongo.db.api_keys.find_one(
+        {"hash": key_hash, "type": "api_key"},
+        projection={"name": 0, "_id": 0, "digest": 0},
+    )
     if user and user.get("user", False):
-        return get_by_id(str(user["user"]))
+        return get_by_id(str(user["user"]), auth_method=AuthMethod.PERMANENT_API_KEY)
 
     legacy_user = flask_mongo.db.api_keys.find_one(
         {
@@ -151,12 +177,33 @@ def get_by_api_key(key: str):
             "user_id": {"$exists": False},
             "name": {"$exists": False},
             "digest": {"$exists": False},
-        },
+            "type": {"$exists": False},
+        }
     )
-
     if legacy_user:
-        return get_by_id(str(legacy_user["_id"]))
+        return get_by_id(
+            str(legacy_user["_id"]),
+            auth_method=AuthMethod.PERMANENT_API_KEY,
+        )
+
+    from pydatalab.tools.grants import get_tool_access_token_user_id
+
+    delegated_user_id = get_tool_access_token_user_id(api_credential)
+    if delegated_user_id:
+        delegated_user = get_by_id(delegated_user_id, auth_method=AuthMethod.TOOL_ACCESS_TOKEN)
+        if delegated_user is not None and delegated_user.account_status == AccountStatus.ACTIVE:
+            return delegated_user
     return None
+
+
+def is_browser_session_user(user: Any) -> bool:
+    """Return whether a request is authenticated by a datalab browser session."""
+    return getattr(user, "auth_method", None) == AuthMethod.BROWSER_SESSION
+
+
+def is_tool_access_token_user(user: Any) -> bool:
+    """Return whether a request is authenticated by a tool access token."""
+    return getattr(user, "auth_method", None) == AuthMethod.TOOL_ACCESS_TOKEN
 
 
 LOGIN_MANAGER: LoginManager = LoginManager()
@@ -172,8 +219,8 @@ def load_user(user_id: str) -> LoginUser | None:
 
 @LOGIN_MANAGER.request_loader
 def request_loader(request) -> LoginUser | None:
-    api_key = request.headers.get("DATALAB-API-KEY", None)
-    if api_key:
+    api_credential = request.headers.get("DATALAB-API-KEY", None)
+    if api_credential:
         g.api_key_session = True
-        return get_by_api_key(str(api_key))
+        return get_by_api_key(str(api_credential))
     return None

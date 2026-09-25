@@ -54,6 +54,7 @@ repos:
           - "@babel/plugin-transform-class-static-block@7.29.7"
         types: [file]
         files: \.(js|jsx|ts|tsx|vue)$
+        exclude: ^plugin_examples/[^/]+/src/[^/]+/static/frontend/.*\.js$
         args: [--fix]
 
   - repo: https://github.com/asottile/pyupgrade

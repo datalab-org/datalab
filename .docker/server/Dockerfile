@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1
+
 ARG UV_VERSION="0.11.8"
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv_image
 
@@ -46,15 +48,18 @@ COPY ./pydatalab/uv.lock .
 
 # plugins.toml lives at the repo root; copy it one level above WORKDIR so that
 # `invoke dev.install` finds it via `<tasks.py>/../plugins.toml` (i.e. /plugins.toml),
-# and copy plugin source trees to /pydatalab/plugins/ so that relative paths in
-# plugins.toml (resolved relative to plugins.toml itself) point at real files.
+# and retain the conventional in-repository plugin source location.
 COPY ./plugins.tom[l] /plugins.toml
 COPY ./pydatalab/plugins/ /pydatalab/plugins/
 
 # Install the base datalab venv with dev dependencies (to include invoke)
-# then run the datalab custom install script to pick up any plugins and install
-# them in the base venv
-RUN uv sync --extra server --locked && uv run invoke dev.install --no-dev
+# then expose a temporary build-context mount while resolving local plugin
+# sources. BuildKit discards writes to this mount after the layer. Local path
+# plugins are installed non-editably, so neither the mount nor their sources
+# are retained in the image.
+RUN --mount=type=bind,source=.,target=/source,rw \
+    uv sync --extra server --locked && \
+    PYDATALAB_PLUGIN_SOURCE_ROOT=/source uv run invoke dev.install --no-dev
 
 WORKDIR /app
 

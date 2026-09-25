@@ -145,7 +145,7 @@ Plugins extend the server with new `DataBlock` classes via a Python entry point,
 
 ### Python
 - Formatting: ruff (line length 100) via pre-commit
-- Type hints: Required, using Pydantic v1 models
+- Type hints: Required, using Pydantic v2 models
 - Logging: Use `pydatalab.logger.LOGGER`
 - Tests: pytest with fixtures in `conftest.py` files
 

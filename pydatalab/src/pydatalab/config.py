@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import platform
+from ipaddress import ip_address
 from pathlib import Path
 from typing import Any
 
@@ -20,9 +21,29 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydatalab.models import Person
 from pydatalab.models.utils import RandomAlphabeticalRefcodeFactory, RefCodeFactory
 
-__all__ = ("CONFIG", "ServerConfig", "DeploymentMetadata", "RemoteFilesystem")
+__all__ = (
+    "CONFIG",
+    "ServerConfig",
+    "DeploymentMetadata",
+    "RemoteFilesystem",
+    "ToolsSettings",
+    "is_loopback_host",
+)
 
 config_logger = logging.getLogger("pydatalab.config")
+
+
+def is_loopback_host(host: str | None) -> bool:
+    """Return whether a URL host is explicitly local to this machine."""
+    if host is None:
+        return False
+    normalized_host = str(host).rstrip(".").lower()
+    if normalized_host == "localhost" or normalized_host.endswith(".localhost"):
+        return True
+    try:
+        return ip_address(normalized_host).is_loopback
+    except ValueError:
+        return False
 
 
 def config_file_settings(settings_cls: type[BaseSettings] | None = None) -> dict[str, Any]:
@@ -126,6 +147,49 @@ class SMTPSettings(BaseModel):
     MAIL_DEFAULT_SENDER: str = Field(
         "", description="The email address to use as the sender for emails."
     )
+
+
+class _NestedSettings(BaseModel):
+    """Base model for settings populated by Pydantic's nested environment parser."""
+
+    model_config = ConfigDict(
+        alias_generator=str.lower,
+        populate_by_name=True,
+        extra="forbid",
+    )
+
+
+class ToolsSettings(_NestedSettings):
+    """Configuration shared by installed tool plugins."""
+
+    ORDER: list[str] = Field(
+        default_factory=list,
+        description="Tool plugin IDs in their preferred display order.",
+    )
+    DISABLED: set[str] = Field(
+        default_factory=set,
+        description="Installed tool plugin IDs disabled for this deployment.",
+    )
+
+    @field_validator("ORDER", "DISABLED", mode="before")
+    @classmethod
+    def parse_tool_id_collection(cls, value):
+        """Parse the JSON list form used by nested environment settings."""
+        if value is None:
+            return []
+        if isinstance(value, str):
+            if not value.strip():
+                return []
+            value = json.loads(value)
+        return value
+
+    @field_validator("ORDER")
+    @classmethod
+    def ordered_tool_ids_are_unique(cls, value):
+        """Reject ambiguous configured positions for the same tool ID."""
+        if len(value) != len(set(value)):
+            raise ValueError("TOOLS.ORDER must not contain duplicate tool IDs")
+        return value
 
 
 class ServerConfig(BaseSettings):
@@ -261,6 +325,11 @@ its importance when deploying a datalab instance.""",
     ASYNC_BLOCK_TYPES: list[str] = Field(
         [],
         description="A list of block type slugs (e.g. ['cycle', 'xrd']) that should be processed asynchronously via the task queue. Defaults to no blocks.",
+    )
+
+    TOOLS: ToolsSettings = Field(
+        default_factory=ToolsSettings,
+        description="Configuration for built-in and installed tools.",
     )
 
     CUSTOM_ITEM_MODELS: list[str] = Field(
@@ -414,6 +483,7 @@ its importance when deploying a datalab instance.""",
 
     model_config = SettingsConfigDict(
         env_prefix="PYDATALAB_",
+        env_nested_delimiter="__",
         extra="allow",
         env_file=".env",
         env_file_encoding="utf-8",

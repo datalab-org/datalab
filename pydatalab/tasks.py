@@ -5,6 +5,7 @@ import re
 import shutil
 import subprocess
 import time
+from typing import cast
 
 import tomlkit
 from invoke import Collection, task
@@ -113,7 +114,7 @@ def generate_schemas(_):
             json.dump(schema, f, indent=2)
 
     with open(schemas_path / "plugin_config.json", "w") as f:
-        json.dump(load_plugin_schema().schema(), f, indent=2)
+        json.dump(load_plugin_schema().model_json_schema(), f, indent=2)
 
 
 dev.add_task(generate_schemas)
@@ -180,7 +181,7 @@ def install(_, dev=True):
     plugin_cfg = PLUGINS_TOML_PATH
 
     deps: list[str] = []
-    sources: dict[str, dict[str, str]] = {}
+    sources: dict[str, dict[str, object]] = {}
 
     if not plugin_cfg.is_file():
         print(f"No plugins.toml found at {plugin_cfg}; installing with base pyproject.toml")
@@ -190,23 +191,34 @@ def install(_, dev=True):
             raw_plugin_data = tomlkit.load(f)
 
         try:
-            plugin_data = load_plugin_schema().parse_obj(raw_plugin_data.unwrap())
+            plugin_data = load_plugin_schema().model_validate(raw_plugin_data.unwrap())
         except Exception as exc:
             raise SystemExit(f"Invalid plugins.toml at {plugin_cfg}:\n{exc}") from None
 
         deps = list(plugin_data.dependencies)
         sources = {
-            name: source.dict(exclude_none=True)
+            name: source.model_dump(exclude_none=True)
             for name, source in plugin_data.tool.uv.sources.items()
         }
 
         print(f"Found plugins: {deps}")
 
-        # Resolve any relative paths in [tool.uv.sources] relative to the
-        # location of plugins.toml itself (i.e. the repo root).
+        # Local invocations resolve paths beside plugins.toml. Docker builds
+        # can expose their read-only build context at a different root without
+        # copying development repositories into the resulting image.
+        source_root_env = os.environ.get("PYDATALAB_PLUGIN_SOURCE_ROOT")
+        source_root = (
+            pathlib.Path(source_root_env).resolve() if source_root_env else plugin_cfg.parent
+        )
         for name, source in sources.items():
             if source.get("path") is not None:
-                sources[name]["path"] = str((plugin_cfg.parent / source["path"]).resolve())
+                source_path = cast(str, source["path"])
+                sources[name]["path"] = str((source_root / source_path).resolve())
+                if source_root_env:
+                    # The Docker build-context mount disappears after this
+                    # layer, so install a regular wheel instead of retaining
+                    # an editable reference to that path.
+                    sources[name]["editable"] = False
 
     with open(pathlib.Path(__file__).parent / "pyproject.toml") as f:
         pyproject_data = dict(tomlkit.load(f))

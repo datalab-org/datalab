@@ -8,6 +8,7 @@ import NotFound from "../views/NotFound.vue";
 import EditPage from "../views/EditPage.vue";
 import CollectionPage from "../views/CollectionPage.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
+import Tools from "@/views/Tools.vue";
 import Admin from "@/views/Admin.vue";
 import Login from "../views/Login.vue";
 import { API_URL, WEBSITE_TITLE } from "@/resources.js";
@@ -84,6 +85,16 @@ const routes = [
     path: "/item-graph/",
     name: "item-graph",
     component: ItemGraphPage,
+  },
+  {
+    path: "/tools",
+    name: "tools",
+    component: Tools,
+  },
+  {
+    path: "/tools/:toolId/:toolPath(.*)*",
+    name: "tool",
+    component: () => import(/* webpackChunkName: "tool-host" */ "@/views/ToolHost.vue"),
   },
   {
     path: "/files/:pathMatch(.*)",

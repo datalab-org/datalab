@@ -258,7 +258,7 @@ def invalidate_access_token(refcode: str):
 
 @ADMIN.route("/access-tokens", methods=["GET"])
 def list_access_tokens():
-    """List all access tokens with their status and metadata."""
+    """List all item access tokens with their status and metadata."""
 
     pipeline = [
         {"$match": {"type": "access_token"}},

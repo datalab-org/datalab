@@ -7,11 +7,14 @@ There are also [several issues with the 'suggestions' label](https://github.com/
 
 ## Plugin system
 
-The plugin entry points exposed today only cover [data blocks](plugins.md). Planned extensions include:
+The plugin entry points exposed today cover *data blocks*, *standalone tools*, and
+trusted *in-app tools*; see [Plugins](plugins.md).
+Planned extensions include:
 
 - **Custom item types** [in-progress #1767](https://github.com/datalab-org/datalab/issues/1767) — register new top-level item models (beyond the built-in samples, cells, and starting materials) from a plugin package.
 - **Ingestion hooks** — allow plugins to register handlers that run on file upload, item creation, or other lifecycle events.
-- **Webapp components** — distribute Vue components alongside the Python plugin package so that custom blocks and item types can ship their own UI.
+- **Broader frontend SDK** — expand the deliberately small *tool frontend SDK* only when
+  stable, reusable webapp capabilities are needed by multiple trusted plugins.
 
 ## Other planned work
 

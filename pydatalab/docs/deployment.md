@@ -178,6 +178,170 @@ docker compose --file docker-compose.prod.yml --profile prod build
 docker compose --file docker-compose.prod.yml --profile prod up
 ```
 
+## Optional JupyterHub tool
+
+JupyterLab is supplied by the independently maintained
+[`datalab-jupyter`](https://github.com/Matgenix/datalab-jupyter) component. Its
+`[plugin]` extra is installed in the datalab API, while its `[hub]` and
+`[server]` extras can run in either the managed image or an independently
+administered JupyterHub deployment.
+
+For development, add the Git repository to the root `plugins.toml`:
+
+```toml
+dependencies = ["datalab-jupyter[plugin]"]
+
+[tool.uv.sources]
+datalab-jupyter = { git = "https://github.com/Matgenix/datalab-jupyter.git" }
+```
+
+Run `uv run invoke dev.install` from `pydatalab/`. Production deployments
+should use a versioned Git or package source.
+
+If JupyterLab is not needed, do not install `datalab-jupyter` and do not include
+the companion Compose file described below. The normal datalab deployment then
+creates no Hub container, tools network, Jupyter volume, or Docker-socket mount.
+
+### Compose-managed JupyterHub
+
+Configure matching client credentials in the root environment and explicitly combine the base
+Compose file with the companion file supplied by the `datalab-jupyter` repository. Including that
+file is what enables the managed Hub; no additional Jupyter profile is needed. Set
+`<DATALAB_JUPYTER_CHECKOUT>` to the location of that checkout:
+
+```shell
+export DATALAB_JUPYTER_CLIENT_ID=datalab-jupyter
+export DATALAB_JUPYTER_CLIENT_SECRET="$(openssl rand -hex 32)"
+docker compose -f docker-compose.yml \
+  -f <DATALAB_JUPYTER_CHECKOUT>/deployment/docker-compose.datalab.yml \
+  --profile prod up --build --wait
+docker compose -f docker-compose.yml \
+  -f <DATALAB_JUPYTER_CHECKOUT>/deployment/docker-compose.datalab.yml \
+  --profile dev up --build --wait
+```
+
+Use the same files for later Compose operations, including shutdown:
+
+```shell
+docker compose -f docker-compose.yml \
+  -f <DATALAB_JUPYTER_CHECKOUT>/deployment/docker-compose.datalab.yml \
+  --profile dev down
+```
+
+If the companion file is omitted from `down`, Compose does not know about the
+Hub service and may leave it running with the tools network still in use.
+
+Production and development profiles are alternatives and should not be run
+simultaneously. Docker Compose 2.20 or newer is required for the optional
+health-based API dependencies.
+
+The managed Hub binds to `127.0.0.1:8000` by default. For loopback development,
+its browser URL is normally `http://localhost:8000/jupyter/`. The bind address
+and port can be changed from the shell with
+`DATALAB_JUPYTER_BIND_ADDRESS` and `DATALAB_JUPYTER_PORT`.
+
+In production, set `PYDATALAB_APP_URL` to the canonical frontend URL and proxy
+its `/jupyter/` path to the Hub, or set
+`DATALAB_JUPYTER_PUBLIC_URL` to another browser-facing HTTPS URL. The
+reverse proxy must:
+
+- preserve the `/jupyter/` prefix and forwarded host and protocol information;
+- proxy HTTP traffic to the Hub on port 8000;
+- support WebSocket upgrades and long-lived kernel connections;
+- use timeouts appropriate for interactive kernels;
+- omit or redact `datalab_launch_code` values from access logs; and
+- terminate TLS outside loopback development.
+
+`DATALAB_JUPYTER_PUBLIC_URL` changes the co-deployed Hub's browser-facing
+location. `DATALAB_JUPYTER_EXTERNAL_URL` selects a separately administered Hub
+instead.
+
+### Security, networking, and storage
+
+The API, Hub, and spawned user servers share a dedicated tools network. Both API
+profiles use the `datalab-api` network alias, so notebooks call
+`http://datalab-api:5001` regardless of the active profile. MongoDB is not
+attached to this network: notebooks must access data through the datalab API and
+its current-user permission checks.
+
+DockerSpawner requires the Docker socket to create per-user containers.
+Possession of that socket is effectively host-root access, so only the trusted
+Hub receives it. User notebook containers receive no Docker socket, MongoDB
+credentials, Flask secrets, host bind mounts, or shared client secret. Each
+container receives only its user's temporary tool access token, current-user
+snapshot, API URL, and persistent work volume.
+
+The managed defaults are:
+
+- 2 CPU cores and 4 GiB of memory per user server;
+- shutdown after one hour of inactivity;
+- a maximum server age of 24 hours; and
+- a persistent work volume keyed by the Compose project and immutable datalab
+  user identity.
+
+Override these with `DATALAB_JUPYTER_CPU_LIMIT`,
+`DATALAB_JUPYTER_MEM_LIMIT`, `DATALAB_JUPYTER_START_TIMEOUT`,
+`DATALAB_JUPYTER_IDLE_TIMEOUT`, and `DATALAB_JUPYTER_MAX_AGE`.
+
+Hub state and encrypted authentication data use a separate persistent volume.
+Stopping a user server removes its disposable container while retaining its
+work volume. Administrators should define storage quotas and a volume-retention
+policy suitable for their deployment.
+
+### Notebook environment
+
+Each Python notebook and Jupyter console preloads:
+
+```python
+datalab       # authenticated datalab_api.DatalabClient
+current_user  # launch-time identity, role, and group snapshot
+```
+
+JupyterLab also contributes **Open in notebook** to the selected-items menus
+for Samples, Inventory, Equipment, and items within a collection. Selecting
+1–20 rows creates a new notebook with a dedicated kernel and a visible
+initialization cell. datalab passes only immutable refcodes; the cell retrieves
+the current item dictionaries through the permission-aware API.
+
+The initialization cell runs automatically once when the notebook is created
+and defines:
+
+```python
+selected_item_refcodes  # ordered immutable refcodes from the table
+selected_items          # accessible item dictionaries
+selected_item_errors    # refcodes that could not be loaded
+```
+
+The cell remains editable and rerunnable. It is not executed automatically
+after a kernel restart or when the notebook is later opened with a fresh
+kernel. A normal JupyterLab launch from the Tools menu does not create a
+notebook and does not define these selection-specific variables.
+
+The managed image includes SciPy, pandas, Matplotlib, seaborn, ipywidgets,
+lmfit, uncertainties, Pint, openpyxl, h5py, and tqdm. NumPy is installed as a
+dependency and constrained for compatibility with the pinned `datalab-api`
+client.
+
+### External JupyterHub
+
+Set `DATALAB_JUPYTER_EXTERNAL_URL` to use an independently deployed
+Hub. In that case, run the normal base Compose file without
+the `datalab-jupyter` companion Compose file; no local Hub is created. The external
+administrator owns TLS, proxying, availability, spawning, storage, quotas,
+culling, and the user-server image.
+
+Install `datalab-jupyter[hub]` in the external Hub and
+`datalab-jupyter[server]` in its user image, then configure the matching datalab
+API URL, client ID, and client secret. The integration
+exchanges a single-use launch code for a temporary current-user tool access
+token and passes it only to that user's notebook container. The external
+administrator must keep user-server lifetimes within the token lifetime and
+must isolate notebook containers from datalab's database and server secrets.
+
+New datalab users are created dynamically in JupyterHub at their first
+successful launch; the Hub does not need to be restarted or given a
+pre-provisioned user list.
+
 
 ## General server administration
 

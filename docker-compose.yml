@@ -44,6 +44,12 @@ services:
       # when not, so that a real deployment can set `APP_URL` in its config file.
       # CI relies on this to point the API at the origin Cypress drives the app from.
       - PYDATALAB_APP_URL
+      - PYDATALAB_TOOLS__ORDER
+      - PYDATALAB_TOOLS__DISABLED
+      - DATALAB_JUPYTER_EXTERNAL_URL
+      - DATALAB_JUPYTER_PUBLIC_URL
+      - DATALAB_JUPYTER_CLIENT_ID
+      - DATALAB_JUPYTER_CLIENT_SECRET
       - WEB_CONCURRENCY=4
       - GUNICORN_CMD_ARGS=--timeout 120 --graceful-timeout 90
       - PORT=5001
@@ -104,6 +110,12 @@ services:
       # `app-dev` is always served on 8081, so default to it rather than making
       # every developer set this by hand to be able to log in.
       - PYDATALAB_APP_URL=${PYDATALAB_APP_URL:-http://localhost:8081}
+      - PYDATALAB_TOOLS__ORDER
+      - PYDATALAB_TOOLS__DISABLED
+      - DATALAB_JUPYTER_EXTERNAL_URL
+      - DATALAB_JUPYTER_PUBLIC_URL
+      - DATALAB_JUPYTER_CLIENT_ID
+      - DATALAB_JUPYTER_CLIENT_SECRET
 
   app-dev:
     profiles: ["dev"]

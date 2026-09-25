@@ -1,4 +1,5 @@
 import datetime
+from contextvars import ContextVar
 from functools import wraps
 from hashlib import sha512
 from typing import Any
@@ -10,12 +11,35 @@ from werkzeug.exceptions import Forbidden, Unauthorized
 
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
-from pydatalab.login import UserRole
+from pydatalab.login import UserRole, is_tool_access_token_user
 from pydatalab.models.people import AccountStatus
 from pydatalab.models.utils import BaseModel, PyObjectId
 from pydatalab.mongo import flask_mongo, get_database
 
 PUBLIC_USER_ID = ObjectId(24 * "0")
+_READ_ONLY_PERMISSION_CONTEXT: ContextVar[bool] = ContextVar(
+    "pydatalab_read_only_permission_context",
+    default=False,
+)
+
+
+def read_only_permissions(func):
+    """Apply normal read visibility to a non-GET route.
+
+    Some read operations use POST because their structured input is unsuitable
+    for a query string. This decorator prevents those operations from inheriting
+    the write-time administrator permission shortcut.
+    """
+
+    @wraps(func)
+    def wrapped_route(*args, **kwargs):
+        token = _READ_ONLY_PERMISSION_CONTEXT.set(True)
+        try:
+            return func(*args, **kwargs)
+        finally:
+            _READ_ONLY_PERMISSION_CONTEXT.reset(token)
+
+    return wrapped_route
 
 
 class Key(BaseModel):
@@ -63,7 +87,7 @@ class ApiKey(Key):
 def active_users_or_get_only(func):
     """Decorator to ensure that only active user accounts can access the route,
     unless it is a GET-route, in which case deactivated accounts can also access it.
-    Now also allows access with valid access tokens.
+    Also allows access with a valid item access token.
     """
 
     @wraps(func)
@@ -100,8 +124,10 @@ def active_users_or_get_only(func):
 
 
 def access_token_or_active_users(func):
-    """Decorator that checks for access tokens first, then falls back to normal authentication.
-    If an access token is provided but invalid, the request is rejected regardless of normal permissions.
+    """Check an item access token before falling back to normal authentication.
+
+    If an item access token is provided but invalid, the request is rejected
+    regardless of normal permissions.
     """
 
     @wraps(func)
@@ -118,7 +144,7 @@ def access_token_or_active_users(func):
             if refcode and check_access_token(refcode, access_token):
                 return func(*args, elevate_permissions=True, **kwargs)
             else:
-                return {"error": "Invalid access token"}, 401
+                return {"error": "Invalid item access token"}, 401
 
         if (
             (
@@ -143,6 +169,9 @@ def admin_only(func):
 
     @wraps(func)
     def wrapped_route(*args, **kwargs):
+        if current_user.is_authenticated and is_tool_access_token_user(current_user):
+            return {"error": "Tool access tokens cannot access administrator routes"}, 403
+
         if (
             current_user.is_authenticated
             and current_user.role == UserRole.ADMIN
@@ -189,7 +218,7 @@ def exclude_api_key(func):
 
 
 def check_access_token(refcode: str, token: str | None = None) -> bool:
-    """Check whether the provided access token exists in the get_database
+    """Check whether the provided item access token exists in the database
     and corresponds to the relevant refcode.
 
     Returns:
@@ -238,7 +267,7 @@ def _get_base_permissions(
         and current_user.role == UserRole.ADMIN
     ):
         # Non-GET methods: admin always has full access
-        if request.method != "GET":
+        if request.method != "GET" and not _READ_ONLY_PERMISSION_CONTEXT.get():
             return {}
         # GET methods: require ?sudo=1 for full access
         if request.args.get("sudo") == "1":

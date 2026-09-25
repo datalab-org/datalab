@@ -366,6 +366,44 @@ export async function getInfo() {
     });
 }
 
+export async function getTools() {
+  const response_json = await fetch_get(`${API_URL}/info/tools`);
+
+  if (!Array.isArray(response_json?.data)) {
+    throw new Error("The tools endpoint returned an invalid response.");
+  }
+
+  return response_json.data.map((resource) => ({
+    id: resource.id,
+    ...resource.attributes,
+  }));
+}
+
+export async function launchTool(tool_id, launch = {}) {
+  return fetch_post(`${API_URL}/tools/${encodeURIComponent(tool_id)}/launch`, launch);
+}
+
+function resolveToolApiPath(path) {
+  if (typeof path !== "string" || path.length === 0 || path !== path.trim()) {
+    throw new Error("Tool API paths must be non-empty strings.");
+  }
+
+  const apiBase = new URL(`${API_URL.replace(/\/+$/, "")}/`, window.location.origin);
+  const resolved = new URL(path.replace(/^\/+/, ""), apiBase);
+  if (resolved.origin !== apiBase.origin || !resolved.pathname.startsWith(apiBase.pathname)) {
+    throw new Error("Tool API paths must remain below the configured datalab API URL.");
+  }
+  return resolved.href;
+}
+
+export function toolApiGet(path) {
+  return fetch_get(resolveToolApiPath(path));
+}
+
+export function toolApiPost(path, body = {}) {
+  return fetch_post(resolveToolApiPath(path), body);
+}
+
 export function getSampleList() {
   return fetch_get(`${API_URL}/samples/`)
     .then(function (response_json) {

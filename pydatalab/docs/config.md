@@ -10,7 +10,6 @@ administration"](deployment.md).
 *datalab* has 3 main configuration sources.
 
 1. The Python [`ServerConfig`][pydatalab.config.ServerConfig] (described below) that allows for *datalab*-specific configuration, such as database connection info, filestore locations and remote filesystem configuration.
-.
     - This can be provided via a JSON or YAML config file at the location provided by the `PYDATALAB_CONFIG_FILE` environment variable, or as environment variables themselves, prefixed with `PYDATALAB_`. The available configuration variables and their default values are listed below.
 2. Additional server configuration provided as environment variables, such as secrets like the Flask server's [`SECRET_KEY`][pydatalab.config.ServerConfig.SECRET_KEY], API keys for external services (e.g., SMTP `MAIL_PASSWORD`) and OAuth client credentials (for logging in via GitHub, ORCID, etc.).
 These can be provided as either:
@@ -29,6 +28,58 @@ These can be provided as either:
 
 > [!NOTE]
 > The possible ways to set configuration options can be inconsistent with each other, e.g., values required to be `None` in Python should be set to `null` in the JSON config file and as .env values. Similarly, boolean values may be set to `true` or `false` in the JSON config file, but can be set to {`1`, `yes`, `true`} or {`0`, `no`, `false`} in a `.env` file.
+
+Nested core settings use a double underscore in environment-variable names.
+For example, `TOOLS.DISABLED` becomes `PYDATALAB_TOOLS__DISABLED`.
+
+When the frontend and API use different non-loopback origins, set
+`PYDATALAB_APP_URL` to the canonical frontend URL.
+The tool launch endpoint treats this URL as its trusted browser origin.
+Use HTTPS for this URL outside loopback development and testing.
+
+## Tools
+
+Installed external tool plugins are enabled by default, for both standalone and
+in-app UI kinds.
+Disable selected plugins with the `TOOLS.DISABLED` set:
+
+```shell
+PYDATALAB_TOOLS__DISABLED='["example-tool", "another-tool"]'
+```
+
+Set `TOOLS.ORDER` to place selected tools in a preferred order across the
+navigation menu, Tools page, and selected-items actions:
+
+```shell
+PYDATALAB_TOOLS__ORDER='["jupyter", "item-comparison"]'
+```
+
+The setting uses stable tool IDs rather than display names. Listed, available
+tools appear first in the configured order. Installed tools omitted from the
+list follow in alphabetical ID order. Unknown, unavailable, disabled, or
+uninstalled IDs are ignored, allowing the same partial order to be shared by
+deployments with different plugin sets. Duplicate IDs are invalid.
+
+JupyterLab is supplied by the separately installed
+[`datalab-jupyter`](https://github.com/Matgenix/datalab-jupyter) tool plugin.
+Its settings are owned by that package rather than `ServerConfig`:
+
+```shell
+export DATALAB_JUPYTER_CLIENT_ID=datalab-jupyter
+export DATALAB_JUPYTER_CLIENT_SECRET="$(openssl rand -hex 32)"
+```
+
+For a Compose `.env` file, run `openssl rand -hex 32` separately and paste its
+literal output as the value; dotenv files do not execute shell substitutions.
+
+Set `DATALAB_JUPYTER_EXTERNAL_URL` to the browser-facing URL of an independently
+managed Hub. `DATALAB_JUPYTER_PUBLIC_URL` optionally overrides the co-deployed
+Hub URL. The client secret must contain at least 32 characters and be shared
+only with the corresponding Hub. Installation enables the plugin; use the
+generic `TOOLS.DISABLED` setting to disable it.
+See [Tools](tools.md) for a general introduction and
+[JupyterHub deployment](deployment.md#optional-jupyterhub-tool) for runtime,
+network, and security details.
 
 ## Mandatory settings
 
@@ -262,6 +313,12 @@ public/custom/
       show_source: false
 
 ::: pydatalab.config.DeploymentMetadata
+    options:
+      heading_level: 2
+      show_root_heading: true
+      show_source: false
+
+::: pydatalab.config.ToolsSettings
     options:
       heading_level: 2
       show_root_heading: true

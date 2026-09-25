@@ -4,6 +4,7 @@ nav:
     - Reference:
         - Data models: schemas
         - Data blocks: blocks/reference
+        - Tools: tools.md
     - Development:
         - Contributing: CONTRIBUTING.md
         - Code of conduct: CODE_OF_CONDUCT.md

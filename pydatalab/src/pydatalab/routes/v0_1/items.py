@@ -1059,7 +1059,7 @@ def issue_physical_token(refcode: str):
                 {"status": "error", "message": "Unknown error generating token for item."}
             ), 500
     except Exception as e:
-        LOGGER.error("Error inserting access token: %s", e)
+        LOGGER.error("Error inserting item access token: %s", e)
         return jsonify(
             {"status": "error", "message": "Database error generating token for item."}
         ), 500
@@ -1945,7 +1945,7 @@ def save_item():
 
 @ITEMS.route("/items/<refcode>/access-token-info", methods=["GET"])
 def get_access_token_info(refcode: str):
-    """Get information about existing access token for this item (if any).
+    """Get information about the existing item access token, if any.
 
     Returns token info (with masked token) if user has permissions to this item.
     """

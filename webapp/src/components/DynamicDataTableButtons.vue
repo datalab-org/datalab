@@ -168,7 +168,7 @@
           data-toggle="dropdown"
           aria-haspopup="true"
           aria-expanded="false"
-          @click="isSelectedDropdownVisible = !isSelectedDropdownVisible"
+          @click="toggleSelectedDropdown"
         >
           {{ itemsSelected.length }} selected...
         </button>
@@ -190,6 +190,31 @@
           >
             Add to collection
           </a>
+          <button
+            v-for="{ action, tool } in tableSelectionActions"
+            :key="`${tool.id}:${action.id}`"
+            :data-testid="`tool-action-${tool.id}-${action.id}`"
+            class="dropdown-item"
+            type="button"
+            :disabled="Boolean(toolActionDisabledReason(action))"
+            :title="toolActionDisabledReason(action)"
+            @click="openTableSelectionAction(tool, action)"
+          >
+            <font-awesome-icon :icon="tool.icon || 'laptop-code'" fixed-width class="mr-2" />
+            {{ action.label }}
+          </button>
+          <span
+            v-if="supportsTableSelectionActions && toolActionsLoading"
+            class="dropdown-item-text small text-muted"
+          >
+            Loading tool actions...
+          </span>
+          <span
+            v-else-if="supportsTableSelectionActions && toolActionsError"
+            class="dropdown-item-text small text-danger"
+          >
+            Tool actions are unavailable.
+          </span>
           <a
             v-if="dataType === 'collectionItems'"
             data-testid="remove-from-collection-dropdown"
@@ -318,6 +343,7 @@ import { vOnClickOutside } from "@vueuse/components";
 import BulkChangeRoleModal from "@/components/BulkChangeRoleModal.vue";
 import BulkAddToGroupModal from "@/components/BulkAddToGroupModal.vue";
 import BulkChangeManagersModal from "@/components/BulkChangeManagersModal.vue";
+import { itemTableSelectionActions, openToolForItemSelection } from "@/tool_launch_utils.js";
 
 import {
   deleteSample,
@@ -331,6 +357,7 @@ import {
   saveUserManagers,
   invalidateToken,
   deleteGroup,
+  getTools,
   deleteTag,
 } from "@/server_fetch_utils.js";
 
@@ -420,6 +447,9 @@ export default {
       showBulkChangeRoleModal: false,
       showBulkAddToGroupModal: false,
       showBulkChangeManagersModal: false,
+      tools: null,
+      toolActionsLoading: false,
+      toolActionsError: null,
     };
   },
   computed: {
@@ -428,6 +458,14 @@ export default {
     },
     isLoggedIn() {
       return this.$store.state.currentUserID !== null;
+    },
+    supportsTableSelectionActions() {
+      return ["samples", "startingMaterials", "equipment", "collectionItems"].includes(
+        this.dataType,
+      );
+    },
+    tableSelectionActions() {
+      return itemTableSelectionActions(this.tools || [], this.dataType);
     },
   },
   watch: {
@@ -441,6 +479,52 @@ export default {
     },
   },
   methods: {
+    async toggleSelectedDropdown() {
+      this.isSelectedDropdownVisible = !this.isSelectedDropdownVisible;
+      if (this.isSelectedDropdownVisible) {
+        await this.loadToolActions();
+      }
+    },
+    async loadToolActions() {
+      if (!this.supportsTableSelectionActions || this.tools !== null || this.toolActionsLoading) {
+        return;
+      }
+      this.toolActionsLoading = true;
+      this.toolActionsError = null;
+      try {
+        this.tools = await getTools();
+      } catch (error) {
+        this.toolActionsError = error instanceof Error ? error.message : String(error);
+      } finally {
+        this.toolActionsLoading = false;
+      }
+    },
+    toolActionDisabledReason(action) {
+      if (this.itemsSelected.length < action.min_items) {
+        return `Select at least ${action.min_items} items.`;
+      }
+      if (this.itemsSelected.length > action.max_items) {
+        return `Select at most ${action.max_items} items.`;
+      }
+      if (this.itemsSelected.some((item) => !item?.refcode)) {
+        return "Every selected item must have an immutable refcode.";
+      }
+      return "";
+    },
+    async openTableSelectionAction(tool, action) {
+      if (this.toolActionDisabledReason(action)) {
+        return;
+      }
+      this.isSelectedDropdownVisible = false;
+      try {
+        await openToolForItemSelection(tool, action, this.itemsSelected, this.$router);
+      } catch (error) {
+        await DialogService.error({
+          title: `Unable to open ${tool.name}`,
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
     async confirmDeletion() {
       const isTags = this.dataType === "tags";
       const idsSelected = this.itemsSelected.map(
