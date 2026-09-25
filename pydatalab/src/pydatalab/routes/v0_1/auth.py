@@ -33,6 +33,12 @@ __all__ = ("AUTH", "OAUTH", "OAUTH_PROXIES")
 
 KEY_LENGTH: int = 32
 LINK_EXPIRATION: datetime.timedelta = datetime.timedelta(hours=1)
+
+TESTING_EMAIL_DOMAIN: str = "datalab.test"
+"""The reserved domain (RFC 2606) for test users, which are the only users that can log in
+with magic-link tokens minted outside of email (e.g., by invoke tasks), and only when
+`CONFIG.TESTING` is enabled. As the domain cannot receive email, these accounts can never
+belong to a real person."""
 OAUTH_NEXT_SESSION_KEY_PREFIX = "oauth_next_"
 OAUTH_NEXT_MAX_LENGTH = 2048
 REMEMBER_ME_SESSION_KEY = "remember_me"
@@ -676,7 +682,12 @@ def _validate_magic_link_request(email: str, referrer: str) -> None:
         raise BadRequest("Referrer address not provided, please contact the datalab administrator")
 
 
-def _generate_and_store_token(email: str, intent: str = "register", remember: bool = False) -> str:
+def _generate_and_store_token(
+    email: str,
+    intent: str = "register",
+    remember: bool = False,
+    channel: str = "email",
+) -> str:
     """Generate a JWT for the user with a short expiration and store it in the session.
 
     The session itself persists beyond the JWT expiration. The `exp` key is a standard
@@ -687,6 +698,9 @@ def _generate_and_store_token(email: str, intent: str = "register", remember: bo
         intent: The intent of the magic link, e.g., "register" "verify", or "login".
         remember: Whether the session created by the magic link should persist
             beyond the browser session.
+        channel: How the token is delivered to the user: "email", or "cli" for tokens
+            minted directly by invoke tasks, which can only be redeemed by test users
+            when `CONFIG.TESTING` is enabled.
 
     Returns:
         The generated JWT token string.
@@ -697,6 +711,7 @@ def _generate_and_store_token(email: str, intent: str = "register", remember: bo
         "email": email,
         "intent": intent,
         "remember": remember,
+        "channel": channel,
     }
 
     token = jwt.encode(
@@ -705,7 +720,14 @@ def _generate_and_store_token(email: str, intent: str = "register", remember: bo
         algorithm="HS256",
     )
 
-    flask_mongo.db.magic_links.insert_one({"jwt": token})
+    flask_mongo.db.magic_links.insert_one(
+        {
+            "jwt": token,
+            "channel": channel,
+            "email": email,
+            "created_at": datetime.datetime.now(datetime.timezone.utc),
+        }
+    )
 
     return token
 
@@ -873,6 +895,17 @@ def email_logged_in():
     email = data["email"]
     if not email:
         raise BadRequest("No email found; please request a new token.")
+
+    # Tokens issued before the `channel` claim was added were all sent by email
+    channel = data.get("channel", "email")
+    if channel != "email":
+        if not CONFIG.TESTING or not email.endswith(f"@{TESTING_EMAIL_DOMAIN}"):
+            LOGGER.warning("Rejected %r login token for %s", channel, email)
+            raise Forbidden(
+                f"Login tokens not sent by email are only accepted for @{TESTING_EMAIL_DOMAIN} "
+                "users when the server is in testing mode."
+            )
+    LOGGER.info("Magic-link login for %s via %r token", email, channel)
 
     # A magic link always logs in as the owner of the email; log out any current user
     # so that the email is never attached to their account as a new identity
