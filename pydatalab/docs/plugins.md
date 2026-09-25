@@ -144,7 +144,7 @@ As a rule of thumb, if you would want to *filter* the item list by it, it is a f
     create/edit forms for custom types, so custom fields are readable and
     writable through the API but do not appear in item detail pages.
 
-Eventually, such item types will allow for rich descriptions of unitful quantites, semantic annotations and URIs for fields, and cross-linking between items via custom relationships.
+Eventually, such item types will allow for rich descriptions of unitful quantities, semantic annotations and URIs for fields, and cross-linking between items via custom relationships.
 
 ## Plugin installation
 
