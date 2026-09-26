@@ -57,6 +57,11 @@ docker compose exec api-dev /opt/.venv/bin/invoke admin.change-user-role \
 Stop the stack with `docker compose --profile dev down`. Add `--volumes` to also remove its
 development database and uploaded files.
 
+To run the e2e tests against this stack, start it in testing mode with
+`PYDATALAB_TESTING=true docker compose --profile dev up --build`, then run
+`yarn test:e2e:docker` from `webapp/`, which creates the e2e test users inside the `api-dev`
+container.
+
 ### Native installation
 
 #### `pydatalab` server installation
@@ -185,7 +190,7 @@ Various other development scripts are available through `yarn`:
 
 - `yarn lint`: Lint the JavaScript code using `eslint`, identifying issues and automatically fixing many. This linting process also runs automatically every time the development server reloads.
 - `yarn test:component`: run the component tests using `cypress`. These test individual functions or components, and run headless by default.
-- `yarn test:e2e`: run end-to-end tests using `cypress`. This will build and serve the app, and launch an instance of Chrome where the tests can be interactively viewed. Like the component tests, these tests can also be run without the GUI using `yarn test:e2e --headless`. Note: currently, the tests make requests to the server running on `localhost:5001`.
+- `yarn test:e2e`: run end-to-end tests using `cypress`. This will build and serve the app, and launch an instance of Chrome where the tests can be interactively viewed. Like the component tests, these tests can also be run without the GUI using `yarn test:e2e --headless`. Note: currently, the tests make requests to the server running on `localhost:5001`, which must be in testing mode (e.g., `uv run invoke dev.serve --testing`). The tests log in as test users created by the `dev.seed-e2e-users` invoke task, which Cypress runs itself via `uv`; this uses the database and secret key from `pydatalab/.env`, so the API must use the same settings (as it does when started with `dev.serve`). Set `DATALAB_E2E_SEED_COMMAND` to run it some other way; `yarn test:e2e:docker` does this for the Docker development environment (see above).
 - `yarn build`: Compile an optimised, minimised, version of the app for production.
 
 ## Development notes
@@ -250,10 +255,6 @@ There are two approaches to authentication when developing *datalab* features lo
      invoke task.
    - For testing admin functionality, the user can also be promoted with
      the `admin.change-user-role` invoke task.
-
-The Cypress e2e tests instead log in via the `POST /testing/create-magic-link` endpoint,
-which is enabled by `PYDATALAB_ENABLE_TEST_EMAIL_AUTH=true` and allows logging in as *any* user;
-this is intended only for automated tests and MUST NOT be enabled in production.
 
 Finally, all API tests can be run with variable authentication.
 There are [pytest fixtures](https://docs.pytest.org/en/7.1.x/how-to/fixtures.html) that provide

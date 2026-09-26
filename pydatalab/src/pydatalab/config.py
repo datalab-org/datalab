@@ -143,12 +143,7 @@ class ServerConfig(BaseSettings):
 
     TESTING: bool = Field(
         False,
-        description="Whether to run the server in testing mode, i.e., with a deterministic secret key and backups disabled. This no longer disables authentication; see `ENABLE_TEST_EMAIL_AUTH` for logging in during tests.",
-    )
-
-    ENABLE_TEST_EMAIL_AUTH: bool = Field(
-        False,
-        description="Whether to enable the `/testing/create-magic-link` endpoint, which allows anyone to log in as any user (with any role) without verifying their email address. This is intended only for end-to-end testing and MUST NOT be enabled in production.",
+        description="Whether to run the server in testing mode, i.e., with a deterministic secret key and backups disabled. This does not disable authentication, but allows test users (with an `@datalab.test` email) to log in with tokens minted by invoke tasks (see `dev.list-test-users` and `dev.seed-e2e-users`).",
     )
 
     SECRET_KEY: str | None = Field(
