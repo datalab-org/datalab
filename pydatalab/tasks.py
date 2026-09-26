@@ -288,7 +288,7 @@ dev.add_task(collect_plugin_panels)
         "host": "Host to bind",
         "port": "Port to bind",
         "reload": "Enable the Werkzeug reloader and debugger (disable with --no-reload)",
-        "testing": "Enable CONFIG.TESTING and CONFIG.ENABLE_TEST_EMAIL_AUTH if not already set",
+        "testing": "Enable CONFIG.TESTING if PYDATALAB_TESTING is not already set",
         "debug": "Enable CONFIG.DEBUG if PYDATALAB_DEBUG is not already set",
     }
 )
@@ -305,9 +305,6 @@ def serve(
 
     if testing and "PYDATALAB_TESTING" not in os.environ:
         os.environ["PYDATALAB_TESTING"] = "1"
-
-    if testing and "PYDATALAB_ENABLE_TEST_EMAIL_AUTH" not in os.environ:
-        os.environ["PYDATALAB_ENABLE_TEST_EMAIL_AUTH"] = "1"
 
     if debug and "PYDATALAB_DEBUG" not in os.environ:
         os.environ["PYDATALAB_DEBUG"] = "1"
@@ -349,6 +346,45 @@ def _load_dev_env() -> pathlib.Path:
     return env_path
 
 
+def _ensure_test_user(database, email: str, role, display_name: str | None = None) -> str:
+    """Create or update an active test user with a verified email identity and the given role,
+    returning whether the user was "Created" or "Updated".
+
+    """
+    from pydatalab.models.people import AccountStatus, Identity, IdentityType, Person
+    from pydatalab.mongo import insert_pydantic_model_fork_safe
+
+    existing_user = database.users.find_one(
+        {"identities.identifier": email, "identities.identity_type": IdentityType.EMAIL.value}
+    )
+
+    if existing_user is None:
+        identity = Identity(
+            identity_type=IdentityType.EMAIL,
+            identifier=email,
+            name=email,
+            display_name=display_name or email.split("@")[0],
+            verified=True,
+        )
+        user = Person.new_user_from_identity(
+            identity,
+            use_contact_email=False,
+            account_status=AccountStatus.ACTIVE,
+        )
+        user_id = insert_pydantic_model_fork_safe(user, "users")
+        action = "Created"
+    else:
+        user_id = existing_user["_id"]
+        user_updates = {"account_status": AccountStatus.ACTIVE.value}
+        if display_name is not None:
+            user_updates["display_name"] = display_name
+        database.users.update_one({"_id": user_id}, {"$set": user_updates})
+        action = "Updated"
+
+    database.roles.update_one({"_id": user_id}, {"$set": {"role": role.value}}, upsert=True)
+    return action
+
+
 @task(
     help={
         "username": "Username for the test user; their email will be <username>@datalab.test "
@@ -373,9 +409,9 @@ def create_test_user(
 
     from pydantic import TypeAdapter, ValidationError
 
-    from pydatalab.models.people import AccountStatus, DisplayName, Identity, IdentityType, Person
+    from pydatalab.models.people import DisplayName
     from pydatalab.models.utils import HumanReadableIdentifier, UserRole
-    from pydatalab.mongo import get_database, insert_pydantic_model_fork_safe
+    from pydatalab.mongo import get_database
     from pydatalab.routes.v0_1.auth import TESTING_EMAIL_DOMAIN
 
     try:
@@ -395,11 +431,6 @@ def create_test_user(
 
     database = get_database()
 
-    def find_user(email: str):
-        return database.users.find_one(
-            {"identities.identifier": email, "identities.identity_type": IdentityType.EMAIL.value}
-        )
-
     if username is not None:
         if count != 1:
             raise SystemExit("--count cannot be combined with --username.")
@@ -415,36 +446,7 @@ def create_test_user(
 
     for username, user_display_name in new_users:
         email = f"{username}@{TESTING_EMAIL_DOMAIN}"
-        existing_user = find_user(email)
-
-        if existing_user is None:
-            identity = Identity(
-                identity_type=IdentityType.EMAIL,
-                identifier=email,
-                name=email,
-                display_name=user_display_name or username,
-                verified=True,
-            )
-            user = Person.new_user_from_identity(
-                identity,
-                use_contact_email=False,
-                account_status=AccountStatus.ACTIVE,
-            )
-            user_id = insert_pydantic_model_fork_safe(user, "users")
-            action = "Created"
-        else:
-            user_id = existing_user["_id"]
-            user_updates = {"account_status": AccountStatus.ACTIVE.value}
-            if user_display_name is not None:
-                user_updates["display_name"] = user_display_name
-            database.users.update_one({"_id": user_id}, {"$set": user_updates})
-            action = "Updated"
-
-        database.roles.update_one(
-            {"_id": user_id},
-            {"$set": {"role": role_value.value}},
-            upsert=True,
-        )
+        action = _ensure_test_user(database, email, role_value, user_display_name)
         print(f"{action} test user {email!r} with role {role_value.value!r}.")
 
 
@@ -653,56 +655,51 @@ def install(_, dev=True):
 dev.add_task(install)
 
 
+# The test users (and their roles) that the Cypress e2e tests log in as
+E2E_TEST_USERS = {
+    "admin-user": "admin",
+    "test-user": "user",
+    "user1": "user",
+    "user2": "user",
+}
+
+
 @task
-def seed_e2e_admin(
-    _,
-    display_name: str = "Test Admin",
-    contact_email: str = "admin-user@example.com",
-):
-    """Ensure a predefined, active admin user exists, for end-to-end testing.
+def seed_e2e_users(_):
+    """Ensure the test users needed by the Cypress e2e tests exist, and print login tokens.
 
-    The tests may need an administrator, but the first admin cannot be created
-    over the API. This task creates the user with an email identity if it does
-    not already exist, marks it active, and grants it the admin role.
+    Each user in `E2E_TEST_USERS` is created (or updated) as an active `@datalab.test`
+    test user with the given role. The final line of output is a JSON object mapping each
+    email to a login token, which the e2e tests read via `cy.task("e2eLoginTokens")` (see
+    `webapp/cypress.config.js`). The tokens are valid for one hour and, like the links from
+    `dev.list-test-users`, are only accepted by a server in testing mode.
+
     """
-    from pydatalab.models.people import AccountStatus, Identity, Person
+    env_path = _load_dev_env()
+
+    from pydatalab.config import CONFIG
+    from pydatalab.main import create_app
     from pydatalab.models.utils import UserRole
-    from pydatalab.mongo import get_database, insert_pydantic_model_fork_safe
+    from pydatalab.mongo import get_database
+    from pydatalab.routes.v0_1.auth import TESTING_EMAIL_DOMAIN, _generate_and_store_token
 
-    db = get_database()
+    if CONFIG.DISABLE_MAGIC_LINK_AUTH:
+        raise SystemExit("e2e login tokens require magic-link auth to be enabled.")
 
-    user = db.users.find_one(
-        {"identities.identity_type": "email", "identities.identifier": contact_email}
-    )
+    database = get_database()
+    tokens = {}
+    with create_app(env_file=env_path).app_context():
+        for username, role in E2E_TEST_USERS.items():
+            email = f"{username}@{TESTING_EMAIL_DOMAIN}"
+            # The email is used as the display name, so that the tests can check who is logged in
+            action = _ensure_test_user(database, email, UserRole(role), display_name=email)
+            print(f"{action} e2e test user {email!r} with role {role!r}.", file=sys.stderr)
+            tokens[email] = _generate_and_store_token(email, intent="login", channel="cli")
 
-    if user is None:
-        new_user = Person(
-            display_name=display_name,
-            contact_email=contact_email,
-            account_status=AccountStatus.ACTIVE,
-            identities=[
-                Identity(
-                    identity_type="email",
-                    identifier=contact_email,
-                    name=contact_email,
-                    verified=True,
-                )
-            ],
-        )
-        user_id = insert_pydantic_model_fork_safe(new_user, "users")
-        print(f"Created active user {display_name!r} <{contact_email}> ({user_id}).")
-    else:
-        user_id = user["_id"]
-        db.users.update_one(
-            {"_id": user_id}, {"$set": {"account_status": AccountStatus.ACTIVE.value}}
-        )
-        print(f"User <{contact_email}> already exists ({user_id}); ensured active.")
-
-    db.roles.update_one({"_id": user_id}, {"$set": {"role": UserRole.ADMIN.value}}, upsert=True)
-    print(f"Granted the admin role to <{contact_email}>.")
+    print(json.dumps(tokens))
 
 
-dev.add_task(seed_e2e_admin)
+dev.add_task(seed_e2e_users)
 
 
 @task

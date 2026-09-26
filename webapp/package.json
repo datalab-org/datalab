@@ -10,6 +10,7 @@
     "build": "VUE_APP_GIT_VERSION=$(node scripts/get-version.js) vue-cli-service build",
     "test:component": "cypress run --component",
     "test:e2e": "vue-cli-service test:e2e",
+    "test:e2e:docker": "DATALAB_E2E_SEED_COMMAND='docker compose exec -T api-dev /opt/.venv/bin/invoke dev.seed-e2e-users' vue-cli-service test:e2e",
     "lint": "vue-cli-service lint"
   },
   "resolutions": {
