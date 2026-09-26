@@ -17,6 +17,12 @@ from pydatalab.mongo import flask_mongo, get_database
 
 PUBLIC_USER_ID = ObjectId(24 * "0")
 
+INVENTORY_TYPES = ("equipment", "starting_materials")
+"""Inventory-like item types that are shared across the deployment rather than owned by creators.
+These items are readable and editable by all users, unless they have been restricted to specific
+groups, in which case only members of those groups can access them.
+"""
+
 
 class Key(BaseModel):
     user: PyObjectId
@@ -240,11 +246,24 @@ def _get_base_permissions(
         )
         return {}
 
-    null_perm = {
+    no_group_perm = {
         "$or": [
-            {"creator_ids": {"$size": 0}},
-            {"creator_ids": {"$in": [PUBLIC_USER_ID]}},
-            {"creator_ids": {"$exists": False}},
+            {"group_ids": {"$size": 0}},
+            {"group_ids": {"$exists": False}},
+        ]
+    }
+
+    # Items with no creators are public, unless they have been restricted to specific groups
+    null_perm = {
+        "$and": [
+            {
+                "$or": [
+                    {"creator_ids": {"$size": 0}},
+                    {"creator_ids": {"$in": [PUBLIC_USER_ID]}},
+                    {"creator_ids": {"$exists": False}},
+                ]
+            },
+            no_group_perm,
         ]
     }
     if current_user.is_authenticated and current_user.person is not None:
@@ -263,36 +282,55 @@ def _get_base_permissions(
             {"creator_ids": {"$in": [current_user.person.immutable_id] + managed_users}}
         ]
 
-        # If we are not restricting to user-only (i.e., writes, deletes), then also add group-based permissions
-        if not user_only:
-            user_group_ids = []
-            if current_user.person.groups:
-                user_group_ids = [group.immutable_id for group in current_user.person.groups]
+        user_group_ids = []
+        if current_user.person.groups:
+            user_group_ids = [group.immutable_id for group in current_user.person.groups]
 
-            if user_group_ids:
-                group_perm_conditions = {"group_ids": {"$in": user_group_ids}}
-                user_perm_conditions.append(group_perm_conditions)
+        # If we are not restricting to user-only (i.e., writes, deletes), then also add group-based permissions
+        if not user_only and user_group_ids:
+            group_perm_conditions = {"group_ids": {"$in": user_group_ids}}
+            user_perm_conditions.append(group_perm_conditions)
 
         user_perm: dict[str, Any] = {"$or": user_perm_conditions}
 
-        if user_only:
-            # TODO: remove this hack when permissions are refactored. Currently starting_materials and equipment
-            # are a special case that should be group editable, so even when the route has asked to only edit this
-            # user's stuff, we can also let starting materials and equipment through.
+        # Inventory items are a special case that are readable and editable by their groups
+        # (rather than just their creators), or by anyone if they have not been restricted to
+        # any groups, regardless of whether they have creators (e.g., equipment maintainers)
+        inventory_perm = {
+            "type": {"$in": list(INVENTORY_TYPES)},
+            "$or": [*no_group_perm["$or"], {"group_ids": {"$in": user_group_ids}}],
+        }
 
+        if user_only:
             # If we are trying to delete, then make sure they cannot delete items that do not match their user
             if deleting:
                 return user_perm
 
-            user_perm = {"$or": [user_perm, {"type": {"$in": ["starting_materials", "equipment"]}}]}
-            return user_perm
+            return {"$or": [user_perm, inventory_perm]}
 
-        return {"$or": [user_perm, null_perm]}
+        return {"$or": [user_perm, null_perm, inventory_perm]}
 
     elif user_only:
         return {"_id": -1}
 
     return null_perm
+
+
+def can_assign_groups(group_ids: list[ObjectId]) -> bool:
+    """Whether the current user can restrict an inventory item to the given groups,
+    i.e., whether they are an admin or a member of all of the groups.
+    """
+    if not group_ids:
+        return True
+
+    if not current_user.is_authenticated or current_user.person is None:
+        return False
+
+    if current_user.role == UserRole.ADMIN:
+        return True
+
+    user_group_ids = {group.immutable_id for group in current_user.person.groups or []}
+    return set(group_ids) <= user_group_ids
 
 
 def get_default_permissions(

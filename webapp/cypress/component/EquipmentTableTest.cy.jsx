@@ -1,3 +1,4 @@
+// This file was edited with the assistance of an AI model and requires human review from the contributor.
 import EquipmentTable from "@/components/EquipmentTable.vue";
 import UserBubble from "@/components/UserBubble.vue";
 import StyledTooltip from "@/components/StyledTooltip.vue";
@@ -84,6 +85,7 @@ describe("EquipmentTable Component Tests", () => {
       "Date",
       "Location",
       "Maintainers",
+      "", // access
     ];
 
     cy.get(".p-datatable-column-header-content").should("have.length", headers.length);
