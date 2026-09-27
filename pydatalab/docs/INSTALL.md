@@ -33,9 +33,26 @@ Your local development *datalab* can be configured with all the options as a rea
 There are two main options for creating a local installation:
 
 1) Natively on your host machine, with a Python virtual environment for the server and Node.js for the web app.
-2) Using Docker, which is the recommended approach for development and testing.
+2) Using Docker with docker compose for a consistent, reproducible environment.
 
 ### Docker development environment
+
+!!! note "Docker version requirements"
+    The Docker builds described here require a recent Docker Engine with the
+    [Compose](https://docs.docker.com/compose/install/) (v2.37.0 or newer) and
+    [buildx](https://docs.docker.com/build/concepts/overview/#buildx) plugins.
+    The frontend images are built on top of the corresponding API image (to
+    collect any plugin UI panels) via a `service:` build context, which is only
+    resolved reliably when Compose builds with
+    [Bake](https://docs.docker.com/guides/compose-bake/), the default since
+    Compose v2.37.0.
+
+    With older versions, building the frontend alone (e.g.,
+    `docker compose --profile prod up --build app`) fails with
+    `failed to solve: invalid reference format`. Either upgrade Docker, or
+    opt in to Bake with `COMPOSE_BAKE=true` (Compose v2.33.0 or newer).
+    You can check your versions with `docker compose version` and
+    `docker buildx version`.
 
 The complete development stack can be run with Docker Compose:
 
