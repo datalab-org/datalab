@@ -3,7 +3,10 @@
   <div ref="container" class="stats-time-chart">
     <div v-if="series.length > 1" class="chart-legend">
       <span v-for="s in series" :key="s.key" class="legend-entry">
-        <span class="legend-swatch" :style="{ background: s.color }"></span>{{ s.label }}
+        <svg v-if="mode !== 'stacked'" class="legend-marker" viewBox="0 0 12 12">
+          <path :d="markerPath(s.key, 6, 6)" :fill="s.color" />
+        </svg>
+        <span v-else class="legend-swatch" :style="{ background: s.color }"></span>{{ s.label }}
       </span>
     </div>
     <div class="chart-body" @mouseleave="hoverIndex = null">
@@ -69,12 +72,11 @@
             stroke-linecap="round"
           />
           <g v-for="label in endLabels" :key="`end-${label.key}`">
-            <circle
-              :cx="label.x"
-              :cy="label.y"
-              r="4"
+            <path
+              :d="markerPath(label.key, label.x, label.y)"
               :fill="label.color"
               stroke="#fff"
+              stroke-linejoin="round"
               stroke-width="2"
             />
             <text class="end-label" :x="label.x + 8" :y="label.y" dominant-baseline="middle">
@@ -91,14 +93,13 @@
             :y1="margin.top"
             :y2="height - margin.bottom"
           />
-          <circle
+          <path
             v-for="s in series"
             :key="`hover-${s.key}`"
-            :cx="xCenter(hoverIndex)"
-            :cy="y(s.values[hoverIndex])"
-            r="4"
+            :d="markerPath(s.key, xCenter(hoverIndex), y(s.values[hoverIndex]))"
             :fill="s.color"
             stroke="#fff"
+            stroke-linejoin="round"
             stroke-width="2"
           />
         </g>
@@ -116,7 +117,10 @@
       <div v-if="hoverIndex !== null" class="chart-tooltip" :style="tooltipStyle">
         <div class="tooltip-title">{{ formatMonth(months[hoverIndex]) }}</div>
         <div v-for="s in tooltipSeries" :key="`tt-${s.key}`" class="tooltip-row">
-          <span class="legend-swatch" :style="{ background: s.color }"></span>
+          <svg v-if="mode !== 'stacked'" class="legend-marker" viewBox="0 0 12 12">
+            <path :d="markerPath(s.key, 6, 6)" :fill="s.color" />
+          </svg>
+          <span v-else class="legend-swatch" :style="{ background: s.color }"></span>
           <span class="tooltip-label">{{ s.label }}</span>
           <span class="tooltip-value">{{ formatValue(s.values[hoverIndex]) }}</span>
         </div>
@@ -166,6 +170,32 @@ const MONTH_NAMES = [
   "Nov",
   "Dec",
 ];
+
+// Each line series gets its own marker shape, so series can be told apart without colour
+const MARKER_SHAPES = ["circle", "square", "diamond", "triangle", "triangle-down"];
+
+// SVG path for a marker centred on (x, y), sized to roughly match a circle of radius r
+function shapePath(shape, x, y, r = 4) {
+  switch (shape) {
+    case "square": {
+      const h = r * 0.9;
+      return `M${x - h},${y - h}H${x + h}V${y + h}H${x - h}Z`;
+    }
+    case "diamond": {
+      const h = r * 1.25;
+      return `M${x},${y - h}L${x + h},${y}L${x},${y + h}L${x - h},${y}Z`;
+    }
+    case "triangle":
+    case "triangle-down": {
+      // Centred on the centroid; flipped vertically for the downward variant
+      const R = r * 1.35 * (shape === "triangle" ? 1 : -1);
+      const dx = Math.abs(R) * 0.866;
+      return `M${x},${y - R}L${x + dx},${y + R / 2}L${x - dx},${y + R / 2}Z`;
+    }
+    default:
+      return `M${x - r},${y}a${r},${r} 0 1,0 ${2 * r},0a${r},${r} 0 1,0 ${-2 * r},0Z`;
+  }
+}
 
 function niceStep(rawStep) {
   const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
@@ -317,6 +347,11 @@ export default {
         return segments;
       });
     },
+    markerShapes() {
+      return Object.fromEntries(
+        this.series.map((s, i) => [s.key, MARKER_SHAPES[i % MARKER_SHAPES.length]]),
+      );
+    },
     tooltipSeries() {
       return this.mode === "stacked" ? [...this.series].reverse() : this.series;
     },
@@ -359,6 +394,9 @@ export default {
         (r ? `Q${x + w},${y} ${x + w},${y + r}` : "") +
         `L${x + w},${y + h}Z`
       );
+    },
+    markerPath(key, x, y) {
+      return shapePath(this.markerShapes[key], x, y);
     },
     formatTick(v) {
       return this.formatValue(v);
@@ -432,6 +470,14 @@ svg {
 .legend-entry {
   display: inline-flex;
   align-items: center;
+}
+
+.legend-marker {
+  width: 12px;
+  height: 12px;
+  margin-right: 5px;
+  flex-shrink: 0;
+  overflow: visible;
 }
 
 .legend-swatch {
