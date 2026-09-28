@@ -87,7 +87,7 @@ Much of this support is provided by other third-party libraries (many of which t
 
 ```{=latex}
 \begin{table}[ht]
-\caption{Non-exhaustive summary of supported characterization techniques and file formats. Some are included in the \emph{datalab} core, while others are open-source plugins built using the extensible plugin system (denoted by $\star$).}
+\caption{Non-exhaustive summary of supported characterization techniques and file formats in version 0.7. Some are included in the \emph{datalab} core, while others are open-source plugins built using the extensible plugin system (denoted by $\star$).}
 \label{tbl:formats}
 \small
 \begin{tabular}{|l|l|}
@@ -98,7 +98,7 @@ X-ray diffraction (XRD) & \begin{tabular}[t]{@{}l@{}} - Plain text semi-standard
 \hline
 Nuclear magnetic resonance (NMR) & \begin{tabular}[t]{@{}l@{}} - JCAMP-DX \\ - Bruker project folders (zipped) \\ - JEOL \texttt{.jdf} \end{tabular} \\
 \hline
-Electrochemical cycling & \begin{tabular}[t]{@{}l@{}} - Battery Data Format \texttt{.bdf} \\ - BioLogic \texttt{.mpr} \\ - Arbin \texttt{.res} \\ - Neware \texttt{.nda}, \texttt{.ndax} \\ - Plain text and Excel exports from various \\ \quad vendor software packages (e.g., Lanhe/Landt, \\ \quad Ivium, Arbin) \end{tabular} \\
+Electrochemical cycling and cyclic voltammetry & \begin{tabular}[t]{@{}l@{}} - Battery Data Format \texttt{.bdf} \\ - BioLogic \texttt{.mpr} \\ - Arbin \texttt{.res} \\ - Neware \texttt{.nda}, \texttt{.ndax} \\ - Plain text and Excel exports from various \\ \quad vendor software packages (e.g., Landt, Ivium, \\ \quad Arbin, CH Instruments) \end{tabular} \\
 \hline
 Electrochemical impedance spectroscopy (EIS) & \begin{tabular}[t]{@{}l@{}} - BioLogic \texttt{.mpr} \\ - Ivium-exported \texttt{.txt} \end{tabular} \\
 \hline
@@ -113,6 +113,8 @@ Mass spectrometry (MS) & - Mettler-Toledo \texttt{.asc} \\
 ${\star}$ Differential scanning calorimetry (DSC) & - TA Instruments text exports \\
 \hline
 ${\star}$ Online mass spectrometry (OMS) & - Pfeiffer binary and plain text exports \\
+\hline
+${\star}$ X-ray photoelectron spectroscopy (XPS) & - Thermo Scientific VGD (\texttt{.vgd}) \\
 \hline
 ${\star}$ In situ XRD, NMR \& UV-Vis & \begin{tabular}[t]{@{}l@{}} - Semi-standardized file hierarchies combining \\ \quad \emph{operando} electrochemical or temperature \\ \quad data alongside characterization \end{tabular} \\
 \hline
