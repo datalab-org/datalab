@@ -1,4 +1,3 @@
-# This file was edited with the assistance of an AI model and requires human review from the contributor.
 from datetime import datetime, timedelta
 from datetime import timezone as tz
 
@@ -6,7 +5,6 @@ from bson import ObjectId
 
 from pydatalab.deployment_stats import (
     STATS_COLLECTION,
-    clear_stats_cache,
     update_deployment_stats,
 )
 
@@ -46,8 +44,6 @@ def test_stats_history(client, database, user_id):
         ]
     )
     database.files.insert_one({"_id": _oid(historic), "size": 1024})
-
-    clear_stats_cache()
     response = client.get("/info/stats/history")
     assert response.status_code == 200
     data = response.json["data"]
@@ -95,7 +91,6 @@ def test_stats_history(client, database, user_id):
     database.items.delete_many({"item_id": {"$regex": "^stats_"}})
     database.files.delete_many({"size": 1024})
     database[STATS_COLLECTION].delete_many({})
-    clear_stats_cache()
 
 
 def test_stats_history_counts_referenced_blocks(client, database, user_id):
@@ -111,8 +106,6 @@ def test_stats_history_counts_referenced_blocks(client, database, user_id):
             "blocks_obj": {"ref": {"immutable_id": block_id}, "legacy": {"blocktype": "xrd"}},
         }
     )
-
-    clear_stats_cache()
     response = client.get("/info/stats/history")
     assert response.status_code == 200
     data = response.json["data"]
@@ -122,7 +115,6 @@ def test_stats_history_counts_referenced_blocks(client, database, user_id):
     database.items.delete_many({"item_id": {"$regex": "^stats_"}})
     database.blocks.delete_one({"_id": block_id})
     database[STATS_COLLECTION].delete_many({})
-    clear_stats_cache()
 
 
 def test_stats_history_requires_login(unauthenticated_client):

@@ -1,4 +1,3 @@
-# This file was edited with the assistance of an AI model and requires human review from the contributor.
 """Historical usage statistics for a deployment.
 
 Monthly histograms of new entries (items, users, files, collections, ...) are
@@ -11,12 +10,17 @@ document's `ObjectId`, so an update only scans documents created since then.
 Months that have been closed off are therefore a historical record of what was
 created in that month; later deletions do not rewrite history.
 
+Each update also stores a snapshot of the current totals and block type counts on
+the current month's document, so serving the stats is just a read of this
+collection; the database itself acts as the cache, refreshed when the latest
+update is older than `STATS_REFRESH_INTERVAL`.
+
 """
 
 from collections import defaultdict
+from collections.abc import Iterator
 from datetime import datetime, timedelta
 from datetime import timezone as tz
-from threading import Lock
 from typing import Any
 
 from bson import ObjectId
@@ -27,7 +31,7 @@ from pydatalab.logger import LOGGER
 STATS_COLLECTION = "deployment_stats"
 """The name of the database collection that stores the monthly histograms."""
 
-STATS_REFRESH_INTERVAL = timedelta(hours=6)
+STATS_REFRESH_INTERVAL = timedelta(hours=24)
 """How long a computed set of histograms (and the served summary) is considered fresh."""
 
 EARLIEST_DATE = datetime(2019, 1, 1, tzinfo=tz.utc)
@@ -36,42 +40,20 @@ EARLIEST_DATE = datetime(2019, 1, 1, tzinfo=tz.utc)
 
 _MONTH_FORMAT = "%Y-%m"
 
-_cache_lock = Lock()
-_cached_summary: dict[str, Any] | None = None
-_cached_at: datetime | None = None
+_MONTH_OF_ID = {"$dateToString": {"format": _MONTH_FORMAT, "date": {"$toDate": "$_id"}}}
+"""Aggregation expression for the creation month (`YYYY-MM`) of a document's `ObjectId`."""
 
 
-def _now() -> datetime:
-    return datetime.now(tz=tz.utc)
+def _months(start: datetime, end: datetime) -> Iterator[str]:
+    """Yield the keys (`YYYY-MM`) of every month from `start` to `end` inclusive."""
+    year, month = start.year, start.month
+    while (year, month) <= (end.year, end.month):
+        yield f"{year:04d}-{month:02d}"
+        year, month = year + month // 12, month % 12 + 1
 
 
-def _next_month(dt: datetime) -> datetime:
-    return datetime(dt.year + dt.month // 12, dt.month % 12 + 1, 1, tzinfo=tz.utc)
-
-
-def _month_key(dt: datetime) -> str:
-    return dt.strftime(_MONTH_FORMAT)
-
-
-def _created_since(since: datetime | None) -> dict:
-    """Match plausible ObjectIds created at or after `since` (or `EARLIEST_DATE`)."""
-    since = max(since or EARLIEST_DATE, EARLIEST_DATE)
-    return {
-        "_id": {
-            "$type": "objectId",
-            "$gte": ObjectId.from_datetime(since),
-            "$lt": ObjectId.from_datetime(_now() + timedelta(days=1)),
-        }
-    }
-
-
-def _group_by_month(extra_keys: dict | None = None, accumulators: dict | None = None) -> dict:
-    group_id: dict[str, Any] = {
-        "month": {"$dateToString": {"format": _MONTH_FORMAT, "date": {"$toDate": "$_id"}}}
-    }
-    if extra_keys:
-        group_id.update(extra_keys)
-    return {"$group": {"_id": group_id, "count": {"$sum": 1}, **(accumulators or {})}}
+def _group_by_month(**accumulators) -> dict:
+    return {"$group": {"_id": {"month": _MONTH_OF_ID}, "count": {"$sum": 1}, **accumulators}}
 
 
 def _empty_month() -> dict[str, Any]:
@@ -95,9 +77,19 @@ def _compute_monthly_histograms(db: Database, since: datetime | None) -> dict[st
     """
     months: dict[str, dict] = defaultdict(_empty_month)
     active_users: dict[str, set] = defaultdict(set)
-    match = {"$match": _created_since(since)}
+    # Only count plausible ObjectIds, created between `since` (or `EARLIEST_DATE`) and now
+    match = {
+        "$match": {
+            "_id": {
+                "$type": "objectId",
+                "$gte": ObjectId.from_datetime(max(since or EARLIEST_DATE, EARLIEST_DATE)),
+                "$lt": ObjectId.from_datetime(datetime.now(tz=tz.utc) + timedelta(days=1)),
+            }
+        }
+    }
 
-    for doc in db.items.aggregate([match, _group_by_month(extra_keys={"type": "$type"})]):
+    by_type = {"$group": {"_id": {"month": _MONTH_OF_ID, "type": "$type"}, "count": {"$sum": 1}}}
+    for doc in db.items.aggregate([match, by_type]):
         item_type = doc["_id"].get("type") or "unknown"
         months[doc["_id"]["month"]]["items"][item_type] = doc["count"]
 
@@ -106,7 +98,7 @@ def _compute_monthly_histograms(db: Database, since: datetime | None) -> dict[st
         [
             match,
             {"$unwind": "$creator_ids"},
-            _group_by_month(accumulators={"users": {"$addToSet": "$creator_ids"}}),
+            _group_by_month(users={"$addToSet": "$creator_ids"}),
         ]
     ):
         active_users[doc["_id"]["month"]].update(str(u) for u in doc["users"] if u is not None)
@@ -118,14 +110,14 @@ def _compute_monthly_histograms(db: Database, since: datetime | None) -> dict[st
         months[doc["_id"]["month"]]["collections"] = doc["count"]
 
     for doc in db.files.aggregate(
-        [match, _group_by_month(accumulators={"bytes": {"$sum": {"$ifNull": ["$size", 0]}}})]
+        [match, _group_by_month(bytes={"$sum": {"$ifNull": ["$size", 0]}})]
     ):
         months[doc["_id"]["month"]]["files"] = doc["count"]
         months[doc["_id"]["month"]]["file_bytes"] = doc["bytes"]
 
     # Item versions record saves (and their authors) and so capture activity on existing items
     for doc in db.item_versions.aggregate(
-        [match, _group_by_month(accumulators={"users": {"$addToSet": "$user_id"}})]
+        [match, _group_by_month(users={"$addToSet": "$user_id"})]
     ):
         month = doc["_id"]["month"]
         months[month]["versions"] = doc["count"]
@@ -149,7 +141,7 @@ def update_deployment_stats(db: Database, full: bool = False) -> int:
 
     """
     collection = db[STATS_COLLECTION]
-    now = _now()
+    now = datetime.now(tz=tz.utc)
 
     since: datetime | None = None
     if full:
@@ -163,35 +155,27 @@ def update_deployment_stats(db: Database, full: bool = False) -> int:
 
     # Make sure every month from `since` to now has an entry, so that recomputed months
     # with no remaining activity are zeroed rather than left stale
-    if since is not None:
-        month_start = since
-        while month_start <= now:
-            histograms.setdefault(_month_key(month_start), _empty_month())
-            month_start = _next_month(month_start)
+    for month in _months(since or now, now):
+        histograms.setdefault(month, _empty_month())
 
-    written = 0
+    # The current month also holds a snapshot of the current totals; `$set` leaves
+    # the last snapshot on previous months in place, as a record of their end state
+    blocks = _block_type_counts(db)
+    totals = _current_totals(db)
+    totals["blocks"] = sum(blocks.values())
+    histograms[now.strftime(_MONTH_FORMAT)].update({"blocks": blocks, "totals": totals})
+
     for month, stats in histograms.items():
-        collection.replace_one(
+        collection.update_one(
             {"_id": month},
-            {"_id": month, **stats, "updated_at": now},
+            {"$set": {**stats, "updated_at": now}},
             upsert=True,
         )
-        written += 1
 
-    LOGGER.info("Updated %d monthly entries in %s (since %s)", written, STATS_COLLECTION, since)
-    return written
-
-
-def _needs_update(db: Database) -> bool:
-    latest = db[STATS_COLLECTION].find_one(sort=[("_id", -1)])
-    if latest is None:
-        return True
-    updated_at = latest.get("updated_at")
-    if updated_at is None:
-        return True
-    if updated_at.tzinfo is None:
-        updated_at = updated_at.replace(tzinfo=tz.utc)
-    return _now() - updated_at > STATS_REFRESH_INTERVAL
+    LOGGER.info(
+        "Updated %d monthly entries in %s (since %s)", len(histograms), STATS_COLLECTION, since
+    )
+    return len(histograms)
 
 
 def _block_type_counts(db: Database) -> dict[str, int]:
@@ -257,23 +241,16 @@ def build_stats_summary(db: Database) -> dict[str, Any]:
 
     """
     docs = {doc["_id"]: doc for doc in db[STATS_COLLECTION].find()}
-    now = _now()
-
     months: list[str] = []
     if docs:
-        month = datetime.strptime(min(docs), _MONTH_FORMAT).replace(tzinfo=tz.utc)
-        while month <= now:
-            months.append(_month_key(month))
-            month = _next_month(month)
+        first = datetime.strptime(min(docs), _MONTH_FORMAT).replace(tzinfo=tz.utc)
+        months = list(_months(first, datetime.now(tz=tz.utc)))
 
     item_types = sorted({t for doc in docs.values() for t in doc.get("items", {})})
     scalar_series = [key for key in _empty_month() if key != "items"]
 
-    blocks = _block_type_counts(db)
-    totals = _current_totals(db)
-    totals["blocks"] = sum(blocks.values())
-
     empty: dict[str, Any] = {}
+    latest = docs[max(docs)] if docs else empty
     return {
         "months": months,
         "items": {
@@ -281,8 +258,8 @@ def build_stats_summary(db: Database) -> dict[str, Any]:
             for item_type in item_types
         },
         **{key: [docs.get(m, empty).get(key, 0) for m in months] for key in scalar_series},
-        "blocks": blocks,
-        "totals": totals,
+        "blocks": latest.get("blocks", {}),
+        "totals": latest.get("totals", {}),
         "updated_at": max(
             (doc["updated_at"] for doc in docs.values() if doc.get("updated_at")), default=None
         ),
@@ -290,35 +267,13 @@ def build_stats_summary(db: Database) -> dict[str, Any]:
 
 
 def get_stats_summary(db: Database, force: bool = False) -> dict[str, Any]:
-    """Return the (cached) stats summary, updating the stored histograms if they are stale.
-
-    The summary is cached in memory for `STATS_REFRESH_INTERVAL`, so repeated requests
-    do not touch the database.
-
-    """
-    global _cached_summary, _cached_at
-
-    with _cache_lock:
-        now = _now()
-        if (
-            not force
-            and _cached_summary is not None
-            and _cached_at is not None
-            and now - _cached_at < STATS_REFRESH_INTERVAL
-        ):
-            return _cached_summary
-
-        if force or _needs_update(db):
-            update_deployment_stats(db)
-
-        _cached_summary = build_stats_summary(db)
-        _cached_at = now
-        return _cached_summary
-
-
-def clear_stats_cache() -> None:
-    """Clear the in-memory cache of the stats summary."""
-    global _cached_summary, _cached_at
-    with _cache_lock:
-        _cached_summary = None
-        _cached_at = None
+    """Return the stats summary, first updating the stored histograms if they are stale."""
+    latest = db[STATS_COLLECTION].find_one(sort=[("_id", -1)]) or {}
+    updated_at = latest.get("updated_at") if "totals" in latest else None
+    # pymongo returns naive datetimes (in UTC) unless the client is timezone-aware
+    if updated_at is not None and updated_at.tzinfo is None:
+        updated_at = updated_at.replace(tzinfo=tz.utc)
+    stale = updated_at is None or datetime.now(tz=tz.utc) - updated_at > STATS_REFRESH_INTERVAL
+    if force or stale:
+        update_deployment_stats(db)
+    return build_stats_summary(db)

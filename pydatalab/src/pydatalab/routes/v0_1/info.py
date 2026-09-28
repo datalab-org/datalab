@@ -1,4 +1,3 @@
-# This file was edited with the assistance of an AI model and requires human review from the contributor.
 """This submodule defines introspective info endpoints of the API."""
 
 from datetime import datetime
@@ -19,16 +18,41 @@ from pydantic import (
 from pydatalab import __version__
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
-from pydatalab.deployment_stats import STATS_REFRESH_INTERVAL, get_stats_summary
+from pydatalab.deployment_stats import (
+    STATS_REFRESH_INTERVAL,
+    get_stats_summary,
+    update_deployment_stats,
+)
 from pydatalab.feature_flags import FEATURE_FLAGS, FeatureFlags
+from pydatalab.logger import LOGGER
 from pydatalab.models import BUILTIN_ITEM_TYPES, ITEM_MODELS, ITEM_SCHEMAS, Item, Person
 from pydatalab.models.schema_hints import DatalabModelExtra
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only
+from pydatalab.scheduler import task_scheduler
 
 from ._version import __api_version__
 
 INFO = Blueprint("info", __name__)
+
+
+@INFO.record_once
+def _register_stats_job(state):
+    """Keep the deployment stats (and their monthly snapshots) up to date even if
+    no one visits the stats page; `get_stats_summary` still updates stale stats on
+    request, e.g. if the server restarts more often than the job interval."""
+    app = state.app
+
+    def _update_stats():
+        with app.app_context():
+            update_deployment_stats(flask_mongo.db)
+
+    task_scheduler.add_periodic_job(
+        func=_update_stats,
+        job_id="deployment_stats_update",
+        hours=int(STATS_REFRESH_INTERVAL.total_seconds() // 3600),
+    )
+    LOGGER.info("Registered deployment stats update job")
 
 
 class Attributes(BaseModel):
@@ -148,7 +172,7 @@ def get_stats_history():
     alongside the current totals and a breakdown of block types in use.
 
     The histograms are stored in the `deployment_stats` collection and incrementally
-    updated when stale; the response itself is cached in memory.
+    updated when stale, alongside a snapshot of the current totals.
 
     """
     response = jsonify({"status": "success", "data": get_stats_summary(flask_mongo.db)})

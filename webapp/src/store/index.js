@@ -1,4 +1,3 @@
-// This file was edited with the assistance of an AI model and requires human review from the contributor.
 import { createStore } from "vuex";
 // import { createLogger } from "vuex";
 // import { set } from 'vue'

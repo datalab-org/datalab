@@ -1,4 +1,3 @@
-<!-- This file was edited with the assistance of an AI model and requires human review from the contributor. -->
 <template>
   <div ref="container" class="stats-time-chart">
     <div v-if="series.length > 1" class="chart-legend">
