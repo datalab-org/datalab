@@ -3,6 +3,7 @@ import datetime
 import json
 import secrets
 from hashlib import sha512
+from typing import Literal
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -77,6 +78,19 @@ LAST_MODIFIED_PROJECTION = {"$ifNull": ["$last_modified", {"$toDate": "$_id"}]}
 @active_users_or_get_only
 def _(): ...
 
+@ITEMS.route("/items/", methods=["GET"])
+def get_items(item_types: list[str] | None, filter: str | None, sort: tuple[str, int] | None, permissions: Literal["mine", "shared_with_me", "shared_with_my_groups", "all"] = "mine", page_cursor: str | None):
+
+    # parse arguments
+    # handle permissions
+    # get types (cached)
+    # get summary files (cached)
+    # parse filter
+    # handle sorting
+    # get items (paginated)
+
+
+
 
 @ITEMS.route("/equipment/", methods=["GET"])
 def get_equipment_summary():
@@ -124,51 +138,18 @@ def get_equipment_summary():
 
 @ITEMS.route("/starting-materials/", methods=["GET"])
 def get_starting_materials():
+
+    schema = ITEM_SCHEMAS.get("starting_materials")
+
+    # _project = get_projection(schema)
     _project = {
         "_id": 0,
-        "item_id": 1,
-        "blocks": {
-            "$map": {
-                "input": {"$objectToArray": {"$ifNull": ["$blocks_obj", {}]}},
-                "as": "b",
-                "in": {
-                    "blocktype": "$$b.v.blocktype",
-                    "title": "$$b.v.title",
-                },
-            }
-        },
-        "collections": {
-            "collection_id": 1,
-        },
-        "nblocks": {"$size": "$display_order"},
-        "nfiles": {"$size": "$file_ObjectIds"},
-        "date": 1,
-        "chemform": 1,
-        "smiles": 1,
-        "inchi_key": 1,
-        "GHS_codes": 1,
-        "molar_mass": 1,
-        "name": 1,
-        "type": 1,
-        "chemical_purity": 1,
-        "barcode": 1,
-        "refcode": 1,
-        "supplier": 1,
-        "location": 1,
-        "status": 1,
-        "CAS": 1,
-        "creators": {
-            "display_name": 1,
-            "gravatar_hash": 1,
-        },
-        "groups": {
-            "display_name": 1,
-            "group_id": 1,
-        },
     }
-
     for field in flagged_summary_fields(("starting_materials",)):
         _project.setdefault(field, 1)
+
+    _project["blocks"] = block_store.blocks_preview_projection()
+    _project["last_modified"] = LAST_MODIFIED_PROJECTION
 
     items = [
         doc
@@ -184,42 +165,7 @@ def get_starting_materials():
                 {"$lookup": groups_lookup()},
                 {"$lookup": collections_lookup()},
                 *block_store.blocks_preview_stages(),
-                {
-                    "$project": {
-                        "_id": 0,
-                        "item_id": 1,
-                        "blocks": block_store.blocks_preview_projection(),
-                        "collections": {
-                            "collection_id": 1,
-                        },
-                        "nblocks": {"$size": "$display_order"},
-                        "nfiles": {"$size": "$file_ObjectIds"},
-                        "date": 1,
-                        "last_modified": LAST_MODIFIED_PROJECTION,
-                        "chemform": 1,
-                        "smiles": 1,
-                        "inchi_key": 1,
-                        "GHS_codes": 1,
-                        "molar_mass": 1,
-                        "name": 1,
-                        "type": 1,
-                        "chemical_purity": 1,
-                        "barcode": 1,
-                        "refcode": 1,
-                        "supplier": 1,
-                        "location": 1,
-                        "status": 1,
-                        "CAS": 1,
-                        "creators": {
-                            "display_name": 1,
-                            "gravatar_hash": 1,
-                        },
-                        "groups": {
-                            "display_name": 1,
-                            "group_id": 1,
-                        },
-                    }
-                },
+                {"$project": _project},
                 {
                     "$sort": {
                         "date": -1,

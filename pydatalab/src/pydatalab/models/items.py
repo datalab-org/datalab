@@ -1,6 +1,6 @@
 import abc
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 
 from pydatalab.models.blocks import HasBlocks
 from pydatalab.models.entries import Entry
@@ -38,22 +38,40 @@ class Item(
     populates itself.
     """
 
-    refcode: Refcode | None = None
+    refcode: Refcode | None = Field(
+        None,
+        json_schema_extra={"datalab_include_field_in_summary": True},
+    )
     """A globally unique immutable ID comprised of the deployment prefix (e.g., `grey`) and a locally unique string, ideally created with some consistent scheme."""
 
-    item_id: HumanReadableIdentifier
+    item_id: HumanReadableIdentifier = Field(
+        None,
+        json_schema_extra={"datalab_include_field_in_summary": True},
+    )
     """A locally unique, human-readable identifier for the entry. This ID is mutable."""
 
-    description: str | None = None
+    description: str | None = Field(
+        None,
+        json_schema_extra={"datalab_include_field_in_summary": True},
+    )
     """A description of the item, either in plain-text or a markup language."""
 
-    date: IsoformatDateTime | None = None
+    date: IsoformatDateTime | None = Field(
+        None,
+        json_schema_extra={"datalab_include_field_in_summary": True},
+    )
     """A relevant 'creation' timestamp for the entry (e.g., purchase date, synthesis date)."""
 
-    name: str | None = None
+    name: str | None = Field(
+        None,
+        json_schema_extra={"datalab_include_field_in_summary": True},
+    )
     """An optional human-readable/usable name for the entry."""
 
-    status: str | None = None
+    status: str | None = Field(
+        None,
+        json_schema_extra={"datalab_include_field_in_summary": True},
+    )
     """The status of the item, with allowed values defined by the specific item class."""
 
     @field_validator("refcode", mode="before")
