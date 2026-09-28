@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="$store.getters.collectionsEnabled !== false"
+    v-if="$store.getters.collectionsEnabled"
     ref="outerdiv"
     class="h-100 form-group clickable"
     @click="isEditingCollections = !isEditingCollections"

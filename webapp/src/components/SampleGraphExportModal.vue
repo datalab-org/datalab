@@ -94,7 +94,7 @@
             </label>
           </div>
           <hr />
-          <div v-if="$store.getters.collectionsEnabled !== false" class="form-check">
+          <div v-if="$store.getters.collectionsEnabled" class="form-check">
             <input
               id="create-collection"
               v-model="createCollection"
@@ -105,7 +105,7 @@
               <strong>Create a collection from selected items</strong>
             </label>
           </div>
-          <div v-if="$store.getters.collectionsEnabled !== false && createCollection" class="mt-3">
+          <div v-if="$store.getters.collectionsEnabled && createCollection" class="mt-3">
             <div class="form-group">
               <label for="collection-id">Collection ID</label>
               <input
@@ -138,7 +138,7 @@
             isExporting ||
             (!exportOnlyThisItem && selectedSampleIds.length === 0) ||
             (!exportOnlyThisItem &&
-              $store.getters.collectionsEnabled !== false &&
+              $store.getters.collectionsEnabled &&
               createCollection &&
               (!collectionId || !collectionTitle))
           "
@@ -277,7 +277,7 @@ export default {
           return;
         }
 
-        if (this.$store.getters.collectionsEnabled !== false && this.createCollection) {
+        if (this.$store.getters.collectionsEnabled && this.createCollection) {
           if (!this.collectionId.trim() || !this.collectionTitle.trim()) {
             DialogService.error({
               title: "Validation Error",

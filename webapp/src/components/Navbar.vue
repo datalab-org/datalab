@@ -20,7 +20,7 @@
   <div id="nav" data-testid="navbar-navigation">
     <router-link to="/about">About</router-link> |
     <router-link to="/samples">Samples</router-link> |
-    <template v-if="$store.getters.collectionsEnabled !== false">
+    <template v-if="$store.getters.collectionsEnabled">
       <router-link to="/collections">Collections</router-link> |
     </template>
     <router-link to="/starting-materials">Inventory</router-link> |

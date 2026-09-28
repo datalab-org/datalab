@@ -77,7 +77,7 @@
         @option:deselected="readdItemToGraph"
       />
 
-      <template v-if="$store.getters.collectionsEnabled !== false">
+      <template v-if="$store.getters.collectionsEnabled">
         <label for="ignore-collections">Ignore connections to collections:</label>
         <CollectionSelect
           id="ignore-collections"

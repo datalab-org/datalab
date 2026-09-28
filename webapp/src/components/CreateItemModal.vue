@@ -65,7 +65,7 @@
           </div>
         </div>
         <!-- When collections are visible, any item type can be added to a collection. -->
-        <div v-if="$store.getters.collectionsEnabled !== false" class="form-row">
+        <div v-if="$store.getters.collectionsEnabled" class="form-row">
           <div class="col-md-12 form-group">
             <label id="startInCollection">(Optional) Insert into collection:</label>
             <CollectionSelect

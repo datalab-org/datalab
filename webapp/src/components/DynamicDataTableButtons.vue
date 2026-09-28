@@ -61,7 +61,7 @@
         </button>
       </div>
       <button
-        v-if="$store.getters.collectionsEnabled !== false && dataType === 'collections'"
+        v-if="$store.getters.collectionsEnabled && dataType === 'collections'"
         data-testid="add-collection-button"
         class="btn btn-default"
         @click="$emit('open-create-collection-modal')"
@@ -180,7 +180,7 @@
         >
           <a
             v-if="
-              $store.getters.collectionsEnabled !== false &&
+              $store.getters.collectionsEnabled &&
               !['collections', 'collectionItems', 'users', 'tokens', 'groups', 'tags'].includes(
                 dataType,
               )
@@ -192,7 +192,7 @@
             Add to collection
           </a>
           <a
-            v-if="$store.getters.collectionsEnabled !== false && dataType === 'collectionItems'"
+            v-if="$store.getters.collectionsEnabled && dataType === 'collectionItems'"
             data-testid="remove-from-collection-dropdown"
             class="dropdown-item"
             @click="confirmRemoveFromCollection"

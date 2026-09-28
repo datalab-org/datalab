@@ -143,12 +143,12 @@
   <BatchCreateItemModal v-model="batchCreateItemModalIsOpen" />
   <QRScannerModal v-model="qrScannerModalIsOpen" />
   <CreateCollectionModal
-    v-if="$store.getters.collectionsEnabled !== false"
+    v-if="$store.getters.collectionsEnabled"
     v-model="createCollectionModalIsOpen"
   />
   <CreateEquipmentModal v-model="createEquipmentModalIsOpen" />
   <AddToCollectionModal
-    v-if="$store.getters.collectionsEnabled !== false"
+    v-if="$store.getters.collectionsEnabled"
     v-model="addToCollectionModalIsOpen"
     :items-selected="itemsSelected"
     @items-updated="handleItemsUpdated"
@@ -300,14 +300,12 @@ export default {
     },
     availableColumns() {
       return this.columns
-        .filter(
-          (col) => this.$store.getters.collectionsEnabled !== false || col.field !== "collections",
-        )
+        .filter((col) => this.$store.getters.collectionsEnabled || col.field !== "collections")
         .map((col) => ({ ...col }));
     },
     displayedColumns() {
       return this.selectedColumns.filter(
-        (col) => this.$store.getters.collectionsEnabled !== false || col.field !== "collections",
+        (col) => this.$store.getters.collectionsEnabled || col.field !== "collections",
       );
     },
   },
