@@ -112,9 +112,9 @@ def register_item_model(model: type[Item]) -> None:
     """Register a custom `Item` subclass into the global registries in place.
 
     Validates that `model` is a concrete `Item` subclass declaring its own
-    unique, namespace-qualified `type` identifier that does not collide with a
-    built-in type. The declared identifier is used as the registry key. Safe to
-    call repeatedly with the same model.
+    unique, namespace-qualified `type` identifier. Bare built-in identifiers are
+    explicitly rejected. The declared identifier is used as the registry key,
+    and re-registering the same model is idempotent.
     """
     if not (isinstance(model, type) and issubclass(model, Item)):
         raise TypeError(f"{model!r} must be a subclass of Item to be registered as an item type.")
