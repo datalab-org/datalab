@@ -59,6 +59,7 @@ def app_config(secret_key, files_directory):
         "REMOTE_FILESYSTEMS": example_remotes,
         "FILE_DIRECTORY": str(files_directory),
         "TESTING": False,
+        "DISABLE_COLLECTIONS": False,
         "ENABLE_TAGS": True,
         "ROOT_PATH": "/",
         "SECRET_KEY": secret_key,

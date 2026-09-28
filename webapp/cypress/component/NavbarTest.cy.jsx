@@ -11,6 +11,10 @@ describe("Navbar", () => {
     store = createStore({
       state: {
         currentUserDisplayName: null,
+        serverInfo: { features: { collections_enabled: true } },
+      },
+      getters: {
+        collectionsEnabled: (state) => state.serverInfo.features.collections_enabled,
       },
     });
 
@@ -110,12 +114,11 @@ describe("Navbar", () => {
   });
 
   it("hides the collections navigation link when configured", () => {
+    store.state.serverInfo.features.collections_enabled = false;
+
     cy.mount(Navbar, {
       global: {
         plugins: [store, router],
-      },
-      data() {
-        return { hideCollections: true };
       },
     });
 

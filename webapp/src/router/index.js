@@ -10,9 +10,14 @@ import CollectionPage from "../views/CollectionPage.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
 import Admin from "@/views/Admin.vue";
 import Login from "../views/Login.vue";
-import { API_URL, HIDE_COLLECTIONS, WEBSITE_TITLE } from "@/resources.js";
+import { API_URL, WEBSITE_TITLE } from "@/resources.js";
 import { getInfo } from "@/server_fetch_utils.js";
 import store from "@/store/index.js";
+
+async function requireCollections() {
+  const serverInfo = store.state.serverInfo ?? (await getInfo());
+  return serverInfo.features?.collections_enabled === false ? { path: "/404" } : true;
+}
 
 const routes = [
   {
@@ -60,6 +65,7 @@ const routes = [
     path: "/collections",
     name: "collections",
     component: Collections,
+    beforeEnter: requireCollections,
   },
   {
     path: "/tags",
@@ -79,6 +85,7 @@ const routes = [
     path: "/collections/:id",
     name: "Collection",
     component: CollectionPage,
+    beforeEnter: requireCollections,
   },
   {
     path: "/item-graph/",
@@ -102,7 +109,7 @@ const routes = [
     alias: "/",
     component: Admin,
   },
-].filter((route) => !HIDE_COLLECTIONS || !["collections", "Collection"].includes(route.name));
+];
 
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),

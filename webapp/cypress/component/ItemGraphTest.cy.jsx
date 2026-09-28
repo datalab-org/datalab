@@ -6,6 +6,10 @@ const store = createStore({
   state: {
     itemGraphData: null,
     itemGraphIsLoading: false,
+    serverInfo: { features: { collections_enabled: true } },
+  },
+  getters: {
+    collectionsEnabled: (state) => state.serverInfo.features.collections_enabled,
   },
 });
 
@@ -88,6 +92,10 @@ const mountGraph = (graphData, opts = {}) => {
 const getCyInstance = () => cy.wrap(null).then(() => Cypress.vueWrapper.vm.cy);
 
 describe("ItemGraph", () => {
+  beforeEach(() => {
+    store.state.serverInfo.features.collections_enabled = true;
+  });
+
   it("renders a single node", () => {
     mountGraph(singleNode);
     getCyInstance().then((cyInstance) => {
@@ -166,11 +174,8 @@ describe("ItemGraph", () => {
   });
 
   it("hides collection options when configured", () => {
+    store.state.serverInfo.features.collections_enabled = false;
     mountGraph(twoConnectedNodes, { showOptions: true });
-    cy.then(() => {
-      Cypress.vueWrapper.vm.hideCollections = true;
-      return Cypress.vueWrapper.vm.$nextTick();
-    });
     cy.contains("Ignore connections to collections:").should("not.exist");
   });
 

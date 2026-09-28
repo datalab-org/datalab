@@ -94,7 +94,7 @@
             </label>
           </div>
           <hr />
-          <div v-if="!hideCollections" class="form-check">
+          <div v-if="$store.getters.collectionsEnabled !== false" class="form-check">
             <input
               id="create-collection"
               v-model="createCollection"
@@ -105,7 +105,7 @@
               <strong>Create a collection from selected items</strong>
             </label>
           </div>
-          <div v-if="createCollection" class="mt-3">
+          <div v-if="$store.getters.collectionsEnabled !== false && createCollection" class="mt-3">
             <div class="form-group">
               <label for="collection-id">Collection ID</label>
               <input
@@ -137,7 +137,10 @@
           :disabled="
             isExporting ||
             (!exportOnlyThisItem && selectedSampleIds.length === 0) ||
-            (!exportOnlyThisItem && createCollection && (!collectionId || !collectionTitle))
+            (!exportOnlyThisItem &&
+              $store.getters.collectionsEnabled !== false &&
+              createCollection &&
+              (!collectionId || !collectionTitle))
           "
           @click="handleExport"
         >
@@ -164,7 +167,6 @@ import ExportProgressModal from "@/components/ExportProgressModal";
 
 import { startItemExport, createNewCollection, getItemGraph } from "@/server_fetch_utils";
 import { DialogService } from "@/services/DialogService";
-import { HIDE_COLLECTIONS } from "@/resources.js";
 
 export default {
   name: "SampleGraphExportModal",
@@ -188,7 +190,6 @@ export default {
       selectedSampleIds: [],
       selectAll: false,
       createCollection: false,
-      hideCollections: HIDE_COLLECTIONS,
       collectionId: "",
       collectionTitle: "",
       graphDepth: 1,
@@ -276,7 +277,7 @@ export default {
           return;
         }
 
-        if (this.createCollection) {
+        if (this.$store.getters.collectionsEnabled !== false && this.createCollection) {
           if (!this.collectionId.trim() || !this.collectionTitle.trim()) {
             DialogService.error({
               title: "Validation Error",

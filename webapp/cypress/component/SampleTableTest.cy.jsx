@@ -66,6 +66,7 @@ describe("SampleTable Component Tests", () => {
               rows: 20,
             },
           },
+          serverInfo: { features: { collections_enabled: true } },
           sample_list: [
             {
               item_id: "sample1",
@@ -166,6 +167,9 @@ describe("SampleTable Component Tests", () => {
           ],
         };
       },
+      getters: {
+        collectionsEnabled: (state) => state.serverInfo.features.collections_enabled,
+      },
     });
 
     cy.mount(SampleTable, {
@@ -201,14 +205,14 @@ describe("SampleTable Component Tests", () => {
   });
 
   it("hides collection table controls when configured", () => {
+    store.state.serverInfo.features.collections_enabled = false;
+
     cy.then(() => {
       const dataTable = wrapper.findComponent(DynamicDataTable);
-      dataTable.vm.hideCollections = true;
       dataTable.vm.selectedColumns = dataTable.vm.availableColumns.filter((col) => !col.hidden);
       dataTable.vm.itemsSelected = [store.state.sample_list[0]];
 
       const buttons = dataTable.findComponent(DynamicDataTableButtons);
-      buttons.vm.hideCollections = true;
 
       expect(dataTable.vm.availableColumns.some((col) => col.field === "collections")).to.be.false;
       return dataTable.vm.$nextTick().then(() => {

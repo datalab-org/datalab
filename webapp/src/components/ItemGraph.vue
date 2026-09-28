@@ -77,7 +77,7 @@
         @option:deselected="readdItemToGraph"
       />
 
-      <template v-if="!hideCollections">
+      <template v-if="$store.getters.collectionsEnabled !== false">
         <label for="ignore-collections">Ignore connections to collections:</label>
         <CollectionSelect
           id="ignore-collections"
@@ -122,7 +122,7 @@
 <script>
 import ItemSelect from "@/components/ItemSelect.vue";
 import CollectionSelect from "@/components/CollectionSelect.vue";
-import { itemTypes, HIDE_COLLECTIONS } from "@/resources.js";
+import { itemTypes } from "@/resources.js";
 import cytoscape from "cytoscape";
 import cola from "cytoscape-cola";
 import elk from "cytoscape-elk";
@@ -217,7 +217,6 @@ export default {
       ignoreItems: [],
       removedNodeData: {},
       ignoreCollections: [],
-      hideCollections: HIDE_COLLECTIONS,
       labelStartingMaterialsByName: true,
       labelItemsByName: false,
       showBlocks: this.defaultShowBlocks,

@@ -1467,6 +1467,7 @@ export function saveUserManagers(user_id, managers) {
 export async function getApiConfig() {
   return fetch_get(`${API_URL}/info`)
     .then((response_json) => {
+      store.commit("setServerInfo", response_json.data?.attributes || {});
       const config = {
         maxUploadBytes: response_json.data?.attributes?.max_upload_bytes || null,
       };

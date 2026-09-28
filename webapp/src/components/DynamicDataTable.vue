@@ -42,7 +42,7 @@
           :editable-inventory="editable_inventory"
           :show-buttons="showButtons"
           :available-columns="availableColumns"
-          :selected-columns="selectedColumns"
+          :selected-columns="displayedColumns"
           :collection-id="collectionId"
           :all-users="allUsers"
           @update:filters="updateFilters"
@@ -86,7 +86,7 @@
       ></Column>
 
       <Column
-        v-for="column in selectedColumns"
+        v-for="column in displayedColumns"
         :key="column.field"
         :field="column.field"
         :sortable="column.sortable !== false"
@@ -142,10 +142,13 @@
   />
   <BatchCreateItemModal v-model="batchCreateItemModalIsOpen" />
   <QRScannerModal v-model="qrScannerModalIsOpen" />
-  <CreateCollectionModal v-if="!hideCollections" v-model="createCollectionModalIsOpen" />
+  <CreateCollectionModal
+    v-if="$store.getters.collectionsEnabled !== false"
+    v-model="createCollectionModalIsOpen"
+  />
   <CreateEquipmentModal v-model="createEquipmentModalIsOpen" />
   <AddToCollectionModal
-    v-if="!hideCollections"
+    v-if="$store.getters.collectionsEnabled !== false"
     v-model="addToCollectionModalIsOpen"
     :items-selected="itemsSelected"
     @items-updated="handleItemsUpdated"
@@ -167,7 +170,7 @@ import CreateEquipmentModal from "@/components/CreateEquipmentModal";
 import AddToCollectionModal from "@/components/AddToCollectionModal";
 import BatchShareModal from "@/components/BatchShareModal";
 
-import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY, HIDE_COLLECTIONS } from "@/resources.js";
+import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY } from "@/resources.js";
 
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
@@ -254,7 +257,6 @@ export default {
       filteredData: [],
       allowedTypes: INVENTORY_TABLE_TYPES,
       editable_inventory: EDITABLE_INVENTORY,
-      hideCollections: HIDE_COLLECTIONS,
       selectedColumns: [],
       // Names of the per-column matchers this instance registered with the global
       // FilterService, so that they can be removed again when it unmounts.
@@ -298,8 +300,15 @@ export default {
     },
     availableColumns() {
       return this.columns
-        .filter((col) => !this.hideCollections || col.field !== "collections")
+        .filter(
+          (col) => this.$store.getters.collectionsEnabled !== false || col.field !== "collections",
+        )
         .map((col) => ({ ...col }));
+    },
+    displayedColumns() {
+      return this.selectedColumns.filter(
+        (col) => this.$store.getters.collectionsEnabled !== false || col.field !== "collections",
+      );
     },
   },
   created() {
