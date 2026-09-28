@@ -6,7 +6,6 @@ from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.results import InsertOneResult, UpdateResult
 
-from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER, logged_route
 from pydatalab.models.collections import Collection
 from pydatalab.mongo import COLLECTIONS_FTS_FIELDS, build_search_pipeline, flask_mongo
@@ -57,7 +56,7 @@ def get_collection(collection_id):
     except IndexError:
         doc = None
 
-    if not doc or (not current_user.is_authenticated and not CONFIG.TESTING):
+    if not doc or not current_user.is_authenticated:
         return (
             jsonify(
                 {
@@ -101,7 +100,7 @@ def create_collection():
     # Consumed below to populate `creator_ids`; not a field of `Collection` itself.
     additional_creators = data.pop("additional_creators", None)
 
-    if not current_user.is_authenticated and not CONFIG.TESTING:
+    if not current_user.is_authenticated:
         return (
             dict(
                 status="error",
@@ -114,17 +113,13 @@ def create_collection():
     if copy_from_id:
         raise NotImplementedError("Copying collections is not yet implemented.")
 
-    if CONFIG.TESTING:
-        data["creator_ids"] = [24 * "0"]
-        data["creators"] = [{"display_name": "Public testing user"}]
-    else:
-        data["creator_ids"] = [current_user.person.immutable_id]
-        data["creators"] = [
-            {
-                "display_name": current_user.person.display_name,
-                "gravatar_hash": current_user.person.gravatar_hash,
-            }
-        ]
+    data["creator_ids"] = [current_user.person.immutable_id]
+    data["creators"] = [
+        {
+            "display_name": current_user.person.display_name,
+            "gravatar_hash": current_user.person.gravatar_hash,
+        }
+    ]
 
     if additional_creators:
         for c in additional_creators:

@@ -643,10 +643,10 @@ export function searchTags(query, nresults = 100) {
   });
 }
 
-export function searchGroups(query, nresults = 100) {
+export function searchGroups(query, nresults = 100, memberOnly = false) {
   // construct a url with parameters:
   var url = new URL(`${API_URL}/search/groups`);
-  var params = { query: query, nresults: nresults };
+  var params = { query: query, nresults: nresults, member_only: memberOnly };
   Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
   return fetch_get(url).then(function (response_json) {
     return response_json.data;
@@ -708,10 +708,11 @@ export function invalidateCurrentUserCache() {
   store.commit("setAdminSuperUserMode", false);
 }
 
-export async function requestMagicLink(email_address) {
+export async function requestMagicLink(email_address, remember = false) {
   return fetch_post(`${API_URL}/login/magic-link`, {
     email: email_address,
     referrer: window.location.origin,
+    remember: remember,
   })
     .then((response_json) => {
       return response_json;

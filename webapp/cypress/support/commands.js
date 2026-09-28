@@ -392,22 +392,31 @@ Cypress.Commands.add("expandIfCollapsed", (selector) => {
 });
 
 /**
- * Login as a test user using a predefined magic link
- * @param {string} email - Email address of the test user (default: test-user@example.com)
- * @param {string} role - User role: 'user' or 'admin' (default: 'user')
+ * Login as one of the e2e test users (see `E2E_TEST_USERS` in `pydatalab/tasks.py`), using a
+ * login token minted by `invoke dev.seed-e2e-users`; the API must be running in testing mode.
+ * @param {string} email - Email address of the test user (default: test-user@datalab.test)
  */
-Cypress.Commands.add("loginViaTestMagicLink", (email = "test@example.com") => {
-  cy.request({
-    method: "POST",
-    url: API_URL + "/testing/create-magic-link",
-    body: { email: email, referrer: Cypress.config("baseUrl") },
-  }).then((response) => {
-    expect(response.status).to.eq(200);
-    const token = response.body.token;
+Cypress.Commands.add("loginViaTestMagicLink", (email = "test-user@datalab.test") => {
+  cy.task("e2eLoginTokens", null, { timeout: 120000 }).then((tokens) => {
+    const token = tokens[email];
+    if (!token) {
+      throw new Error(
+        `No login token for ${email}; is it in E2E_TEST_USERS in pydatalab/tasks.py?`,
+      );
+    }
     cy.request({
       method: "GET",
       url: API_URL + `/login/email?token=${token}`,
       followRedirect: false,
+      failOnStatusCode: false,
+    }).then((response) => {
+      if (response.status >= 400) {
+        throw new Error(
+          `Login as ${email} failed (${response.status}): ${JSON.stringify(response.body)}. ` +
+            "Is the API in testing mode, and using the same database and secret key as " +
+            "`invoke dev.seed-e2e-users` (i.e., the settings in pydatalab/.env)?",
+        );
+      }
     });
     cy.visit("/");
   });

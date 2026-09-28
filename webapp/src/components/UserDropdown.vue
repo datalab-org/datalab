@@ -3,7 +3,7 @@
     type="button"
     class="dropdown-item btn login btn-link"
     aria-label="Account settings"
-    @click="editAccountSettingIsOpen = true"
+    @click="$emit('open-account-settings')"
   >
     <font-awesome-icon icon="cog" /> &nbsp;&nbsp;Account settings
     <span v-if="isUnverified" class="notification-wrapper"><NotificationDot /></span>
@@ -36,18 +36,15 @@
     :href="apiUrl + '/logout'"
     ><font-awesome-icon icon="sign-out-alt" /> &nbsp;&nbsp;Logout</a
   >
-  <EditAccountSettingsModal v-model="editAccountSettingIsOpen" />
 </template>
 
 <script>
-import EditAccountSettingsModal from "@/components/EditAccountSettingsModal.vue";
 import NotificationDot from "@/components/NotificationDot.vue";
 import StyledTooltip from "@/components/StyledTooltip.vue";
 import { API_URL } from "@/resources.js";
 
 export default {
   components: {
-    EditAccountSettingsModal,
     NotificationDot,
     StyledTooltip,
   },
@@ -55,10 +52,9 @@ export default {
     modelValue: Boolean,
     user: { type: Object, required: true },
   },
-  emits: ["update:modelValue"],
+  emits: ["update:modelValue", "open-account-settings"],
   data() {
     return {
-      editAccountSettingIsOpen: false,
       apiUrl: API_URL,
     };
   },
@@ -71,13 +67,6 @@ export default {
     },
     adminSuperUserMode() {
       return this.$store.getters.isAdminSuperUserModeActive;
-    },
-  },
-  watch: {
-    editAccountSettingIsOpen: function (val) {
-      if (!val) {
-        this.$emit("update:modelValue", false);
-      }
     },
   },
   methods: {

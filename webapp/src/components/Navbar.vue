@@ -1,15 +1,10 @@
 <template>
   <div
-    v-if="logo_url != null"
+    v-if="logo_url"
     class="pt-3"
     style="display: flex; justify-content: center; align-items: center"
   >
-    <a
-      v-if="homepage_url != null"
-      :href="homepage_url"
-      style="display: inline-block"
-      target="_blank"
-    >
+    <a v-if="homepage_url" :href="homepage_url" style="display: inline-block" target="_blank">
       <img class="logo-banner" :width="logo_width + 'px'" :src="logo_url" />
     </a>
     <img v-else class="logo-banner" :width="logo_width + 'px'" :src="logo_url" />

@@ -100,11 +100,14 @@
         />
         <div class="form-row">
           <div class="col-md-6 form-group">
-            <label id="shareWithGroupsLabel">(Optional) Share with groups:</label>
+            <label id="shareWithGroupsLabel"
+              >(Optional) {{ isInventoryType ? "Restrict to" : "Share with" }} groups:</label
+            >
             <GroupSelect
               v-model="shareWithGroups"
               aria-labelledby="shareWithGroupsLabel"
               multiple
+              :member-only="isInventoryType"
             />
           </div>
           <div class="col-md-6 form-group">
@@ -129,8 +132,13 @@ import ItemSelect from "@/components/ItemSelect.vue";
 import GroupSelect from "@/components/GroupSelect.vue";
 import UserSelect from "@/components/UserSelect.vue";
 import { createNewItem } from "@/server_fetch_utils.js";
-import { validateEntryID } from "@/field_utils.js";
-import { itemTypes, SAMPLE_TABLE_TYPES, AUTOMATICALLY_GENERATE_ID_DEFAULT } from "@/resources.js";
+import { validateEntryID, confirmUngroupedInventory } from "@/field_utils.js";
+import {
+  itemTypes,
+  SAMPLE_TABLE_TYPES,
+  INVENTORY_TYPES,
+  AUTOMATICALLY_GENERATE_ID_DEFAULT,
+} from "@/resources.js";
 import CollectionSelect from "@/components/CollectionSelect.vue";
 export default {
   name: "CreateItemModal",
@@ -181,6 +189,9 @@ export default {
         : [];
       return [...new Set([...this.allowedTypes, ...dynamic])];
     },
+    isInventoryType() {
+      return INVENTORY_TYPES.includes(this.item_type);
+    },
     itemTypeDisplayName() {
       return itemTypes[this.item_type].display;
     },
@@ -215,6 +226,10 @@ export default {
       }
       const groupsData = this.shareWithGroups.length > 0 ? this.shareWithGroups : null;
       const creatorsData = this.additionalCreators.length > 0 ? this.additionalCreators : null;
+
+      if (!(await confirmUngroupedInventory(this.item_type, groupsData))) {
+        return;
+      }
 
       // Custom (dynamic) types have no list page to land on, so navigate to the
       // new item's editor after creation.

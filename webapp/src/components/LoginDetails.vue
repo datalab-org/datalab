@@ -22,9 +22,16 @@
         style="display: block"
         aria-labelledby="UserDropdown"
       >
-        <UserDropdown v-model="isUserDropdownVisible" :user="user" />
+        <UserDropdown
+          v-model="isUserDropdownVisible"
+          :user="user"
+          @open-account-settings="openAccountSettings"
+        />
       </div>
     </div>
+    <!-- Kept outside the dropdown so that clicks on teleported dialogs (which count as
+    "outside" the dropdown) do not hide the modal along with the dropdown menu -->
+    <EditAccountSettingsModal v-model="isAccountSettingsOpen" />
   </template>
   <template v-else-if="!isUserLoaded">
     <div class="dropdown">
@@ -76,6 +83,7 @@ import UserBubbleLogin from "@/components/UserBubbleLogin.vue";
 import { getUserInfo, getInfo } from "@/server_fetch_utils.js";
 import UserDropdown from "@/components/UserDropdown.vue";
 import LoginDropdown from "@/components/LoginDropdown.vue";
+import EditAccountSettingsModal from "@/components/EditAccountSettingsModal.vue";
 import { vOnClickOutside } from "@vueuse/components";
 
 export default {
@@ -86,6 +94,7 @@ export default {
     UserBubbleLogin,
     UserDropdown,
     LoginDropdown,
+    EditAccountSettingsModal,
   },
   props: {
     modelValue: Boolean,
@@ -94,6 +103,7 @@ export default {
     return {
       isLoginDropdownVisible: false,
       isUserDropdownVisible: false,
+      isAccountSettingsOpen: false,
       user: null,
       isUserLoaded: false,
     };
@@ -128,6 +138,10 @@ export default {
     }
   },
   methods: {
+    openAccountSettings() {
+      this.isUserDropdownVisible = false;
+      this.isAccountSettingsOpen = true;
+    },
     async getUser() {
       this.user = await getUserInfo();
       this.isUserLoaded = true;

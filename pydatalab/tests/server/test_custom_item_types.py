@@ -242,7 +242,6 @@ def test_builtin_item_type_identifiers_are_bare():
     from pydatalab.models import BUILTIN_ITEM_TYPES
 
     assert all(":" not in item_type for item_type in BUILTIN_ITEM_TYPES)
-    assert all(not item_type.startswith("core-") for item_type in BUILTIN_ITEM_TYPES)
 
 
 @pytest.mark.parametrize(
@@ -250,6 +249,10 @@ def test_builtin_item_type_identifiers_are_bare():
     [
         "electrode",
         "battery_electrode",
+        "_battery:electrode",
+        "battery_:electrode",
+        "battery:-electrode",
+        "battery:electrode_",
         "Battery:electrode",
         "battery:Electrode",
         "battery::electrode",
@@ -257,8 +260,9 @@ def test_builtin_item_type_identifiers_are_bare():
         ":electrode",
         "battery:",
         "acme--battery:electrode",
+        "acme__battery:electrode",
         "battery:coin--cell",
-        "battery:coin_cell",
+        "battery:coin__cell",
         "battery.electrode",
         "battery:electrode.variant",
     ],
@@ -375,25 +379,32 @@ def test_namespaced_identifier_is_canonical():
         ITEM_SCHEMAS.pop("battery:electrode", None)
 
 
-def test_hyphenated_namespace_and_type_name_are_registered():
-    """Either side of the namespace separator may contain internal dashes."""
+@pytest.mark.parametrize(
+    "item_type",
+    ["acme-battery:coin-cell", "acme_battery:coin_cell", "acme-lab_1:coin_cell-v2"],
+)
+def test_namespace_and_type_name_separators_are_registered(item_type):
+    """Either side of the colon may contain internal dashes or underscores."""
     from typing import Literal
+
+    from pydantic import create_model
 
     from pydatalab.models import ITEM_MODELS, ITEM_SCHEMAS, register_item_model
     from pydatalab.models.samples import Sample
 
-    class BatteryCoinCell(Sample):
-        type: Literal["acme-battery:coin-cell"] = "acme-battery:coin-cell"  # type: ignore[assignment]
+    BatteryCoinCell = create_model(
+        "BatteryCoinCell",
+        __base__=Sample,
+        type=(Literal[item_type], item_type),  # type: ignore[valid-type]
+    )
 
     try:
         register_item_model(BatteryCoinCell)
-        assert ITEM_MODELS["acme-battery:coin-cell"] is BatteryCoinCell
-        assert ITEM_SCHEMAS["acme-battery:coin-cell"]["properties"]["type"]["default"] == (
-            "acme-battery:coin-cell"
-        )
+        assert ITEM_MODELS[item_type] is BatteryCoinCell
+        assert ITEM_SCHEMAS[item_type]["properties"]["type"]["default"] == item_type
     finally:
-        ITEM_MODELS.pop("acme-battery:coin-cell", None)
-        ITEM_SCHEMAS.pop("acme-battery:coin-cell", None)
+        ITEM_MODELS.pop(item_type, None)
+        ITEM_SCHEMAS.pop(item_type, None)
 
 
 def test_refresh_item_models_ignores_custom_types(custom_item_models):

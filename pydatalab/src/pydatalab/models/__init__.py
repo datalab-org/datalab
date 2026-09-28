@@ -73,7 +73,7 @@ BUILTIN_ITEM_TYPES: frozenset[str] = frozenset()
 # Custom item types use a namespace-qualified identifier (e.g. ``battery:electrode``).
 # Core models are registered before this validation is applied and retain
 # their established identifiers.
-CUSTOM_ITEM_TYPE_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*:[a-z0-9]+(?:-[a-z0-9]+)*$")
+CUSTOM_ITEM_TYPE_PATTERN = re.compile(r"^[a-z0-9]+(?:[-_][a-z0-9]+)*:[a-z0-9]+(?:[-_][a-z0-9]+)*$")
 
 
 def refresh_item_models() -> None:
@@ -134,7 +134,8 @@ def register_item_model(model: type[Item]) -> None:
         raise ValueError(
             f"Custom item model {model.__name__!r} uses invalid type {item_type!r}; "
             "custom types must use a lowercase namespace and type name separated by one colon, "
-            "such as 'battery:electrode'."
+            "with dashes or underscores allowed within either part, such as "
+            "'battery-lab:coin_cell'."
         )
 
     existing = ITEM_MODELS.get(item_type)

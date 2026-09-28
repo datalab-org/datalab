@@ -33,9 +33,26 @@ Your local development *datalab* can be configured with all the options as a rea
 There are two main options for creating a local installation:
 
 1) Natively on your host machine, with a Python virtual environment for the server and Node.js for the web app.
-2) Using Docker, which is the recommended approach for development and testing.
+2) Using Docker with docker compose for a consistent, reproducible environment.
 
 ### Docker development environment
+
+!!! note "Docker version requirements"
+    The Docker builds described here require a recent Docker Engine with the
+    [Compose](https://docs.docker.com/compose/install/) (v2.37.0 or newer) and
+    [buildx](https://docs.docker.com/build/concepts/overview/#buildx) plugins.
+    The frontend images are built on top of the corresponding API image (to
+    collect any plugin UI panels) via a `service:` build context, which is only
+    resolved reliably when Compose builds with
+    [Bake](https://docs.docker.com/guides/compose-bake/), the default since
+    Compose v2.37.0.
+
+    With older versions, building the frontend alone (e.g.,
+    `docker compose --profile prod up --build app`) fails with
+    `failed to solve: invalid reference format`. Either upgrade Docker, or
+    opt in to Bake with `COMPOSE_BAKE=true` (Compose v2.33.0 or newer).
+    You can check your versions with `docker compose version` and
+    `docker buildx version`.
 
 The complete development stack can be run with Docker Compose:
 
@@ -56,6 +73,11 @@ docker compose exec api-dev /opt/.venv/bin/invoke admin.change-user-role \
 
 Stop the stack with `docker compose --profile dev down`. Add `--volumes` to also remove its
 development database and uploaded files.
+
+To run the e2e tests against this stack, start it in testing mode with
+`PYDATALAB_TESTING=true docker compose --profile dev up --build`, then run
+`yarn test:e2e:docker` from `webapp/`, which creates the e2e test users inside the `api-dev`
+container.
 
 ### Native installation
 
@@ -142,7 +164,7 @@ See the [plugins documentation](plugins.md) for the `plugins.toml` format and a 
     ```
 
 This is a thin wrapper around `flask run` that defaults to port 5001 with `--reload` enabled and injects an insecure development secret key if `PYDATALAB_SECRET_KEY` is not already set in the environment.
-Pass `--no-reload` to disable the Werkzeug reloader, or `--testing` to enable `CONFIG.TESTING` (which disables authentication — see below).
+Pass `--no-reload` to disable the Werkzeug reloader, or `--testing` to enable `CONFIG.TESTING` (required for logging in as test users — see below).
 
 If you would rather invoke Flask directly, the equivalent command is:
 
@@ -185,7 +207,7 @@ Various other development scripts are available through `yarn`:
 
 - `yarn lint`: Lint the JavaScript code using `eslint`, identifying issues and automatically fixing many. This linting process also runs automatically every time the development server reloads.
 - `yarn test:component`: run the component tests using `cypress`. These test individual functions or components, and run headless by default.
-- `yarn test:e2e`: run end-to-end tests using `cypress`. This will build and serve the app, and launch an instance of Chrome where the tests can be interactively viewed. Like the component tests, these tests can also be run without the GUI using `yarn test:e2e --headless`. Note: currently, the tests make requests to the server running on `localhost:5001`.
+- `yarn test:e2e`: run end-to-end tests using `cypress`. This will build and serve the app, and launch an instance of Chrome where the tests can be interactively viewed. Like the component tests, these tests can also be run without the GUI using `yarn test:e2e --headless`. Note: currently, the tests make requests to the server running on `localhost:5001`, which must be in testing mode (e.g., `uv run invoke dev.serve --testing`). The tests log in as test users created by the `dev.seed-e2e-users` invoke task, which Cypress runs itself via `uv`; this uses the database and secret key from `pydatalab/.env`, so the API must use the same settings (as it does when started with `dev.serve`). Set `DATALAB_E2E_SEED_COMMAND` to run it some other way; `yarn test:e2e:docker` does this for the Docker development environment (see above).
 - `yarn build`: Compile an optimised, minimised, version of the app for production.
 
 ## Development notes
@@ -217,14 +239,31 @@ uv lock
 
 There are two approaches to authentication when developing *datalab* features locally.
 
-1. Disable authentication entirely with the `PYDATALAB_TESTING=true` environment
-   variable (or corresponding config file option `TESTING`). This will perform
-   every API operation as if the user is authenticated, and will not require any
-   further configuration.
-   - This mode of development is fine for e.g., developing new blocks, but in
-     cases where new API functionality is being added, it is recommended to set
-     up authentication locally (see below).
-1. Local OAuth setup. This requires registering an OAuth app with one of the
+1. Test users with magic-link login URLs (recommended), which requires the server to run in testing mode
+   (`uv run invoke dev.serve --testing`, or `PYDATALAB_TESTING=true`). Create some test users (active accounts
+   with random `@datalab.test` email addresses) with:
+
+   ```shell
+   uv run invoke dev.create-test-user --count 3
+   uv run invoke dev.create-test-user --role admin
+   ```
+
+   A specific user can be created or updated with
+   `--username alice --display-name "Alice" --role manager`.
+
+   Then list the test users with their roles, groups and login links:
+
+   ```shell
+   uv run invoke dev.list-test-users
+   ```
+
+   Each link is a login token (valid for one hour), minted directly instead of
+   being sent by email, pointing at `PYDATALAB_APP_URL`. Open each link in a
+   separate private browser window to test roles, groups and permissions as
+   several users at once. The server only accepts these links for `@datalab.test`
+   users; as this domain cannot receive email, they cannot be used to log in as a
+   real user.
+2. Local OAuth setup. This requires registering an OAuth app with one of the
    implemented providers (e.g., GitHub, ORCID), configuring the credentials
    locally (see the [configuration documentation](https://docs.datalab-org.io/en/latest/config/) for more details) and then logging into *datalab* normally.
    - In this case, the user will also need to be activated when it is created.

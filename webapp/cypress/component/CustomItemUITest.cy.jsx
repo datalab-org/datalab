@@ -15,6 +15,7 @@ describe("Custom item UI", () => {
 
   it("prettifies custom and core type names", () => {
     expect(prettifyType("battery:coin-cell")).to.equal("Battery Coin Cell");
+    expect(prettifyType("battery_lab:coin_cell-v2")).to.equal("Battery Lab Coin Cell V2");
     expect(prettifyType("starting_materials")).to.equal("Starting Materials");
   });
 

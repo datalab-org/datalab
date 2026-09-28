@@ -15,7 +15,7 @@ import jwt
 from bson import ObjectId
 from flask import Blueprint, Response, g, jsonify, redirect, request, session
 from flask_dance.consumer import OAuth2ConsumerBlueprint, oauth_authorized, oauth_before_login
-from flask_login import current_user, login_user
+from flask_login import current_user, login_user, logout_user
 from flask_login.utils import LocalProxy
 from werkzeug.exceptions import BadRequest, Forbidden, NotFound
 
@@ -29,10 +29,19 @@ from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
 from pydatalab.permissions import ApiKey, authenticate, exclude_api_key
 from pydatalab.send_email import send_mail
 
+__all__ = ("AUTH", "OAUTH", "OAUTH_PROXIES")
+
 KEY_LENGTH: int = 32
 LINK_EXPIRATION: datetime.timedelta = datetime.timedelta(hours=1)
+
+TESTING_EMAIL_DOMAIN: str = "datalab.test"
+"""The reserved domain (RFC 2606) for test users, which are the only users that can log in
+with magic-link tokens minted outside of email (e.g., by invoke tasks), and only when
+`CONFIG.TESTING` is enabled. As the domain cannot receive email, these accounts can never
+belong to a real person."""
 OAUTH_NEXT_SESSION_KEY_PREFIX = "oauth_next_"
 OAUTH_NEXT_MAX_LENGTH = 2048
+REMEMBER_ME_SESSION_KEY = "remember_me"
 
 
 def _oauth_next_session_key(provider_name: str) -> str:
@@ -419,7 +428,14 @@ orcid = LocalProxy(lambda: g.flask_dance_orcid)
 
 
 def wrapped_login_user(*args, **kwargs):
+    was_authenticated = current_user.is_authenticated
     login_user(*args, **kwargs)
+    remember = bool(session.pop(REMEMBER_ME_SESSION_KEY, False))
+    # Sessions end when the browser closes (e.g., on shared machines), unless the user
+    # opted in to "remember me" at login, in which case they last for `CONFIG.SESSION_LIFETIME`.
+    # This is set explicitly on each new login so it does not carry over from a previous session.
+    if not was_authenticated:
+        session.permanent = remember
 
 
 EMAIL_BLUEPRINT = Blueprint("email", __name__)
@@ -476,9 +492,6 @@ def _check_email_domain(email: str, allow_list: list[str] | None) -> bool:
         Whether the email address is allowed to register an account.
 
     """
-    if CONFIG.TESTING:
-        return True
-
     domain = email.split("@")[-1]
     if isinstance(allow_list, list) and not allow_list:
         return False
@@ -666,7 +679,12 @@ def _validate_magic_link_request(email: str, referrer: str) -> None:
         raise BadRequest("Referrer address not provided, please contact the datalab administrator")
 
 
-def _generate_and_store_token(email: str, intent: str = "register") -> str:
+def _generate_and_store_token(
+    email: str,
+    intent: str = "register",
+    remember: bool = False,
+    channel: str = "email",
+) -> str:
     """Generate a JWT for the user with a short expiration and store it in the session.
 
     The session itself persists beyond the JWT expiration. The `exp` key is a standard
@@ -675,6 +693,11 @@ def _generate_and_store_token(email: str, intent: str = "register") -> str:
     Args:
         email: The user's email address to include in the token.
         intent: The intent of the magic link, e.g., "register" "verify", or "login".
+        remember: Whether the session created by the magic link should persist
+            beyond the browser session.
+        channel: How the token is delivered to the user: "email", or "cli" for tokens
+            minted directly by invoke tasks, which can only be redeemed by test users
+            when `CONFIG.TESTING` is enabled.
 
     Returns:
         The generated JWT token string.
@@ -684,6 +707,8 @@ def _generate_and_store_token(email: str, intent: str = "register") -> str:
         "exp": datetime.datetime.now(datetime.timezone.utc) + LINK_EXPIRATION,
         "email": email,
         "intent": intent,
+        "remember": remember,
+        "channel": channel,
     }
 
     token = jwt.encode(
@@ -692,7 +717,14 @@ def _generate_and_store_token(email: str, intent: str = "register") -> str:
         algorithm="HS256",
     )
 
-    flask_mongo.db.magic_links.insert_one({"jwt": token})
+    flask_mongo.db.magic_links.insert_one(
+        {
+            "jwt": token,
+            "channel": channel,
+            "email": email,
+            "created_at": datetime.datetime.now(datetime.timezone.utc),
+        }
+    )
 
     return token
 
@@ -817,7 +849,8 @@ def generate_and_share_magic_link():
 
     _validate_magic_link_request(email, referrer)
     _check_user_registration_allowed(email)
-    token = _generate_and_store_token(email, intent="register")
+    remember = request_json.get("remember") is True
+    token = _generate_and_store_token(email, intent="register", remember=remember)
     _send_magic_link_email(email, token, referrer)
 
     return jsonify({"status": "success", "message": "Email sent successfully."}), 200
@@ -859,6 +892,27 @@ def email_logged_in():
     email = data["email"]
     if not email:
         raise BadRequest("No email found; please request a new token.")
+
+    # Tokens issued before the `channel` claim was added were all sent by email
+    channel = data.get("channel", "email")
+    if channel != "email":
+        if not CONFIG.TESTING or not email.endswith(f"@{TESTING_EMAIL_DOMAIN}"):
+            LOGGER.warning("Rejected %r login token for %s", channel, email)
+            raise Forbidden(
+                f"Login tokens not sent by email are only accepted for @{TESTING_EMAIL_DOMAIN} "
+                "users when the server is in testing mode."
+            )
+    LOGGER.info("Magic-link login for %s via %r token", email, channel)
+
+    # A magic link always logs in as the owner of the email; log out any current user
+    # so that the email is never attached to their account as a new identity
+    if current_user.is_authenticated:
+        logout_user()
+
+    if data.get("remember"):
+        session[REMEMBER_ME_SESSION_KEY] = True
+    else:
+        session.pop(REMEMBER_ME_SESSION_KEY, None)
 
     # If the email domain list is explicitly configured to None, this allows any
     # email address to make an active account, otherwise the email domain must match
@@ -1081,13 +1135,18 @@ def redirect_to_ui(blueprint, token):  # pylint: disable=unused-argument
 
 @oauth_before_login.connect
 def store_oauth_next_path(blueprint, url):  # pylint: disable=unused-argument
-    """Store a safe UI path in the session before leaving for an OAuth provider."""
+    """Store a safe UI path, and whether to remember the session, in the session
+    before leaving for an OAuth provider."""
     session_key = _oauth_next_session_key(blueprint.name)
     session.pop(session_key, None)
 
     next_path = request.args.get("next")
     if _is_safe_oauth_next_path(next_path):
         session[session_key] = next_path
+
+    session.pop(REMEMBER_ME_SESSION_KEY, None)
+    if request.args.get("remember") == "1":
+        session[REMEMBER_ME_SESSION_KEY] = True
 
 
 @AUTH.route("/get-current-user/", methods=["GET"])
@@ -1181,27 +1240,3 @@ def delete_api_key(api_id):
         return Response("", status=204)
     else:
         raise BadRequest(description="Problem deleting the key")
-
-
-@AUTH.route("/testing/create-magic-link", methods=["POST"])
-def create_test_magic_link():
-    """Create a magic link for testing purposes.
-
-    This endpoint is only available when TESTING=True.
-    It creates a user with the specified email and role, generates a magic link,
-    and returns the token.
-    """
-    if not CONFIG.TESTING:
-        return jsonify(
-            {"status": "error", "detail": "This endpoint is only available in testing mode."}
-        ), 403
-
-    request_json = request.get_json()
-    email = request_json.get("email")
-    referrer = request_json.get("referrer", "http://localhost:8080")
-
-    _validate_magic_link_request(email, referrer)
-
-    token = _generate_and_store_token(email, intent="register")
-
-    return jsonify({"status": "success", "token": token}), 200

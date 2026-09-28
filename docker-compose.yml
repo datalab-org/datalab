@@ -106,6 +106,9 @@ services:
       # `app-dev` is always served on 8081, so default to it rather than making
       # every developer set this by hand to be able to log in.
       - PYDATALAB_APP_URL=${PYDATALAB_APP_URL:-http://localhost:8081}
+      # Passed through from the host env or `.env` when set (e.g., `PYDATALAB_TESTING=true`
+      # for running the e2e tests against this stack), and omitted entirely when not.
+      - PYDATALAB_TESTING
 
   app-dev:
     profiles: ["dev"]
