@@ -137,7 +137,7 @@ Across the federation, we estimate that *datalab* is being used to track over te
 
 In addition to the *datalab* core, a growing plugin ecosystem has developed, including plugins authored by developers outside the core team.
 Digital data management with *datalab* has also enabled novel research directions, such as the creation of LLM-based AI agents to accelerate research tasks [@Jablonka2023; @Zimmermann2025].
-Two examples of this, [yellowhammer](https://github.com/datalab-org/yellowhammer) [@Zimmermann2025] and [guillemot](https://github.com/datalab-org/guillemot) make use of the *datalab* API to pull in data and perform automated data curation or analysis on the behalf of a user.
+Two examples of this, [yellowhammer](https://github.com/datalab-org/yellowhammer) [@Zimmermann2025] and [guillemot](https://github.com/datalab-org/guillemot) [@Roy2026] make use of the *datalab* API to pull in data and perform automated data curation or analysis on the behalf of a user.
 
 # Future
 
@@ -146,14 +146,14 @@ We expect *datalab* to continue to scale horizontally to new domains and measure
 
 The technical roadmap for a *datalab* v1.0 release includes:
 
-- A rework of the schema system for easier customizability, sharing and extension by deployments, as well as the ability to provide semantic annotations via [@Moxon2026]; this will be accommodated by a rework of the user interface to allow custom schemas to use the same user-friendly web components that exist in the core *datalab* models for rich text input and relationship tracking.
+- A rework of the schema system for easier customizability, sharing and extension by deployments, as well as the ability to provide semantic annotations via LinkML [@Moxon2026]; this will be accommodated by a rework of the user interface to allow custom schemas to use the same user-friendly web components that exist in the core *datalab* models for rich text input and relationship tracking.
 - Further improvements to the *datalab* plugin ecosystem, including enhancements of the base data block with features such as caching, offloading compute, and UI generation, providing clean interfaces to make it easier for contributors to build powerful extensions to handle arbitrary data types.
 - An expansion of existing prototypes for AI-driven user interfaces, building on existing work on conversational interfaces [@Jablonka2023] and coding agents ([datalab-org/yellowhammer](https://github.com/datalab-org/yellowhammer)) [@Zimmermann2025], with the aim of allowing users to create rich and expressive pipelines via end user programming.
 
 # AI usage disclosure
 
 While the initial development of *datalab* (architecture, proof-of-concept) was performed without the use of AI, recent development (approximately v0.6.3 onwards) has made use of LLM-based AI coding harnesses (e.g., OpenAI's Codex, Anthropic's Claude Code) in various parts of *datalab* and related development, including: code generation for prototyping new features and interfaces, refactoring, code review (usually initial reviews for PRs from external authors) and generation of test cases.
-Models used include OpenAI's GPT-5.x series, Anthropic's Claude Sonnet and Opus series from versions 3.7 and above, and open weights models such as Qwen3.7.
+Models used include OpenAI's GPT-5.x series, Anthropic's Claude Sonnet and Opus series from versions 3.7 and above, and open weights models such as Qwen3.6.
 
 Every pull request is still thoroughly reviewed by a human and we maintain an extensive test suite that runs on each pull request to catch regressions across the project; the human authors and reviewers are ultimately responsible for the code that is merged.
 
