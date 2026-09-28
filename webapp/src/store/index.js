@@ -19,6 +19,7 @@ export default createStore({
     starting_material_list: null,
     locations_list: null,
     collection_list: null,
+    tag_list: null,
     groups_list: null,
     saved_status_items: {},
     saved_status_blocks: {},
@@ -73,6 +74,10 @@ export default createStore({
         page: 0,
         rows: 10,
       },
+      tags: {
+        page: 0,
+        rows: 20,
+      },
     },
     block_errors: {},
     block_infos: {},
@@ -98,6 +103,20 @@ export default createStore({
     setCollectionList(state, collectionSummaries) {
       // collectionSummaries is an array of json objects summarizing the available collections
       state.collection_list = collectionSummaries || [];
+    },
+    setTagList(state, tags) {
+      // tags is an array of tag objects
+      state.tag_list = tags || [];
+    },
+    deleteFromTagList(state, tagId) {
+      if (state.tag_list === null) return;
+
+      const index = state.tag_list.map((t) => t.immutable_id).indexOf(tagId);
+      if (index > -1) {
+        state.tag_list.splice(index, 1);
+      } else {
+        console.warn(`deleteFromTagList couldn't find the tag with id ${tagId}`);
+      }
     },
     setGroupsList(state, groups) {
       state.groups_list = groups;
@@ -325,14 +344,21 @@ export default createStore({
       // item_id, isSaved
       state.saved_status_collections[payload.collection_id] = payload.isSaved;
     },
-    removeBlockFromDisplay(state, payload) {
+    removeBlock(state, payload) {
       // requires the following fields in payload:
       // item_id, block_id
-      var display_order = state.all_item_data[payload.item_id].display_order;
-      const index = display_order.indexOf(payload.block_id);
+      // Remove the block from the display order, but also drop its data from
+      // blocks_obj so that the next save-item does not resurrect the deleted
+      // block in the database, and clear any stale saved status.
+      const item_data = state.all_item_data[payload.item_id];
+      const index = item_data.display_order.indexOf(payload.block_id);
       if (index > -1) {
-        display_order.splice(index, 1);
+        item_data.display_order.splice(index, 1);
       }
+      if (item_data.blocks_obj) {
+        delete item_data.blocks_obj[payload.block_id];
+      }
+      delete state.saved_status_blocks[payload.block_id];
     },
     addFile(state, payload) {
       // requires the following fileds in payload:

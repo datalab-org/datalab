@@ -223,6 +223,18 @@ describe("SampleTable Component Tests", () => {
     cy.contains("Create new collection").should("not.exist");
   });
 
+  it("closes table settings outside but keeps them open when selecting columns", () => {
+    cy.get('[data-testid="table-settings-button"]').click();
+    cy.get('[data-testid="table-settings-menu"]').should("be.visible");
+    cy.get('[data-testid="search-input"]').click();
+    cy.get('[data-testid="table-settings-menu"]').should("not.be.visible");
+
+    cy.get('[data-testid="table-settings-button"]').click();
+    cy.get('[data-testid="table-settings-menu"]').find(".p-multiselect-label-container").click();
+    cy.get('[data-testid="table-settings-menu"]').find(".p-multiselect-option").first().click();
+    cy.get('[data-testid="table-settings-menu"]').should("be.visible");
+  });
+
   it("renders the table with correct headers", () => {
     const headers = [
       "", //checkbox

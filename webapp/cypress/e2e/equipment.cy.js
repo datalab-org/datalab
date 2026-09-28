@@ -9,7 +9,7 @@ Cypress.on("window:before:load", (win) => {
 let item_ids = ["test_e1", "test_e2", "test_e3", "123equipment", "test_e3_copy"];
 
 before(() => {
-  cy.loginViaTestMagicLink("test-user@example.com", "user");
+  cy.loginViaTestMagicLink("test-user@datalab.test");
 });
 
 after(() => {
@@ -17,6 +17,8 @@ after(() => {
 });
 
 before(() => {
+  // Equipment has no creators, so only admins can delete it
+  cy.loginViaTestMagicLink("admin-user@datalab.test");
   cy.visit("/equipment");
   cy.removeAllTestSamples(item_ids);
   cy.visit("/equipment").then(() => {
@@ -25,6 +27,7 @@ before(() => {
 });
 
 after(() => {
+  cy.loginViaTestMagicLink("admin-user@datalab.test");
   cy.visit("/equipment");
   cy.removeAllTestSamples(item_ids);
   cy.visit("/equipment").then(() => {
@@ -34,7 +37,7 @@ after(() => {
 
 describe("Equipment table page", () => {
   beforeEach(() => {
-    cy.loginViaTestMagicLink("test-user@example.com", "user");
+    cy.loginViaTestMagicLink("test-user@datalab.test");
     cy.visit("/equipment");
   });
 
@@ -94,6 +97,8 @@ describe("Equipment table page", () => {
   });
 
   it("Deletes an item", function () {
+    cy.loginViaTestMagicLink("admin-user@datalab.test");
+    cy.visit("/equipment");
     cy.deleteItems("equipment", ["test_e2"]);
 
     cy.contains("test_e2").should("not.exist");
@@ -126,7 +131,7 @@ describe("Equipment table page", () => {
 
 describe("Equipment edit page", () => {
   beforeEach(() => {
-    cy.loginViaTestMagicLink("test-user@example.com", "user");
+    cy.loginViaTestMagicLink("test-user@datalab.test");
     cy.visit("/equipment");
   });
 

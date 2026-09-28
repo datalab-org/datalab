@@ -41,10 +41,10 @@ def save_user(user_id):
         contact_email = request_json.get("contact_email", False)
         account_status = request_json.get("account_status", None)
 
-    if not current_user.is_authenticated and not CONFIG.TESTING:
+    if not current_user.is_authenticated:
         raise Unauthorized("No user authenticated.")
 
-    if not CONFIG.TESTING and current_user.id != user_id and current_user.role != "admin":
+    if current_user.id != user_id and current_user.role != "admin":
         raise Forbidden("Current user not allowed to edit this profile.")
 
     update = {}

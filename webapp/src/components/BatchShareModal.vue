@@ -19,7 +19,14 @@
             </div>
           </div>
 
-          <div class="alert alert-info">
+          <div v-if="isInventory" class="alert alert-info">
+            <small>
+              <font-awesome-icon icon="info-circle" class="mr-1" />
+              Select groups to restrict these items to. Only members of the items' groups will be
+              able to access them. Existing groups will be preserved.
+            </small>
+          </div>
+          <div v-else class="alert alert-info">
             <small>
               <font-awesome-icon icon="info-circle" class="mr-1" />
               Select people and/or groups to add to these items. Existing permissions will be
@@ -28,13 +35,22 @@
           </div>
 
           <div class="form-row">
-            <div class="col-md-6 form-group">
+            <div v-if="!isInventory" class="col-md-6 form-group">
               <label id="creatorsLabel">Add creators (read/write access):</label>
               <UserSelect v-model="newCreators" aria-labelledby="creatorsLabel" multiple />
             </div>
-            <div class="col-md-6 form-group">
-              <label id="groupsLabel">Add groups (read-only access):</label>
-              <GroupSelect v-model="newGroups" aria-labelledby="groupsLabel" multiple />
+            <div :class="isInventory ? 'col-md-12' : 'col-md-6'" class="form-group">
+              <label id="groupsLabel">{{
+                isInventory
+                  ? "Restrict to groups (read/write access):"
+                  : "Add groups (read-only access):"
+              }}</label>
+              <GroupSelect
+                v-model="newGroups"
+                aria-labelledby="groupsLabel"
+                multiple
+                :member-only="isInventory"
+              />
             </div>
           </div>
 
@@ -44,7 +60,7 @@
           >
             <small>
               <font-awesome-icon icon="exclamation-triangle" class="mr-1" />
-              Please select at least one person or group to add.
+              Please select at least {{ isInventory ? "one group" : "one person or group" }} to add.
             </small>
           </div>
         </div>
@@ -66,6 +82,7 @@ import {
   getStartingMaterialList,
   getEquipmentList,
 } from "@/server_fetch_utils";
+import { INVENTORY_TYPES } from "@/resources.js";
 
 export default {
   name: "BatchShareModal",
@@ -88,6 +105,14 @@ export default {
       newCreators: [],
       newGroups: [],
     };
+  },
+  computed: {
+    isInventory() {
+      return (
+        this.itemsSelected.length > 0 &&
+        this.itemsSelected.every((item) => INVENTORY_TYPES.includes(item.type))
+      );
+    },
   },
   methods: {
     async submitForm() {
