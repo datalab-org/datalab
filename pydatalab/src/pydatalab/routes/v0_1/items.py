@@ -1,8 +1,10 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 import copy
 import datetime
 import json
 import secrets
 from hashlib import sha512
+from typing import Literal
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -78,178 +80,61 @@ LAST_MODIFIED_PROJECTION = {"$ifNull": ["$last_modified", {"$toDate": "$_id"}]}
 def _(): ...
 
 
-@ITEMS.route("/equipment/", methods=["GET"])
-def get_equipment_summary():
-    _project = {
-        "_id": 0,
-        "item_id": 1,
-        "name": 1,
-        "type": 1,
-        "date": 1,
-        "last_modified": LAST_MODIFIED_PROJECTION,
-        "refcode": 1,
-        "location": 1,
-        "status": 1,
-        "creators": {
-            "display_name": 1,
-            "gravatar_hash": 1,
-        },
-        "groups": {
-            "display_name": 1,
-            "group_id": 1,
-        },
-    }
-
-    for field in flagged_summary_fields(("equipment",)):
-        _project.setdefault(field, 1)
-
-    items = [
-        doc
-        for doc in flask_mongo.db.items.aggregate(
-            [
-                {
-                    "$match": {
-                        "type": "equipment",
-                        **get_default_permissions(user_only=False, inherit_from_collections=False),
-                    }
-                },
-                {"$lookup": creators_lookup()},
-                {"$lookup": groups_lookup()},
-                {"$project": _project},
-            ]
-        )
-    ]
-    return jsonify({"status": "success", "items": items})
+@ITEMS.route("/items/", methods=["GET"])
+def get_items(
+    item_types: list[str] | None = None,
+    filter: str | None = None,
+    sort: tuple[str, int] | None = None,
+    permissions: Literal["mine", "shared_with_me", "shared_with_my_groups", "all"] = "mine",
+    page_cursor: str | None = None,
+):
+    # parse arguments
+    # handle permissions
+    # get types (cached)
+    # get summary files (cached)
+    # parse filter
+    # handle sorting
+    # get items (paginated)
+    raise NotImplementedError("get_items endpoint is not yet implemented.")
 
 
-@ITEMS.route("/starting-materials/", methods=["GET"])
-def get_starting_materials():
-    _project = {
-        "_id": 0,
-        "item_id": 1,
-        "blocks": {
-            "$map": {
-                "input": {"$objectToArray": {"$ifNull": ["$blocks_obj", {}]}},
-                "as": "b",
-                "in": {
-                    "blocktype": "$$b.v.blocktype",
-                    "title": "$$b.v.title",
-                },
-            }
-        },
-        "collections": {
-            "collection_id": 1,
-        },
-        "nblocks": {"$size": "$display_order"},
-        "nfiles": {"$size": "$file_ObjectIds"},
-        "date": 1,
-        "chemform": 1,
-        "smiles": 1,
-        "inchi_key": 1,
-        "GHS_codes": 1,
-        "molar_mass": 1,
-        "name": 1,
-        "type": 1,
-        "chemical_purity": 1,
-        "barcode": 1,
-        "refcode": 1,
-        "supplier": 1,
-        "location": 1,
-        "status": 1,
-        "CAS": 1,
-        "creators": {
-            "display_name": 1,
-            "gravatar_hash": 1,
-        },
-        "groups": {
-            "display_name": 1,
-            "group_id": 1,
-        },
-    }
+def _get_summary(
+    types: list[str] | None = None,
+    match: dict | None = None,
+    project: dict | None = None,
+    inherit_from_collections: bool = True,
+    include_blocks: bool = True,
+    include_collections: bool = True,
+) -> list[dict]:
+    """Return summaries of the item entries that match some criteria.
 
-    for field in flagged_summary_fields(("starting_materials",)):
-        _project.setdefault(field, 1)
-
-    items = [
-        doc
-        for doc in flask_mongo.db.items.aggregate(
-            [
-                {
-                    "$match": {
-                        "type": "starting_materials",
-                        **get_default_permissions(user_only=False, inherit_from_collections=False),
-                    }
-                },
-                {"$lookup": creators_lookup()},
-                {"$lookup": groups_lookup()},
-                {"$lookup": collections_lookup()},
-                *block_store.blocks_preview_stages(),
-                {
-                    "$project": {
-                        "_id": 0,
-                        "item_id": 1,
-                        "blocks": block_store.blocks_preview_projection(),
-                        "collections": {
-                            "collection_id": 1,
-                        },
-                        "nblocks": {"$size": "$display_order"},
-                        "nfiles": {"$size": "$file_ObjectIds"},
-                        "date": 1,
-                        "last_modified": LAST_MODIFIED_PROJECTION,
-                        "chemform": 1,
-                        "smiles": 1,
-                        "inchi_key": 1,
-                        "GHS_codes": 1,
-                        "molar_mass": 1,
-                        "name": 1,
-                        "type": 1,
-                        "chemical_purity": 1,
-                        "barcode": 1,
-                        "refcode": 1,
-                        "supplier": 1,
-                        "location": 1,
-                        "status": 1,
-                        "CAS": 1,
-                        "creators": {
-                            "display_name": 1,
-                            "gravatar_hash": 1,
-                        },
-                        "groups": {
-                            "display_name": 1,
-                            "group_id": 1,
-                        },
-                    }
-                },
-                {
-                    "$sort": {
-                        "date": -1,
-                    },
-                },
-            ]
-        )
-    ]
-    return jsonify({"status": "success", "items": items})
-
-
-get_starting_materials.methods = ("GET",)  # type: ignore
-
-
-def get_items_summary(match: dict | None = None, project: dict | None = None) -> list[dict]:
-    """Return a summary of item entries that match some criteria.
+    The projected fields are those flagged with `datalab_include_field_in_summary`
+    in the models of the requested item types, alongside some fields that are
+    common to all summaries (type, creators, groups, last modification time) and,
+    optionally, collection and block previews.
 
     Parameters:
+        types: The item types to summarise; defaults to all registered item types.
         match: A MongoDB aggregation match query to filter the results.
         project: A MongoDB aggregation project query to filter the results, relative
             to the default included below.
+        inherit_from_collections: Whether items should inherit read access from the
+            collections they are members of.
+        include_blocks: Whether to include block previews and block/file counts.
+        include_collections: Whether to include the collections each item is in.
 
     """
-    if not match:
-        match = {}
-    match.update(get_default_permissions(user_only=False))
+    match = dict(match) if match else {}
+    match.update(
+        get_default_permissions(user_only=False, inherit_from_collections=inherit_from_collections)
+    )
+    if types is not None:
+        match["type"] = {"$in": types}
 
-    _project = {
+    _project: dict = {
         "_id": 0,
-        "blocks": block_store.blocks_preview_projection(),
+        "type": 1,
+        "last_modified": LAST_MODIFIED_PROJECTION,
         "creators": {
             "display_name": 1,
             "gravatar_hash": 1,
@@ -258,30 +143,24 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
             "display_name": 1,
             "group_id": 1,
         },
-        "collections": {
-            "collection_id": 1,
-            "title": 1,
-        },
-        "item_id": 1,
-        "name": 1,
-        "chemform": 1,
-        "smiles": 1,
-        "inchi_key": 1,
-        "GHS_codes": 1,
-        "molar_mass": 1,
-        "nblocks": {"$size": "$display_order"},
-        "nfiles": {"$size": "$file_ObjectIds"},
-        "characteristic_chemical_formula": 1,
-        "type": 1,
-        "date": 1,
-        "last_modified": LAST_MODIFIED_PROJECTION,
-        "refcode": 1,
-        "status": 1,
     }
+    pipeline: list[dict] = [
+        {"$match": match},
+        {"$lookup": creators_lookup()},
+        {"$lookup": groups_lookup()},
+    ]
 
-    # Include any fields (across all registered item types, including custom
-    # ones) that opt into summaries via `datalab_include_field_in_summary`.
-    for field in flagged_summary_fields(ITEM_MODELS):
+    if include_collections:
+        _project["collections"] = {"collection_id": 1, "title": 1}
+        pipeline.append({"$lookup": collections_lookup()})
+
+    if include_blocks:
+        _project["blocks"] = block_store.blocks_preview_projection()
+        _project["nblocks"] = {"$size": "$display_order"}
+        _project["nfiles"] = {"$size": "$file_ObjectIds"}
+        pipeline.extend(block_store.blocks_preview_stages())
+
+    for field in flagged_summary_fields(types if types is not None else ITEM_MODELS):
         _project.setdefault(field, 1)
 
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
@@ -292,19 +171,41 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
             else:
                 _project[key] = 1
 
-    return list(
-        flask_mongo.db.items.aggregate(
-            [
-                {"$match": match},
-                {"$lookup": creators_lookup()},
-                {"$lookup": groups_lookup()},
-                {"$lookup": collections_lookup()},
-                *block_store.blocks_preview_stages(),
-                {"$project": _project},
-                {"$sort": {"date": -1}},
-            ]
-        )
+    pipeline.extend([{"$project": _project}, {"$sort": {"date": -1}}])
+
+    return list(flask_mongo.db.items.aggregate(pipeline))
+
+
+@ITEMS.route("/equipment/", methods=["GET"])
+def get_equipment_summary():
+    items = _get_summary(
+        ["equipment"],
+        inherit_from_collections=False,
+        include_blocks=False,
+        include_collections=False,
     )
+    return jsonify({"status": "success", "items": items})
+
+
+@ITEMS.route("/starting-materials/", methods=["GET"])
+def get_starting_materials():
+    items = _get_summary(["starting_materials"], inherit_from_collections=False)
+    return jsonify({"status": "success", "items": items})
+
+
+get_starting_materials.methods = ("GET",)  # type: ignore
+
+
+def get_items_summary(match: dict | None = None, project: dict | None = None) -> list[dict]:
+    """Return a summary of item entries of any type that match some criteria.
+
+    Parameters:
+        match: A MongoDB aggregation match query to filter the results.
+        project: A MongoDB aggregation project query to filter the results, relative
+            to the default included below.
+
+    """
+    return _get_summary(match=match, project=project)
 
 
 def get_samples_summary(match: dict | None = None, project: dict | None = None) -> list[dict]:
@@ -316,73 +217,19 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
             to the default included below.
 
     """
-    if not match:
-        match = {}
-    match.update(get_default_permissions(user_only=False, inherit_from_collections=False))
     # Custom/plugin item types are surfaced in the samples listing for now (a
     # `base_type`-aware split into samples/equipment/inventory can refine this later).
     custom_item_types = [t for t in ITEM_MODELS if t not in BUILTIN_ITEM_TYPES]
-    match["type"] = {"$in": ["samples", "cells", *custom_item_types]}
 
-    _project = {
-        "_id": 0,
-        "blocks": block_store.blocks_preview_projection(),
-        "creators": {
-            "display_name": 1,
-            "gravatar_hash": 1,
-        },
-        "groups": {
-            "display_name": 1,
-            "group_id": 1,
-        },
-        "collections": {
-            "collection_id": 1,
-            "title": 1,
-        },
-        "item_id": 1,
-        "name": 1,
-        "chemform": 1,
-        "GHS_codes": 1,
-        "smiles": 1,
-        "molar_mass": 1,
-        "CAS": 1,
-        "nblocks": {"$size": "$display_order"},
-        "nfiles": {"$size": "$file_ObjectIds"},
-        "characteristic_chemical_formula": 1,
-        "type": 1,
-        "date": 1,
-        "last_modified": LAST_MODIFIED_PROJECTION,
-        "refcode": 1,
-        "status": 1,
-    }
+    project = dict(project) if project else {}
     if FEATURE_FLAGS.tags:
-        _project["tags"] = 1
+        project.setdefault("tags", 1)
 
-    # Include any fields on samples/cells/custom types that opt into summaries
-    # via `datalab_include_field_in_summary`.
-    for field in flagged_summary_fields(ITEM_MODELS):
-        _project.setdefault(field, 1)
-
-    # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
-    if project:
-        for key in project:
-            if project[key] == 0:
-                _project.pop(key, None)
-            else:
-                _project[key] = 1
-
-    samples = list(
-        flask_mongo.db.items.aggregate(
-            [
-                {"$match": match},
-                {"$lookup": creators_lookup()},
-                {"$lookup": groups_lookup()},
-                {"$lookup": collections_lookup()},
-                *block_store.blocks_preview_stages(),
-                {"$project": _project},
-                {"$sort": {"date": -1}},
-            ]
-        )
+    samples = _get_summary(
+        ["samples", "cells", *custom_item_types],
+        match=match,
+        project=project,
+        inherit_from_collections=False,
     )
     if FEATURE_FLAGS.tags:
         resolve_tags_for_docs(samples)

@@ -1186,6 +1186,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "A string representation of the chemical formula or composition associated with this sample.\n\nThe representation is relatively free-form; clients are expected parse and interpret HTML markup for subscripts\nand accept unicode characters for greek letters.",
       "examples": [
@@ -1206,6 +1207,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "A SMILES string representation of the chemical structure associated with this sample.",
       "title": "Smiles"
@@ -1219,6 +1221,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": false,
       "default": null,
       "description": "An International Chemical Identifier (InChI) string representation of chemicals/molecules associated with this sample.",
       "title": "Inchi"
@@ -1232,6 +1235,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "A unique key derived from the InChI.",
       "title": "Inchi Key"
@@ -1245,6 +1249,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "A string describing any GHS hazard codes associated with this item. See https://pubchem.ncbi.nlm.nih.gov/ghs/ for code definitions.",
       "examples": [
@@ -1262,6 +1267,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "Mass per formula unit, in g/mol.",
       "title": "Molar Mass"
@@ -1275,6 +1281,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "The CAS Registry Number for the substance described by this entry.",
       "title": "Cas"
@@ -1343,6 +1350,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "The place where the item is located.",
       "title": "Location"
@@ -1506,11 +1514,13 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "A globally unique immutable ID comprised of the deployment prefix (e.g., `grey`) and a locally unique string, ideally created with some consistent scheme.",
       "title": "Refcode"
     },
     "item_id": {
+      "datalab_include_field_in_summary": true,
       "description": "A locally unique, human-readable identifier for the entry. This ID is mutable.",
       "maxLength": 40,
       "minLength": 1,
@@ -1541,6 +1551,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "The date the item was acquired",
       "title": "Date"
@@ -1554,12 +1565,14 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "The name of the substance in the container.",
       "title": "Name"
     },
     "status": {
       "$ref": "#/$defs/StartingMaterialsStatus",
+      "datalab_include_field_in_summary": true,
       "default": "available",
       "description": "The status of the starting materials, indicating its current state."
     },
@@ -1572,6 +1585,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "A unique barcode provided by an external source, e.g., cheminventory.",
       "title": "Barcode"
@@ -1586,6 +1600,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": false,
       "default": null,
       "description": "The date the item was opened",
       "title": "Date Opened"
@@ -1599,6 +1614,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "The chemical purity of this container with regards to the defined substance.",
       "title": "Chemical Purity"
@@ -1612,6 +1628,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": false,
       "default": null,
       "description": "The amount of the defined substance remaining in the container, expressed as a percentage.",
       "title": "Full Percent"
@@ -1625,6 +1642,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": false,
       "default": null,
       "description": "The total size of the container, in units of `size_unit`.",
       "title": "Size"
@@ -1638,6 +1656,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": false,
       "default": null,
       "description": "Units for the 'size' field.",
       "title": "Size Unit"
@@ -1651,6 +1670,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "Supplier or manufacturer of the chemical.",
       "title": "Supplier"
@@ -1664,6 +1684,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": false,
       "default": null,
       "description": "Any additional comments or notes about the container.",
       "title": "Comment"

@@ -1151,6 +1151,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "The place where the item is located.",
       "title": "Location"
@@ -1314,11 +1315,13 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "A globally unique immutable ID comprised of the deployment prefix (e.g., `grey`) and a locally unique string, ideally created with some consistent scheme.",
       "title": "Refcode"
     },
     "item_id": {
+      "datalab_include_field_in_summary": true,
       "description": "A locally unique, human-readable identifier for the entry. This ID is mutable.",
       "maxLength": 40,
       "minLength": 1,
@@ -1349,6 +1352,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "A relevant 'creation' timestamp for the entry (e.g., purchase date, synthesis date).",
       "title": "Date"
@@ -1362,12 +1366,14 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "An optional human-readable/usable name for the entry.",
       "title": "Name"
     },
     "status": {
       "$ref": "#/$defs/EquipmentStatus",
+      "datalab_include_field_in_summary": true,
       "default": "working",
       "description": "The status of the equipment, indicating its current state."
     },
