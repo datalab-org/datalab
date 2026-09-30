@@ -57,6 +57,7 @@ import {
   faPlus,
   faCheck,
   faCheckCircle,
+  faCheckSquare,
   faBold,
   faItalic,
   faUnderline,
@@ -68,6 +69,7 @@ import {
   faAlignRight,
   faAlignJustify,
   faListUl,
+  faStream,
   faImage,
   faTable,
   faMinus,
@@ -83,6 +85,7 @@ import {
   faCaretDown,
   faLock,
   faClock,
+  faUser,
 } from "@fortawesome/free-solid-svg-icons";
 import { faPlusSquare } from "@fortawesome/free-regular-svg-icons";
 import { faGithub, faOrcid, faGoogle, faMicrosoft } from "@fortawesome/free-brands-svg-icons";
@@ -140,6 +143,7 @@ library.add(
   faInfoCircle,
   faCheck,
   faCheckCircle,
+  faCheckSquare,
   faBold,
   faItalic,
   faUnderline,
@@ -151,6 +155,7 @@ library.add(
   faAlignRight,
   faAlignJustify,
   faListUl,
+  faStream,
   faImage,
   faTable,
   faMinus,
@@ -166,6 +171,7 @@ library.add(
   faCaretDown,
   faLock,
   faClock,
+  faUser,
 );
 
 // import "@uppy/vue"

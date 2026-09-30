@@ -43,6 +43,22 @@
             <ToggleableGroupsFormGroup v-model="ItemGroups" :refcode="Refcode" />
           </div>
         </div>
+        <div v-if="enableTags" class="form-row">
+          <div class="form-group col-12 pb-3">
+            <ToggleableTagsFormGroup v-model="Tags" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-lg-12 col-sm-12">
+            <label id="cell-location-label">Location</label>
+            <LocationInput
+              v-model="Location"
+              :hierarchy="$store.getters.getLocationHierarchy"
+              input-id="cell-location"
+              labelled-by="cell-location-label"
+            />
+          </div>
+        </div>
         <div class="form-row">
           <div class="form-group col-sm-4 pr-2">
             <label for="cell-format-dropdown">Cell format</label>
@@ -126,7 +142,10 @@ import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionForm
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
 import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
+import ToggleableTagsFormGroup from "@/components/ToggleableTagsFormGroup";
+import LocationInput from "@/components/LocationInput";
 import { cellFormats } from "@/resources.js";
+import { getLocations } from "@/server_fetch_utils.js";
 
 export default {
   components: {
@@ -140,6 +159,8 @@ export default {
     ToggleableCreatorsFormGroup,
     ToggleableItemStatusFormGroup,
     ToggleableGroupsFormGroup,
+    ToggleableTagsFormGroup,
+    LocationInput,
   },
   props: {
     item_id: {
@@ -174,13 +195,21 @@ export default {
     CellFormatDescription: createComputedSetterForItemField("cell_format_description"),
     CharacteristicMass: createComputedSetterForItemField("characteristic_mass"),
     Collections: createComputedSetterForItemField("collections"),
+    Tags: createComputedSetterForItemField("tags"),
     Status: createComputedSetterForItemField("status"),
+    Location: createComputedSetterForItemField("location"),
+    enableTags() {
+      return this.$store.state.serverInfo?.features?.tags ?? false;
+    },
     schema() {
       return this.$store.state.schemas[this.item?.type];
     },
     possibleItemStatuses() {
       return this.schema?.attributes?.schema?.["$defs"]?.CellStatus?.enum;
     },
+  },
+  created() {
+    getLocations();
   },
 };
 </script>

@@ -238,3 +238,47 @@ def test_groups(
 
     managers = database.groups.find_one({"_id": group_immutable_id})["managers"]
     assert ObjectId(another_user_id) not in managers
+
+
+def test_user_update_unchanged_email_reverification(client, database, user_id, monkeypatch):
+    import pydatalab.routes.v0_1.users
+
+    sent = []
+    monkeypatch.setattr(
+        pydatalab.routes.v0_1.users,
+        "_send_magic_link_email",
+        lambda **kwargs: sent.append(kwargs["email"]),
+    )
+
+    endpoint = f"/users/{str(user_id)}"
+    resp = client.patch(endpoint, json={"contact_email": "unchanged@example.org"})
+    assert resp.status_code == 200
+    assert sent == ["unchanged@example.org"]
+
+    # Re-submitting the same (still unverified) email should re-send the verification
+    resp = client.patch(
+        endpoint, json={"display_name": "Test Person", "contact_email": "unchanged@example.org"}
+    )
+    assert resp.status_code == 200
+    assert "Verification email sent" in resp.json["message"]
+    assert sent == ["unchanged@example.org", "unchanged@example.org"]
+    user = database.users.find_one({"_id": user_id})
+    assert user["contact_email"] == "unchanged@example.org"
+    assert len([i for i in user["identities"] if i["identifier"] == "unchanged@example.org"]) == 1
+
+    # Now set verified and check the same behaviour
+    database.users.update_one(
+        {"_id": user_id, "identities.identifier": "unchanged@example.org"},
+        {"$set": {"identities.$.verified": True}},
+    )
+
+    resp = client.patch(
+        endpoint, json={"display_name": "Test Person", "contact_email": "unchanged@example.org"}
+    )
+
+    assert resp.status_code == 200
+    assert "Verification email sent" not in resp.json["message"]
+    assert sent == ["unchanged@example.org", "unchanged@example.org"]
+    user = database.users.find_one({"_id": user_id})
+    assert user["contact_email"] == "unchanged@example.org"
+    assert len([i for i in user["identities"] if i["identifier"] == "unchanged@example.org"]) == 1

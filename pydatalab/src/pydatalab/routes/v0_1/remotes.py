@@ -40,10 +40,7 @@ def list_remote_directories():
     then it will be reconstructed.
 
     """
-    if (
-        not (current_user.is_authenticated and current_user.account_status == "active")
-        and not CONFIG.TESTING
-    ):
+    if not (current_user.is_authenticated and current_user.account_status == "active"):
         return (
             jsonify(
                 {
@@ -92,7 +89,7 @@ def get_remote_directory(remote_id: str):
     given configured remote name.
 
     """
-    if not current_user.is_authenticated and not CONFIG.TESTING:
+    if not current_user.is_authenticated:
         return (
             jsonify(
                 {

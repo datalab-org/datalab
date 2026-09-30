@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 import pydatalab.mongo
 from pydatalab import file_utils
 from pydatalab.config import CONFIG
-from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only, get_default_permissions
+from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 
 FILES = Blueprint("files", __name__)
 
@@ -69,7 +69,7 @@ def upload():
 
     """
 
-    if not current_user.is_authenticated and not CONFIG.TESTING:
+    if not current_user.is_authenticated:
         return (
             jsonify(
                 {
@@ -88,10 +88,7 @@ def upload():
     item_id = request.form["item_id"]
     replace_file_id = request.form["replace_file"]
 
-    if not CONFIG.TESTING:
-        creator_id = current_user.person.immutable_id
-    else:
-        creator_id = PUBLIC_USER_ID
+    creator_id = current_user.person.immutable_id
 
     is_update = replace_file_id and replace_file_id != "null"
     file = request.files[next(iter(request.files))]
@@ -130,7 +127,7 @@ def upload():
 
 @FILES.route("/add-remote-file-to-sample/", methods=["POST"])
 def add_remote_file_to_sample():
-    if not current_user.is_authenticated and not CONFIG.TESTING:
+    if not current_user.is_authenticated:
         return (
             jsonify(
                 {
@@ -146,10 +143,7 @@ def add_remote_file_to_sample():
     item_id = request_json["item_id"]
     file_entry = request_json["file_entry"]
 
-    if not CONFIG.TESTING:
-        creator_id = current_user.person.immutable_id
-    else:
-        creator_id = ObjectId(24 * "0")
+    creator_id = current_user.person.immutable_id
 
     updated_file_entry = file_utils.add_file_from_remote_directory(
         file_entry, item_id, creator_ids=[creator_id]
@@ -171,7 +165,7 @@ def add_remote_file_to_sample():
 def delete_file_from_sample():
     """Remove a file from a sample, but don't delete the actual file (for now)"""
 
-    if not current_user.is_authenticated and not CONFIG.TESTING:
+    if not current_user.is_authenticated:
         return (
             jsonify(
                 {
@@ -230,7 +224,7 @@ def delete_file_from_sample():
 def delete_file():
     """delete a data file from the uploads/item_id folder"""
 
-    if not current_user.is_authenticated and not CONFIG.TESTING:
+    if not current_user.is_authenticated:
         return (
             jsonify(
                 {

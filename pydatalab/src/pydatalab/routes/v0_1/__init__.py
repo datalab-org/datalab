@@ -14,6 +14,7 @@ from .info import INFO
 from .items import ITEMS
 from .notifications import NOTIFICATIONS
 from .remotes import REMOTES
+from .tags import TAGS
 from .users import USERS
 
 BLUEPRINTS: tuple[Blueprint, ...] = (
@@ -31,6 +32,7 @@ BLUEPRINTS: tuple[Blueprint, ...] = (
     NOTIFICATIONS,
     GRAPHS,
     EXPORT,
+    TAGS,
 )
 
 __all__ = ("BLUEPRINTS", "OAUTH", "__api_version__", "OAUTH_PROXIES")

@@ -1,9 +1,20 @@
 import datetime
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+import pytest
 from bson import ObjectId
+from flask import session
 
-from pydatalab.routes.v0_1.auth import _check_email_domain
+from pydatalab.routes.v0_1.auth import (
+    REMEMBER_ME_SESSION_KEY,
+    _check_email_domain,
+    _generate_and_store_token,
+    _is_safe_oauth_next_path,
+    _oauth_next_session_key,
+    redirect_to_ui,
+    store_oauth_next_path,
+)
 
 
 def test_allow_emails():
@@ -18,11 +29,79 @@ def test_allow_emails():
     assert not _check_email_domain("test@example2.org", ["example.org"])
 
 
+def test_oauth_next_path_validation():
+    assert _is_safe_oauth_next_path("/collections?view=mine#results")
+    assert not _is_safe_oauth_next_path(None)
+    assert not _is_safe_oauth_next_path("collections")
+    assert not _is_safe_oauth_next_path("//other-site.example/collections")
+    assert not _is_safe_oauth_next_path("https://other-site.example/collections")
+    assert not _is_safe_oauth_next_path("/\\other-site.example/collections")
+    assert not _is_safe_oauth_next_path("/collections\nLocation: https://other-site.example")
+    assert not _is_safe_oauth_next_path(f"/{'a' * 2048}")
+
+
+def test_store_oauth_next_path(app):
+    blueprint = SimpleNamespace(name="github")
+    session_key = _oauth_next_session_key(blueprint.name)
+
+    with app.test_request_context(
+        "/login/github", query_string={"next": "/collections?view=mine#results"}
+    ):
+        store_oauth_next_path(blueprint, "https://github.com/login/oauth/authorize")
+        assert session[session_key] == "/collections?view=mine#results"
+
+
+def test_store_oauth_next_path_rejects_external_url(app):
+    blueprint = SimpleNamespace(name="github")
+    session_key = _oauth_next_session_key(blueprint.name)
+
+    with app.test_request_context(
+        "/login/github", query_string={"next": "//other-site.example/collections"}
+    ):
+        session[session_key] = "/stale-path"
+        store_oauth_next_path(blueprint, "https://github.com/login/oauth/authorize")
+        assert session_key not in session
+
+
+def test_oauth_redirect_uses_next_path_once(app, monkeypatch):
+    from pydatalab import config
+
+    blueprint = SimpleNamespace(name="github")
+    session_key = _oauth_next_session_key(blueprint.name)
+    monkeypatch.setattr(config.CONFIG, "APP_URL", "https://datalab.example/app")
+
+    with app.test_request_context("/"):
+        session[session_key] = "/collections?view=mine#results"
+        response = redirect_to_ui(blueprint, None)
+
+        assert response.location == "https://datalab.example/app/collections?view=mine#results"
+        assert session_key not in session
+
+        session[session_key] = "/https://other-site.example/collections"
+        response = redirect_to_ui(blueprint, None)
+        assert (
+            response.location
+            == "https://datalab.example/app/https://other-site.example/collections"
+        )
+
+
+def test_oauth_redirect_without_next_uses_app_url(app, monkeypatch):
+    from pydatalab import config
+
+    blueprint = SimpleNamespace(name="github")
+    monkeypatch.setattr(config.CONFIG, "APP_URL", "https://datalab.example/app")
+
+    with app.test_request_context("/"):
+        response = redirect_to_ui(blueprint, None)
+
+        assert response.location == "https://datalab.example/app"
+
+
 def test_magic_link_account_creation(unauthenticated_client, app, database):
     with app.extensions["mail"].record_messages() as outbox:
         response = unauthenticated_client.post(
             "/login/magic-link",
-            json={"email": "test@ml-evs.science", "referrer": "datalab.example.org"},
+            json={"email": "test@datalab-org.io", "referrer": "datalab.example.org"},
         )
         assert response.json["message"] == "Email sent successfully."
         assert response.status_code == 200
@@ -34,7 +113,7 @@ def test_magic_link_account_creation(unauthenticated_client, app, database):
     with app.extensions["mail"].record_messages() as outbox:
         response = unauthenticated_client.get(f"/login/email?token={doc['jwt']}")
         assert response.status_code == 307
-        new_user = database.users.find_one({"contact_email": "test@ml-evs.science"})
+        new_user = database.users.find_one({"contact_email": "test@datalab-org.io"})
         assert new_user
         assert new_user["account_status"] == "unverified"
         assert len(outbox) == 1  # Should be a notification to admins
@@ -44,7 +123,7 @@ def test_magic_links_expected_failures(unauthenticated_client, app):
     with app.extensions["mail"].record_messages() as outbox:
         response = unauthenticated_client.post(
             "/login/magic-link",
-            json={"email": "test@ml-evs.science"},
+            json={"email": "test@datalab-org.io"},
         )
         assert response.status_code == 400
         assert len(outbox) == 0
@@ -74,7 +153,7 @@ def test_magic_link_auth_can_be_disabled(unauthenticated_client, app, database, 
     with app.extensions["mail"].record_messages() as outbox:
         response = unauthenticated_client.post(
             "/login/magic-link",
-            json={"email": "test@ml-evs.science", "referrer": "datalab.example.org"},
+            json={"email": "test@datalab-org.io", "referrer": "datalab.example.org"},
         )
         assert response.status_code == 403
         assert (
@@ -91,6 +170,86 @@ def test_magic_link_auth_can_be_disabled(unauthenticated_client, app, database, 
             == "Magic-link authentication is disabled for this datalab instance."
         )
         assert len(outbox) == 0
+
+
+@pytest.mark.parametrize("remember", [True, False])
+def test_magic_link_remember_me(unauthenticated_client, app, database, remember):
+    """Only magic-link logins that opt in to "remember me" should get a persistent session
+    cookie; others should end when the browser is closed."""
+    database.magic_links.delete_many({})
+
+    with app.extensions["mail"].record_messages():
+        response = unauthenticated_client.post(
+            "/login/magic-link",
+            json={
+                "email": "remember-me@datalab-org.io",
+                "referrer": "datalab.example.org",
+                "remember": remember,
+            },
+        )
+        assert response.status_code == 200
+
+        doc = database.magic_links.find_one()
+        response = unauthenticated_client.get(f"/login/email?token={doc['jwt']}")
+        assert response.status_code == 307
+
+    cookies = [c for c in response.headers.getlist("Set-Cookie") if c.startswith("session=")]
+    assert len(cookies) == 1
+    assert ("Expires=" in cookies[0]) is remember
+
+    with unauthenticated_client.session_transaction() as sess:
+        assert REMEMBER_ME_SESSION_KEY not in sess
+
+
+def test_magic_link_for_new_email_does_not_attach_to_current_user(
+    session_client, app, database, user_id
+):
+    """Following a registration link while logged in should create a new account for
+    that email, rather than attaching the email to the logged in user's account."""
+    email = "new-identity@datalab-org.io"
+    with app.app_context():
+        token = _generate_and_store_token(email, intent="register")
+
+    with app.extensions["mail"].record_messages():
+        response = session_client.get(f"/login/email?token={token}")
+    assert response.status_code == 307
+
+    assert not database.users.find_one({"_id": user_id, "identities.identifier": email})
+    new_user = database.users.find_one({"identities.identifier": email})
+    assert new_user["_id"] != user_id
+    with session_client.session_transaction() as sess:
+        assert sess["_user_id"] == str(new_user["_id"])
+
+    database.users.delete_one({"_id": new_user["_id"]})
+
+
+def test_magic_link_switches_logged_in_user(session_client, app, database, user_id):
+    """Following a login link for another user's email while logged in should log in
+    as that user, without modifying either account."""
+    email = "existing-identity@datalab-org.io"
+    other_user_id = ObjectId()
+    database.users.insert_one(
+        {
+            "_id": other_user_id,
+            "display_name": "Existing Identity",
+            "account_status": "active",
+            "identities": [
+                {"identity_type": "email", "identifier": email, "name": email, "verified": True}
+            ],
+        }
+    )
+    with app.app_context():
+        token = _generate_and_store_token(email, intent="login")
+
+    response = session_client.get(f"/login/email?token={token}")
+    assert response.status_code == 307
+
+    assert not database.users.find_one({"_id": user_id, "identities.identifier": email})
+    assert database.users.count_documents({"identities.identifier": email}) == 1
+    with session_client.session_transaction() as sess:
+        assert sess["_user_id"] == str(other_user_id)
+
+    database.users.delete_one({"_id": other_user_id})
 
 
 # ──────────────────────────────────────────────
@@ -382,6 +541,32 @@ def test_github_login_success(database, app, monkeypatch):
     user = database.users.find_one({"identities.identifier": "12345"})
     assert user is not None
     assert user["display_name"] == "The Octocat"
+
+
+@pytest.mark.parametrize("remember", [True, False])
+def test_oauth_login_remember_me(database, app, monkeypatch, remember):
+    """The "remember me" flag passed when starting an OAuth login should decide
+    whether the resulting session persists beyond the browser session."""
+    from pydatalab import config
+    from pydatalab.routes.v0_1.auth import github_logged_in
+
+    monkeypatch.setattr(config.CONFIG, "GITHUB_ORG_ALLOW_LIST", None)
+
+    fake_resp = MagicMock()
+    fake_resp.ok = True
+    fake_resp.json.return_value = {"id": 54321, "login": "rememberer", "name": "Remember Me"}
+    fake_blueprint = MagicMock()
+    fake_blueprint.name = "github"
+    fake_blueprint.session.get.return_value = fake_resp
+
+    query_string = {"remember": "1"} if remember else {}
+    with app.test_request_context("/login/github", query_string=query_string):
+        store_oauth_next_path(fake_blueprint, "https://github.com/login/oauth/authorize")
+        assert (REMEMBER_ME_SESSION_KEY in session) is remember
+
+        github_logged_in(fake_blueprint, token={"access_token": "fake-token"})
+        assert session.permanent is remember
+        assert REMEMBER_ME_SESSION_KEY not in session
 
 
 def test_github_login_no_token(database, app):

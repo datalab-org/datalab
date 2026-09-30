@@ -1,4 +1,5 @@
 import datetime
+import inspect
 import os
 import pathlib
 import time
@@ -7,7 +8,7 @@ from urllib.parse import urlparse
 from uuid import uuid4
 
 from dotenv import dotenv_values
-from flask import Flask, g, redirect, request, url_for
+from flask import Flask, g, redirect, request, session, url_for
 from flask_compress import Compress
 from flask_cors import CORS
 from flask_login import current_user, logout_user
@@ -170,7 +171,8 @@ def create_app(
     # Override the default provider with a version that can handle ObjectIDs and returns isofromat dates
     app.json = BSONProvider(app)
 
-    # Make the session permanent so that it doesn't expire on browser close, but instead adds a lifetime
+    # Lifetime of sessions for users who opt in to "remember me" at login (see `wrapped_login_user`);
+    # other sessions end when the browser is closed
     app.permanent_session_lifetime = datetime.timedelta(hours=CONFIG.SESSION_LIFETIME)
 
     # Must use the full path so that this object can be mocked for testing
@@ -196,12 +198,23 @@ def create_app(
     def log_request(response):
         """Write a single access log line per request handled."""
         duration_ms = 1000 * (time.perf_counter() - g.start_time)
+
+        # Attribute the line to the route that handled the request, rather than to this hook
+        source = None
+        view_func = app.view_functions.get(request.endpoint) if request.endpoint else None
+        if view_func is not None:
+            view_func = inspect.unwrap(view_func)
+            code = getattr(view_func, "__code__", None)
+            if code is not None:
+                source = f"{view_func.__module__}:{view_func.__name__}:{code.co_firstlineno}"
+
         LOGGER.info(
             '"%s %s" %s in %.1fms',
             request.method,
             request.path,
             response.status_code,
             duration_ms,
+            extra={"source_override": source},
         )
         return response
 
@@ -218,6 +231,8 @@ def create_app(
     def logout():
         """Logs out the local user from the current session."""
         logout_user()
+        # Don't leave a long-lived session cookie behind after a "remember me" session
+        session.permanent = False
         return redirect(request.environ.get("HTTP_REFERER", "/"))
 
     @app.route(CONFIG.ROOT_PATH)

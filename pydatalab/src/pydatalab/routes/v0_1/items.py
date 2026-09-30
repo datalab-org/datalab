@@ -11,12 +11,19 @@ from flask import Blueprint, jsonify, redirect, request
 from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
-from werkzeug.exceptions import BadRequest, Conflict, InternalServerError, NotFound
+from werkzeug.exceptions import BadRequest, Conflict, Forbidden, InternalServerError, NotFound
 
 from pydatalab.apps import BLOCK_TYPES
+from pydatalab.blocks import store as block_store
 from pydatalab.config import CONFIG
+from pydatalab.feature_flags import FEATURE_FLAGS
 from pydatalab.logger import LOGGER
-from pydatalab.models import ITEM_MODELS, ItemVersion, flagged_summary_fields
+from pydatalab.models import (
+    BUILTIN_ITEM_TYPES,
+    ITEM_MODELS,
+    ItemVersion,
+    flagged_summary_fields,
+)
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import (
@@ -36,14 +43,21 @@ from pydatalab.mongo import (
     flask_mongo,
     get_items_fts_fields,
     groups_lookup,
+    resolve_tags_for_docs,
 )
 from pydatalab.permissions import (
-    PUBLIC_USER_ID,
+    INVENTORY_TYPES,
     AccessToken,
     access_token_or_active_users,
     active_users_or_get_only,
+    can_assign_groups,
     check_access_token,
     get_default_permissions,
+)
+from pydatalab.tags import (
+    authorize_added_tags,
+    strip_tag_display_fields,
+    tag_immutable_ids,
 )
 from pydatalab.versioning import (
     apply_protected_fields,
@@ -53,9 +67,6 @@ from pydatalab.versioning import (
 )
 
 ITEMS = Blueprint("items", __name__)
-
-# item types that should be accessed by anyone with an account
-ACCESSIBLE_TYPES = ("equipment", "starting_materials")
 
 # Legacy items predate `last_modified` being set on creation, so fall back to the
 # creation time embedded in their ObjectId.
@@ -79,6 +90,14 @@ def get_equipment_summary():
         "refcode": 1,
         "location": 1,
         "status": 1,
+        "creators": {
+            "display_name": 1,
+            "gravatar_hash": 1,
+        },
+        "groups": {
+            "display_name": 1,
+            "group_id": 1,
+        },
     }
 
     for field in flagged_summary_fields(("equipment",)):
@@ -91,8 +110,11 @@ def get_equipment_summary():
                 {
                     "$match": {
                         "type": "equipment",
+                        **get_default_permissions(user_only=False, inherit_from_collections=False),
                     }
                 },
+                {"$lookup": creators_lookup()},
+                {"$lookup": groups_lookup()},
                 {"$project": _project},
             ]
         )
@@ -135,6 +157,14 @@ def get_starting_materials():
         "location": 1,
         "status": 1,
         "CAS": 1,
+        "creators": {
+            "display_name": 1,
+            "gravatar_hash": 1,
+        },
+        "groups": {
+            "display_name": 1,
+            "group_id": 1,
+        },
     }
 
     for field in flagged_summary_fields(("starting_materials",)):
@@ -150,21 +180,15 @@ def get_starting_materials():
                         **get_default_permissions(user_only=False, inherit_from_collections=False),
                     }
                 },
+                {"$lookup": creators_lookup()},
+                {"$lookup": groups_lookup()},
                 {"$lookup": collections_lookup()},
+                *block_store.blocks_preview_stages(),
                 {
                     "$project": {
                         "_id": 0,
                         "item_id": 1,
-                        "blocks": {
-                            "$map": {
-                                "input": {"$objectToArray": {"$ifNull": ["$blocks_obj", {}]}},
-                                "as": "b",
-                                "in": {
-                                    "blocktype": "$$b.v.blocktype",
-                                    "title": "$$b.v.title",
-                                },
-                            }
-                        },
+                        "blocks": block_store.blocks_preview_projection(),
                         "collections": {
                             "collection_id": 1,
                         },
@@ -186,6 +210,14 @@ def get_starting_materials():
                         "location": 1,
                         "status": 1,
                         "CAS": 1,
+                        "creators": {
+                            "display_name": 1,
+                            "gravatar_hash": 1,
+                        },
+                        "groups": {
+                            "display_name": 1,
+                            "group_id": 1,
+                        },
                     }
                 },
                 {
@@ -217,17 +249,7 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
 
     _project = {
         "_id": 0,
-        "blocks": {
-            "$map": {
-                "input": {"$objectToArray": {"$ifNull": ["$blocks_obj", {}]}},
-                "as": "b",
-                "in": {
-                    "block_id": "$$b.k",
-                    "blocktype": "$$b.v.blocktype",
-                    "title": "$$b.v.title",
-                },
-            }
-        },
+        "blocks": block_store.blocks_preview_projection(),
         "creators": {
             "display_name": 1,
             "gravatar_hash": 1,
@@ -277,6 +299,7 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
                 {"$lookup": creators_lookup()},
                 {"$lookup": groups_lookup()},
                 {"$lookup": collections_lookup()},
+                *block_store.blocks_preview_stages(),
                 {"$project": _project},
                 {"$sort": {"date": -1}},
             ]
@@ -296,20 +319,14 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
     if not match:
         match = {}
     match.update(get_default_permissions(user_only=False, inherit_from_collections=False))
-    match["type"] = {"$in": ["samples", "cells"]}
+    # Custom/plugin item types are surfaced in the samples listing for now (a
+    # `base_type`-aware split into samples/equipment/inventory can refine this later).
+    custom_item_types = [t for t in ITEM_MODELS if t not in BUILTIN_ITEM_TYPES]
+    match["type"] = {"$in": ["samples", "cells", *custom_item_types]}
 
     _project = {
         "_id": 0,
-        "blocks": {
-            "$map": {
-                "input": {"$objectToArray": {"$ifNull": ["$blocks_obj", {}]}},
-                "as": "b",
-                "in": {
-                    "blocktype": "$$b.v.blocktype",
-                    "title": "$$b.v.title",
-                },
-            }
-        },
+        "blocks": block_store.blocks_preview_projection(),
         "creators": {
             "display_name": 1,
             "gravatar_hash": 1,
@@ -338,10 +355,12 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
         "refcode": 1,
         "status": 1,
     }
+    if FEATURE_FLAGS.tags:
+        _project["tags"] = 1
 
-    # Include any fields on samples/cells (including custom subclasses) that opt
-    # into summaries via `datalab_include_field_in_summary`.
-    for field in flagged_summary_fields(("samples", "cells")):
+    # Include any fields on samples/cells/custom types that opt into summaries
+    # via `datalab_include_field_in_summary`.
+    for field in flagged_summary_fields(ITEM_MODELS):
         _project.setdefault(field, 1)
 
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
@@ -352,18 +371,23 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
             else:
                 _project[key] = 1
 
-    return list(
+    samples = list(
         flask_mongo.db.items.aggregate(
             [
                 {"$match": match},
                 {"$lookup": creators_lookup()},
                 {"$lookup": groups_lookup()},
                 {"$lookup": collections_lookup()},
+                *block_store.blocks_preview_stages(),
                 {"$project": _project},
                 {"$sort": {"date": -1}},
             ]
         )
     )
+    if FEATURE_FLAGS.tags:
+        resolve_tags_for_docs(samples)
+
+    return samples
 
 
 def entry_reference_lookup(item_doc: dict) -> dict:
@@ -389,6 +413,7 @@ def entry_reference_lookup(item_doc: dict) -> dict:
 
     # Otherwise, we need to loop do the relevant lookup
     dereferenced_fields: dict[str, list] = {}
+    read_permissions = get_default_permissions(user_only=False)
     for field in reference_fields[item_type]:
         preferred_refs: list[dict | None] = []
         dereferenced_fields[field] = []
@@ -416,9 +441,10 @@ def entry_reference_lookup(item_doc: dict) -> dict:
                 preferred_refs.append({"item_id": constituent.item.item_id})
 
         for ind, ref in enumerate(preferred_refs):
+            deref = None
             if ref:
                 deref = flask_mongo.db.items.find_one(
-                    {**ref, **get_default_permissions()},
+                    {**ref, **read_permissions},
                     projection={
                         "name": 1,
                         "item_id": 1,
@@ -428,8 +454,17 @@ def entry_reference_lookup(item_doc: dict) -> dict:
                         "_id": 0,
                     },
                 )
-            # If the source item has been deleted, is inlined or is inaccessible, use the original subitem data
-            if not ref or not deref:
+                if not deref:
+                    # If the source item exists but is inaccessible, only refresh its identifiers
+                    # and keep the rest of the originally stored data (e.g., name, chemform)
+                    identifiers = flask_mongo.db.items.find_one(
+                        ref, projection={"item_id": 1, "refcode": 1, "type": 1, "_id": 0}
+                    )
+                    if identifiers:
+                        deref = {**item_doc[field][ind].get("item", {}), **identifiers}
+
+            # If the source item has been deleted or is inlined, use the original subitem data
+            if not deref:
                 dereferenced_fields[field].append(item_doc[field][ind])
                 continue
 
@@ -690,21 +725,12 @@ def _create_sample(
 
     new_sample = sample_dict.copy()
 
-    if type_ in ACCESSIBLE_TYPES:
-        # starting_materials and equipment are open to all in the deploment at this point,
-        # so no creators are assigned
+    if type_ in INVENTORY_TYPES:
+        # starting_materials and equipment are open to all in the deployment (or to the
+        # groups they are restricted to, set below), so no creators are assigned
         new_sample["creator_ids"] = []
         new_sample["creators"] = []
 
-    elif CONFIG.TESTING and not current_user.is_authenticated:
-        # Set fake ID to ObjectId("000000000000000000000000") so a dummy user can be created
-        # locally for testing creator UI elements
-        new_sample["creator_ids"] = [str(PUBLIC_USER_ID)]
-        new_sample["creators"] = [
-            {
-                "display_name": "Public testing user",
-            }
-        ]
     else:
         new_sample["creator_ids"] = [current_user.person.immutable_id]
         new_sample["creators"] = [
@@ -723,6 +749,20 @@ def _create_sample(
         new_sample["group_ids"] = []
         for g in sample_dict["groups"]:
             new_sample["group_ids"].append(ObjectId(g["immutable_id"]))
+
+    if (
+        type_ in INVENTORY_TYPES
+        and CONFIG.UNGROUPED_INVENTORY == "error"
+        and not new_sample.get("group_ids")
+    ):
+        raise BadRequest(
+            f"Items of type {type_!r} must be assigned to at least one group in this deployment."
+        )
+
+    if type_ in INVENTORY_TYPES and not can_assign_groups(new_sample.get("group_ids", [])):
+        raise Forbidden(
+            f"Items of type {type_!r} can only be assigned to groups you are a member of."
+        )
 
     # Generate a unique refcode for the sample
     new_sample["refcode"] = generate_unique_refcode()
@@ -755,9 +795,10 @@ def _create_sample(
     # TODO: encode this at the model level, via custom schema properties or hard-coded `.store()` methods
     # the `Entry` model.
     try:
-        result = flask_mongo.db.items.insert_one(
-            data_model.model_dump(exclude={"creators", "collections", "groups"})
-        )
+        to_store = data_model.model_dump(exclude={"creators", "collections", "groups"})
+        authorize_added_tags(to_store.get("tags"), set())
+        strip_tag_display_fields(to_store)
+        result = flask_mongo.db.items.insert_one(to_store)
     except DuplicateKeyError as error:
         raise Conflict(f"Duplicate key error: {str(error)}.")
 
@@ -873,7 +914,7 @@ def _process_item_permissions(
 
     current_item = flask_mongo.db.items.find_one(
         {"refcode": refcode, **get_default_permissions(user_only=True)},
-        {"_id": 1, "creator_ids": 1, "group_ids": 1},
+        {"_id": 1, "type": 1, "creator_ids": 1, "group_ids": 1},
     )
 
     if not current_item:
@@ -917,6 +958,27 @@ def _process_item_permissions(
 
     if not groups_requested and not creators_requested:
         raise BadRequest("No valid creator or group IDs found in the request.")
+
+    if (
+        groups_requested
+        and not group_ids
+        and not append_mode
+        and current_item.get("type") in INVENTORY_TYPES
+        and CONFIG.UNGROUPED_INVENTORY == "error"
+    ):
+        raise BadRequest(
+            f"Items of type {current_item['type']!r} must be assigned to at least one group in this deployment."
+        )
+
+    # Existing groups can be kept, but inventory items can only be newly assigned to groups the user is in
+    if (
+        groups_requested
+        and current_item.get("type") in INVENTORY_TYPES
+        and not can_assign_groups(list(set(group_ids) - set(current_group_ids)))
+    ):
+        raise Forbidden(
+            f"Items of type {current_item['type']!r} can only be assigned to groups you are a member of."
+        )
 
     # Validate all creator IDs are present in the database
     if creator_ids:
@@ -1084,7 +1146,7 @@ def delete_sample():
 
     item = flask_mongo.db.items.find_one(
         {"item_id": item_id, **get_default_permissions(user_only=True, deleting=True)},
-        {"refcode": 1},
+        {"refcode": 1, "blocks_obj": 1},
     )
 
     if not item:
@@ -1104,6 +1166,16 @@ def delete_sample():
 
     if result.deleted_count != 1:
         raise BadRequest(f"Failed to delete item with {item_id=}.")
+
+    # Deleting an item removes the live documents of its referenced blocks, but
+    # their `block_versions` history is retained.
+    referenced_block_ids = [
+        blocks_obj_value["immutable_id"]
+        for blocks_obj_value in (item.get("blocks_obj") or {}).values()
+        if block_store.is_block_reference(blocks_obj_value)
+    ]
+    if referenced_block_ids:
+        flask_mongo.db.blocks.delete_many({"_id": {"$in": referenced_block_ids}})
 
     flask_mongo.db.api_keys.delete_many({"refcode": item["refcode"], "type": "access_token"})
 
@@ -1186,8 +1258,16 @@ def get_item_data(
         else:
             raise BadRequest(f"Item {item_id=} has no type field in document.")
 
+    # Resolve any referenced blocks into full payloads so the response keeps
+    # the legacy `blocks_obj` shape (the item read above was already permission-filtered).
+    if doc.get("blocks_obj"):
+        doc["blocks_obj"] = block_store.load_blocks_obj(doc)
+
     try:
         doc = entry_reference_lookup(doc)
+        # Resolve tag references for display only (a read-time concern): inline
+        # current tag names and drop references to deleted tags.
+        resolve_tags_for_docs([doc])
         doc = ItemModel(**doc)
     except ValidationError as error:
         # The stored document doesn't validate against its declared schema.
@@ -1210,13 +1290,19 @@ def get_item_data(
             500,
         )
 
-    # find any documents with relationships that mention this document
+    # find any documents with relationships that mention this document,
+    # that the user also has permission to see
     relationships_query_results = flask_mongo.db.items.find(
         filter={
-            "$or": [
-                {"relationships.item_id": doc.item_id},
-                {"relationships.refcode": doc.refcode},
-                {"relationships.immutable_id": doc.immutable_id},
+            "$and": [
+                {
+                    "$or": [
+                        {"relationships.item_id": doc.item_id},
+                        {"relationships.refcode": doc.refcode},
+                        {"relationships.immutable_id": doc.immutable_id},
+                    ]
+                },
+                get_default_permissions(user_only=False),
             ]
         },
         projection={
@@ -1378,6 +1464,12 @@ def get_version(refcode, version_id):
     if not version:
         raise NotFound
 
+    # Resolve any version-pinned block references in the snapshot into full
+    # payloads so the response keeps the pre-separation `blocks_obj` shape
+    # (access was already checked against the parent item).
+    if version.get("data", {}).get("blocks_obj"):
+        version["data"]["blocks_obj"] = block_store.resolve_snapshot_blocks_obj(version["data"])
+
     return jsonify({"status": "success", "version": version}), 200
 
 
@@ -1407,6 +1499,11 @@ def compare_versions(refcode):
     v2 = flask_mongo.db.item_versions.find_one({"_id": query_params.v2, "refcode": refcode})
     if not v1 or not v2:
         raise NotFound("One or both versions not found")
+
+    # Resolve any block references so the diff shows block content changes.
+    for v in (v1, v2):
+        if v.get("data", {}).get("blocks_obj"):
+            v["data"]["blocks_obj"] = block_store.resolve_snapshot_blocks_obj(v["data"])
 
     # Use DeepDiff for proper nested structure comparison
     # This handles nested dicts, lists, type changes, and provides detailed change information
@@ -1493,25 +1590,90 @@ def restore_version(refcode):
         raise BadRequest(f"Invalid item type: {item_type}")
 
     try:
-        # Validate using the appropriate model
-        ITEM_MODELS[item_type](**restored_data)
+        # Validate using the appropriate model. Version-pinned block references
+        # do not validate as block payloads, so validate a *resolved* copy while
+        # keeping each blocks_obj value's original form for the writes below.
+        validation_data = {
+            **restored_data,
+            "blocks_obj": block_store.resolve_snapshot_blocks_obj(restored_data),
+        }
+        ITEM_MODELS[item_type](**validation_data)
     except ValidationError as exc:
         raise BadRequest(
             f"Restored data failed validation against schema for type {item_type}: {exc}"
         )
-
-    # Perform the restore first
-    flask_mongo.db.items.update_one({"refcode": refcode}, {"$set": restored_data})
 
     # Extract user information for hybrid storage approach
     user_id = None
     if current_user.is_authenticated:
         user_id = current_user.person.immutable_id
 
+    # Apply each snapshotted blocks_obj value in its own form: embedded payloads
+    # are written back inline as before, while the references get
+    # the payload from the `block_versions` and becomes the new current `blocks`
+    # state, plus a new RESTORED `block_versions` entry.
+    restored_block_pins: dict[str, dict] = {}
+    if "blocks_obj" in restored_data:
+        live_blocks_obj = {}
+        for block_id, blocks_obj_value in (restored_data.get("blocks_obj") or {}).items():
+            if not block_store.is_block_reference(blocks_obj_value):
+                live_blocks_obj[block_id] = blocks_obj_value
+                continue
+            # Snapshot references should always be version-pinned.
+            # An unpinned one is not restorable.
+            pinned_version = blocks_obj_value.get("version")
+            new_block_version = (
+                block_store.restore_block_version(
+                    blocks_obj_value["immutable_id"], pinned_version, user_id=user_id
+                )
+                if pinned_version is not None
+                else None
+            )
+            if new_block_version is None:
+                # No block_versions entry to restore from (should not happen):
+                # drop the entry rather than leaving a dangling reference.
+                LOGGER.error(
+                    "Dropping unrestorable block reference %s (%s) while restoring %s",
+                    block_id,
+                    blocks_obj_value,
+                    refcode,
+                )
+                if isinstance(restored_data.get("display_order"), list):
+                    restored_data["display_order"] = [
+                        b for b in restored_data["display_order"] if b != block_id
+                    ]
+                continue
+            live_blocks_obj[block_id] = {"immutable_id": blocks_obj_value["immutable_id"]}
+            restored_block_pins[block_id] = {
+                "immutable_id": blocks_obj_value["immutable_id"],
+                "version": new_block_version,
+            }
+        restored_data["blocks_obj"] = live_blocks_obj
+
+        # Referenced blocks on the current item that are absent from the restored
+        # snapshot disappear from the item (as the legacy blocks), so remove
+        # their live documents too.
+        for block_id, blocks_obj_value in (current_item.get("blocks_obj") or {}).items():
+            if block_store.is_block_reference(blocks_obj_value) and block_id not in live_blocks_obj:
+                block_store.delete_block_document(blocks_obj_value["immutable_id"])
+
+    # Perform the restore first
+    flask_mongo.db.items.update_one({"refcode": refcode}, {"$set": restored_data})
+
     # Get the software version
     from pydatalab import __version__
 
     software_version = __version__
+
+    # The RESTORED snapshot pins its referenced blocks_obj entries to the
+    # new RESTORED block version numbers, so that this snapshot can be
+    # restored later.
+    restored_snapshot_data = restored_data
+    if restored_block_pins:
+        restored_snapshot_data = {
+            **restored_data,
+            "blocks_obj": {**restored_data["blocks_obj"], **restored_block_pins},
+        }
 
     # Save the RESTORED state as a new version snapshot (after restore)
     restored_version_entry = {
@@ -1523,7 +1685,7 @@ def restore_version(refcode):
         "restored_from_version": version_object_id,
         "user_id": user_id,  # ObjectId for efficient querying
         "datalab_version": software_version,
-        "data": restored_data,  # Store the complete snapshot of the restored state
+        "data": restored_snapshot_data,  # Store the complete snapshot of the restored state
     }
 
     # Validate with Pydantic before inserting
@@ -1537,10 +1699,10 @@ def restore_version(refcode):
         )
         raise BadRequest(f"Restored version data validation failed: {exc}")
 
-    # Insert validated data, restoring original restored_data into 'data' so None-valued
+    # Insert validated data, restoring the original snapshot dict into 'data' so None-valued
     # fields are not stripped by model_dump(exclude_none=True) recursing into the dict.
     restored_version_doc = validated_restored_version.model_dump(exclude_none=True)
-    restored_version_doc["data"] = restored_data
+    restored_version_doc["data"] = restored_snapshot_data
     flask_mongo.db.item_versions.insert_one(restored_version_doc)
 
     return jsonify(
@@ -1635,11 +1797,10 @@ def save_item():
         if k in updated_data:
             del updated_data[k]
 
-    # Bit of a hack for now: starting materials and equipment should be editable by anyone,
-    # so we adjust the query above to be more permissive when the user is requesting such an item
-    # but before returning we need to check that the actual item did indeed have that type
+    # Inventory items (starting materials and equipment) are editable by their groups,
+    # or by anyone if unrestricted; this is handled by the default permissions
     item = flask_mongo.db.items.find_one(
-        {"item_id": item_id, **get_default_permissions(user_only=False)}
+        {"item_id": item_id, **get_default_permissions(user_only=True)}
     )
 
     if not item:
@@ -1652,24 +1813,58 @@ def save_item():
             f"Item {item_id} does not have a refcode; please report this issue."
         )
 
-    user_only = item["type"] not in ("starting_materials", "equipment")
+    # Reconcile the incoming blocks against their stored form (the request
+    # always carries full payloads, so the form is only knowable from the stored
+    # item): referenced blocks are written to the `blocks` collection, legacy
+    # embedded blocks stay inline in the item, and unknown block IDs are born
+    # referenced. A block never changes form. The block-document writes are
+    # deferred until the item payload has passed validation below.
+    stored_blocks_obj = item.get("blocks_obj") or {}
+    block_reference_map: dict[str, dict] = {}
+    pending_block_creations: dict[str, object] = {}
+    pending_block_updates: list[tuple[ObjectId, dict]] = []
+    pending_block_deletions: list[ObjectId] = []
 
-    item = flask_mongo.db.items.find_one(
-        {"item_id": item_id, **get_default_permissions(user_only=user_only)}
-    )
+    if "blocks_obj" in updated_data:
+        incoming_blocks = updated_data["blocks_obj"] or {}
+        # Server-authoritative fields (`metadata`, `computed`, ...) never come back
+        # from the web, so they have to be restored from the stored payload; for a
+        # referenced block that payload lives in the `blocks` collection, not in
+        # the item's `blocks_obj` entry.
+        stored_payloads = block_store.load_blocks_obj(item) if stored_blocks_obj else {}
+        for block_id, block_data in incoming_blocks.items():
+            blocktype = block_data["blocktype"]
+            block = BLOCK_TYPES.get(blocktype, BLOCK_TYPES["notsupported"]).from_web(
+                block_data, stored_data=stored_payloads.get(block_id)
+            )
+            incoming_blocks[block_id] = block.to_db()
 
-    if not item:
-        raise NotFound
+            blocks_obj_value = stored_blocks_obj.get(block_id)
+            if blocks_obj_value is None:
+                pending_block_creations[block_id] = block
+            elif block_store.is_block_reference(blocks_obj_value):
+                pending_block_updates.append(
+                    (blocks_obj_value["immutable_id"], incoming_blocks[block_id])
+                )
+                block_reference_map[block_id] = {"immutable_id": blocks_obj_value["immutable_id"]}
+            # else: legacy embedded block — the payload is kept inline as before
 
-    stored_blocks = item.get("blocks_obj", {})
-    for block_id, block_data in updated_data.get("blocks_obj", {}).items():
-        blocktype = block_data["blocktype"]
-
-        block = BLOCK_TYPES.get(blocktype, BLOCK_TYPES["notsupported"]).from_web(
-            block_data, stored_data=stored_blocks.get(block_id)
-        )
-
-        updated_data["blocks_obj"][block_id] = block.to_db()
+        # A stored referenced block missing from the payload is treated as a
+        # deletion, avoiding orphaned `blocks` documents.
+        for block_id, blocks_obj_value in stored_blocks_obj.items():
+            if block_id not in incoming_blocks and block_store.is_block_reference(blocks_obj_value):
+                pending_block_deletions.append(blocks_obj_value["immutable_id"])
+    elif any(
+        block_store.is_block_reference(blocks_obj_value)
+        for blocks_obj_value in stored_blocks_obj.values()
+    ):
+        # The client did not send blocks_obj, so the stored blocks are untouched,
+        # but referenced values must be resolved into full payloads for the item
+        # validation below and swapped back before the final write.
+        for block_id, blocks_obj_value in stored_blocks_obj.items():
+            if block_store.is_block_reference(blocks_obj_value):
+                block_reference_map[block_id] = blocks_obj_value
+        item["blocks_obj"] = block_store.load_blocks_obj(item)
 
     if "collections" in updated_data:
         requested_collections = updated_data["collections"]
@@ -1721,6 +1916,10 @@ def save_item():
     preserve_relationships = "collections" not in updated_data
     original_relationships = item.get("relationships", []) if preserve_relationships else None
 
+    # Snapshot the tags already on the item so we only authorize newly added
+    # tags below.
+    existing_tag_ids = tag_immutable_ids(item.get("tags"))
+
     item.update(updated_data)
 
     try:
@@ -1747,6 +1946,27 @@ def save_item():
     existing_last_modified = item.pop("last_modified", None)
     if isinstance(existing_last_modified, datetime.datetime):
         existing_last_modified = existing_last_modified.isoformat()
+
+    # A user may not add another user's user-defined tag.
+    authorize_added_tags(item.get("tags"), existing_tag_ids)
+
+    # Now that the item payload has passed validation, apply the deferred block
+    # document writes and swap `{"immutable_id": ...}` references back into the
+    # document in place of the full payloads of referenced blocks.
+    for block_id, block in pending_block_creations.items():
+        new_block_immutable_id = block_store.create_block_document(block)  # type: ignore[arg-type]
+        block_reference_map[block_id] = {"immutable_id": new_block_immutable_id}
+    for block_immutable_id, block_payload in pending_block_updates:
+        block_store.update_block_document(block_immutable_id, block_payload)
+    for block_immutable_id in pending_block_deletions:
+        block_store.delete_block_document(block_immutable_id)
+
+    if block_reference_map:
+        item.setdefault("blocks_obj", {})
+        item["blocks_obj"].update(block_reference_map)
+
+    # Store tag references minimally; see `strip_tag_display_fields`.
+    strip_tag_display_fields(item)
 
     # Update the item FIRST (transaction safety: item update before version save)
     result = flask_mongo.db.items.update_one(

@@ -44,17 +44,24 @@
       </div>
     </div>
 
+    <div v-if="enableTags" class="form-row">
+      <div class="form-group col-12 pb-3">
+        <ToggleableTagsFormGroup v-model="Tags" />
+      </div>
+    </div>
+
     <div class="form-row">
       <div class="form-group col-md-6">
         <label for="equip-manufacturer" class="mr-2">Manufacturer</label>
         <input id="equip-manufacturer" v-model="Manufacturer" class="form-control" />
       </div>
       <div class="form-group col-md-6">
-        <label class="mr-2">Location</label>
+        <label id="equip-location-label" class="mr-2">Location</label>
         <LocationInput
           v-model="Location"
-          :suggestions="uniqueLocations"
+          :hierarchy="$store.getters.getLocationHierarchy"
           input-id="equip-location"
+          labelled-by="equip-location-label"
         />
       </div>
     </div>
@@ -81,7 +88,7 @@
 
 <script>
 import AutoComplete from "primevue/autocomplete";
-import { getStartingMaterialList, getEquipmentList } from "@/server_fetch_utils.js";
+import { getLocations } from "@/server_fetch_utils.js";
 import { createComputedSetterForItemField } from "@/field_utils.js";
 import LocationInput from "@/components/LocationInput";
 import TiptapInline from "@/components/TiptapInline";
@@ -91,6 +98,7 @@ import FormattedRefcode from "@/components/FormattedRefcode";
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
 import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
+import ToggleableTagsFormGroup from "@/components/ToggleableTagsFormGroup";
 
 export default {
   components: {
@@ -103,6 +111,7 @@ export default {
     ToggleableItemStatusFormGroup,
     ToggleableGroupsFormGroup,
     LocationInput,
+    ToggleableTagsFormGroup,
   },
   props: {
     item_id: { type: String, required: true },
@@ -121,6 +130,7 @@ export default {
     },
     ItemDescription: createComputedSetterForItemField("description"),
     Collections: createComputedSetterForItemField("collections"),
+    Tags: createComputedSetterForItemField("tags"),
     Manufacturer: createComputedSetterForItemField("manufacturer"),
     Name: createComputedSetterForItemField("name"),
     Location: createComputedSetterForItemField("location"),
@@ -131,32 +141,18 @@ export default {
     ItemGroups: createComputedSetterForItemField("groups"),
     Contact: createComputedSetterForItemField("contact"),
     Status: createComputedSetterForItemField("status"),
+    enableTags() {
+      return this.$store.state.serverInfo?.features?.tags ?? false;
+    },
     schema() {
       return this.$store.state.schemas[this.item?.type];
     },
     possibleItemStatuses() {
       return this.schema?.attributes?.schema?.["$defs"]?.EquipmentStatus?.enum;
     },
-    uniqueLocations() {
-      return [
-        ...new Set(
-          [
-            ...(this.$store.state.starting_material_list || []),
-            ...(this.$store.state.equipment_list || []),
-          ]
-            .map((item) => item.location)
-            .filter(Boolean),
-        ),
-      ].sort();
-    },
   },
   created() {
-    if (this.$store.state.starting_material_list === null) {
-      getStartingMaterialList();
-    }
-    if (this.$store.state.equipment_list === null) {
-      getEquipmentList();
-    }
+    getLocations();
   },
   methods: {},
 };
