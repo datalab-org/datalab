@@ -55,7 +55,7 @@ Cypress.Commands.add(
 
 Cypress.Commands.add("verifySample", (item_id, name = null, date = null) => {
   cy.get("[data-testid=sample-table]")
-    .contains(item_id)
+    .contains(new RegExp(`^\\s*${item_id}\\s*$`))
     .parents("tr")
     .within(() => {
       if (date) {
@@ -200,7 +200,7 @@ Cypress.Commands.add("createEquipment", (item_id, name = null, date = null) => {
 
 Cypress.Commands.add("verifyEquipment", (item_id, name = null, date = null, location = null) => {
   cy.get("[data-testid=equipment-table]")
-    .contains(item_id)
+    .contains(new RegExp(`^\\s*${item_id}\\s*$`))
     .parents("tr")
     .within(() => {
       if (date) {
@@ -366,7 +366,7 @@ Cypress.Commands.add("createStartingMaterial", (item_id, name = null, date = nul
 
 Cypress.Commands.add("verifyStartingMaterial", (item_id, name = null, date = null) => {
   cy.get("[data-testid=starting_materials-table]")
-    .contains(item_id)
+    .contains(new RegExp(`^\\s*${item_id}\\s*$`))
     .parents("tr")
     .within(() => {
       if (date) {
