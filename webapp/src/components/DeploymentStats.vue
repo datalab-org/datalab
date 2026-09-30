@@ -1,5 +1,5 @@
 <template>
-  <div class="deployment-stats">
+  <div>
     <div v-if="loading" class="text-center p-4 text-muted">
       <font-awesome-icon :icon="['fa', 'sync']" spin /> Crunching the numbers...
     </div>
@@ -7,56 +7,65 @@
     <div v-else-if="!stats" class="text-muted">
       Log in to see usage statistics for this <i>datalab</i>.
     </div>
+    <div v-else-if="!stats.months.length" class="text-center p-4 text-muted">
+      <font-awesome-icon :icon="['fa', 'sync']" spin /> Usage statistics are being calculated for
+      the first time; please wait...
+    </div>
 
     <template v-else>
-      <p v-if="headline" class="stats-headline">
+      <p v-if="headline" class="text-secondary mb-3">
         Since <strong>{{ headline.since }}</strong
         >, this <i>datalab</i> has recorded
-        <span class="hero-number">{{ headline.items.toLocaleString() }}</span>
+        <span class="h2 font-weight-bold text-dark mx-1">{{
+          headline.items.toLocaleString()
+        }}</span>
         items from <strong>{{ headline.users.toLocaleString() }}</strong> users.
       </p>
 
       <!-- Stat tiles, each with a cumulative sparkline -->
-      <div class="stat-tiles">
-        <div
-          v-for="tile in tiles"
-          :key="tile.key"
-          class="stat-tile"
-          :data-testid="`tile-${tile.key}`"
-        >
-          <div class="tile-label">
-            <span class="legend-swatch" :style="{ background: tile.color }"></span>{{ tile.label }}
-          </div>
-          <div class="tile-value">{{ compact(tile.value) }}</div>
-          <div class="tile-sub">
-            <template v-if="tile.sub">{{ tile.sub }}</template>
-            <template v-else-if="tile.thisMonth"
-              >+{{ compact(tile.thisMonth) }} this month</template
+      <div class="row mx-n1">
+        <div v-for="tile in tiles" :key="tile.key" class="col-6 px-1 mb-2">
+          <div class="card h-100 overflow-hidden" :data-testid="`tile-${tile.key}`">
+            <div class="card-body px-3 pt-2 pb-1">
+              <div class="small text-muted d-flex align-items-center">
+                <svg width="10" height="10" class="mr-2 flex-shrink-0" aria-hidden="true">
+                  <rect width="10" height="10" rx="3" :fill="tile.color" /></svg
+                >{{ tile.label }}
+              </div>
+              <div class="h4 font-weight-bold mb-0">{{ compact(tile.value) }}</div>
+              <div class="small text-muted">
+                <template v-if="tile.sub">{{ tile.sub }}</template>
+                <template v-else-if="tile.thisMonth"
+                  >+{{ compact(tile.thisMonth) }} this month</template
+                >
+                <template v-else>&nbsp;</template>
+              </div>
+            </div>
+            <svg
+              v-if="tile.sparkline"
+              class="d-block"
+              width="100%"
+              height="28"
+              viewBox="0 0 100 28"
+              preserveAspectRatio="none"
+              aria-hidden="true"
             >
-            <template v-else>&nbsp;</template>
+              <path :d="tile.sparkline.area" :fill="tile.color" opacity="0.1" />
+              <path
+                :d="tile.sparkline.line"
+                :stroke="tile.color"
+                fill="none"
+                stroke-width="2"
+                vector-effect="non-scaling-stroke"
+                stroke-linejoin="round"
+              />
+            </svg>
           </div>
-          <svg
-            v-if="tile.sparkline"
-            class="tile-sparkline"
-            viewBox="0 0 100 28"
-            preserveAspectRatio="none"
-            aria-hidden="true"
-          >
-            <path :d="tile.sparkline.area" :fill="tile.color" opacity="0.1" />
-            <path
-              :d="tile.sparkline.line"
-              :stroke="tile.color"
-              fill="none"
-              stroke-width="2"
-              vector-effect="non-scaling-stroke"
-              stroke-linejoin="round"
-            />
-          </svg>
         </div>
       </div>
 
       <!-- Controls apply to every time series below -->
-      <div class="stats-controls">
+      <div class="d-flex justify-content-end my-2">
         <div class="btn-group btn-group-sm" role="group" aria-label="Time range">
           <button
             v-for="r in ranges"
@@ -71,119 +80,121 @@
         </div>
       </div>
 
-      <section class="stats-card">
-        <header>
-          <h6>Items</h6>
-          <div class="btn-group btn-group-sm" role="group" aria-label="Item chart mode">
-            <button
-              type="button"
-              class="btn"
-              :class="itemsMode === 'cumulative' ? 'btn-secondary' : 'btn-outline-secondary'"
-              @click="itemsMode = 'cumulative'"
-            >
-              Total
-            </button>
-            <button
-              type="button"
-              class="btn"
-              :class="itemsMode === 'monthly' ? 'btn-secondary' : 'btn-outline-secondary'"
-              @click="itemsMode = 'monthly'"
-            >
-              New per month
-            </button>
-          </div>
-        </header>
-        <StatsTimeChart
-          :months="visibleMonths"
-          :series="itemSeries"
-          :mode="itemsMode === 'monthly' ? 'stacked' : 'line'"
-          :height="260"
-          aria-label="Items over time by type"
-        />
+      <section class="card mb-3">
+        <div class="card-body">
+          <h6 class="font-weight-bold mb-2">Items</h6>
+          <StatsTimeChart
+            :months="visibleMonths"
+            :series="itemSeries"
+            mode="line"
+            :height="260"
+            aria-label="Items over time by type"
+          />
+        </div>
       </section>
 
-      <div class="stats-grid">
-        <section class="stats-card">
-          <header>
-            <h6>Activity</h6>
-            <select v-model="activityMetric" class="form-control form-control-sm metric-select">
-              <option v-for="(m, key) in activityMetrics" :key="key" :value="key">
-                {{ m.label }}
-              </option>
-            </select>
-          </header>
-          <p class="card-caption">{{ activityMetrics[activityMetric].caption }}</p>
-          <StatsTimeChart
-            :months="visibleMonths"
-            :series="activitySeries"
-            mode="stacked"
-            :height="180"
-            :aria-label="activityMetrics[activityMetric].label"
-          />
-        </section>
-
-        <section class="stats-card">
-          <header>
-            <h6>Data</h6>
-            <div class="btn-group btn-group-sm" role="group" aria-label="Data chart mode">
-              <button
-                type="button"
-                class="btn"
-                :class="dataMetric === 'file_bytes' ? 'btn-secondary' : 'btn-outline-secondary'"
-                @click="dataMetric = 'file_bytes'"
-              >
-                Storage
-              </button>
-              <button
-                type="button"
-                class="btn"
-                :class="dataMetric === 'files' ? 'btn-secondary' : 'btn-outline-secondary'"
-                @click="dataMetric = 'files'"
-              >
-                Files
-              </button>
+      <div class="row">
+        <div class="col-lg-6 mb-3">
+          <section class="card h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="font-weight-bold mb-0">Activity</h6>
+                <select v-model="activityMetric" class="form-control form-control-sm w-auto">
+                  <option v-for="(m, key) in activityMetrics" :key="key" :value="key">
+                    {{ m.label }}
+                  </option>
+                </select>
+              </div>
+              <p class="small text-muted mb-1">{{ activityMetrics[activityMetric].caption }}</p>
+              <StatsTimeChart
+                :months="visibleMonths"
+                :series="activitySeries"
+                mode="stacked"
+                :height="180"
+                :aria-label="activityMetrics[activityMetric].label"
+              />
             </div>
-          </header>
-          <p class="card-caption">
-            {{
-              dataMetric === "file_bytes" ? "Total size of uploaded files" : "Total uploaded files"
-            }}
-          </p>
-          <StatsTimeChart
-            :months="visibleMonths"
-            :series="dataSeries"
-            mode="line"
-            :height="180"
-            :format-value="dataMetric === 'file_bytes' ? formatBytes : compact"
-            :aria-label="dataMetric === 'file_bytes' ? 'Storage over time' : 'Files over time'"
-          />
-        </section>
+          </section>
+        </div>
+
+        <div class="col-lg-6 mb-3">
+          <section class="card h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="font-weight-bold mb-0">Data</h6>
+                <div class="btn-group btn-group-sm" role="group" aria-label="Data chart mode">
+                  <button
+                    type="button"
+                    class="btn"
+                    :class="dataMetric === 'file_bytes' ? 'btn-secondary' : 'btn-outline-secondary'"
+                    @click="dataMetric = 'file_bytes'"
+                  >
+                    Storage
+                  </button>
+                  <button
+                    type="button"
+                    class="btn"
+                    :class="dataMetric === 'files' ? 'btn-secondary' : 'btn-outline-secondary'"
+                    @click="dataMetric = 'files'"
+                  >
+                    Files
+                  </button>
+                </div>
+              </div>
+              <p class="small text-muted mb-1">
+                {{
+                  dataMetric === "file_bytes"
+                    ? "Total size of uploaded files"
+                    : "Total uploaded files"
+                }}
+              </p>
+              <StatsTimeChart
+                :months="visibleMonths"
+                :series="dataSeries"
+                mode="line"
+                :height="180"
+                :format-value="dataMetric === 'file_bytes' ? formatBytes : compact"
+                :aria-label="dataMetric === 'file_bytes' ? 'Storage over time' : 'Files over time'"
+              />
+            </div>
+          </section>
+        </div>
       </div>
 
-      <section v-if="blockBars.length" class="stats-card">
-        <header>
-          <h6>Blocks in use</h6>
-          <span class="card-caption mb-0">{{ totalBlocks.toLocaleString() }} blocks</span>
-        </header>
-        <ul class="bar-list">
-          <li
-            v-for="bar in blockBars"
-            :key="bar.key"
-            :title="`${bar.label}: ${bar.value.toLocaleString()}`"
-          >
-            <span class="bar-label">{{ bar.label }}</span>
-            <span class="bar-track">
-              <span
-                class="bar-fill"
-                :style="{ width: `${bar.fraction * 100}%`, background: bar.color }"
-              ></span>
-            </span>
-            <span class="bar-value">{{ bar.value.toLocaleString() }}</span>
-          </li>
-        </ul>
+      <section class="card mb-3">
+        <div class="card-body">
+          <h6 class="font-weight-bold mb-2">Daily activity</h6>
+          <UserActivityGraph :combined="true" :cell-size="9" />
+        </div>
       </section>
 
-      <p v-if="stats.updated_at" class="stats-footnote">
+      <section v-if="blockBars.length" class="card mb-3">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="font-weight-bold mb-0">Blocks in use</h6>
+            <span class="small text-muted">{{ totalBlocks.toLocaleString() }} blocks</span>
+          </div>
+          <ul class="list-unstyled small mb-0">
+            <li
+              v-for="bar in blockBars"
+              :key="bar.key"
+              class="d-flex align-items-center py-1"
+              :title="`${bar.label}: ${bar.value.toLocaleString()}`"
+            >
+              <span class="bar-label text-truncate text-secondary mr-2">{{ bar.label }}</span>
+              <div class="progress bar-track rounded-0 bg-transparent flex-grow-1 mr-2">
+                <div
+                  class="progress-bar"
+                  :style="{ width: `${bar.fraction * 100}%`, background: bar.color }"
+                ></div>
+              </div>
+              <span class="tabular-nums font-weight-bold">{{ bar.value.toLocaleString() }}</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <p v-if="stats.updated_at" class="small text-muted mb-0">
         Monthly counts are recorded from when each entry was created; totals reflect the current
         database. Last updated {{ formatDate(stats.updated_at) }}.
       </p>
@@ -193,6 +204,7 @@
 
 <script>
 import StatsTimeChart from "@/components/StatsTimeChart.vue";
+import UserActivityGraph from "@/components/UserActivityGraph.vue";
 import { getStatsHistory } from "@/server_fetch_utils.js";
 import { itemTypes } from "@/resources.js";
 
@@ -203,6 +215,7 @@ const MAX_ITEM_SERIES = 5;
 // Inventory entries rather than research outputs, so left out of the usage stats
 const EXCLUDED_ITEM_TYPES = ["starting_materials"];
 const MAX_BLOCK_BARS = 10;
+const STATS_POLL_INTERVAL_MS = 5000;
 const ACTIVITY_COLOR = "#00897b";
 const DATA_COLOR = "#52606d";
 
@@ -218,19 +231,19 @@ function humanise(key) {
 
 export default {
   name: "DeploymentStats",
-  components: { StatsTimeChart },
+  components: { StatsTimeChart, UserActivityGraph },
   data() {
     return {
       stats: null,
       loading: true,
       error: null,
+      pollTimeout: null,
       range: "all",
       ranges: [
         { value: "all", label: "All time" },
         { value: 24, label: "2 years" },
         { value: 12, label: "1 year" },
       ],
-      itemsMode: "cumulative",
       activityMetric: "active_users",
       activityMetrics: {
         active_users: {
@@ -301,7 +314,7 @@ export default {
     itemSeries() {
       return this.monthlyItemSeries.map((s) => ({
         ...s,
-        values: this.window(this.itemsMode === "cumulative" ? cumulative(s.values) : s.values),
+        values: this.window(cumulative(s.values)),
       }));
     },
     activitySeries() {
@@ -401,15 +414,25 @@ export default {
     },
   },
   async mounted() {
-    try {
-      this.stats = await getStatsHistory();
-    } catch (error) {
-      this.error = `Unable to load deployment statistics: ${error}`;
-    } finally {
-      this.loading = false;
-    }
+    await this.fetchStats();
+    this.loading = false;
+  },
+  beforeUnmount() {
+    clearTimeout(this.pollTimeout);
   },
   methods: {
+    async fetchStats() {
+      try {
+        this.stats = await getStatsHistory();
+      } catch (error) {
+        this.error = `Unable to load deployment statistics: ${error}`;
+        return;
+      }
+      // On a fresh deployment there is nothing to show until the first update finishes
+      if (this.stats?.updating && !this.stats.months.length) {
+        this.pollTimeout = setTimeout(this.fetchStats, STATS_POLL_INTERVAL_MS);
+      }
+    },
     sum(values) {
       return (values || []).reduce((acc, v) => acc + (v || 0), 0);
     },
@@ -454,169 +477,16 @@ export default {
 </script>
 
 <style scoped>
-.stats-headline {
-  font-size: 1.05rem;
-  color: #495057;
-  margin-bottom: 1rem;
-}
-
-.hero-number {
-  font-size: 2.2rem;
-  font-weight: 700;
-  color: #212529;
-  line-height: 1;
-  margin: 0 0.15em;
-}
-
-.stat-tiles {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  margin-bottom: 1rem;
-}
-
-.stat-tile {
-  border: 1px solid #e9ecef;
-  border-radius: 10px;
-  padding: 10px 12px 0;
-  background: #fff;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-.stat-tile:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-}
-
-.tile-label {
-  font-size: 0.8rem;
-  color: #6c757d;
-  display: flex;
-  align-items: center;
-}
-
-.tile-value {
-  font-size: 1.6rem;
-  font-weight: 600;
-  color: #212529;
-  line-height: 1.2;
-}
-
-.tile-sub {
-  font-size: 0.75rem;
-  color: #6c757d;
-  margin-bottom: 4px;
-}
-
-.tile-sparkline {
-  width: calc(100% + 24px);
-  height: 28px;
-  margin: auto -12px 0;
-  display: block;
-}
-
-.legend-swatch {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-  margin-right: 6px;
-  flex-shrink: 0;
-}
-
-.stats-controls {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 0.5rem;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 0 12px;
-}
-
-.stats-card {
-  border: 1px solid #e9ecef;
-  border-radius: 10px;
-  padding: 12px 14px;
-  margin-bottom: 12px;
-  background: #fff;
-  min-width: 0;
-}
-
-.stats-card header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.stats-card h6 {
-  margin: 0;
-  font-weight: 600;
-}
-
-.card-caption {
-  font-size: 0.8rem;
-  color: #6c757d;
-  margin-bottom: 6px;
-}
-
-.metric-select {
-  width: auto;
-}
-
-.bar-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.bar-list li {
-  display: grid;
-  grid-template-columns: minmax(90px, 35%) 1fr auto;
-  align-items: center;
-  gap: 10px;
-  padding: 3px 0;
-  font-size: 0.85rem;
-}
-
 .bar-label {
-  color: #495057;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex: 0 0 35%;
+  min-width: 90px;
 }
 
 .bar-track {
-  height: 12px;
+  height: 0.75rem;
 }
 
-.bar-fill {
-  display: block;
-  height: 100%;
-  min-width: 2px;
-  border-radius: 0 4px 4px 0;
-  transition: width 0.4s ease;
-}
-
-.bar-value {
+.tabular-nums {
   font-variant-numeric: tabular-nums;
-  color: #212529;
-  font-weight: 600;
-  text-align: right;
-}
-
-.stats-footnote {
-  font-size: 0.75rem;
-  color: #868e96;
-  margin: 0.25rem 0 0;
 }
 </style>

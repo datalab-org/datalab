@@ -1,14 +1,23 @@
 <template>
-  <div ref="container" class="stats-time-chart">
-    <div v-if="series.length > 1" class="chart-legend">
-      <span v-for="s in series" :key="s.key" class="legend-entry">
-        <svg v-if="mode !== 'stacked'" class="legend-marker" viewBox="0 0 12 12">
+  <div ref="container" class="w-100 position-relative">
+    <div v-if="series.length > 1" class="d-flex flex-wrap small text-secondary mb-1">
+      <span v-for="s in series" :key="s.key" class="d-inline-flex align-items-center mr-3">
+        <svg
+          v-if="mode !== 'stacked'"
+          width="12"
+          height="12"
+          class="mr-1 flex-shrink-0"
+          overflow="visible"
+          viewBox="0 0 12 12"
+        >
           <path :d="markerPath(s.key, 6, 6)" :fill="s.color" />
         </svg>
-        <span v-else class="legend-swatch" :style="{ background: s.color }"></span>{{ s.label }}
+        <svg v-else width="10" height="10" class="mr-2 flex-shrink-0" aria-hidden="true">
+          <rect width="10" height="10" rx="3" :fill="s.color" /></svg
+        >{{ s.label }}
       </span>
     </div>
-    <div class="chart-body" @mouseleave="hoverIndex = null">
+    <div class="position-relative" @mouseleave="hoverIndex = null">
       <svg
         :width="width"
         :height="height"
@@ -113,44 +122,46 @@
         />
       </svg>
 
-      <div v-if="hoverIndex !== null" class="chart-tooltip" :style="tooltipStyle">
-        <div class="tooltip-title">{{ formatMonth(months[hoverIndex]) }}</div>
-        <div v-for="s in tooltipSeries" :key="`tt-${s.key}`" class="tooltip-row">
-          <svg v-if="mode !== 'stacked'" class="legend-marker" viewBox="0 0 12 12">
+      <div
+        v-if="hoverIndex !== null"
+        class="chart-tooltip position-absolute bg-white border rounded shadow-sm px-2 py-1 small"
+        :style="tooltipStyle"
+      >
+        <div class="font-weight-bold mb-1">{{ formatMonth(months[hoverIndex]) }}</div>
+        <div
+          v-for="s in tooltipSeries"
+          :key="`tt-${s.key}`"
+          class="d-flex align-items-center text-secondary"
+        >
+          <svg
+            v-if="mode !== 'stacked'"
+            width="12"
+            height="12"
+            class="mr-1 flex-shrink-0"
+            overflow="visible"
+            viewBox="0 0 12 12"
+          >
             <path :d="markerPath(s.key, 6, 6)" :fill="s.color" />
           </svg>
-          <span v-else class="legend-swatch" :style="{ background: s.color }"></span>
-          <span class="tooltip-label">{{ s.label }}</span>
-          <span class="tooltip-value">{{ formatValue(s.values[hoverIndex]) }}</span>
+          <svg v-else width="10" height="10" class="mr-1 flex-shrink-0" aria-hidden="true">
+            <rect width="10" height="10" rx="3" :fill="s.color" />
+          </svg>
+          <span class="flex-grow-1 mr-3">{{ s.label }}</span>
+          <span class="tabular-nums font-weight-bold text-dark">{{
+            formatValue(s.values[hoverIndex])
+          }}</span>
         </div>
-        <div v-if="mode === 'stacked' && series.length > 1" class="tooltip-row tooltip-total">
-          <span class="tooltip-label">Total</span>
-          <span class="tooltip-value">{{ formatValue(stackTotals[hoverIndex]) }}</span>
+        <div
+          v-if="mode === 'stacked' && series.length > 1"
+          class="d-flex align-items-center text-secondary border-top mt-1 pt-1"
+        >
+          <span class="flex-grow-1 mr-3">Total</span>
+          <span class="tabular-nums font-weight-bold text-dark">{{
+            formatValue(stackTotals[hoverIndex])
+          }}</span>
         </div>
       </div>
     </div>
-
-    <details class="chart-table">
-      <summary>Show as table</summary>
-      <div class="table-scroll">
-        <table class="table table-sm">
-          <thead>
-            <tr>
-              <th>Month</th>
-              <th v-for="s in series" :key="`th-${s.key}`">{{ s.label }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(month, i) in months" :key="`tr-${month}`">
-              <td>{{ month }}</td>
-              <td v-for="s in series" :key="`td-${s.key}-${month}`">
-                {{ formatValue(s.values[i]) }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </details>
   </div>
 </template>
 
@@ -415,15 +426,6 @@ export default {
 </script>
 
 <style scoped>
-.stats-time-chart {
-  width: 100%;
-  position: relative;
-}
-
-.chart-body {
-  position: relative;
-}
-
 svg {
   display: block;
   overflow: visible;
@@ -431,14 +433,12 @@ svg {
 
 .grid line {
   stroke: #e9ecef;
-  stroke-width: 1;
 }
 
 .grid text,
 .x-axis text {
   fill: #6c757d;
   font-size: 11px;
-  font-variant-numeric: tabular-nums;
 }
 
 .end-label {
@@ -449,7 +449,6 @@ svg {
 
 .crosshair line {
   stroke: #adb5bd;
-  stroke-width: 1;
 }
 
 .hit-area {
@@ -457,90 +456,15 @@ svg {
   cursor: crosshair;
 }
 
-.chart-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 16px;
-  font-size: 0.85rem;
-  color: #495057;
-  margin-bottom: 6px;
-}
-
-.legend-entry {
-  display: inline-flex;
-  align-items: center;
-}
-
-.legend-marker {
-  width: 12px;
-  height: 12px;
-  margin-right: 5px;
-  flex-shrink: 0;
-  overflow: visible;
-}
-
-.legend-swatch {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-  margin-right: 6px;
-  flex-shrink: 0;
-}
-
 .chart-tooltip {
-  position: absolute;
   pointer-events: none;
-  background: #fff;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
-  padding: 8px 10px;
-  font-size: 0.8rem;
   min-width: 140px;
   z-index: 10;
 }
 
-.tooltip-title {
-  font-weight: 600;
-  margin-bottom: 4px;
-  color: #212529;
-}
-
-.tooltip-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #495057;
-}
-
-.tooltip-label {
-  flex-grow: 1;
-  margin-right: 12px;
-}
-
-.tooltip-value {
+.tabular-nums,
+.grid text,
+.x-axis text {
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: #212529;
-}
-
-.tooltip-total {
-  border-top: 1px solid #e9ecef;
-  margin-top: 4px;
-  padding-top: 4px;
-}
-
-.chart-table summary {
-  font-size: 0.75rem;
-  color: #6c757d;
-  cursor: pointer;
-  margin-top: 4px;
-}
-
-.table-scroll {
-  max-height: 240px;
-  overflow-y: auto;
-  font-size: 0.8rem;
 }
 </style>

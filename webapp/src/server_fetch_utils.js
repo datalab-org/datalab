@@ -346,14 +346,18 @@ export async function createNewCollection(
 let statsHistoryPromise = null;
 
 export function getStatsHistory() {
-  // Fetched at most once per session; the server also caches and incrementally updates it
+  // Fetched at most once per session, unless the server was still updating the stats
   if (store.state.statsHistory) {
     return Promise.resolve(store.state.statsHistory);
   }
   if (!statsHistoryPromise) {
     statsHistoryPromise = fetch_get(`${API_URL}/info/stats/history`)
       .then(function (response_json) {
-        store.commit("setStatsHistory", response_json.data);
+        if (response_json.data.updating) {
+          statsHistoryPromise = null;
+        } else {
+          store.commit("setStatsHistory", response_json.data);
+        }
         return response_json.data;
       })
       .catch((error) => {

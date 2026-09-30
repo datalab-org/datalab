@@ -28,9 +28,6 @@
           <div class="about-panel-content">
             <DeploymentStats />
           </div>
-          <div class="about-panel-content">
-            <UserActivityGraph :combined="true" :title="'Daily activity'" />
-          </div>
         </details>
 
         <details class="about-panel">
@@ -142,12 +139,11 @@
 <script>
 import Navbar from "@/components/Navbar";
 import DeploymentStats from "@/components/DeploymentStats.vue";
-import UserActivityGraph from "@/components/UserActivityGraph.vue";
 import DeploymentInfo from "@/components/DeploymentInfo.vue";
 import CustomAbout from "@/components/CustomAbout.vue";
 
 export default {
-  components: { Navbar, DeploymentStats, UserActivityGraph, DeploymentInfo, CustomAbout },
+  components: { Navbar, DeploymentStats, DeploymentInfo, CustomAbout },
   computed: {
     customAboutHasContent() {
       return CustomAbout.hasContent !== false;
