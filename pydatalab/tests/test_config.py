@@ -18,10 +18,14 @@ def test_notification_feature_flags(monkeypatch):
     from pydatalab.feature_flags import NotificationFeatures
 
     monkeypatch.setattr(CONFIG, "ENABLE_NOTIFICATIONS", False)
-    assert NotificationFeatures(enabled=CONFIG.ENABLE_NOTIFICATIONS).dict() == {"enabled": False}
+    assert NotificationFeatures(enabled=CONFIG.ENABLE_NOTIFICATIONS).model_dump() == {
+        "enabled": False
+    }
 
     monkeypatch.setattr(CONFIG, "ENABLE_NOTIFICATIONS", True)
-    assert NotificationFeatures(enabled=CONFIG.ENABLE_NOTIFICATIONS).dict() == {"enabled": True}
+    assert NotificationFeatures(enabled=CONFIG.ENABLE_NOTIFICATIONS).model_dump() == {
+        "enabled": True
+    }
 
 
 def test_update_settings():
