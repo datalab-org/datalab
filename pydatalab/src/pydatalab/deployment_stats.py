@@ -78,13 +78,15 @@ def _compute_monthly_histograms(db: Database, since: datetime | None) -> dict[st
     """
     months: dict[str, dict] = defaultdict(_empty_month)
     active_users: dict[str, set] = defaultdict(set)
-    # Only count plausible ObjectIds, created between `since` (or `EARLIEST_DATE`) and now
+    # Only count plausible ObjectIds, created between `since` (or `EARLIEST_DATE`) and the
+    # current second; a future-dated ID would otherwise create a document for a future month
+    # that is then treated as the latest one
     match = {
         "$match": {
             "_id": {
                 "$type": "objectId",
                 "$gte": ObjectId.from_datetime(max(since or EARLIEST_DATE, EARLIEST_DATE)),
-                "$lt": ObjectId.from_datetime(datetime.now(tz=tz.utc) + timedelta(days=1)),
+                "$lt": ObjectId.from_datetime(datetime.now(tz=tz.utc) + timedelta(seconds=1)),
             }
         }
     }
