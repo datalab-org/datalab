@@ -1,3 +1,4 @@
+<!-- This file was edited with the assistance of an AI model and requires human review from the contributor. -->
 <template>
   <div>
     <div v-if="loading" class="text-center p-4 text-muted">
@@ -99,7 +100,11 @@
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-center mb-2">
                 <h6 class="font-weight-bold mb-0">Activity</h6>
-                <select v-model="activityMetric" class="form-control form-control-sm w-auto">
+                <select
+                  v-model="activityMetric"
+                  class="form-control form-control-sm w-auto"
+                  aria-label="Activity metric"
+                >
                   <option v-for="(m, key) in activityMetrics" :key="key" :value="key">
                     {{ m.label }}
                   </option>
