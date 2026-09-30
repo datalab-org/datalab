@@ -3,12 +3,13 @@ from __future__ import annotations
 from enum import Enum
 from typing import Annotated, Literal
 
-from pydantic import EmailStr as PydanticEmailStr
 from pydantic import (
+    ConfigDict,
     Field,
     StringConstraints,
     field_validator,
 )
+from pydantic import EmailStr as PydanticEmailStr
 
 from pydatalab.models.entries import Entry
 from pydatalab.models.utils import BaseModel, HumanReadableIdentifier, PyObjectId, UserRole
@@ -108,6 +109,54 @@ class AccountStatus(str, Enum):
     DELETED = "deleted"
     """The account has been irreversibly scrubbed of personal data and can no longer be used,
     but is retained so that references to it (e.g., as an item creator) remain valid."""
+
+
+class GroupReference(BaseModel):
+    """A reference to a group, containing only the information needed to display it
+    alongside the entries it has access to.
+
+    """
+
+    type: Literal["groups"] = "groups"
+    """The entry type as a string."""
+
+    immutable_id: PyObjectId | None = Field(
+        None, title="Immutable ID", alias="_id", json_schema_extra={"format": "uuid"}
+    )
+    """The immutable database ID of the group."""
+
+    group_id: HumanReadableIdentifier | None = None
+    """A short, locally-unique ID for the group."""
+
+    display_name: DisplayName | None = None
+    """The chosen display name for the group."""
+
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
+
+class PersonReference(BaseModel):
+    """A reference to a person, containing only the non-sensitive information needed
+    to display them, e.g., as the creator of an entry.
+
+    Any other fields provided (e.g., identities or contact details) are discarded.
+
+    """
+
+    type: Literal["people"] = "people"
+    """The entry type as a string."""
+
+    immutable_id: PyObjectId | None = Field(
+        None, title="Immutable ID", alias="_id", json_schema_extra={"format": "uuid"}
+    )
+    """The immutable database ID of the person."""
+
+    display_name: DisplayName | None = None
+    """The person's chosen display name."""
+
+    gravatar_hash: str | None = None
+    """MD5 hash used by the frontend to fetch a Gravatar avatar without exposing the raw email."""
+
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
 
 class Group(Entry):
