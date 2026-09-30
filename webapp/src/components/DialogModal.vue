@@ -30,7 +30,7 @@
 
               <div class="flex-grow-1 text-break">
                 <!-- eslint-disable-next-line vue/no-v-html -->
-                <p v-if="message" class="mb-0 text-break" v-html="message"></p>
+                <p v-if="message" class="mb-0 text-break" v-html="sanitizedMessage"></p>
                 <slot></slot>
               </div>
             </div>
@@ -63,6 +63,8 @@
 </template>
 
 <script>
+import DOMPurify from "dompurify";
+
 export default {
   name: "DialogModal",
   props: {
@@ -106,6 +108,11 @@ export default {
   },
   emits: ["confirm", "cancel", "update:isVisible"],
   computed: {
+    sanitizedMessage() {
+      // Messages may contain user-provided or server-provided text (e.g., display names,
+      // error messages), so they must be sanitized before being rendered as HTML
+      return DOMPurify.sanitize(this.message);
+    },
     confirmButtonClass() {
       const classes = {
         info: "btn-info",
