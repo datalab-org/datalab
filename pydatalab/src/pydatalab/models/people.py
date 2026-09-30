@@ -96,8 +96,18 @@ class AccountStatus(str, Enum):
     """A string enum representing the account status."""
 
     ACTIVE = "active"
+    """An account that has been verified and is active."""
+
     UNVERIFIED = "unverified"
+    """An account that has been created but not yet verified by the user."""
+
     DEACTIVATED = "deactivated"
+    """The account has been deactivated and cannot be used to log in,
+    but can be reactivated by an administrator with full information preserved."""
+
+    DELETED = "deleted"
+    """The account has been irreversibly scrubbed of personal data and can no longer be used,
+    but is retained so that references to it (e.g., as an item creator) remain valid."""
 
 
 class Group(Entry):
