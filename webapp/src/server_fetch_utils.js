@@ -1148,6 +1148,16 @@ export function saveUser(user_id, user) {
     });
 }
 
+export function deleteUser(user_id, expunge = false) {
+  const url = `${API_URL}/users/${user_id}` + (expunge ? "?expunge=true" : "");
+  return fetch_delete(url).then(function (response_json) {
+    if (response_json.status !== "success") {
+      throw new Error(response_json.message || response_json.detail || "User deletion failed");
+    }
+    return response_json;
+  });
+}
+
 export function saveRole(user_id, role) {
   return fetch_patch(`${API_URL}/roles/${user_id}`, role)
     .then(function (response_json) {
