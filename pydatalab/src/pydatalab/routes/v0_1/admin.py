@@ -76,6 +76,8 @@ def _(): ...
 def get_users():
     users = flask_mongo.db.users.aggregate(
         [
+            # Most recently created accounts first
+            {"$sort": {"_id": -1}},
             {
                 "$lookup": {
                     "from": "roles",
