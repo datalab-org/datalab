@@ -1,14 +1,16 @@
 import datetime
+import secrets
 
 import pymongo.errors
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
-from werkzeug.exceptions import BadRequest, NotFound
+from werkzeug.exceptions import BadRequest, Conflict, NotFound
 
 from pydatalab.config import CONFIG
-from pydatalab.models.people import Group, Person
-from pydatalab.mongo import flask_mongo
+from pydatalab.logger import LOGGER
+from pydatalab.models.people import AccountStatus, Group, Person
+from pydatalab.mongo import flask_mongo, gravatar_hash_for
 from pydatalab.permissions import admin_only
 
 
@@ -230,6 +232,129 @@ def update_user_managers(user_id):
         return jsonify({"status": "error", "message": "Unable to update user managers"}), 400
 
     return jsonify({"status": "success"}), 200
+
+
+def _find_user_references(user_id: ObjectId) -> dict[str, int]:
+    """Count the documents in other collections that refer to this user
+    as a creator or author, i.e., those that would be left dangling if
+    the user was removed from the database entirely.
+
+    """
+    db = flask_mongo.db
+    references = {
+        "items": db.items.count_documents({"creator_ids": user_id}),
+        "collections": db.collections.count_documents({"creator_ids": user_id}),
+        "files": db.files.count_documents({"creator_ids": user_id}),
+        "item_versions": db.item_versions.count_documents({"user_id": user_id}),
+        "block_versions": db.block_versions.count_documents({"user_id": user_id}),
+        "tasks": db.tasks.count_documents({"creator_id": user_id}),
+    }
+    return {k: v for k, v in references.items() if v}
+
+
+def _remove_user_credentials_and_memberships(user_id: ObjectId, emails: set[str]) -> None:
+    """Remove all ways in which this user could authenticate, and remove them from
+    any management roles over other users and groups.
+
+    Access tokens created by the user for sharing specific items are retained,
+    as these belong to the shared item rather than the user; they can be
+    revoked separately.
+
+    """
+    db = flask_mongo.db
+    db.api_keys.delete_many({"user": user_id, "type": "api_key"})
+    # Legacy API keys are keyed by the user ID
+    db.api_keys.delete_many({"_id": user_id, "type": {"$exists": False}})
+    if emails:
+        db.magic_links.delete_many({"email": {"$in": list(emails)}})
+    db.users.update_many({"managers": user_id}, {"$pull": {"managers": user_id}})
+    db.groups.update_many({"managers": user_id}, {"$pull": {"managers": user_id}})
+
+
+@ADMIN.route("/users/<user_id>", methods=["DELETE"])
+def delete_user(user_id: str):
+    """Irreversibly delete a user account and all of their personal data.
+
+    **This is a destructive operation that cannot be undone from within datalab.**
+    Note that the removed data will likely persist in any database backups until
+    those backups expire, so that it can still be recovered if a restore is required.
+
+    By default, the account is "tombstoned": the user document is retained, so that
+    anything the user created (items, collections, files, versions) remains intact
+    and correctly attributed, but all of their identities, email addresses, API keys
+    and management roles are removed, and their display name is replaced with a random
+    pseudonym. The account status is set to `deleted`, which prevents it from ever being
+    used to log in again. If the same person logs in again with a previously connected
+    identity, a new, empty account will be created.
+
+    If the `expunge` query parameter is set to true, the user document will instead be
+    removed from the database entirely, e.g., for accounts registered without
+    authorisation. This is only allowed if nothing else in the database refers to the
+    user; otherwise, a 409 Conflict response is returned listing the references.
+
+    """
+    try:
+        user_oid = ObjectId(user_id)
+    except Exception:
+        raise BadRequest(f"Invalid user ID: {user_id}")
+
+    if str(user_oid) == str(current_user.id):
+        raise BadRequest("Admins cannot delete their own account.")
+
+    user = flask_mongo.db.users.find_one({"_id": user_oid})
+    if not user:
+        raise NotFound("User not found.")
+
+    expunge = request.args.get("expunge", "false").lower() in ("1", "true", "yes")
+
+    emails = {
+        identity["identifier"]
+        for identity in user.get("identities") or []
+        if identity.get("identity_type") == "email" and identity.get("identifier")
+    }
+    if user.get("contact_email"):
+        emails.add(user["contact_email"])
+
+    if expunge:
+        references = _find_user_references(user_oid)
+        if references:
+            raise Conflict(
+                "Cannot expunge user as other entries refer to them "
+                f"({', '.join(f'{k}: {v}' for k, v in references.items())}); "
+                "delete the account without expunging to retain these entries instead."
+            )
+        _remove_user_credentials_and_memberships(user_oid, emails)
+        flask_mongo.db.roles.delete_one({"_id": user_oid})
+        flask_mongo.db.users.delete_one({"_id": user_oid})
+        LOGGER.warning("User %s expunged by admin %s", user_oid, current_user.id)
+        return jsonify({"status": "success", "message": "User account expunged."}), 200
+
+    if user.get("account_status") == AccountStatus.DELETED:
+        return jsonify({"status": "success", "message": "User account already deleted."}), 200
+
+    display_name = f"{secrets.token_hex(3)} (deleted user)"
+    _remove_user_credentials_and_memberships(user_oid, emails)
+    flask_mongo.db.users.update_one(
+        {"_id": user_oid},
+        {
+            "$set": {
+                "contact_email": None,
+                "display_name": display_name,
+                "gravatar_hash": gravatar_hash_for(None, display_name),
+                "groups": [],
+                "managers": [],
+                "account_status": AccountStatus.DELETED,
+            },
+            # Unset rather than empty the identities, as an empty list is indexed as
+            # null by the unique identities index, which would only allow one such user
+            "$unset": {"identities": ""},
+        },
+    )
+    LOGGER.warning("User %s deleted by admin %s", user_oid, current_user.id)
+
+    return jsonify(
+        {"status": "success", "message": "User account deleted.", "display_name": display_name}
+    ), 200
 
 
 @ADMIN.route("/items/<refcode>/invalidate-access-token", methods=["POST"])
