@@ -110,8 +110,13 @@ export default {
   computed: {
     sanitizedMessage() {
       // Messages may contain user-provided or server-provided text (e.g., display names,
-      // error messages), so they must be sanitized before being rendered as HTML
-      return DOMPurify.sanitize(this.message);
+      // error messages), so they must be sanitized before being rendered as HTML.
+      // Only the small set of formatting tags the dialogs actually use is allowed;
+      // everything else (including any injected markup) is reduced to text.
+      return DOMPurify.sanitize(this.message, {
+        ALLOWED_TAGS: ["strong", "em", "b", "i", "code", "br", "p", "span"],
+        ALLOWED_ATTR: ["class"],
+      });
     },
     confirmButtonClass() {
       const classes = {

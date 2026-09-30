@@ -33,6 +33,7 @@ import "markdown-it";
 import hljs from "highlight.js";
 import "highlight.js/styles/a11y-light.css";
 import mermaid from "mermaid";
+import DOMPurify from "dompurify";
 
 export default {
   name: "MessageBubble",
@@ -86,13 +87,15 @@ export default {
       highlight: function (str, lang) {
         if (lang && lang.toLowerCase() == "mermaid") {
           try {
-            return `<pre class="mermaid-code">${str}</pre>`;
+            // Escaped here; the raw source is recovered via `textContent` when rendering
+            return `<pre class="mermaid-code">${MarkdownIt().utils.escapeHtml(str)}</pre>`;
           } catch (__) {
             //pass
           }
         }
         if (lang && lang.toLowerCase() == "svg") {
-          return `<pre class="svg-drawing">${str}</pre>`;
+          const svg = DOMPurify.sanitize(str, { USE_PROFILES: { svg: true, svgFilters: true } });
+          return `<pre class="svg-drawing">${svg}</pre>`;
         } else if (lang && hljs.getLanguage(lang)) {
           try {
             return hljs.highlight(str, { language: lang }).value;
