@@ -10,7 +10,7 @@ from werkzeug.exceptions import BadRequest, Forbidden, Unauthorized
 
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
-from pydatalab.models.people import Person
+from pydatalab.models.people import AccountStatus, Person
 from pydatalab.mongo import (
     USERS_FTS_FIELDS,
     build_search_pipeline,
@@ -46,6 +46,14 @@ def save_user(user_id):
 
     if current_user.id != user_id and current_user.role != "admin":
         raise Forbidden("Current user not allowed to edit this profile.")
+
+    if account_status == AccountStatus.DELETED:
+        raise BadRequest("Accounts must be deleted via the dedicated admin endpoint.")
+
+    if flask_mongo.db.users.find_one(
+        {"_id": ObjectId(user_id), "account_status": AccountStatus.DELETED}, {"_id": 1}
+    ):
+        raise BadRequest("Deleted accounts cannot be modified.")
 
     update = {}
 
