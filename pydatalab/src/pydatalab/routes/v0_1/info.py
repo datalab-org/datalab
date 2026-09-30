@@ -20,7 +20,8 @@ from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.deployment_stats import (
     STATS_REFRESH_INTERVAL,
-    get_stats_summary,
+    build_stats_summary,
+    stats_are_stale,
     update_deployment_stats,
 )
 from pydatalab.feature_flags import FEATURE_FLAGS, FeatureFlags
@@ -36,23 +37,36 @@ from ._version import __api_version__
 INFO = Blueprint("info", __name__)
 
 
+_app = None
+
+_pending_stats_update = None
+"""The background stats update queued by this worker, if any, so that concurrent
+requests for stale stats do not queue duplicate updates."""
+
+
+def _update_stats():
+    try:
+        with _app.app_context():
+            update_deployment_stats(flask_mongo.db)
+    except Exception:
+        LOGGER.exception("Failed to update deployment stats")
+
+
 @INFO.record_once
 def _register_stats_job(state):
     """Keep the deployment stats (and their monthly snapshots) up to date even if
-    no one visits the stats page; `get_stats_summary` still updates stale stats on
-    request, e.g. if the server restarts more often than the job interval."""
-    app = state.app
+    no one visits the stats page, by updating them daily at a fixed time;
+    requests for stale stats also queue an update in the background."""
+    global _app
+    _app = state.app
 
-    def _update_stats():
-        with app.app_context():
-            update_deployment_stats(flask_mongo.db)
-
-    task_scheduler.add_periodic_job(
+    task_scheduler.add_cron_job(
         func=_update_stats,
         job_id="deployment_stats_update",
-        hours=int(STATS_REFRESH_INTERVAL.total_seconds() // 3600),
+        hour=3,
+        jitter=30 * 60,
     )
-    LOGGER.info("Registered deployment stats update job")
+    LOGGER.info("Registered daily deployment stats update job")
 
 
 class Attributes(BaseModel):
@@ -171,14 +185,24 @@ def get_stats_history():
     collections, active users and item saves) across the lifetime of the deployment,
     alongside the current totals and a breakdown of block types in use.
 
-    The histograms are stored in the `deployment_stats` collection and incrementally
-    updated when stale, alongside a snapshot of the current totals.
+    The histograms are stored in the `deployment_stats` collection, alongside a
+    snapshot of the current totals. If they are stale, an incremental update is
+    queued in the background and the stored stats are returned immediately with
+    `updating` set; on a fresh deployment these will be empty until it finishes.
 
     """
-    response = jsonify({"status": "success", "data": get_stats_summary(flask_mongo.db)})
-    response.headers["Cache-Control"] = (
-        f"private, max-age={int(STATS_REFRESH_INTERVAL.total_seconds())}"
-    )
+    global _pending_stats_update
+    updating = stats_are_stale(flask_mongo.db)
+    if updating and (_pending_stats_update is None or _pending_stats_update.done()):
+        _pending_stats_update = task_scheduler.add_job(
+            func=_update_stats, args=[], job_id="deployment_stats_update"
+        )
+
+    summary = build_stats_summary(flask_mongo.db)
+    summary["updating"] = updating
+    response = jsonify({"status": "success", "data": summary})
+    max_age = int(STATS_REFRESH_INTERVAL.total_seconds())
+    response.headers["Cache-Control"] = "no-store" if updating else f"private, max-age={max_age}"
     return response, 200
 
 

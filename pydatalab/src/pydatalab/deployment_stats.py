@@ -12,8 +12,9 @@ created in that month; later deletions do not rewrite history.
 
 Each update also stores a snapshot of the current totals and block type counts on
 the current month's document, so serving the stats is just a read of this
-collection; the database itself acts as the cache, refreshed when the latest
-update is older than `STATS_REFRESH_INTERVAL`.
+collection; the database itself acts as the cache, refreshed daily and in the
+background whenever a request finds the latest update older than
+`STATS_REFRESH_INTERVAL`.
 
 """
 
@@ -266,14 +267,13 @@ def build_stats_summary(db: Database) -> dict[str, Any]:
     }
 
 
-def get_stats_summary(db: Database, force: bool = False) -> dict[str, Any]:
-    """Return the stats summary, first updating the stored histograms if they are stale."""
+def stats_are_stale(db: Database) -> bool:
+    """Whether the stored stats are missing or older than `STATS_REFRESH_INTERVAL`."""
     latest = db[STATS_COLLECTION].find_one(sort=[("_id", -1)]) or {}
     updated_at = latest.get("updated_at") if "totals" in latest else None
+    if updated_at is None:
+        return True
     # pymongo returns naive datetimes (in UTC) unless the client is timezone-aware
-    if updated_at is not None and updated_at.tzinfo is None:
+    if updated_at.tzinfo is None:
         updated_at = updated_at.replace(tzinfo=tz.utc)
-    stale = updated_at is None or datetime.now(tz=tz.utc) - updated_at > STATS_REFRESH_INTERVAL
-    if force or stale:
-        update_deployment_stats(db)
-    return build_stats_summary(db)
+    return datetime.now(tz=tz.utc) - updated_at > STATS_REFRESH_INTERVAL

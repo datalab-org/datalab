@@ -18,6 +18,9 @@ class TaskScheduler:
     Periodic jobs (e.g. stale task cleanup) use APScheduler's interval trigger
     with a MemoryJobStore. Each gunicorn worker runs its own cleanup
     independently; the cleanup logic is idempotent so this is safe.
+
+    Cron jobs (e.g. daily stats cache) use APScheduler's cron trigger with a
+    MemoryJobStore.
     """
 
     _instance = None
@@ -68,8 +71,7 @@ class TaskScheduler:
         ctx = contextvars.copy_context()
         return executor.submit(ctx.run, func, *args)
 
-    def add_periodic_job(self, func, job_id, hours, replace_existing=True):
-        """Register a periodic job via APScheduler (MemoryJobStore)."""
+    def _add_scheduled_job(self, func, job_id, replace_existing=True, **trigger_args):
         scheduler = self._get_scheduler()
 
         @wraps(func)
@@ -79,11 +81,33 @@ class TaskScheduler:
 
         scheduler.add_job(
             func=job_with_log_context,
-            trigger="interval",
             id=job_id,
-            hours=hours,
             replace_existing=replace_existing,
             misfire_grace_time=None,
+            **trigger_args,
+        )
+
+    def add_periodic_job(self, func, job_id, hours, replace_existing=True):
+        """Register a periodic job via APScheduler (MemoryJobStore)."""
+        self._add_scheduled_job(
+            func, job_id, replace_existing=replace_existing, trigger="interval", hours=hours
+        )
+
+    def add_cron_job(self, func, job_id, hour, minute=0, jitter=None, replace_existing=True):
+        """Register a job that runs daily at a fixed UTC time via APScheduler (MemoryJobStore).
+
+        Unlike an interval job, the schedule does not reset when the server restarts.
+        As each worker registers its own copy of the job, `jitter` (in seconds) can be
+        used to spread their runs out.
+        """
+        self._add_scheduled_job(
+            func,
+            job_id,
+            replace_existing=replace_existing,
+            trigger="cron",
+            hour=hour,
+            minute=minute,
+            jitter=jitter,
         )
 
     def shutdown(self):

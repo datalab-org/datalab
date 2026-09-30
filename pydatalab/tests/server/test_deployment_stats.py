@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from datetime import timezone as tz
+from unittest.mock import MagicMock, patch
 
 from bson import ObjectId
 
@@ -44,6 +45,7 @@ def test_stats_history(client, database, user_id):
         ]
     )
     database.files.insert_one({"_id": _oid(historic), "size": 1024})
+    update_deployment_stats(database)
     response = client.get("/info/stats/history")
     assert response.status_code == 200
     data = response.json["data"]
@@ -106,6 +108,7 @@ def test_stats_history_counts_referenced_blocks(client, database, user_id):
             "blocks_obj": {"ref": {"immutable_id": block_id}, "legacy": {"blocktype": "xrd"}},
         }
     )
+    update_deployment_stats(database)
     response = client.get("/info/stats/history")
     assert response.status_code == 200
     data = response.json["data"]
@@ -120,3 +123,22 @@ def test_stats_history_counts_referenced_blocks(client, database, user_id):
 def test_stats_history_requires_login(unauthenticated_client):
     response = unauthenticated_client.get("/info/stats/history")
     assert response.status_code == 401
+
+
+def test_stale_stats_update_in_background(client, database):
+    database[STATS_COLLECTION].delete_many({})
+    with patch("pydatalab.routes.v0_1.info.task_scheduler") as mock_scheduler:
+        mock_scheduler.add_job = MagicMock(return_value=None)
+        response = client.get("/info/stats/history")
+    assert response.status_code == 200
+    assert response.json["data"]["updating"] is True
+    assert response.json["data"]["months"] == []
+    assert response.headers["Cache-Control"] == "no-store"
+    assert mock_scheduler.add_job.called
+
+    update_deployment_stats(database)
+    response = client.get("/info/stats/history")
+    assert response.json["data"]["updating"] is False
+    assert response.json["data"]["months"]
+
+    database[STATS_COLLECTION].delete_many({})
