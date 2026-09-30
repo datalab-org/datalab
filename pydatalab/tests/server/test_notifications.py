@@ -49,6 +49,7 @@ def test_create_and_list(
     notification = resp.json["data"][0]
     assert notification["recipient_id"] == str(user_id)
     assert notification["created_by"] == str(admin_user_id)
+    assert notification["created_by_info"]["display_name"] == "Test Admin"
     assert notification["title"] == "Batch import warning"
     assert notification["summary"] == "Two rows failed."
     assert notification["message"] == "Two rows could not be matched."
@@ -67,6 +68,75 @@ def test_create_and_list(
     assert resp.status_code == 200
     assert resp.json["unread_count"] == 1
     assert resp.json["data"][0]["recipient_id"] == str(another_user_id)
+
+
+def test_admin_lists_all_notification_deliveries(
+    admin_client, user_id, another_user_id, admin_user_id
+):
+    resp = admin_client.post(
+        "/notifications",
+        json={
+            "recipient_ids": [str(user_id), str(another_user_id)],
+            "title": "Planned maintenance",
+            "summary": "The service will briefly be unavailable.",
+        },
+    )
+    assert resp.status_code == 201
+
+    resp = admin_client.get("/admin/notifications")
+
+    assert resp.status_code == 200
+    assert len(resp.json["data"]) == 2
+    assert {entry["recipient_id"] for entry in resp.json["data"]} == {
+        str(user_id),
+        str(another_user_id),
+    }
+    assert {entry["recipient_info"]["display_name"] for entry in resp.json["data"]} == {
+        "Test User",
+        "Another User",
+    }
+    assert all(
+        entry["created_by"] == str(admin_user_id)
+        and entry["created_by_info"]["display_name"] == "Test Admin"
+        for entry in resp.json["data"]
+    )
+
+
+def test_admin_notification_list_requires_admin(client, unauthenticated_client):
+    assert client.get("/admin/notifications").status_code == 403
+    assert unauthenticated_client.get("/admin/notifications").status_code == 401
+
+
+def test_admin_notification_delete_requires_admin(client, unauthenticated_client):
+    notification_id = ObjectId()
+    assert client.delete(f"/admin/notifications/{notification_id}").status_code == 403
+    assert (
+        unauthenticated_client.delete(f"/admin/notifications/{notification_id}").status_code == 401
+    )
+
+
+def test_admin_deletes_one_notification_delivery(
+    admin_client, client, database, user_id, another_user_id
+):
+    create_resp = admin_client.post(
+        "/notifications",
+        json={
+            "recipient_ids": [str(user_id), str(another_user_id)],
+            "title": "Delivery-specific notification",
+        },
+    )
+    notification_ids = create_resp.json["notification_ids"]
+
+    assert client.delete(f"/admin/notifications/{notification_ids[0]}").status_code == 403
+    assert admin_client.delete("/admin/notifications/not-an-object-id").status_code == 400
+    assert admin_client.delete(f"/admin/notifications/{ObjectId()}").status_code == 404
+
+    resp = admin_client.delete(f"/admin/notifications/{notification_ids[0]}")
+
+    assert resp.status_code == 200
+    assert resp.json["deleted_count"] == 1
+    assert database.notifications.count_documents({}) == 1
+    assert database.notifications.find_one({"_id": ObjectId(notification_ids[1])}) is not None
 
 
 def test_send_all_users_precedence(admin_client, database):

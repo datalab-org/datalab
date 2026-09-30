@@ -162,7 +162,7 @@ def list_notifications(notification_permissions: dict):
     include_archived = request.args.get("include_archived") == "1"
     unread_only = request.args.get("unread_only") == "1"
     limit = request.args.get("limit", default=50, type=int)
-    limit = max(1, limit)
+    limit = min(max(1, limit), 100)
 
     query = dict(notification_permissions)
     if not include_archived:
@@ -182,15 +182,38 @@ def list_notifications(notification_permissions: dict):
             {"$sort": {"_is_read": 1, "_notification_time": -1, "created_at": -1}},
             {"$limit": limit},
             {"$project": {"_is_read": 0, "_notification_time": 0}},
+            {
+                "$lookup": {
+                    "from": "users",
+                    "localField": "created_by",
+                    "foreignField": "_id",
+                    "pipeline": [
+                        {"$project": {"display_name": 1, "gravatar_hash": 1}},
+                    ],
+                    "as": "_created_by_info",
+                }
+            },
         ]
     )
+    data = []
+    for notification in notifications:
+        created_by_info = notification.pop("_created_by_info", [])
+        serialized = Notification(**notification).model_dump(mode="json")
+        if created_by_info:
+            user_info = created_by_info[0]
+            serialized["created_by_info"] = {
+                "immutable_id": str(user_info["_id"]),
+                "display_name": user_info.get("display_name"),
+                "gravatar_hash": user_info.get("gravatar_hash"),
+            }
+        else:
+            serialized["created_by_info"] = None
+        data.append(serialized)
+
     return jsonify(
         {
             "status": "success",
-            "data": [
-                Notification(**notification).model_dump(mode="json")
-                for notification in notifications
-            ],
+            "data": data,
             "unread_count": _count_unread_notifications(notification_permissions),
         }
     ), 200
@@ -205,6 +228,62 @@ def get_notification_unread_count(notification_permissions: dict):
             "unread_count": _count_unread_notifications(notification_permissions),
         }
     ), 200
+
+
+@NOTIFICATIONS.route("/admin/notifications", methods=["GET"])
+@admin_only
+def list_admin_notifications():
+    notifications = flask_mongo.db.notifications.aggregate(
+        [
+            {
+                "$lookup": {
+                    "from": "users",
+                    "localField": "recipient_id",
+                    "foreignField": "_id",
+                    "pipeline": [
+                        {"$project": {"display_name": 1, "gravatar_hash": 1}},
+                    ],
+                    "as": "_recipient_info",
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "users",
+                    "localField": "created_by",
+                    "foreignField": "_id",
+                    "pipeline": [
+                        {"$project": {"display_name": 1, "gravatar_hash": 1}},
+                    ],
+                    "as": "_created_by_info",
+                }
+            },
+            {"$sort": {"created_at": -1}},
+        ]
+    )
+
+    data = []
+    for notification in notifications:
+        recipient_info = notification.pop("_recipient_info", [])
+        created_by_info = notification.pop("_created_by_info", [])
+        serialized = Notification(**notification).model_dump(mode="json")
+
+        for field, user_matches in (
+            ("recipient_info", recipient_info),
+            ("created_by_info", created_by_info),
+        ):
+            if user_matches:
+                user_info = user_matches[0]
+                serialized[field] = {
+                    "immutable_id": str(user_info["_id"]),
+                    "display_name": user_info.get("display_name"),
+                    "gravatar_hash": user_info.get("gravatar_hash"),
+                }
+            else:
+                serialized[field] = None
+
+        data.append(serialized)
+
+    return jsonify({"status": "success", "data": data}), 200
 
 
 @NOTIFICATIONS.route("/notifications/<notification_id>", methods=["PATCH"])
@@ -263,6 +342,21 @@ def update_notification(
             "unread_count": _count_unread_notifications(notification_permissions),
         }
     ), 200
+
+
+@NOTIFICATIONS.route("/admin/notifications/<notification_id>", methods=["DELETE"])
+@admin_only
+def delete_admin_notification(notification_id: str):
+    try:
+        notification_object_id = ObjectId(notification_id)
+    except Exception as exc:
+        raise BadRequest(f"Invalid notification_id {notification_id!r}.") from exc
+
+    result = flask_mongo.db.notifications.delete_one({"_id": notification_object_id})
+    if result.deleted_count == 0:
+        raise NotFound("Notification not found.")
+
+    return jsonify({"status": "success", "deleted_count": result.deleted_count}), 200
 
 
 @NOTIFICATIONS.route("/notifications/mark-all-read", methods=["POST"])
