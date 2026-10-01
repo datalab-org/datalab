@@ -9,7 +9,7 @@ Cypress.on("window:before:load", (win) => {
 let item_ids = ["editable_sample", "component1", "component2"];
 
 before(() => {
-  cy.loginViaTestMagicLink("test-user@example.com", "user");
+  cy.loginViaTestMagicLink("test-user@datalab.test");
 });
 
 after(() => {
@@ -28,7 +28,7 @@ after(() => {
 
 describe("Edit Page", () => {
   beforeEach(() => {
-    cy.loginViaTestMagicLink("test-user@example.com", "user");
+    cy.loginViaTestMagicLink("test-user@datalab.test");
     cy.visit("/");
   });
 
@@ -43,8 +43,14 @@ describe("Edit Page", () => {
 
   it("Adds a valid sample", () => {
     cy.createSample("editable_sample", "This is a sample name", "1990-01-07T00:00");
-    cy.get("tr>td").eq(9).should("be.empty"); // 0 blocks are present
-    cy.get("tr>td").eq(10).should("be.empty"); // 0 files are present
+    // Find the columns by their header icon, as their position depends on which columns
+    // are shown.
+    cy.getIconColumnIndex("cubes").then((index) => {
+      cy.get("tr>td").eq(index).should("be.empty"); // 0 blocks are present
+    });
+    cy.getIconColumnIndex("file").then((index) => {
+      cy.get("tr>td").eq(index).should("be.empty"); // 0 files are present
+    });
   });
 
   it("Add some more samples, to use as components", () => {
@@ -267,7 +273,9 @@ describe("Edit Page", () => {
 
     cy.findByText("Home").click();
     cy.get('[data-testid="search-input"]').type("editable_sample");
-    cy.get("[data-testid=sample-table] tr:nth-of-type(1) > td:nth-of-type(10)").contains(2); // 2 blocks are present
+    cy.getIconColumnIndex("cubes").then((index) => {
+      cy.get("[data-testid=sample-table] tr:nth-of-type(1) > td").eq(index).contains(2); // 2 blocks are present
+    });
   });
 
   it("Clicks the upload buttons and checks that the modals are shown", () => {

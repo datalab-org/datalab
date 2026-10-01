@@ -18,257 +18,322 @@
       </div>
     </div>
 
-    <div class="button-bar">
-      <div v-if="dataType === 'samples'" class="btn-action-group">
+    <div class="button-bar row mx-n1 align-items-center">
+      <div
+        v-if="hasActionButtons"
+        class="btn-action-group d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center px-1"
+        :class="
+          dataType === 'samples'
+            ? 'col-12 col-xl-auto mb-2 mb-xl-0'
+            : 'col-12 col-lg-auto mb-2 mb-lg-0'
+        "
+      >
+        <template v-if="dataType === 'samples'">
+          <button
+            data-testid="add-item-button"
+            class="btn btn-default btn-action"
+            :disabled="!isLoggedIn || adminSuperUserMode"
+            :title="
+              !isLoggedIn
+                ? 'Log in to add items'
+                : adminSuperUserMode
+                  ? 'Disabled in super-user mode'
+                  : ''
+            "
+            @click="$emit('open-create-item-modal')"
+          >
+            Add an item
+          </button>
+          <button
+            data-testid="batch-item-button"
+            class="btn btn-default btn-action"
+            :disabled="!isLoggedIn || adminSuperUserMode"
+            :title="
+              !isLoggedIn
+                ? 'Log in to add items'
+                : adminSuperUserMode
+                  ? 'Disabled in super-user mode'
+                  : ''
+            "
+            @click="$emit('open-batch-create-item-modal')"
+          >
+            Add batch of items
+          </button>
+          <button
+            data-testid="scan-qr-button"
+            class="btn btn-default btn-action"
+            aria-label="Scan QR code"
+            title="Scan QR code"
+            @click="$emit('open-qr-scanner-modal')"
+          >
+            <font-awesome-icon icon="qrcode" /> Scan QR code
+          </button>
+        </template>
         <button
-          data-testid="add-item-button"
+          v-if="dataType === 'collections'"
+          data-testid="add-collection-button"
           class="btn btn-default btn-action"
-          :disabled="!isLoggedIn || adminSuperUserMode"
-          :title="
-            !isLoggedIn
-              ? 'Log in to add items'
-              : adminSuperUserMode
-                ? 'Disabled in super-user mode'
-                : ''
-          "
+          @click="$emit('open-create-collection-modal')"
+        >
+          Create new collection
+        </button>
+        <button
+          v-if="dataType === 'startingMaterials' && editableInventory"
+          data-testid="add-starting-material-button"
+          class="btn btn-default btn-action"
           @click="$emit('open-create-item-modal')"
         >
-          Add an item
+          Add a starting material
         </button>
         <button
-          data-testid="batch-item-button"
+          v-if="dataType === 'equipment'"
+          data-testid="add-equipment-button"
           class="btn btn-default btn-action"
-          :disabled="!isLoggedIn || adminSuperUserMode"
-          :title="
-            !isLoggedIn
-              ? 'Log in to add items'
-              : adminSuperUserMode
-                ? 'Disabled in super-user mode'
-                : ''
-          "
-          @click="$emit('open-batch-create-item-modal')"
+          @click="$emit('open-create-equipment-modal')"
         >
-          Add batch of items
+          Add equipment
         </button>
         <button
-          data-testid="scan-qr-button"
+          v-if="dataType === 'tags' && isLoggedIn"
+          data-testid="add-tag-button"
           class="btn btn-default btn-action"
-          aria-label="Scan QR code"
-          title="Scan QR code"
-          @click="$emit('open-qr-scanner-modal')"
+          @click="$emit('open-create-tag-modal')"
         >
-          <font-awesome-icon icon="qrcode" /> Scan QR code
+          Create new tag
         </button>
       </div>
-      <button
-        v-if="dataType === 'collections'"
-        data-testid="add-collection-button"
-        class="btn btn-default"
-        @click="$emit('open-create-collection-modal')"
-      >
-        Create new collection
-      </button>
-      <button
-        v-if="dataType === 'startingMaterials' && editableInventory"
-        data-testid="add-starting-material-button"
-        class="btn btn-default"
-        @click="$emit('open-create-item-modal')"
-      >
-        Add a starting material
-      </button>
-      <button
-        v-if="dataType === 'equipment'"
-        data-testid="add-equipment-button"
-        class="btn btn-default"
-        @click="$emit('open-create-equipment-modal')"
-      >
-        Add an item
-      </button>
 
-      <div class="button-bar-spacer"></div>
-
-      <div class="search-settings-group">
-        <IconField class="search-field">
-          <InputIcon>
-            <font-awesome-icon icon="search" />
-          </InputIcon>
-          <InputText
-            v-model="localFilters.global.value"
-            data-testid="search-input"
-            class="search-input"
-            placeholder="Search"
-          />
-        </IconField>
-
-        <div class="dropdown">
-          <button
-            data-testid="table-settings-button"
-            class="btn btn-default"
-            type="button"
-            aria-label="Table settings"
-            title="Table settings"
-            aria-haspopup="true"
-            :aria-expanded="isSettingsDropdownVisible"
-            @click="isSettingsDropdownVisible = !isSettingsDropdownVisible"
-          >
-            <font-awesome-icon icon="cog" />
-          </button>
+      <div
+        class="table-tools d-flex align-items-stretch px-1"
+        :class="
+          dataType === 'samples'
+            ? 'col-12 col-xl flex-column flex-lg-row align-items-lg-center ml-lg-auto'
+            : hasActionButtons
+              ? 'col-12 col-lg flex-column flex-lg-row align-items-lg-center ml-lg-auto'
+              : 'col-12 col-md flex-column flex-md-row align-items-md-center ml-md-auto'
+        "
+      >
+        <div
+          class="selection-controls d-flex flex-nowrap align-items-center justify-content-between"
+          :class="
+            hasActionButtons
+              ? 'justify-content-lg-start ml-lg-auto'
+              : 'justify-content-md-start ml-md-auto'
+          "
+        >
           <div
-            v-show="isSettingsDropdownVisible"
-            class="dropdown-menu dropdown-menu-right settings-dropdown"
-            style="display: block"
+            data-testid="selection-summary"
+            class="selection-summary form-control-plaintext w-auto"
           >
-            <div class="dropdown-item-text">
-              <label class="mb-1 font-weight-bold">Columns</label>
-              <MultiSelect
-                :model-value="selectedColumns"
-                :options="availableColumns"
-                :option-label="columnLabel"
-                placeholder="Select column(s) to display"
-                display="chip"
-                class="column-select-dropdown"
-                @update:model-value="$emit('update:selected-columns', $event)"
+            <font-awesome-icon
+              :icon="itemsSelected.length > 0 ? 'check-square' : 'stream'"
+              class="mr-1"
+            />
+            <span v-if="itemsSelected.length > 0">
+              {{ itemsSelected.length }} {{ itemLabel(itemsSelected.length) }} selected
+            </span>
+            <span v-else>Number of {{ itemLabel(2) }}: {{ displayedItemCount }}</span>
+          </div>
+
+          <div
+            v-if="itemsSelected.length > 0"
+            v-on-click-outside="() => (isSelectedDropdownVisible = false)"
+            class="dropdown"
+          >
+            <button
+              id="selected-actions-dropdown"
+              data-testid="selected-dropdown"
+              class="btn btn-default dropdown-toggle"
+              type="button"
+              aria-label="Actions"
+              title="Actions"
+              data-toggle="dropdown"
+              aria-haspopup="true"
+              :aria-expanded="isSelectedDropdownVisible"
+              @click="isSelectedDropdownVisible = !isSelectedDropdownVisible"
+            >
+              Actions
+            </button>
+            <div
+              v-show="isSelectedDropdownVisible"
+              class="dropdown-menu dropdown-menu-right"
+              style="display: block"
+              aria-labelledby="selected-actions-dropdown"
+            >
+              <a
+                v-if="
+                  !['collections', 'collectionItems', 'users', 'tokens', 'groups', 'tags'].includes(
+                    dataType,
+                  )
+                "
+                data-testid="add-to-collection-button"
+                class="dropdown-item"
+                @click="handleAddToCollection"
               >
-                <template #value="{ value }">
-                  <span v-if="value && value.length == availableColumns.length" class="text-muted"
-                    >All columns</span
-                  >
-                  <span v-else>{{ value.length }} columns</span>
-                </template>
-              </MultiSelect>
+                Add to collection
+              </a>
+              <a
+                v-if="dataType === 'collectionItems'"
+                data-testid="remove-from-collection-dropdown"
+                class="dropdown-item"
+                @click="confirmRemoveFromCollection"
+              >
+                Remove from collection
+              </a>
+              <a
+                v-if="
+                  !['collections', 'collectionItems', 'users', 'tokens', 'groups', 'tags'].includes(
+                    dataType,
+                  )
+                "
+                data-testid="batch-share-button"
+                class="dropdown-item"
+                @click="handleBatchShare"
+              >
+                Batch share
+              </a>
+              <a
+                v-if="!['collectionItems', 'users', 'tokens', 'groups'].includes(dataType)"
+                data-testid="delete-selected-button"
+                class="dropdown-item"
+                @click="confirmDeletion"
+              >
+                Delete items
+              </a>
+              <a
+                v-if="dataType === 'users'"
+                data-testid="bulk-change-role-button"
+                class="dropdown-item"
+                @click="
+                  showBulkChangeRoleModal = true;
+                  isSelectedDropdownVisible = false;
+                "
+              >
+                Change role
+              </a>
+              <a
+                v-if="dataType === 'users'"
+                data-testid="bulk-add-to-group-button"
+                class="dropdown-item"
+                @click="
+                  showBulkAddToGroupModal = true;
+                  isSelectedDropdownVisible = false;
+                "
+              >
+                Add to group
+              </a>
+              <a
+                v-if="dataType === 'users'"
+                data-testid="bulk-change-managers-button"
+                class="dropdown-item"
+                @click="
+                  showBulkChangeManagersModal = true;
+                  isSelectedDropdownVisible = false;
+                "
+              >
+                Add manager(s)
+              </a>
+              <a
+                v-if="dataType === 'users'"
+                data-testid="bulk-activate-users-button"
+                class="dropdown-item"
+                @click="handleBulkActivateUsers"
+              >
+                Activate selected users
+              </a>
+              <a
+                v-if="dataType === 'users'"
+                data-testid="bulk-deactivate-users-button"
+                class="dropdown-item"
+                @click="handleBulkDeactivateUsers"
+              >
+                Deactivate selected users
+              </a>
+              <a
+                v-if="dataType === 'tokens'"
+                data-testid="bulk-invalidate-tokens-button"
+                class="dropdown-item"
+                @click="handleBulkInvalidateTokens"
+              >
+                Invalidate selected tokens
+              </a>
+              <a
+                v-if="dataType === 'groups'"
+                data-testid="bulk-delete-groups-button"
+                class="dropdown-item"
+                @click="handleBulkDeleteGroups"
+              >
+                Delete selected groups
+              </a>
             </div>
-            <div class="dropdown-divider"></div>
-            <a data-testid="reset-table-button" class="dropdown-item" @click="resetTable">
-              <font-awesome-icon icon="redo" class="mr-2" /> Reset table settings
-            </a>
+          </div>
+        </div>
+
+        <div class="search-settings-group d-flex flex-nowrap">
+          <IconField class="search-field">
+            <InputIcon>
+              <font-awesome-icon icon="search" />
+            </InputIcon>
+            <InputText
+              v-model="localFilters.global.value"
+              data-testid="search-input"
+              class="search-input"
+              placeholder="Search"
+            />
+          </IconField>
+
+          <div v-on-click-outside="() => (isSettingsDropdownVisible = false)" class="dropdown">
+            <button
+              data-testid="table-settings-button"
+              class="btn btn-default"
+              type="button"
+              aria-label="Table settings"
+              title="Table settings"
+              aria-haspopup="true"
+              :aria-expanded="isSettingsDropdownVisible"
+              @click="isSettingsDropdownVisible = !isSettingsDropdownVisible"
+            >
+              <font-awesome-icon icon="cog" />
+            </button>
+            <div
+              v-show="isSettingsDropdownVisible"
+              data-testid="table-settings-menu"
+              class="dropdown-menu dropdown-menu-right settings-dropdown"
+              style="display: block"
+            >
+              <div class="dropdown-item-text">
+                <label class="mb-1 font-weight-bold">Columns</label>
+                <!-- Compare columns by field: the default deep comparison can fail on column
+                     definitions holding components. -->
+                <MultiSelect
+                  :model-value="selectedColumns"
+                  :options="availableColumns"
+                  :option-label="columnLabel"
+                  append-to="self"
+                  data-key="field"
+                  placeholder="Select column(s) to display"
+                  display="chip"
+                  class="column-select-dropdown"
+                  @update:model-value="$emit('update:selected-columns', $event)"
+                >
+                  <template #value="{ value }">
+                    <span v-if="value && value.length == availableColumns.length" class="text-muted"
+                      >All columns</span
+                    >
+                    <span v-else>{{ value.length }} columns</span>
+                  </template>
+                </MultiSelect>
+              </div>
+              <div class="dropdown-divider"></div>
+              <a data-testid="reset-table-button" class="dropdown-item" @click="resetTable">
+                <font-awesome-icon icon="redo" class="mr-2" /> Reset table settings
+              </a>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div v-if="itemsSelected.length > 0" class="d-flex justify-content-end align-items-center mt-2">
-      <div class="dropdown">
-        <button
-          data-testid="selected-dropdown"
-          class="btn btn-default dropdown-toggle"
-          type="button"
-          data-toggle="dropdown"
-          aria-haspopup="true"
-          aria-expanded="false"
-          @click="isSelectedDropdownVisible = !isSelectedDropdownVisible"
-        >
-          {{ itemsSelected.length }} selected...
-        </button>
-        <div
-          v-show="isSelectedDropdownVisible"
-          class="dropdown-menu"
-          style="display: block"
-          aria-labelledby="dropdownMenuButton"
-        >
-          <a
-            v-if="
-              !['collections', 'collectionItems', 'users', 'tokens', 'groups'].includes(dataType)
-            "
-            data-testid="add-to-collection-button"
-            class="dropdown-item"
-            @click="handleAddToCollection"
-          >
-            Add to collection
-          </a>
-          <a
-            v-if="dataType === 'collectionItems'"
-            data-testid="remove-from-collection-dropdown"
-            class="dropdown-item"
-            @click="confirmRemoveFromCollection"
-          >
-            Remove from collection
-          </a>
-          <a
-            v-if="
-              !['collections', 'collectionItems', 'users', 'tokens', 'groups'].includes(dataType)
-            "
-            data-testid="batch-share-button"
-            class="dropdown-item"
-            @click="handleBatchShare"
-          >
-            Batch share
-          </a>
-          <a
-            v-if="!['collectionItems', 'users', 'tokens', 'groups'].includes(dataType)"
-            data-testid="delete-selected-button"
-            class="dropdown-item"
-            @click="confirmDeletion"
-          >
-            Delete selected
-          </a>
-          <a
-            v-if="dataType === 'users'"
-            data-testid="bulk-change-role-button"
-            class="dropdown-item"
-            @click="
-              showBulkChangeRoleModal = true;
-              isSelectedDropdownVisible = false;
-            "
-          >
-            Change role
-          </a>
-          <a
-            v-if="dataType === 'users'"
-            data-testid="bulk-add-to-group-button"
-            class="dropdown-item"
-            @click="
-              showBulkAddToGroupModal = true;
-              isSelectedDropdownVisible = false;
-            "
-          >
-            Add to group
-          </a>
-          <a
-            v-if="dataType === 'users'"
-            data-testid="bulk-change-managers-button"
-            class="dropdown-item"
-            @click="
-              showBulkChangeManagersModal = true;
-              isSelectedDropdownVisible = false;
-            "
-          >
-            Add manager(s)
-          </a>
-          <a
-            v-if="dataType === 'users'"
-            data-testid="bulk-activate-users-button"
-            class="dropdown-item"
-            @click="handleBulkActivateUsers"
-          >
-            Activate selected users
-          </a>
-          <a
-            v-if="dataType === 'users'"
-            data-testid="bulk-deactivate-users-button"
-            class="dropdown-item"
-            @click="handleBulkDeactivateUsers"
-          >
-            Deactivate selected users
-          </a>
-          <a
-            v-if="dataType === 'tokens'"
-            data-testid="bulk-invalidate-tokens-button"
-            class="dropdown-item"
-            @click="handleBulkInvalidateTokens"
-          >
-            Invalidate selected tokens
-          </a>
-          <a
-            v-if="dataType === 'groups'"
-            data-testid="bulk-delete-groups-button"
-            class="dropdown-item"
-            @click="handleBulkDeleteGroups"
-          >
-            Delete selected groups
-          </a>
-        </div>
-      </div>
-    </div>
     <BulkChangeRoleModal
       v-model="showBulkChangeRoleModal"
       :selected-users="itemsSelected"
@@ -296,6 +361,7 @@ import InputIcon from "primevue/inputicon";
 import InputText from "primevue/inputtext";
 import MultiSelect from "primevue/multiselect";
 import "primeicons/primeicons.css";
+import { vOnClickOutside } from "@vueuse/components";
 
 import BulkChangeRoleModal from "@/components/BulkChangeRoleModal.vue";
 import BulkAddToGroupModal from "@/components/BulkAddToGroupModal.vue";
@@ -313,9 +379,13 @@ import {
   saveUserManagers,
   invalidateToken,
   deleteGroup,
+  deleteTag,
 } from "@/server_fetch_utils.js";
 
 export default {
+  directives: {
+    onClickOutside: vOnClickOutside,
+  },
   components: {
     IconField,
     InputIcon,
@@ -333,6 +403,11 @@ export default {
     itemsSelected: {
       type: Array,
       required: true,
+    },
+    displayedItemCount: {
+      type: Number,
+      required: false,
+      default: 0,
     },
     filters: {
       type: Object,
@@ -374,6 +449,7 @@ export default {
     "open-qr-scanner-modal",
     "open-create-collection-modal",
     "open-create-equipment-modal",
+    "open-create-tag-modal",
     "open-add-to-collection-modal",
     "open-batch-share-modal",
     "delete-selected-items",
@@ -400,6 +476,13 @@ export default {
     };
   },
   computed: {
+    hasActionButtons() {
+      return (
+        ["samples", "collections", "equipment"].includes(this.dataType) ||
+        (this.dataType === "startingMaterials" && this.editableInventory) ||
+        (this.dataType === "tags" && this.isLoggedIn)
+      );
+    },
     adminSuperUserMode() {
       return this.$store.getters.isAdminSuperUserModeActive;
     },
@@ -418,15 +501,37 @@ export default {
     },
   },
   methods: {
+    itemLabel(count) {
+      const labels = {
+        samples: ["item", "items"],
+        collections: ["collection", "collections"],
+        equipment: ["equipment item", "equipment items"],
+        startingMaterials: ["starting material", "starting materials"],
+        collectionItems: ["item", "items"],
+        users: ["user", "users"],
+        tokens: ["token", "tokens"],
+        groups: ["group", "groups"],
+        tags: ["tag", "tags"],
+      };
+      const [singular, plural] = labels[this.dataType] || ["item", "items"];
+      return count === 1 ? singular : plural;
+    },
     async confirmDeletion() {
-      const idsSelected = this.itemsSelected.map((x) => x.item_id || x.collection_id);
-      let idsSelectedLabel = idsSelected;
-      if (idsSelected.length > 10) {
-        idsSelectedLabel = idsSelected.slice(0, 10).join(", ") + ", ...";
+      const isTags = this.dataType === "tags";
+      const idsSelected = this.itemsSelected.map(
+        (x) => x.item_id || x.collection_id || x.immutable_id,
+      );
+      // Tags have no human id; label them by name instead of immutable_id.
+      const labels = isTags ? this.itemsSelected.map((x) => x.name) : idsSelected;
+      let labelText = labels;
+      if (labels.length > 10) {
+        labelText = labels.slice(0, 10).join(", ") + ", ...";
       }
       const confirmed = await DialogService.confirm({
         title: "Confirm Deletion",
-        message: `Are you sure you want to delete ${this.itemsSelected.length} selected items? (${idsSelectedLabel})`,
+        message: isTags
+          ? `Are you sure you want to delete ${this.itemsSelected.length} selected tag(s)? They will be removed from any items using them. (${labelText})`
+          : `Are you sure you want to delete ${this.itemsSelected.length} selected items? (${labelText})`,
         type: "warning",
       });
       if (confirmed) {
@@ -450,6 +555,8 @@ export default {
           deletePromises = ids.map((id) => deleteStartingMaterial(id));
         } else if (this.dataType === "equipment") {
           deletePromises = ids.map((id) => deleteEquipment(id));
+        } else if (this.dataType === "tags") {
+          deletePromises = ids.map((id) => deleteTag(id));
         }
 
         await Promise.all(deletePromises);
@@ -966,9 +1073,21 @@ export default {
   white-space: nowrap;
 }
 
-.button-bar-spacer {
-  flex: 1 1 auto;
+.table-tools {
+  gap: 0.5rem;
   min-width: 0;
+}
+
+.selection-controls {
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.selection-summary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .search-settings-group {
@@ -979,9 +1098,8 @@ export default {
 }
 
 .search-field {
-  flex: 1 1 80px;
+  flex: 1 1 200px;
   min-width: 80px;
-  max-width: 200px;
 }
 
 .search-field :deep(.p-inputtext) {

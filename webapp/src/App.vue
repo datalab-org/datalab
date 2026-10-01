@@ -13,7 +13,7 @@ export default {
   },
   async created() {
     await this.$router.isReady();
-    if (this.$route.name === "files-redirect") return;
+    if (["files-redirect", "login"].includes(this.$route.name)) return;
     await loadItemSchemas();
     await getApiConfig();
     await getBlocksInfos();

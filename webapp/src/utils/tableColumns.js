@@ -1,6 +1,7 @@
 import { FilterOperator, FilterMatchMode } from "@primevue/core/api";
 
 import { formatRelativeDate } from "@/field_utils.js";
+import { itemTypes } from "@/resources.js";
 
 import BlocksIconCounter from "@/components/BlocksIconCounter";
 import ChemicalFormula from "@/components/ChemicalFormula";
@@ -10,6 +11,9 @@ import FilesIconCounter from "@/components/FilesIconCounter";
 import FormattedCollectionName from "@/components/FormattedCollectionName";
 import FormattedItemName from "@/components/FormattedItemName";
 import FormattedItemStatus from "@/components/FormattedItemStatus";
+import InventoryAccess from "@/components/InventoryAccess";
+import TagBadge from "@/components/TagBadge";
+import TagList from "@/components/TagList";
 
 import CreatorsAndGroupsFilter from "@/components/CreatorsAndGroupsFilter";
 import DateRangeFilter from "@/components/DateRangeFilter";
@@ -27,6 +31,8 @@ import {
   creatorsAndGroupsOptions,
   statusOptions,
   blocksOptions,
+  matchTags,
+  tagsOptions,
 } from "@/utils/filterMatchers";
 
 /**
@@ -70,17 +76,25 @@ export const ITEM_ID_COLUMN = {
   },
 };
 
+/** The display label for an item type: the registered title for custom (plugin) types. */
+export function displayItemType(type) {
+  const itemType = itemTypes[type];
+  return itemType?.isDynamic ? itemType.display : type;
+}
+
 /** The item type, filterable against the types actually present in the table. */
 export const TYPE_COLUMN = {
   field: "type",
   header: "Type",
   label: "Type",
+  getValue: (row) => displayItemType(row.type),
   filter: {
     component: MultiSelectFilter,
-    componentProps: { optionLabel: "type", placeholder: "Select item types" },
+    componentProps: { optionLabel: "display", placeholder: "Select item types" },
     match: matchByKey("type"),
     operator: FilterOperator.AND,
-    options: keyedOptions("type"),
+    options: (data) =>
+      keyedOptions("type")(data).map((opt) => ({ ...opt, display: displayItemType(opt.type) })),
     noOperator: true,
   },
 };
@@ -206,6 +220,22 @@ export const CREATORS_AND_GROUPS_COLUMN = {
   },
 };
 
+/** Who can access an inventory item: its groups and any maintainers, or everyone if it has
+ * not been restricted to any groups. Rows must provide `creatorsAndGroups` for filtering. */
+export const INVENTORY_ACCESS_COLUMN = {
+  ...CREATORS_AND_GROUPS_COLUMN,
+  header: "",
+  label: "Access",
+  icon: ["fa", "users"],
+  body: {
+    component: InventoryAccess,
+    props: (row) => ({
+      creators: row.creators || [],
+      groups: row.groups || [],
+    }),
+  },
+};
+
 /** A count of the item's blocks, filterable by block type. */
 export const BLOCKS_COLUMN = {
   field: "blocks",
@@ -245,4 +275,37 @@ export const LAST_MODIFIED_COLUMN = {
   icon: ["fa", "clock"],
   cellClass: "last-modified-cell",
   getValue: (row) => formatRelativeDate(row.last_modified),
+};
+
+/**
+ * The item's tags, rendered as badges; clicking one filters the table by that tag.
+ *
+ * The filter offers every tag in the store's `tag_list` rather than only those in the table,
+ * so a table using this column must make sure that list is loaded (see `getTags`).
+ */
+export const TAGS_COLUMN = {
+  field: "tags",
+  header: "Tags",
+  label: "Tags",
+  body: {
+    component: TagList,
+    props: (row) => ({ tags: row.tags || [], maxVisible: 2, clickable: true }),
+    filterEvents: { "tag-click": (tag) => [tag] },
+  },
+  filter: {
+    component: MultiSelectFilter,
+    componentProps: {
+      optionLabel: "name",
+      // Row tags are references, not the store's full tag objects, so compare by id.
+      dataKey: "immutable_id",
+      filterPlaceholder: "Search all tags",
+      resetFilterOnHide: true,
+      virtualScrollerOptions: { itemSize: 38 },
+      optionComponent: TagBadge,
+      optionProps: (tag) => ({ tag }),
+    },
+    match: matchTags,
+    operator: FilterOperator.AND,
+    options: tagsOptions,
+  },
 };

@@ -4,7 +4,7 @@ import logging
 import os
 import platform
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import (
     AnyUrl,
@@ -142,7 +142,8 @@ class ServerConfig(BaseSettings):
     )
 
     TESTING: bool = Field(
-        False, description="Whether to run the server in testing mode, i.e., without user auth."
+        False,
+        description="Whether to run the server in testing mode, i.e., with a deterministic secret key and backups disabled. This does not disable authentication, but allows test users (with an `@datalab.test` email) to log in with tokens minted by invoke tasks (see `dev.list-test-users` and `dev.seed-e2e-users`).",
     )
 
     SECRET_KEY: str | None = Field(
@@ -156,7 +157,7 @@ class ServerConfig(BaseSettings):
     )
     SESSION_LIFETIME: int = Field(
         7 * 24,
-        description="The lifetime of each authenticated session, in hours.",
+        description='The lifetime of authenticated sessions for users who select "remember me" at login, in hours. Other sessions end when the browser is closed.',
     )
 
     FILE_DIRECTORY: str | Path = Field(
@@ -251,6 +252,21 @@ its importance when deploying a datalab instance.""",
     MAX_BATCH_CREATE_SIZE: int = Field(
         10_000,
         description="Maximum number of items that can be created in a single batch operation.",
+    )
+
+    ENABLE_TAGS: bool = Field(
+        False,
+        description="Whether to enable the (experimental) item tags feature and its `/tags` API routes.",
+    )
+
+    UNGROUPED_INVENTORY: Literal["none", "warn", "error"] = Field(
+        "none",
+        description="""How to handle inventory items (starting materials and equipment) that are not assigned to any groups, as such items are visible to and editable by all users of the deployment.
+
+- `"none"`: allow ungrouped inventory items without comment.
+- `"warn"`: ask users to confirm in the UI before creating an ungrouped inventory item.
+- `"error"`: refuse to create inventory items without groups, or to remove all groups from an existing one.
+""",
     )
 
     ASYNC_BLOCK_TYPES: list[str] = Field(

@@ -21,6 +21,9 @@ updates:
       update-types:
         - minor
         - patch
+    python-security:
+      applies-to: security-updates
+      patterns: ["*"]
     python-development:
       applies-to: version-updates
       dependency-type: development
@@ -65,12 +68,19 @@ updates:
       update-types:
         - minor
         - patch
+    js-security:
+      applies-to: security-updates
+      patterns: ["*"]
     js-development:
       applies-to: version-updates
       dependency-type: development
       update-types:
         - minor
         - patch
+  ignore:
+    # BokehJS version has to stay in sync with bokeh; don't bump either to 3 (until we can bump both)
+    - dependency-name: "@bokeh/bokehjs"
+      versions: [ ">=3" ]
 - package-ecosystem: docker
   directories:
     - ".docker/app"

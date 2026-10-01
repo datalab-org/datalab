@@ -10,7 +10,6 @@ from pydatalab.models.files import File
 from pydatalab.models.items import Item
 from pydatalab.models.people import DisplayName, EmailStr
 from pydatalab.models.relationships import (
-    KnownType,
     RelationshipType,
     TypedRelationship,
 )
@@ -109,19 +108,19 @@ def test_relationship_with_custom_type():
     """Test that a relationship with a custom type can be created."""
     relationship = TypedRelationship(
         relation=RelationshipType.OTHER,
-        type=KnownType.SAMPLES,
+        type="samples",
         item_id="1234",
         description="This is a relationship",
     )
     assert relationship.relation == RelationshipType.OTHER
-    assert relationship.type == KnownType.SAMPLES
+    assert relationship.type == "samples"
     assert relationship.item_id == "1234"
     assert relationship.description == "This is a relationship"
 
     with pytest.raises(pydantic.ValidationError):
         relationship = TypedRelationship(
             relation=RelationshipType.OTHER,
-            type=KnownType.SAMPLES,
+            type="samples",
             item_id="1234",
             description=None,
         )
@@ -182,6 +181,103 @@ def test_file():
 
     assert sample.files[0].type == "files"
     assert sample.files[1].type == "files"
+
+
+def test_tag_model():
+    from pydatalab.models.tags import Tag, TagAccessScope
+
+    tag = Tag(name="test_tag", description="This is an example", color="#f1c40f", scope="global")
+    assert tag.type == "tags"
+    assert tag.name == "test_tag"
+    assert tag.description == "This is an example"
+    assert tag.color == "#f1c40f"
+    assert tag.scope == TagAccessScope.GLOBAL
+    assert tag.owner is None
+
+    # Scope is modelled explicitly via `scope`/`owner` (not the `HasOwner` mixin).
+    assert not hasattr(tag, "creator_ids")
+    assert not hasattr(tag, "group_ids")
+
+    oid = ObjectId("0123456789ab0123456789ab")
+    doc = {"_id": oid, "type": "tags", "name": "glovebox", "scope": "global"}
+    stored_tag = Tag(**doc)
+    assert stored_tag.immutable_id == oid
+    assert stored_tag.description is None
+    assert stored_tag.color is None
+    assert stored_tag.model_dump()["immutable_id"] == oid
+    assert stored_tag.scope == TagAccessScope.GLOBAL
+
+    # Both `name` and `scope` are required.
+    with pytest.raises(pydantic.ValidationError):
+        Tag(scope="global", description="missing a name")
+    with pytest.raises(pydantic.ValidationError):
+        Tag(name="missing-a-scope")
+
+
+def test_tag_scope_owner_consistency():
+    """A user-scoped tag must have an owner; a global tag must not."""
+    from pydatalab.models.tags import Tag, TagAccessScope
+
+    owner = ObjectId()
+
+    # A valid user-defined tag.
+    user_defined = Tag(name="mine", scope="user", owner=owner)
+    assert user_defined.scope == TagAccessScope.USER
+    assert user_defined.owner == owner
+    # `owner` is preserved as an ObjectId in the stored (python-mode) dump.
+    assert isinstance(user_defined.model_dump(exclude_none=True)["owner"], ObjectId)
+    # ... and stringified in the JSON dump sent to clients.
+    assert json.loads(user_defined.model_dump_json())["owner"] == str(owner)
+
+    # A valid global tag has no owner.
+    glob = Tag(name="shared", scope="global")
+    assert glob.owner is None
+
+    # A user-scoped tag without an owner is rejected.
+    with pytest.raises(pydantic.ValidationError):
+        Tag(name="bad", scope="user")
+
+    # A global tag with an owner is rejected.
+    with pytest.raises(pydantic.ValidationError):
+        Tag(name="bad", scope="global", owner=owner)
+
+
+def test_item_tags_coercion():
+    """The `HasTags` mixin coerces references and de-duplicates tags on items."""
+    from pydatalab.models.samples import Sample
+    from pydatalab.models.utils import EntryReference
+
+    oid = ObjectId("0123456789ab0123456789ab")
+
+    sample = Sample(
+        item_id="tagged",
+        tags=[
+            {"type": "tags", "immutable_id": str(oid), "name": "Curated"},
+            {"type": "tags", "immutable_id": str(oid)},  # same reference by id -> dropped
+        ],
+    )
+
+    assert len(sample.tags) == 1
+    ref = sample.tags[0]
+    assert isinstance(ref, EntryReference)
+    assert ref.type == "tags"
+    assert ref.immutable_id == oid
+    assert ref.name == "Curated"
+
+    # Default is an empty list, so existing tag-less documents stay valid.
+    assert Sample(item_id="untagged").tags == []
+
+    # A reference to a (possibly deleted) tag still validates.
+    dangling = Sample(item_id="dangling", tags=[{"type": "tags", "immutable_id": str(ObjectId())}])
+    assert len(dangling.tags) == 1
+
+    # Bare string tags are not allowed: only references to tags entries.
+    with pytest.raises(pydantic.ValidationError):
+        Sample(item_id="string-tag", tags=["custom"])
+
+    # Re-validating a dumped item round-trips the reference tags list.
+    roundtrip = Sample(**json.loads(sample.model_dump_json()))
+    assert [type(t).__name__ for t in roundtrip.tags] == ["EntryReference"]
 
 
 def test_custom_and_inherited_items():
@@ -774,3 +870,99 @@ def test_bad_email(contact_email):
 
     with pytest.raises(ValueError):
         TestModel(email=contact_email)
+
+
+def test_builtin_models_have_valid_schema_hints():
+    """Every built-in item model's datalab schema hints validate against the
+    DatalabFieldExtra/DatalabModelExtra vocabulary."""
+    from pydatalab.models.schema_hints import validate_schema_hints
+
+    for model in ITEM_MODELS.values():
+        validate_schema_hints(model)
+
+
+def test_datalab_field_extra_rejects_unknown_and_mistyped_hints():
+    from pydatalab.models.schema_hints import DatalabFieldExtra
+    from pydatalab.models.units import DatalabQuantity
+
+    # Unknown datalab_ key.
+    with pytest.raises(pydantic.ValidationError):
+        DatalabFieldExtra(datalab_include_in_summary=True)
+
+    # Wrong type for a known key.
+    with pytest.raises(pydantic.ValidationError):
+        DatalabFieldExtra(datalab_ref_types="equipment")
+
+    # A valid set of hints passes.
+    quantity = DatalabQuantity(
+        canonical_unit="V",
+        display_units={
+            "V": {"scale": 1},
+            "mV": {"scale": 0.001},
+        },
+        default_display_unit="mV",
+    )
+    field_extra = DatalabFieldExtra(
+        datalab_include_field_in_summary=True,
+        datalab_ref_types=["equipment"],
+        datalab_quantity=quantity,
+    )
+    assert field_extra.datalab_quantity == quantity
+
+
+def test_validate_schema_hints_checks_canonical_quantity_relationship():
+    from typing import Literal
+
+    from pydantic import Field
+
+    from pydatalab.models.schema_hints import validate_schema_hints
+    from pydatalab.models.utils import BaseModel
+
+    class _QuantityModel(BaseModel):
+        volume: float | None = Field(
+            None,
+            json_schema_extra={
+                "datalab_quantity": {
+                    "canonical_unit": "L",
+                    "display_units": {
+                        "L": {"scale": 1},
+                        "mL": {"scale": 0.001},
+                    },
+                    "default_display_unit": "mL",
+                    "display_unit_field": "volume_display_unit",
+                }
+            },
+        )
+        volume_display_unit: Literal["L", "mL"] | None = None
+
+    validate_schema_hints(_QuantityModel)
+
+    class _MismatchedUnits(BaseModel):
+        volume: float | None = Field(
+            None,
+            json_schema_extra=_QuantityModel.model_fields["volume"].json_schema_extra,
+        )
+        volume_display_unit: Literal["L", "cL"] | None = None
+
+    with pytest.raises(ValueError, match="containing exactly"):
+        validate_schema_hints(_MismatchedUnits)
+
+
+def test_validate_schema_hints_raises_for_bad_field_hint():
+    from pydantic import Field
+
+    from pydatalab.models.schema_hints import validate_schema_hints
+    from pydatalab.models.utils import BaseModel
+
+    class _BadHints(BaseModel):
+        # `datalab_multlinee` is a typo of `datalab_multiline`.
+        widget: str | None = Field(None, json_schema_extra={"datalab_multlinee": True})
+
+    with pytest.raises(ValueError, match="widget"):
+        validate_schema_hints(_BadHints)
+
+    class _InvalidExtra(BaseModel):
+        widget: str | None = Field(None, json_schema_extra="bad")  # type: ignore[arg-type]
+
+    with pytest.raises(ValueError, match="expected a dict, callable, or None"):
+        validate_schema_hints(_InvalidExtra)

@@ -7,6 +7,8 @@ import {
   SAMPLE_TABLE_TYPES,
   INVENTORY_TABLE_TYPES,
   EQUIPMENT_TABLE_TYPES,
+  registerDynamicItemType,
+  itemTypes,
 } from "@/resources.js";
 
 import { DialogService } from "@/services/DialogService";
@@ -288,7 +290,11 @@ export function createNewItem(
         getEquipmentList();
       }
     }
-    return "success";
+    // Custom/plugin types are surfaced in the samples table for now.
+    if (itemTypes[response_json.sample_list_entry.type]?.isDynamic) {
+      store.commit("prependToSampleList", response_json.sample_list_entry);
+    }
+    return response_json.sample_list_entry.item_id;
   });
 }
 
@@ -582,10 +588,65 @@ export function searchCollections(query, nresults = 100) {
   });
 }
 
-export function searchGroups(query, nresults = 100) {
+export function createTag(data) {
+  // data: { name, description?, color?, scope? }. `scope` is "user" (user-defined,
+  // default) or "global" (admins only). The caller refreshes the list via
+  // getTags(). Rejects with the server message on error (e.g. 409 duplicate name).
+  return fetch_put(`${API_URL}/tags`, { data }).then(function (response_json) {
+    return response_json.data;
+  });
+}
+
+export function updateTag(tagId, data) {
+  // Update a tag's metadata (name/description/color). Rejects with the server message (e.g. 409).
+  return fetch_patch(`${API_URL}/tags/${tagId}`, { data });
+}
+
+export function deleteTag(tagId) {
+  return fetch_delete(`${API_URL}/tags/${tagId}`)
+    .then(function (response_json) {
+      if (response_json.status !== "success") {
+        throw new Error("Failed to delete tag: " + response_json.message);
+      }
+      store.commit("deleteFromTagList", tagId);
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Unable to delete tag",
+        message: `Failed to delete tag: ${error}`,
+      });
+      throw error;
+    });
+}
+
+export function getTags() {
+  return fetch_get(`${API_URL}/tags`)
+    .then(function (response_json) {
+      store.commit("setTagList", response_json.data);
+    })
+    .catch((error) => {
+      if (error === "UNAUTHORIZED") {
+        store.commit("setTagList", []);
+      } else {
+        throw error;
+      }
+    });
+}
+
+export function searchTags(query, nresults = 100) {
+  // construct a url with parameters:
+  var url = new URL(`${API_URL}/search-tags`);
+  var params = { query: query, nresults: nresults };
+  Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
+  return fetch_get(url).then(function (response_json) {
+    return response_json.data;
+  });
+}
+
+export function searchGroups(query, nresults = 100, memberOnly = false) {
   // construct a url with parameters:
   var url = new URL(`${API_URL}/search/groups`);
-  var params = { query: query, nresults: nresults };
+  var params = { query: query, nresults: nresults, member_only: memberOnly };
   Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
   return fetch_get(url).then(function (response_json) {
     return response_json.data;
@@ -647,10 +708,11 @@ export function invalidateCurrentUserCache() {
   store.commit("setAdminSuperUserMode", false);
 }
 
-export async function requestMagicLink(email_address) {
+export async function requestMagicLink(email_address, remember = false) {
   return fetch_post(`${API_URL}/login/magic-link`, {
     email: email_address,
     referrer: window.location.origin,
+    remember: remember,
   })
     .then((response_json) => {
       return response_json;
@@ -1111,11 +1173,10 @@ export function deleteBlock(item_id, block_id) {
     // eslint-disable-next-line no-unused-vars
     .then(function (response_json) {
       // response_json should always just be {status: "success"}, so we don't actually use it
-      store.commit("removeBlockFromDisplay", {
+      store.commit("removeBlock", {
         item_id: item_id,
         block_id: block_id,
       });
-      // currently, we don't actually delete the block from the store, so it may get re-added to the db on the next save. Fix once new schemas are established
     })
     .catch((error) => {
       DialogService.error({
@@ -1373,6 +1434,16 @@ export async function loadItemSchemas() {
   // in the Vuex store.
   try {
     const supportedTypes = await getSupportedSchemasList();
+    // Register any server-side types not hardcoded in the frontend registry
+    // (custom/plugin types) so they are recognised across the app.
+    supportedTypes.forEach((typeInfo) =>
+      registerDynamicItemType(typeInfo.id, {
+        title: typeInfo.attributes?.title,
+        base_type: typeInfo.attributes?.base_type,
+        hidden_fields: typeInfo.attributes?.hidden_fields,
+        ui_color: typeInfo.attributes?.ui_color,
+      }),
+    );
     await Promise.all(supportedTypes.map((typeInfo) => ensureItemSchema(typeInfo.id)));
   } catch (error) {
     console.error("Failed to get supported schemas list:", error);

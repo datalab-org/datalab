@@ -4,7 +4,7 @@
       <div class="counter-wrapper">
         <font-awesome-icon v-if="showIcon" class="icon" :icon="icon" />
         <span :class="showIcon ? 'counter-badge' : 'counter'">
-          {{ displayCount }}
+          {{ prefix }}{{ displayCount }}
         </span>
       </div>
     </template>
@@ -14,9 +14,7 @@
   </StyledTooltip>
   <div v-else-if="count > 0" class="counter-wrapper">
     <font-awesome-icon v-if="showIcon" class="icon" :icon="icon" />
-    <span :class="showIcon ? 'counter-badge' : 'counter'">
-      {{ displayCount }}
-    </span>
+    <span :class="showIcon ? 'counter-badge' : 'counter'"> {{ prefix }}{{ displayCount }} </span>
   </div>
 </template>
 
@@ -32,6 +30,10 @@ export default {
     count: {
       type: Number,
       default: 0,
+    },
+    prefix: {
+      type: String,
+      default: "",
     },
     showIcon: {
       type: Boolean,

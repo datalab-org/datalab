@@ -11,6 +11,13 @@ def test_base_block():
     assert block.data["kwargs"]["d"] == "string"
 
 
+def test_process_events_ignores_events_without_event_name():
+    """Malformed events without an `event_name` should be skipped rather than raising."""
+    block = DataBlock(item_id="test-id")
+    block.process_events({"kwargs": {"a": 1}})
+    assert "errors" not in block.data
+
+
 def test_callback():
     callback = generate_js_callback_single_float_parameter(
         "set_wavelength", "wavelength", block_id="test", throttled=False

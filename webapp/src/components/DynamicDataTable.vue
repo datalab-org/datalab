@@ -38,6 +38,7 @@
         <DynamicDataTableButtons
           :data-type="dataType"
           :items-selected="itemsSelected"
+          :displayed-item-count="filteredItemCount"
           :filters="filters"
           :editable-inventory="editable_inventory"
           :show-buttons="showButtons"
@@ -52,6 +53,7 @@
           @open-qr-scanner-modal="qrScannerModalIsOpen = true"
           @open-create-collection-modal="createCollectionModalIsOpen = true"
           @open-create-equipment-modal="createEquipmentModalIsOpen = true"
+          @open-create-tag-modal="$emit('open-create-tag-modal')"
           @open-add-to-collection-modal="addToCollectionModalIsOpen = true"
           @open-batch-share-modal="batchShareModalIsOpen = true"
           @delete-selected-items="deleteSelectedItems"
@@ -221,6 +223,12 @@ export default {
       required: false,
       default: () => [],
     },
+    // The table's `data-testid`; when unset, it is derived from `dataType`.
+    testId: {
+      type: String,
+      required: false,
+      default: null,
+    },
   },
   emits: [
     "remove-selected-items-from-collection",
@@ -228,6 +236,7 @@ export default {
     "groups-data-changed",
     "edit-group",
     "group-deleted",
+    "open-create-tag-modal",
   ],
   data() {
     return {
@@ -253,6 +262,12 @@ export default {
   },
 
   computed: {
+    filteredItemCount() {
+      if (this.filteredData === null) {
+        return this.data ? this.data.length : 0;
+      }
+      return this.filteredData.length;
+    },
     rows() {
       return this.$store.state.datatablePaginationSettings[this.dataType].rows;
     },
@@ -263,6 +278,9 @@ export default {
       return this.$store.getters.isAdminSuperUserModeActive;
     },
     computedDataTestId() {
+      if (this.testId) {
+        return this.testId;
+      }
       const dataTestIdMap = {
         samples: "sample-table",
         collections: "collection-table",
@@ -353,10 +371,28 @@ export default {
   },
   methods: {
     resolveBodyEvents(column) {
-      if (!column.body?.events?.length) return {};
-      return Object.fromEntries(
-        column.body.events.map((event) => [event, (...args) => this.$emit(event, ...args)]),
+      const listeners = Object.fromEntries(
+        (column.body?.events || []).map((event) => [
+          event,
+          (...args) => this.$emit(event, ...args),
+        ]),
       );
+      // Events that set this column's own filter (e.g. clicking a value in a cell to show
+      // only the rows sharing it), each mapping the event payload to the filter value.
+      for (const [event, toFilterValue] of Object.entries(column.body?.filterEvents || {})) {
+        listeners[event] = (payload) => this.setColumnFilter(column.field, toFilterValue(payload));
+      }
+      return listeners;
+    },
+    setColumnFilter(field, value) {
+      const filter = this.filters[field];
+      if (!filter?.constraints) return;
+      // Replace the `filters` reference so the DataTable reliably re-applies the
+      // menu-mode filter.
+      this.filters = {
+        ...this.filters,
+        [field]: { ...filter, constraints: [{ ...filter.constraints[0], value }] },
+      };
     },
     getColumnMinWidth(column) {
       const COLUMN_BASE_PADDING = 2.5;
@@ -404,7 +440,7 @@ export default {
       });
     },
     goToEditPage(event) {
-      if (this.dataType === "users" || this.dataType === "groups") {
+      if (this.dataType === "users" || this.dataType === "groups" || this.dataType === "tags") {
         return;
       }
       const row = event.data;

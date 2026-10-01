@@ -1,6 +1,7 @@
 import math
 import os
 from collections import Counter
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -27,6 +28,8 @@ class FeatureFlags(BaseModel):
     auth_mechanisms: AuthMechanisms = AuthMechanisms()
     ai_integrations: AIIntegrations = AIIntegrations()
     email_notifications: bool = False
+    tags: bool = False
+    ungrouped_inventory: Literal["none", "warn", "error"] = "none"
 
 
 FEATURE_FLAGS: FeatureFlags = FeatureFlags()
@@ -58,6 +61,9 @@ def check_feature_flags(app):
     object reported by the API for use in UIs.
 
     """
+
+    FEATURE_FLAGS.tags = CONFIG.ENABLE_TAGS
+    FEATURE_FLAGS.ungrouped_inventory = CONFIG.UNGROUPED_INVENTORY
 
     if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is None:
         LOGGER.warning(
@@ -186,7 +192,7 @@ def check_feature_flags(app):
 
     if CONFIG.TESTING:
         LOGGER.critical(
-            "Running in testing mode, with no authentication required; this is not recommended for production use: set `CONFIG.TESTING`"
+            "Running in testing mode (deterministic secret key, backups disabled, @datalab.test users can log in with tokens minted by invoke tasks); this is not recommended for production use: unset `CONFIG.TESTING`"
         )
 
     if not CONFIG.DEPLOYMENT_METADATA:

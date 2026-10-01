@@ -284,8 +284,15 @@ jobs:
       - name: Set some environment variables for CI containers pre-build
         run: |
           cp webapp/.env.test_e2e .env
-          echo "PYDATALAB_TESTING=true" >> .env
-          echo "PYDATALAB_TESTING=true" >> pydatalab/.env
+          # An explicit secret key, so that the login tokens minted by `dev.seed-e2e-users`
+          # inside the API container are signed with the same key as the server uses
+          secret_key=$(openssl rand -hex 32)
+          for f in .env pydatalab/.env; do
+            echo "PYDATALAB_TESTING=true" >> $f
+            echo "PYDATALAB_SECRET_KEY=$secret_key" >> $f
+            # Enable the tags feature for the e2e backend (frontend flag is in .env.test_e2e).
+            echo "PYDATALAB_ENABLE_TAGS=true" >> $f
+          done
 
       - name: Build Docker images
         uses: docker/bake-action@v7
@@ -333,6 +340,8 @@ jobs:
           group: "End-to-end tests (${{ matrix.browser-backend }})"
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+          # Create the e2e test users and mint their login tokens inside the API container
+          DATALAB_E2E_SEED_COMMAND: docker compose -f ../docker-compose.yml exec -T api uv run invoke dev.seed-e2e-users
 
   component:
     # Cypress component tests don't need the datalab stack — they exercise Vue

@@ -43,6 +43,11 @@
             <ToggleableGroupsFormGroup v-model="ItemGroups" :refcode="Refcode" />
           </div>
         </div>
+        <div v-if="enableTags" class="form-row">
+          <div class="form-group col-12 pb-3">
+            <ToggleableTagsFormGroup v-model="Tags" />
+          </div>
+        </div>
         <div class="form-row">
           <div class="form-group col-lg-12 col-sm-12">
             <label id="cell-location-label">Location</label>
@@ -181,6 +186,7 @@ import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionForm
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
 import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
+import ToggleableTagsFormGroup from "@/components/ToggleableTagsFormGroup";
 import LocationInput from "@/components/LocationInput";
 import { cellFormats } from "@/resources.js";
 import { getLocations } from "@/server_fetch_utils.js";
@@ -197,6 +203,7 @@ export default {
     ToggleableCreatorsFormGroup,
     ToggleableItemStatusFormGroup,
     ToggleableGroupsFormGroup,
+    ToggleableTagsFormGroup,
     LocationInput,
   },
   props: {
@@ -232,11 +239,15 @@ export default {
     CellFormatDescription: createComputedSetterForItemField("cell_format_description"),
     CharacteristicMass: createComputedSetterForItemField("characteristic_mass"),
     Collections: createComputedSetterForItemField("collections"),
+    Tags: createComputedSetterForItemField("tags"),
     Status: createComputedSetterForItemField("status"),
     TheoreticalCapacity: createComputedSetterForItemField("theoretical_capacity"),
     NominalCapacityUnit: createComputedSetterForItemField("nominal_capacity_unit"),
     NominalCapacityManual: createComputedSetterForItemField("nominal_capacity_manual"),
     Location: createComputedSetterForItemField("location"),
+    enableTags() {
+      return this.$store.state.serverInfo?.features?.tags ?? false;
+    },
     schema() {
       return this.$store.state.schemas[this.item?.type];
     },

@@ -1,6 +1,7 @@
 import functools
 import inspect
 
+from pydatalab.models.blocks import Block
 from pydatalab.models.cells import Cell
 from pydatalab.models.collections import Collection
 from pydatalab.models.equipment import Equipment
@@ -8,8 +9,10 @@ from pydatalab.models.files import File
 from pydatalab.models.items import Item
 from pydatalab.models.people import Person
 from pydatalab.models.samples import Sample
+from pydatalab.models.schema_hints import validate_schema_hints
 from pydatalab.models.starting_materials import StartingMaterial
-from pydatalab.models.versions import ItemVersion
+from pydatalab.models.tags import Tag
+from pydatalab.models.versions import BlockVersion, ItemVersion
 
 
 def _item_type_for(model: type[Item]) -> str:
@@ -171,6 +174,8 @@ def register_item_model(model: type[Item]) -> None:
             f"cannot register {model.__name__!r}."
         )
 
+    validate_schema_hints(model)
+
     ITEM_MODELS[item_type] = model
     ITEM_SCHEMAS[item_type] = model.model_json_schema(by_alias=False)
 
@@ -236,6 +241,8 @@ def load_custom_item_models(paths: list[str]) -> None:
 
 
 __all__ = (
+    "Block",
+    "BlockVersion",
     "File",
     "Sample",
     "StartingMaterial",
@@ -243,6 +250,7 @@ __all__ = (
     "Cell",
     "Collection",
     "Equipment",
+    "Tag",
     "ItemVersion",
     "ITEM_MODELS",
     "ITEM_SCHEMAS",

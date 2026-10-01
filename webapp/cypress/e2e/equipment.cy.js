@@ -9,7 +9,7 @@ Cypress.on("window:before:load", (win) => {
 let item_ids = ["test_e1", "test_e2", "test_e3", "123equipment", "test_e3_copy"];
 
 before(() => {
-  cy.loginViaTestMagicLink("test-user@example.com", "user");
+  cy.loginViaTestMagicLink("test-user@datalab.test");
 });
 
 after(() => {
@@ -17,6 +17,8 @@ after(() => {
 });
 
 before(() => {
+  // Equipment has no creators, so only admins can delete it
+  cy.loginViaTestMagicLink("admin-user@datalab.test");
   cy.visit("/equipment");
   cy.removeAllTestSamples(item_ids);
   cy.visit("/equipment").then(() => {
@@ -25,6 +27,7 @@ before(() => {
 });
 
 after(() => {
+  cy.loginViaTestMagicLink("admin-user@datalab.test");
   cy.visit("/equipment");
   cy.removeAllTestSamples(item_ids);
   cy.visit("/equipment").then(() => {
@@ -34,14 +37,14 @@ after(() => {
 
 describe("Equipment table page", () => {
   beforeEach(() => {
-    cy.loginViaTestMagicLink("test-user@example.com", "user");
+    cy.loginViaTestMagicLink("test-user@datalab.test");
     cy.visit("/equipment");
   });
 
   it("Loads the equipment page without any errors", () => {
     cy.findByText("About").should("exist");
     cy.findByText("Equipment").should("exist");
-    cy.findByText("Add an item").should("exist");
+    cy.get('[data-testid="add-equipment-button"]').should("contain.text", "Add equipment");
     cy.findByText("Maintainers").should("exist");
 
     // Ensure no error messages or console errors. The wait is necessary so that
@@ -80,8 +83,8 @@ describe("Equipment table page", () => {
       });
   });
 
-  it("Attempts to Add an item with the same name", () => {
-    cy.findByText("Add an item").click();
+  it("Attempts to add equipment with the same ID", () => {
+    cy.get('[data-testid="add-equipment-button"]').click();
     cy.get('[data-testid="create-equipment-form"]').within(() => {
       cy.findByText("Add equipment").should("exist");
       cy.findByLabelText("ID:").type("test_e3");
@@ -94,6 +97,8 @@ describe("Equipment table page", () => {
   });
 
   it("Deletes an item", function () {
+    cy.loginViaTestMagicLink("admin-user@datalab.test");
+    cy.visit("/equipment");
     cy.deleteItems("equipment", ["test_e2"]);
 
     cy.contains("test_e2").should("not.exist");
@@ -106,7 +111,7 @@ describe("Equipment table page", () => {
   });
 
   it("copies an equipment entry", () => {
-    cy.findByText("Add an item").click();
+    cy.get('[data-testid="add-equipment-button"]').click();
 
     cy.get('[data-testid="create-equipment-form"]').within(() => {
       cy.findByLabelText("ID:").type("test_e3_copy");
@@ -126,7 +131,7 @@ describe("Equipment table page", () => {
 
 describe("Equipment edit page", () => {
   beforeEach(() => {
-    cy.loginViaTestMagicLink("test-user@example.com", "user");
+    cy.loginViaTestMagicLink("test-user@datalab.test");
     cy.visit("/equipment");
   });
 

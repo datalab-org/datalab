@@ -135,10 +135,10 @@ def save_role(user_id):
     if request_json is not None:
         user_role = request_json
 
-    if not current_user.is_authenticated and not CONFIG.TESTING:
+    if not current_user.is_authenticated:
         return (jsonify({"status": "error", "message": "No user authenticated."}), 401)
 
-    if not CONFIG.TESTING and current_user.role != "admin":
+    if current_user.role != "admin":
         return (
             jsonify({"status": "error", "message": "User not allowed to edit this profile."}),
             403,
