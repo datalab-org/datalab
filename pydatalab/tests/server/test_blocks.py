@@ -1,4 +1,5 @@
 import datetime
+from hashlib import blake2s
 from pathlib import Path
 
 import pytest
@@ -905,3 +906,115 @@ def test_large_fake_xrd_data_block_serialization(
     assert response.json["new_block_data"]["bokeh_plot_data"]
 
     gc.collect()
+
+
+@pytest.fixture
+def block_with_columns(admin_client, default_sample_dict, monkeypatch, request):
+    """A real block on a real item, standing in for one that serves columns."""
+    from pydatalab.blocks.base import (
+        DataBlock,
+        MissingMetadataForUnits,
+        UnknownColumn,
+        UnsupportedUnits,
+    )
+
+    # The test database is not reset between tests, so each needs its own item.
+    # Item ids are capped at 40 characters, hence the digest rather than the name.
+    sample_id = f"test_columns_{blake2s(request.node.name.encode(), digest_size=4).hexdigest()}"
+    sample_data = {**default_sample_dict, "item_id": sample_id}
+    assert admin_client.post("/new-sample/", json=sample_data).status_code == 201
+
+    block_type = next(iter(BLOCK_TYPES))
+    response = admin_client.post(
+        "/add-data-block/", json={"block_type": block_type, "item_id": sample_id, "index": 0}
+    )
+    assert response.status_code == 200
+    block_id = response.json["new_block_obj"]["block_id"]
+
+    class ColumnServingBlock(DataBlock):
+        blocktype = block_type
+
+        def get_data(self, columns):
+            for column, units in columns.items():
+                if column != "moment":
+                    raise UnknownColumn(column, ["moment"])
+                if units not in (None, "emu", "emu/g"):
+                    raise UnsupportedUnits(column, units, ["emu", "emu/g"])
+                if units == "emu/g":
+                    raise MissingMetadataForUnits(column, units, "sample_mass_mg")
+            return {"data": {"moment": [1.0, 2.0]}, "labels": {"moment": "Moment (emu)"}}
+
+    monkeypatch.setitem(BLOCK_TYPES, block_type, ColumnServingBlock)
+    return sample_id, block_id
+
+
+def test_get_block_data_returns_the_requested_columns(admin_client, block_with_columns):
+    sample_id, block_id = block_with_columns
+    response = admin_client.get(f"/blocks/{sample_id}/{block_id}/data?column=moment:emu")
+
+    assert response.status_code == 200
+    assert response.json["data"] == {"moment": [1.0, 2.0]}
+    assert response.json["labels"] == {"moment": "Moment (emu)"}
+
+
+def test_get_block_data_takes_a_column_without_units(admin_client, block_with_columns):
+    sample_id, block_id = block_with_columns
+    response = admin_client.get(f"/blocks/{sample_id}/{block_id}/data?column=moment")
+    assert response.status_code == 200
+
+
+def test_an_unsupported_unit_and_a_missing_metadata_value_are_told_apart(
+    admin_client, block_with_columns
+):
+    """Both refuse the request, but only one of them is the client's fault, and
+    only one of them tells the user what to do about it."""
+    sample_id, block_id = block_with_columns
+
+    unsupported = admin_client.get(f"/blocks/{sample_id}/{block_id}/data?column=moment:furlongs")
+    assert unsupported.status_code == 400
+    assert unsupported.json["title"] == "UnsupportedUnits"
+    assert "'emu'" in unsupported.json["message"]
+
+    unavailable = admin_client.get(f"/blocks/{sample_id}/{block_id}/data?column=moment:emu%2Fg")
+    assert unavailable.status_code == 422
+    assert unavailable.json["title"] == "MissingMetadataForUnits"
+    assert "sample_mass_mg" in unavailable.json["message"]
+
+
+def test_a_column_the_block_does_not_have_is_a_different_answer_again(
+    admin_client, block_with_columns
+):
+    """Listing the units of something it does not hold would be noise."""
+    sample_id, block_id = block_with_columns
+    response = admin_client.get(f"/blocks/{sample_id}/{block_id}/data?column=nonsense")
+
+    assert response.status_code == 400
+    assert response.json["title"] == "UnknownColumn"
+    assert "'moment'" in response.json["message"]
+
+
+def test_get_block_data_needs_at_least_one_column(admin_client, block_with_columns):
+    sample_id, block_id = block_with_columns
+    assert admin_client.get(f"/blocks/{sample_id}/{block_id}/data").status_code == 400
+
+
+def test_a_block_that_does_not_serve_columns_says_so(admin_client, default_sample_dict, request):
+    sample_id = f"test_columns_{blake2s(request.node.name.encode(), digest_size=4).hexdigest()}"
+    admin_client.post("/new-sample/", json={**default_sample_dict, "item_id": sample_id})
+    block_type = next(iter(BLOCK_TYPES))
+    response = admin_client.post(
+        "/add-data-block/", json={"block_type": block_type, "item_id": sample_id, "index": 0}
+    )
+    block_id = response.json["new_block_obj"]["block_id"]
+
+    response = admin_client.get(f"/blocks/{sample_id}/{block_id}/data?column=moment")
+    assert response.status_code == 501
+
+
+def test_get_block_data_on_a_missing_item_or_block(admin_client, block_with_columns):
+    sample_id, block_id = block_with_columns
+
+    assert admin_client.get(f"/blocks/nonexistent/{block_id}/data?column=moment").status_code == 404
+    assert (
+        admin_client.get(f"/blocks/{sample_id}/nonexistent/data?column=moment").status_code == 404
+    )

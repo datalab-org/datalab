@@ -92,7 +92,7 @@
     </template>
 
     <template #plot>
-      <BokehPlot :bokeh-plot-data="bokehPlotData" />
+      <BokehPlot :item_id="item_id" :block_id="block_id" :bokeh-plot-data="bokehPlotData" />
     </template>
   </DataBlockBase>
 </template>
