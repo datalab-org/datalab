@@ -27,8 +27,10 @@ export const NAVIGATION_VIEWS = {
   },
 };
 
-// Compatibility fallback for API versions that predate `/info.navigation`. Keep this list frozen
-// at the original six-link navbar; current navigation defaults belong to the backend configuration.
+// Compatibility fallback for API versions that predate `/info.navigation`.
+// This can happen when a newer frontend connects to an older backend.
+// Keep this list frozen at the original six-link navbar;
+// current navigation defaults belong to the backend configuration.
 const LEGACY_NAVIGATION = Object.freeze([
   { view: "about" },
   { view: "samples" },
