@@ -36,12 +36,12 @@ def test_default_navigation(monkeypatch):
     config = ServerConfig(TESTING=True, _env_file=None)
 
     assert [entry.model_dump(exclude_none=True) for entry in config.NAVIGATION] == [
-        {"view": "about"},
-        {"view": "samples"},
-        {"view": "collections"},
-        {"view": "starting-materials"},
-        {"view": "equipment"},
-        {"view": "item-graph", "icon": "project-diagram"},
+        {"view": "about", "default": False},
+        {"view": "samples", "default": True},
+        {"view": "collections", "default": False},
+        {"view": "starting-materials", "default": False},
+        {"view": "equipment", "default": False},
+        {"view": "item-graph", "icon": "project-diagram", "default": False},
     ]
 
 
@@ -51,16 +51,36 @@ def test_custom_navigation():
     config = ServerConfig(
         TESTING=True,
         NAVIGATION=[
-            {"view": "starting-materials", "label": "Starting Materials", "icon": "vials"},
+            {
+                "view": "starting-materials",
+                "label": "Starting Materials",
+                "icon": "vials",
+                "default": True,
+            },
             {"view": "my-custom-view"},
         ],
     )
 
     assert [entry.model_dump(exclude_none=True) for entry in config.NAVIGATION] == [
-        {"view": "starting-materials", "label": "Starting Materials", "icon": "vials"},
-        {"view": "my-custom-view"},
+        {
+            "view": "starting-materials",
+            "label": "Starting Materials",
+            "icon": "vials",
+            "default": True,
+        },
+        {"view": "my-custom-view", "default": False},
     ]
-    assert ServerConfig(TESTING=True, NAVIGATION=[]).NAVIGATION == []
+
+
+def test_navigation_uses_first_entry_as_default():
+    from pydatalab.config import ServerConfig
+
+    config = ServerConfig(
+        TESTING=True,
+        NAVIGATION=[{"view": "equipment"}, {"view": "about"}],
+    )
+
+    assert [entry.default for entry in config.NAVIGATION] == [True, False]
 
 
 def test_navigation_from_environment(monkeypatch):
@@ -68,14 +88,14 @@ def test_navigation_from_environment(monkeypatch):
 
     monkeypatch.setenv(
         "PYDATALAB_NAVIGATION",
-        '[{"view":"samples","label":"Experiments"},{"view":"about"}]',
+        '[{"view":"samples","label":"Experiments"},{"view":"about","default":true}]',
     )
 
     config = ServerConfig(TESTING=True, _env_file=None)
 
     assert [entry.model_dump(exclude_none=True) for entry in config.NAVIGATION] == [
-        {"view": "samples", "label": "Experiments"},
-        {"view": "about"},
+        {"view": "samples", "label": "Experiments", "default": False},
+        {"view": "about", "default": True},
     ]
 
 
@@ -95,8 +115,8 @@ def test_navigation_from_dotenv(tmp_path, monkeypatch):
     config = ServerConfig(TESTING=True, _env_file=env_file)
 
     assert [entry.model_dump(exclude_none=True) for entry in config.NAVIGATION] == [
-        {"view": "starting-materials", "label": "Starting Materials"},
-        {"view": "about"},
+        {"view": "starting-materials", "label": "Starting Materials", "default": True},
+        {"view": "about", "default": False},
     ]
 
 
@@ -105,6 +125,26 @@ def test_navigation_rejects_duplicate_views():
 
     with pytest.raises(ValidationError, match="duplicate view IDs"):
         ServerConfig(TESTING=True, NAVIGATION=[{"view": "samples"}, {"view": "samples"}])
+
+
+def test_navigation_rejects_empty_list():
+    from pydatalab.config import ServerConfig
+
+    with pytest.raises(ValidationError, match="at least one entry"):
+        ServerConfig(TESTING=True, NAVIGATION=[])
+
+
+def test_navigation_rejects_multiple_default_views():
+    from pydatalab.config import ServerConfig
+
+    with pytest.raises(ValidationError, match="multiple default views"):
+        ServerConfig(
+            TESTING=True,
+            NAVIGATION=[
+                {"view": "samples", "default": True},
+                {"view": "about", "default": True},
+            ],
+        )
 
 
 @pytest.mark.parametrize(

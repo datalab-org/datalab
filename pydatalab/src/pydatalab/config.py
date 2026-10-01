@@ -146,6 +146,10 @@ class NavigationEntry(BaseModel):
         None,
         description="Optional name of a Font Awesome icon registered by the web application.",
     )
+    default: bool = Field(
+        False,
+        description="Whether this entry is the landing view for the web application.",
+    )
 
     model_config = ConfigDict(extra="forbid")
 
@@ -165,7 +169,7 @@ def default_navigation() -> list[NavigationEntry]:
 
     return [
         NavigationEntry(view="about"),
-        NavigationEntry(view="samples"),
+        NavigationEntry(view="samples", default=True),
         NavigationEntry(view="collections"),
         NavigationEntry(view="starting-materials"),
         NavigationEntry(view="equipment"),
@@ -452,10 +456,20 @@ its importance when deploying a datalab instance.""",
 
     @field_validator("NAVIGATION")
     @classmethod
-    def navigation_views_are_unique(cls, value: list[NavigationEntry]) -> list[NavigationEntry]:
+    def validate_navigation(cls, value: list[NavigationEntry]) -> list[NavigationEntry]:
+        if not value:
+            raise ValueError("NAVIGATION must contain at least one entry")
+
         views = [entry.view for entry in value]
         if len(views) != len(set(views)):
             raise ValueError("NAVIGATION must not contain duplicate view IDs")
+
+        default_indices = [index for index, entry in enumerate(value) if entry.default]
+        if len(default_indices) > 1:
+            raise ValueError("NAVIGATION must not contain multiple default views")
+        if not default_indices:
+            value[0] = value[0].model_copy(update={"default": True})
+
         return value
 
     @field_validator("LOG_FILE", mode="before")

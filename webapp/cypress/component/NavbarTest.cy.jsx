@@ -2,7 +2,7 @@ import Navbar from "@/components/Navbar.vue";
 import { createRouter, createWebHistory } from "vue-router";
 import { createStore } from "vuex";
 import LoginDetails from "@/components/LoginDetails.vue";
-import { NAVIGATION_VIEWS } from "@/navigation.js";
+import { NAVIGATION_VIEWS, resolveDefaultRouteName } from "@/navigation.js";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faProjectDiagram, faVials } from "@fortawesome/free-solid-svg-icons";
 
@@ -19,7 +19,7 @@ describe("Navbar", () => {
         serverInfo: {
           navigation: [
             { view: "about" },
-            { view: "samples" },
+            { view: "samples", default: true },
             { view: "collections" },
             { view: "starting-materials" },
             { view: "equipment" },
@@ -179,6 +179,45 @@ describe("Navbar", () => {
 
     cy.get("#nav a").should("have.length", 6);
     cy.get('[data-testid="navbar-link-item-graph"] font-awesome-icon').should("exist");
+  });
+
+  it("resolves an explicitly configured default route", () => {
+    const serverInfo = {
+      navigation: [{ view: "samples" }, { view: "starting-materials", default: true }],
+    };
+
+    expect(resolveDefaultRouteName(serverInfo)).to.equal("starting-materials");
+  });
+
+  it("uses the first resolved route when no default is marked", () => {
+    const serverInfo = {
+      navigation: [{ view: "equipment" }, { view: "about" }],
+    };
+
+    expect(resolveDefaultRouteName(serverInfo)).to.equal("equipment");
+  });
+
+  it("uses Samples as the legacy and final defensive default", () => {
+    expect(resolveDefaultRouteName({})).to.equal("samples");
+    expect(
+      resolveDefaultRouteName({ navigation: [{ view: "missing-view", default: true }] }),
+    ).to.equal("samples");
+  });
+
+  it("falls back when the configured default is unknown or unavailable", () => {
+    expect(
+      resolveDefaultRouteName({
+        navigation: [{ view: "missing-view", default: true }, { view: "equipment" }],
+      }),
+    ).to.equal("equipment");
+
+    NAVIGATION_VIEWS.collections.isAvailable = (serverInfo) => serverInfo.features.test_enabled;
+    expect(
+      resolveDefaultRouteName({
+        features: { test_enabled: false },
+        navigation: [{ view: "collections", default: true }, { view: "about" }],
+      }),
+    ).to.equal("About");
   });
 
   it("does not render links before server metadata is loaded", () => {

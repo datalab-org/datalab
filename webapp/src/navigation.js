@@ -33,7 +33,7 @@ export const NAVIGATION_VIEWS = {
 // current navigation defaults belong to the backend configuration.
 const LEGACY_NAVIGATION = Object.freeze([
   { view: "about" },
-  { view: "samples" },
+  { view: "samples", default: true },
   { view: "collections" },
   { view: "starting-materials" },
   { view: "equipment" },
@@ -75,7 +75,15 @@ export function resolveNavigation(serverInfo) {
         routeName: definition.routeName,
         label: entry.label || definition.defaultLabel,
         icon: resolveIcon(entry.icon, view),
+        default: entry.default,
       },
     ];
   });
+}
+
+export function resolveDefaultRouteName(serverInfo) {
+  const navigation = resolveNavigation(serverInfo);
+  const defaultEntry = navigation.find((entry) => entry.default);
+
+  return defaultEntry?.routeName || navigation[0]?.routeName || NAVIGATION_VIEWS.samples.routeName;
 }

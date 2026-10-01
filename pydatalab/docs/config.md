@@ -139,8 +139,8 @@ The following customisations are supported:
 
 ### Main navigation
 
-The [`NAVIGATION`][pydatalab.config.ServerConfig.NAVIGATION] setting controls which links appear in the main navigation, their order, labels, and optional icons.
-Each entry has a required `view` ID and optional `label` and `icon` values.
+The [`NAVIGATION`][pydatalab.config.ServerConfig.NAVIGATION] setting controls which links appear in the main navigation, their order, labels, optional icons, and the landing view used for `/`.
+Each entry has a required `view` ID and optional `label`, `icon`, and `default` values.
 The server configuration is the source of this default and is returned to the web app by the `/info` endpoint.
 For example, the following configuration renames Inventory to Starting Materials, moves About to the end, and omits Collections:
 
@@ -148,7 +148,12 @@ For example, the following configuration renames Inventory to Starting Materials
 {
   "NAVIGATION": [
     {"view": "samples"},
-    {"view": "starting-materials", "label": "Starting Materials", "icon": "vials"},
+    {
+      "view": "starting-materials",
+      "label": "Starting Materials",
+      "icon": "vials",
+      "default": true
+    },
     {"view": "equipment"},
     {"view": "item-graph", "label": "Graph View", "icon": "project-diagram"},
     {"view": "about"}
@@ -159,7 +164,7 @@ For example, the following configuration renames Inventory to Starting Materials
 The same value can be supplied as JSON in the server's `.env` file or process environment:
 
 ```dotenv
-PYDATALAB_NAVIGATION='[{"view":"samples"},{"view":"starting-materials","label":"Starting Materials"},{"view":"about"}]'
+PYDATALAB_NAVIGATION='[{"view":"samples"},{"view":"starting-materials","label":"Starting Materials","default":true},{"view":"about"}]'
 ```
 
 The built-in views are:
@@ -174,8 +179,11 @@ The built-in views are:
 | `item-graph` | Graph View | `/item-graph` |
 
 Entries are shown in the configured order, and omitted entries are only hidden from the navigation: their routes remain available unless the corresponding feature is disabled separately.
-An empty list hides the entire set of navigation links.
-Duplicate view IDs and malformed entries are rejected during server configuration, while view IDs unknown to the installed web app are ignored by it.
+Set `default` to `true` on the entry that should open when a user visits `/`.
+If no entry is explicitly marked as the default, the first entry is used.
+The built-in navigation marks Samples as the default to preserve the existing landing page.
+The navigation must contain at least one entry, and duplicate view IDs, multiple defaults, and malformed entries are rejected during server configuration.
+View IDs unknown to the installed web app are ignored by it.
 
 The `icon` value must name a Font Awesome solid icon already registered by the web app, such as `vials` or `project-diagram`.
 Unknown icons are omitted without hiding the link.
