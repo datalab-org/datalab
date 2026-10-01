@@ -20,7 +20,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydatalab.models import Person
 from pydatalab.models.utils import RandomAlphabeticalRefcodeFactory, RefCodeFactory
 
-__all__ = ("CONFIG", "ServerConfig", "DeploymentMetadata", "RemoteFilesystem")
+__all__ = (
+    "CONFIG",
+    "ServerConfig",
+    "DeploymentMetadata",
+    "NavigationEntry",
+    "RemoteFilesystem",
+)
 
 config_logger = logging.getLogger("pydatalab.config")
 
@@ -126,6 +132,45 @@ class SMTPSettings(BaseModel):
     MAIL_DEFAULT_SENDER: str = Field(
         "", description="The email address to use as the sender for emails."
     )
+
+
+class NavigationEntry(BaseModel):
+    """A configured entry in the web application's main navigation."""
+
+    view: str = Field(description="Stable identifier of a view known to the web application.")
+    label: str | None = Field(
+        None,
+        description="Optional navigation label. The view's default label is used when omitted.",
+    )
+    icon: str | None = Field(
+        None,
+        description="Optional name of a Font Awesome icon registered by the web application.",
+    )
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("view", "label", "icon")
+    @classmethod
+    def strip_non_empty_strings(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        if not value:
+            raise ValueError("navigation values must not be blank")
+        return value
+
+
+def default_navigation() -> list[NavigationEntry]:
+    """Return the navigation used when a deployment provides no customisation."""
+
+    return [
+        NavigationEntry(view="about"),
+        NavigationEntry(view="samples"),
+        NavigationEntry(view="collections"),
+        NavigationEntry(view="starting-materials"),
+        NavigationEntry(view="equipment"),
+        NavigationEntry(view="item-graph", icon="project-diagram"),
+    ]
 
 
 class ServerConfig(BaseSettings):
@@ -279,6 +324,11 @@ its importance when deploying a datalab instance.""",
         description="A list of dotted import paths ('package.module:ClassName') to custom `Item` subclasses to register as additional item types served through the generic item endpoints, e.g. ['mypackage.models:MySample']. Each model must declare its own unique `type` literal.",
     )
 
+    NAVIGATION: list[NavigationEntry] = Field(
+        default_factory=default_navigation,
+        description="Ordered views to display in the web application's main navigation.",
+    )
+
     PREDEFINED_LOCATIONS: set[str] = Field(
         default_factory=set,
         description="A list of additional lab locations to populate in the /locations endpoint that will be suggested globally for autocompletion. Use '>' to indicate location hierarchy",
@@ -399,6 +449,14 @@ its importance when deploying a datalab instance.""",
 
         construct_location_hierarchy(v)
         return v
+
+    @field_validator("NAVIGATION")
+    @classmethod
+    def navigation_views_are_unique(cls, value: list[NavigationEntry]) -> list[NavigationEntry]:
+        views = [entry.view for entry in value]
+        if len(views) != len(set(views)):
+            raise ValueError("NAVIGATION must not contain duplicate view IDs")
+        return value
 
     @field_validator("LOG_FILE", mode="before")
     @classmethod

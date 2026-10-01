@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 
 def test_default_settings():
@@ -26,6 +27,100 @@ def test_update_settings():
     assert new_settings["new_key"] == config.NEW_KEY
     assert config.SECRET_KEY
     assert Path(config.FILE_DIRECTORY).name == "files"
+
+
+def test_default_navigation(monkeypatch):
+    from pydatalab.config import ServerConfig
+
+    monkeypatch.delenv("PYDATALAB_NAVIGATION", raising=False)
+    config = ServerConfig(TESTING=True, _env_file=None)
+
+    assert [entry.model_dump(exclude_none=True) for entry in config.NAVIGATION] == [
+        {"view": "about"},
+        {"view": "samples"},
+        {"view": "collections"},
+        {"view": "starting-materials"},
+        {"view": "equipment"},
+        {"view": "item-graph", "icon": "project-diagram"},
+    ]
+
+
+def test_custom_navigation():
+    from pydatalab.config import ServerConfig
+
+    config = ServerConfig(
+        TESTING=True,
+        NAVIGATION=[
+            {"view": "starting-materials", "label": "Starting Materials", "icon": "vials"},
+            {"view": "my-custom-view"},
+        ],
+    )
+
+    assert [entry.model_dump(exclude_none=True) for entry in config.NAVIGATION] == [
+        {"view": "starting-materials", "label": "Starting Materials", "icon": "vials"},
+        {"view": "my-custom-view"},
+    ]
+    assert ServerConfig(TESTING=True, NAVIGATION=[]).NAVIGATION == []
+
+
+def test_navigation_from_environment(monkeypatch):
+    from pydatalab.config import ServerConfig
+
+    monkeypatch.setenv(
+        "PYDATALAB_NAVIGATION",
+        '[{"view":"samples","label":"Experiments"},{"view":"about"}]',
+    )
+
+    config = ServerConfig(TESTING=True, _env_file=None)
+
+    assert [entry.model_dump(exclude_none=True) for entry in config.NAVIGATION] == [
+        {"view": "samples", "label": "Experiments"},
+        {"view": "about"},
+    ]
+
+
+def test_navigation_from_dotenv(tmp_path, monkeypatch):
+    from pydatalab.config import ServerConfig
+
+    monkeypatch.delenv("PYDATALAB_NAVIGATION", raising=False)
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "PYDATALAB_NAVIGATION='["
+        '{"view":"starting-materials","label":"Starting Materials"},'
+        '{"view":"about"}'
+        "]'\n",
+        encoding="utf-8",
+    )
+
+    config = ServerConfig(TESTING=True, _env_file=env_file)
+
+    assert [entry.model_dump(exclude_none=True) for entry in config.NAVIGATION] == [
+        {"view": "starting-materials", "label": "Starting Materials"},
+        {"view": "about"},
+    ]
+
+
+def test_navigation_rejects_duplicate_views():
+    from pydatalab.config import ServerConfig
+
+    with pytest.raises(ValidationError, match="duplicate view IDs"):
+        ServerConfig(TESTING=True, NAVIGATION=[{"view": "samples"}, {"view": "samples"}])
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        {"view": ""},
+        {"view": "samples", "label": " "},
+        {"view": "samples", "icon": ""},
+        {"view": "samples", "unknown": "value"},
+    ],
+)
+def test_navigation_rejects_malformed_entries(entry):
+    from pydatalab.config import ServerConfig
+
+    with pytest.raises(ValidationError):
+        ServerConfig(TESTING=True, NAVIGATION=[entry])
 
 
 def test_config_override():

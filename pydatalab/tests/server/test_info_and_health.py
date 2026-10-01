@@ -99,3 +99,17 @@ def test_info_endpoint_includes_max_upload_bytes(client, app):
     assert isinstance(attributes["max_upload_bytes"], int)
     assert attributes["max_upload_bytes"] > 0
     assert attributes["max_upload_bytes"] == 10 * 1000 * 1000
+
+
+def test_info_endpoint_includes_navigation(client):
+    response = client.get("/info")
+
+    assert response.status_code == 200
+    assert response.json["data"]["attributes"]["navigation"] == [
+        {"view": "about", "label": None, "icon": None},
+        {"view": "samples", "label": None, "icon": None},
+        {"view": "collections", "label": None, "icon": None},
+        {"view": "starting-materials", "label": None, "icon": None},
+        {"view": "equipment", "label": None, "icon": None},
+        {"view": "item-graph", "label": None, "icon": "project-diagram"},
+    ]
