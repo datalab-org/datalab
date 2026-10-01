@@ -43,6 +43,7 @@ __all__ = (
     "entry_of",
     "source_names",
     "resolve_metadata",
+    "metadata_from",
 )
 
 USER = "user"
@@ -326,3 +327,28 @@ def resolve_metadata(
         }
 
     return MetadataResolution(metadata=metadata, fields=fields)
+
+
+def metadata_from(
+    model: type[BaseModel],
+    file: dict[str, Any] | None = None,
+    *,
+    item: dict[str, Any] | None = None,
+    file_name: str = "file",
+) -> BaseModel:
+    """The metadata a model resolves to from raw values, without a block.
+
+    For scripts, notebooks and tests, where `Model(**header)` used to be the obvious
+    thing to write and no longer works: the header's keys are the instrument's, and
+    which of them mean what is declared on the model's fields.
+
+        metadata = metadata_from(QDMetadata, header)
+
+    It is what a block would show before anyone had overridden anything.
+    """
+    gathered = _Gathered(
+        file=None if file is None else FileMetadata(name=file_name, values=file),
+        item_id=None,
+        item=item or {},
+    )
+    return resolve_metadata(model, gathered).metadata

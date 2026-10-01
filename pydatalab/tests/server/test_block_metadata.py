@@ -604,3 +604,19 @@ def test_the_interface_is_told_which_fields_it_may_offer_to_change():
 
     assert fields["software"]["editable"] is False
     assert fields["sample_mass_mg"]["editable"] is True
+
+
+def test_a_model_can_be_resolved_from_raw_values_without_a_block():
+    """For scripts and notebooks, which used to write `Model(**header)`."""
+    from pydatalab.blocks.metadata import metadata_from
+
+    metadata = metadata_from(Metadata, FILE, item=SAMPLE)
+
+    assert metadata.sample_mass_mg == pytest.approx(14.32)
+    assert metadata.molar_mass_g_mol == pytest.approx(192.7)
+
+
+def test_resolving_from_nothing_gives_the_defaults():
+    from pydatalab.blocks.metadata import metadata_from
+
+    assert metadata_from(Declared).wavelength == pytest.approx(1.5406)
