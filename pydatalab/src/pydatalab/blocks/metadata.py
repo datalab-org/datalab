@@ -29,6 +29,7 @@ nobody has touched.
 from typing import Any, ClassVar, NamedTuple
 
 from pydantic import BaseModel, Field
+from pydantic_core import PydanticUndefined
 
 __all__ = (
     "USER",
@@ -40,6 +41,7 @@ __all__ = (
     "MetadataResolution",
     "metadata_entry",
     "entry_of",
+    "source_names",
     "resolve_metadata",
 )
 
@@ -231,19 +233,33 @@ def _coerce(model: type[BaseModel], field: str, value: Any) -> Any:
         return None
 
 
+def _default_of(field_info) -> Any:
+    """A field's declared default, or None if it has none worth offering."""
+    default = field_info.default
+    return None if default is PydanticUndefined else default
+
+
+def source_names(model: type[BaseModel], field: str) -> list[str]:
+    """The sources a field may be bound to, in the order they are tried."""
+    field_info = model.model_fields[field]
+    names = [source.name for source in entry_of(field_info).sources]
+    if _default_of(field_info) is not None:
+        names.append(DEFAULT)
+    return names
+
+
 def resolve_metadata(
     model: type[BaseModel],
-    sources: dict[str, dict],
+    gathered: _Gathered,
     bindings: dict[str, dict] | None = None,
 ) -> MetadataResolution:
-    """Work out each field's value, and record where it came from.
+    """Work out each field's value from its declared sources, and record where it
+    came from.
 
     Args:
-        model: The block's metadata model. Every field must be optional, since a
-            block fills in whatever its sources happen to have.
-        sources: What each source offers, best first, e.g.
-            `{"file": {...}, "sample": {...}}`. Every source is read, whether or
-            not it wins, so that the interface can offer them all.
+        model: The block's metadata model, whose fields declare their sources with
+            `metadata_entry`. Every field must be optional.
+        gathered: What the sources read from: the block's file and its item.
         bindings: The bindings the user has set, as `{field: {"source": ...}}`,
             carrying a `"value"` as well when the source is the user.
 
@@ -252,17 +268,25 @@ def resolve_metadata(
     metadata = model()
     fields: dict[str, dict[str, Any]] = {}
 
-    for field in model.model_fields:
-        # Everything each source has for this field, in the order they were given.
-        available = {
-            name: _coerce(model, field, values.get(field))
-            for name, values in sources.items()
-            if field in values
-        }
+    for field, field_info in model.model_fields.items():
+        entry = entry_of(field_info)
+
+        # Every declared source, in the order the field gives them, then its
+        # default. All are read whether or not they win, so the interface can
+        # offer each one by name.
+        available: dict[str, Any] = {}
+        labels: dict[str, str] = {}
+        for declared in entry.sources:
+            available[declared.name] = _coerce(model, field, declared.read(gathered))
+            labels[declared.name] = declared.label(gathered)
+        if (default := _default_of(field_info)) is not None:
+            available[DEFAULT] = _coerce(model, field, default)
+            labels[DEFAULT] = DEFAULT
 
         binding = bindings.get(field)
         if not isinstance(binding, dict):
             binding = None  # nothing readable; treat it as no choice having been made
+
         source: str | None
         value: Any
         if binding and binding.get("source") == USER:
@@ -270,9 +294,8 @@ def resolve_metadata(
         elif binding and binding.get("source") in available:
             source, value = binding["source"], available[binding["source"]]
         elif binding:
-            # Bound to a source the block no longer has: a file replaced by one
-            # that does not carry this field, say. Left empty rather than quietly
-            # falling back, which would undo a choice somebody made.
+            # Bound to a source the field no longer has. Left empty rather than
+            # quietly falling back, which would undo a choice somebody made.
             source, value = binding.get("source"), None
         else:
             source, value = next(
@@ -289,6 +312,7 @@ def resolve_metadata(
             # having filled it in yet.
             "bound": binding is not None,
             "available": available,
+            "labels": labels,
             # Carried through from the binding so that the interface has one place
             # to look for everything about a field.
             **{

@@ -1,3 +1,5 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
+
 import functools
 import pprint
 import random
@@ -12,7 +14,17 @@ from flask_login import current_user
 from pydantic import BaseModel
 
 from pydatalab import __version__
-from pydatalab.blocks.metadata import AUTO, USER, MetadataResolution, resolve_metadata
+from pydatalab.blocks.metadata import (
+    AUTO,
+    USER,
+    FileMetadata,
+    FromItem,
+    MetadataResolution,
+    _Gathered,
+    entry_of,
+    resolve_metadata,
+    source_names,
+)
 from pydatalab.logger import LOGGER
 from pydatalab.models.blocks import DataBlockResponse
 
@@ -293,25 +305,47 @@ class DataBlock:
     have, and a field none of them supply is simply empty.
     """
 
-    def metadata_sources(self) -> dict[str, dict]:
-        """Where this block's metadata can come from, best first.
+    def file_metadata(self) -> "FileMetadata | None":
+        """The raw metadata in this block's file, and the file's name.
 
-        A block returns what each source has, e.g. the header of the file it reads
-        and the item it is attached to. Every source is read whether or not it
-        wins, so that the interface can show what the others offer and let the
-        user switch between them.
+        The one thing a block supplies for its metadata: fields declared with
+        `FromFile` look their keys up in it, and the name is what a person is told
+        a value was read from. Return None if the block has no file.
 
         This is called whenever a binding is set as well as when the block renders,
         and an event can arrive before anything has been rendered, so it must not
         depend on rendering having happened.
         """
-        return {}
+        return None
 
-    def metadata_source_labels(self) -> dict[str, str]:
-        """How to name each source to a person: the file it was read from, the item
-        it came off. Falls back to the source's own key where there is nothing
-        better to say."""
-        return {}
+    def item_doc(self, projection: dict) -> dict:
+        """Read fields from the datalab item this block is attached to, as the
+        user is allowed to see it."""
+        from pydatalab.mongo import flask_mongo
+        from pydatalab.permissions import get_default_permissions
+
+        return (
+            flask_mongo.db.items.find_one(
+                {"item_id": self.data["item_id"], **get_default_permissions(user_only=False)},
+                projection,
+            )
+            or {}
+        )
+
+    def _gather_metadata(self, model: type[BaseModel]) -> "_Gathered":
+        """Read everything the declared sources need, once each.
+
+        The item is queried only if some field reads from it, and then once for
+        all of them, rather than once per field.
+        """
+        item_fields = {
+            source.field
+            for field_info in model.model_fields.values()
+            for source in entry_of(field_info).sources
+            if isinstance(source, FromItem)
+        }
+        item = self.item_doc(dict.fromkeys(item_fields, 1)) if item_fields else {}
+        return _Gathered(file=self.file_metadata(), item_id=self.data.get("item_id"), item=item)
 
     def resolve_metadata(self) -> "MetadataResolution":
         """Resolve the metadata, honouring any bindings the user has set."""
@@ -320,20 +354,20 @@ class DataBlock:
 
         resolution = resolve_metadata(
             self.metadata_model,
-            self.metadata_sources(),
+            self._gather_metadata(self.metadata_model),
             self.data.get("metadata_bindings"),
         )
         self.data["metadata"] = resolution.metadata.model_dump()
         self.data["metadata_fields"] = resolution.fields
-        self.data["metadata_source_labels"] = self.metadata_source_labels()
         return resolution
 
     @event()
     def set_metadata_source(self, field: str, source: str, value: Any = None, **kwargs):
         """Bind one metadata field to a source, or to a value of the user's own.
 
-        `source` is the name of one of `metadata_sources`, or "user" with a value,
-        or "auto" to drop the binding and let the block choose again.
+        `source` is one the field declares -- "file", "item", or "default" -- or
+        "user" with a value, or "auto" to drop the binding and let the sources
+        decide again.
 
         Clearing a field is `source="user"` with no value, and is deliberately not
         the same as "auto": it says there is no good value for this field, which is
@@ -343,13 +377,7 @@ class DataBlock:
         if self.metadata_model is None or field not in self.metadata_model.model_fields:
             raise ValueError(f"{self.blocktype!r} has no metadata field {field!r}")
 
-        sources = self.metadata_sources()
-        if reserved := {USER, AUTO} & set(sources):
-            raise ValueError(
-                f"{self.blocktype!r} names a metadata source {reserved.pop()!r}, which this "
-                "event answers itself; a source cannot be called either of those."
-            )
-
+        sources = source_names(self.metadata_model, field)
         bindings = dict(self.data.get("metadata_bindings") or {})
         if source == AUTO:
             bindings.pop(field, None)

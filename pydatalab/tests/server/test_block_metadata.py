@@ -14,15 +14,26 @@ import pytest
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from pydatalab.blocks.base import DataBlock
-from pydatalab.blocks.metadata import resolve_metadata
+from pydatalab.blocks.metadata import (
+    FileMetadata,
+    FromFile,
+    FromItem,
+    _Gathered,
+    metadata_entry,
+    resolve_metadata,
+)
 
 
 class Metadata(BaseModel):
     model_config = ConfigDict(validate_assignment=True)
 
-    sample_mass_mg: float | None = None
-    molar_mass_g_mol: float | None = None
-    comment: str | None = None
+    sample_mass_mg: float | None = metadata_entry(
+        FromFile("sample_mass_mg"), FromItem("sample_mass_mg")
+    )
+    molar_mass_g_mol: float | None = metadata_entry(
+        FromFile("molar_mass_g_mol"), FromItem("molar_mass_g_mol")
+    )
+    comment: str | None = metadata_entry(FromFile("comment"), FromItem("comment"))
 
     @field_validator("sample_mass_mg", mode="after")
     @classmethod
@@ -34,12 +45,16 @@ FILE = {"sample_mass_mg": 14.32, "comment": "eicosane"}
 SAMPLE = {"molar_mass_g_mol": 192.7}
 
 
-def resolve(bindings=None, file=None, sample=None):
-    return resolve_metadata(
-        Metadata,
-        {"file": FILE if file is None else file, "sample": SAMPLE if sample is None else sample},
-        bindings,
+def gathered(file=None, sample=None):
+    return _Gathered(
+        file=FileMetadata(name="measurement.dat", values=FILE if file is None else file),
+        item_id="item-1",
+        item=SAMPLE if sample is None else sample,
     )
+
+
+def resolve(bindings=None, file=None, sample=None):
+    return resolve_metadata(Metadata, gathered(file, sample), bindings)
 
 
 def test_the_first_source_with_a_value_wins():
@@ -47,7 +62,7 @@ def test_the_first_source_with_a_value_wins():
 
     assert resolution.metadata.sample_mass_mg == pytest.approx(14.32)
     assert resolution.fields["sample_mass_mg"]["source"] == "file"
-    assert resolution.fields["molar_mass_g_mol"]["source"] == "sample"
+    assert resolution.fields["molar_mass_g_mol"]["source"] == "item"
 
 
 def test_a_field_no_source_has_is_empty_and_came_from_nowhere():
@@ -65,7 +80,8 @@ def test_every_source_is_reported_not_only_the_winner():
         "value": pytest.approx(14.32),
         "source": "file",
         "bound": False,
-        "available": {"file": pytest.approx(14.32), "sample": pytest.approx(21.0)},
+        "available": {"file": pytest.approx(14.32), "item": pytest.approx(21.0)},
+        "labels": {"file": "measurement.dat", "item": "item-1"},
     }
 
 
@@ -118,25 +134,25 @@ def test_a_bound_field_follows_its_source():
 
 
 def test_a_binding_can_pick_a_source_that_would_not_have_won():
-    resolution = resolve({"sample_mass_mg": {"source": "sample"}}, sample={"sample_mass_mg": 21.0})
+    resolution = resolve({"sample_mass_mg": {"source": "item"}}, sample={"sample_mass_mg": 21.0})
 
     assert resolution.metadata.sample_mass_mg == pytest.approx(21.0)
-    assert resolution.fields["sample_mass_mg"]["source"] == "sample"
+    assert resolution.fields["sample_mass_mg"]["source"] == "item"
 
 
 def test_a_binding_whose_source_no_longer_has_the_value_leaves_it_empty():
     """Falling back would undo a choice somebody made, and do it silently."""
-    resolution = resolve({"sample_mass_mg": {"source": "sample"}})
+    resolution = resolve({"sample_mass_mg": {"source": "item"}})
 
     assert resolution.metadata.sample_mass_mg is None
-    assert resolution.fields["sample_mass_mg"]["source"] == "sample"
+    assert resolution.fields["sample_mass_mg"]["source"] == "item"
 
 
 def test_an_unbound_field_changes_its_mind_when_a_better_source_appears():
     """The block guessed; a guess is made again rather than kept."""
     assert (
         resolve(sample={"comment": "from the sample"}, file={}).fields["comment"]["source"]
-        == "sample"
+        == "item"
     )
     assert resolve(sample={"comment": "from the sample"}).fields["comment"]["source"] == "file"
 
@@ -153,8 +169,11 @@ class _Block(DataBlock):
     blocktype = "_metadata_test"
     metadata_model = Metadata
 
-    def metadata_sources(self):
-        return {"file": FILE, "sample": SAMPLE}
+    def file_metadata(self):
+        return FileMetadata(name="measurement.dat", values=FILE)
+
+    def item_doc(self, projection):
+        return SAMPLE
 
 
 def test_the_event_records_a_binding_and_resolution_honours_it():
@@ -271,19 +290,12 @@ def test_an_impossible_binding_becomes_a_block_error(event):
     assert not block.data.get("metadata_bindings")
 
 
-def test_a_block_may_say_what_its_sources_should_be_called():
-    """ "file" is not much use on its own; which file is the useful half."""
+def test_a_source_is_named_after_the_file_and_the_item_it_came_from():
+    """Which file a value came out of is the useful half of knowing it came from one,
+    and core already knows both names, so no block has to say them."""
+    labels = resolve().fields["molar_mass_g_mol"]["labels"]
 
-    class Named(_Block):
-        blocktype = "_metadata_test_named"
-
-        def metadata_source_labels(self):
-            return {"file": "measurement.dat"}
-
-    block = Named(item_id="test")
-    block.resolve_metadata()
-
-    assert block.data["metadata_source_labels"] == {"file": "measurement.dat"}
+    assert labels == {"file": "measurement.dat", "item": "item-1"}
 
 
 def test_an_event_that_failed_is_still_reported_after_a_plot_that_did_not():
@@ -311,13 +323,18 @@ def test_a_model_that_does_not_validate_assignments_is_still_protected():
     not depend on the block having thought to enable assignment validation."""
 
     class Unguarded(BaseModel):
-        sample_mass_mg: float | None = None
+        sample_mass_mg: float | None = metadata_entry(FromFile("sample_mass_mg"))
 
-    resolution = resolve_metadata(Unguarded, {"file": {"sample_mass_mg": "heavy"}}, None)
+    junk = gathered(file={"sample_mass_mg": "heavy"})
+    resolution = resolve_metadata(Unguarded, junk, None)
+    # The file really did offer it -- otherwise the None below would prove nothing.
+    assert junk.file.values["sample_mass_mg"] == "heavy"
     assert resolution.fields["sample_mass_mg"]["value"] is None
 
     # and a value still arrives as the type the model asks for
-    typed = resolve_metadata(Unguarded, {}, {"sample_mass_mg": {"source": "user", "value": "99"}})
+    typed = resolve_metadata(
+        Unguarded, gathered(file={}), {"sample_mass_mg": {"source": "user", "value": "99"}}
+    )
     assert typed.metadata.sample_mass_mg == pytest.approx(99.0)
 
 
@@ -334,25 +351,6 @@ def test_the_web_cannot_write_a_binding_directly():
     letting it make a claim about a person that nobody checked."""
     schema = DataBlock.block_db_model.model_json_schema()["properties"]
     assert schema["metadata_bindings"]["datalab_exclude_from_load"]
-
-
-def test_a_source_may_not_be_called_user_or_auto():
-    """Those are the two answers the event gives itself, so a source of either name
-    could never be bound to -- and asking for it would blank the field instead."""
-
-    class Colliding(_Block):
-        blocktype = "_metadata_test_colliding"
-
-        def metadata_sources(self):
-            return {"user": {"sample_mass_mg": 1.0}}
-
-    block = Colliding(item_id="test")
-    block.process_events(
-        {"event_name": "set_metadata_source", "field": "sample_mass_mg", "source": "user"}
-    )
-
-    assert block.data["errors"]
-    assert not block.data.get("metadata_bindings")
 
 
 def test_setting_a_source_resolves_there_and_then():
@@ -411,7 +409,10 @@ def test_a_declared_field_keeps_its_sources_its_label_and_its_default():
 def test_a_plain_field_is_one_a_person_fills_in():
     from pydatalab.blocks.metadata import entry_of
 
-    entry = entry_of(Metadata.model_fields["comment"])
+    class Plain(BaseModel):
+        comment: str | None = None
+
+    entry = entry_of(Plain.model_fields["comment"])
     assert entry.sources == ()
     assert entry.editable
 
@@ -465,3 +466,87 @@ def test_file_takes_the_first_key_that_holds_a_value():
     assert source.read(gathered({"SAMPLE_MASS": "  ", "WEIGHT": "9"})) == "9"
     assert source.read(gathered({})) is None
     assert source.label(gathered({})) == "measurement.dat"
+
+
+# --- Resolving from the declarations ---------------------------------------------
+
+
+class Declared(BaseModel):
+    wavelength: float | None = metadata_entry(FromFile("wavelength"), default=1.5406)
+    count_time: float | None = metadata_entry(FromFile("count_time"))
+    density: float | None = metadata_entry()
+
+
+def test_the_default_is_tried_after_every_source():
+    resolution = resolve_metadata(Declared, gathered(file={"wavelength": 0.7093}))
+    assert resolution.metadata.wavelength == pytest.approx(0.7093)
+    assert resolution.fields["wavelength"]["source"] == "file"
+
+    fallback = resolve_metadata(Declared, gathered(file={}))
+    assert fallback.metadata.wavelength == pytest.approx(1.5406)
+    # Shown as a default, so it never passes for something measured.
+    assert fallback.fields["wavelength"]["source"] == "default"
+    assert fallback.fields["wavelength"]["labels"]["default"] == "default"
+
+
+def test_a_field_without_a_default_offers_none():
+    available = resolve_metadata(Declared, gathered(file={})).fields["count_time"]["available"]
+    assert "default" not in available
+
+
+def test_a_field_is_only_read_from_the_sources_it_names():
+    """Leaving `FromItem` out means the item is never asked, even if it has the key."""
+    resolution = resolve_metadata(
+        Declared, gathered(file={}, sample={"count_time": 5.0, "density": 2.1})
+    )
+
+    assert resolution.metadata.count_time is None
+    assert resolution.fields["density"]["available"] == {}, "entered by hand, and only that"
+
+
+def test_the_item_is_asked_once_for_every_field_that_reads_from_it():
+    projections = []
+
+    class Counting(_Block):
+        blocktype = "_metadata_test_counting"
+
+        def item_doc(self, projection):
+            projections.append(projection)
+            return SAMPLE
+
+    Counting(item_id="test").resolve_metadata()
+
+    assert len(projections) == 1
+    assert set(projections[0]) == {"sample_mass_mg", "molar_mass_g_mol", "comment"}
+
+
+def test_a_block_with_no_field_reading_the_item_never_asks_it():
+    class NoItem(DataBlock):
+        blocktype = "_metadata_test_no_item"
+        metadata_model = Declared
+
+        def item_doc(self, projection):
+            raise AssertionError("the item should not have been queried")
+
+    NoItem(item_id="test").resolve_metadata()
+
+
+def test_a_binding_names_one_of_the_sources_that_field_declares():
+    """Sources are declared per field now, so "item" is a real source for a field
+    that reads it, and not one for a field that does not."""
+    block = _Block(item_id="test")
+    block.process_events(
+        {"event_name": "set_metadata_source", "field": "comment", "source": "item"}
+    )
+    assert block.data["metadata_bindings"]["comment"]["source"] == "item"
+
+    class Defaulted(_Block):
+        blocktype = "_metadata_test_defaulted"
+        metadata_model = Declared
+
+    for source, ok in (("default", True), ("item", False)):
+        block = Defaulted(item_id="test")
+        block.process_events(
+            {"event_name": "set_metadata_source", "field": "wavelength", "source": source}
+        )
+        assert bool(block.data.get("errors")) is not ok, source

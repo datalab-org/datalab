@@ -1,3 +1,5 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
+
 from pydantic import ConfigDict, Field
 
 from pydatalab.models.utils import BaseModel, PyObjectId
@@ -77,15 +79,9 @@ class DataBlockResponse(BaseModel):
         default=None, json_schema_extra={"datalab_exclude_from_load": True}
     )
     """The same metadata with its provenance: per field, the value, the source it
-    came from, and what each other source has to offer. Derived on every render, so
-    a value taken from a file or a sample follows that file or sample when it
-    changes."""
-
-    metadata_source_labels: dict | None = Field(
-        default=None, json_schema_extra={"datalab_exclude_from_load": True}
-    )
-    """What to call each metadata source when showing it to somebody -- the name of
-    the file it was read from, say, rather than "file"."""
+    came from, what each other source has to offer and what to call each one, and
+    whether a person may change it. Derived on every render, so a value taken from
+    a file or an item follows that file or item when it changes."""
 
     metadata_bindings: dict | None = Field(
         default=None, json_schema_extra={"datalab_exclude_from_load": True}
