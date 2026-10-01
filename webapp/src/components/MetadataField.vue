@@ -1,6 +1,13 @@
+<!-- This file was edited with the assistance of an AI model and requires human review from the contributor. -->
 <template>
   <!-- A div rather than a span: the menu is a `ul`, which a span cannot contain. -->
-  <div ref="root" class="metadata-field" @click="toggleMenu" @contextmenu.prevent.stop="openMenu">
+  <div
+    ref="root"
+    class="metadata-field"
+    :class="{ 'read-only': !isEditable }"
+    @click="toggleMenu"
+    @contextmenu.prevent.stop="openMenu"
+  >
     <!-- `click.stop` for the same reason as on the menu: saving or abandoning an
          edit must not fall through and open the menu behind it. -->
     <span v-if="editing" class="editor" @click.stop>
@@ -65,14 +72,21 @@ export default {
     // As served in `metadata_fields`: the value, where it came from, whether that
     // was chosen or merely landed on, and what the other sources have to offer.
     entry: { type: Object, required: true },
-    // What to call each source when explaining where a value came from: the name
-    // of the file rather than "file".
-    sourceLabels: { type: Object, default: () => ({}) },
   },
   data() {
     return { menuOpen: false, editing: false, draft: "" };
   },
   computed: {
+    // Absent on blocks resolved before fields could be read-only; those were all
+    // editable, so that is the default.
+    isEditable() {
+      return this.entry.editable !== false;
+    },
+    // A field declared with no sources at all is one a person is meant to fill in,
+    // which is a different thing from one whose sources all came up empty.
+    isEnteredByHand() {
+      return Object.keys(this.entry.available ?? {}).length === 0;
+    },
     isEmpty() {
       return this.entry.value === null || this.entry.value === undefined;
     },
@@ -98,9 +112,12 @@ export default {
         const what = this.isEmpty ? "Value set to blank" : "Value overwritten";
         return `${what}${this.attribution || " by user"}`;
       }
-      if (!this.entry.source) return "No source has a value for this";
+      if (!this.entry.source) {
+        return this.isEnteredByHand ? "Enter a value" : "No source has a value for this";
+      }
 
-      const supplied = `Supplied by ${this.sourceLabels[this.entry.source] ?? this.entry.source}`;
+      const label = this.entry.labels?.[this.entry.source] ?? this.entry.source;
+      const supplied = `Supplied by ${label}`;
       // Only worth saying who chose it where somebody is recorded; otherwise the
       // block worked it out, or nobody was named, and there is no one to credit.
       return this.entry.bound && this.attribution
@@ -130,12 +147,12 @@ export default {
       return Array.isArray(value) ? value.join(", ") : String(value);
     },
     openMenu() {
-      if (!this.editing) this.menuOpen = true;
+      if (!this.editing && this.isEditable) this.menuOpen = true;
     },
     toggleMenu() {
-      // Nothing to choose while a value is being typed; the editor has its own
-      // save and cancel.
-      if (this.editing) return;
+      // Nothing to choose while a value is being typed -- the editor has its own
+      // save and cancel -- nor on a field nobody may change.
+      if (this.editing || !this.isEditable) return;
       this.menuOpen = !this.menuOpen;
     },
     closeMenu(event) {
@@ -211,6 +228,12 @@ export default {
 
 .editor .cancel:hover {
   color: #c92a2a;
+}
+
+/* Nothing to click on a field nobody may change, so it should not look as though
+   there were. */
+.metadata-field.read-only {
+  cursor: default;
 }
 
 .value.empty {

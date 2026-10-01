@@ -1,3 +1,5 @@
+// This file was edited with the assistance of an AI model and requires human review from the contributor.
+
 import { h } from "vue";
 
 import MetadataField from "@/components/MetadataField.vue";
@@ -5,14 +7,15 @@ import MetadataField from "@/components/MetadataField.vue";
 // Where a value came from decides what may be done to it, so these check that
 // the menu offers what the block says it can and nothing else.
 describe("MetadataField", () => {
+  const LABELS = { file: "NiCl2btd_MT.rso.dat", item: "NiCl2btd-01" };
+
   const mount = (entry) =>
     cy.mount(MetadataField, {
       propsData: {
         item_id: "test",
         block_id: "block",
         field: "sample_mass_mg",
-        entry,
-        sourceLabels: { file: "NiCl2btd_MT.rso.dat", sample: "NiCl2btd-01" },
+        entry: { labels: LABELS, ...entry },
       },
     });
 
@@ -20,7 +23,7 @@ describe("MetadataField", () => {
     value: 14.32,
     source: "file",
     bound: false,
-    available: { file: 14.32, sample: null },
+    available: { file: 14.32, item: null },
   };
 
   it("names the file a value was read out of, not just that it was read from one", () => {
@@ -66,7 +69,7 @@ describe("MetadataField", () => {
       value: 14.32,
       source: "file",
       bound: true,
-      available: { file: 14.32, sample: 21.4 },
+      available: { file: 14.32, item: 21.4 },
       set_by_name: "Ada Lovelace",
       set_at: "2026-09-05T18:30:00+00:00",
     });
@@ -132,18 +135,18 @@ describe("MetadataField", () => {
     mount(fromFile);
     cy.get(".metadata-field").click();
 
-    // `sample` has nothing, and `file` is already in use.
-    cy.get(".dropdown-item").should("not.contain", "sample");
+    // `item` has nothing, and `file` is already in use.
+    cy.get(".dropdown-item").should("not.contain", "item");
     cy.get(".dropdown-item").should("not.contain", "Use file value");
     cy.contains(".dropdown-item", "Override…").should("be.visible");
     cy.contains(".dropdown-item", "Set to empty").should("be.visible");
   });
 
   it("offers a source that did not win, with its value", () => {
-    mount({ ...fromFile, available: { file: 14.32, sample: 21.4 } });
+    mount({ ...fromFile, available: { file: 14.32, item: 21.4 } });
     cy.get(".metadata-field").click();
 
-    cy.contains(".dropdown-item", "Use sample value").should("contain", "21.4");
+    cy.contains(".dropdown-item", "Use item value").should("contain", "21.4");
   });
 
   it("only offers to choose automatically once something has been chosen", () => {
@@ -204,5 +207,29 @@ describe("MetadataField", () => {
 
     cy.get(".dropdown-menu").should("not.exist");
     cy.get(".value").should("have.text", "14.32");
+  });
+
+  it("offers nothing to change on a field nobody may change", () => {
+    mount({ ...fromFile, editable: false });
+
+    cy.get(".metadata-field").click();
+    cy.get(".dropdown-menu").should("not.exist");
+    cy.get(".value").rightclick();
+    cy.get(".dropdown-menu").should("not.exist");
+    cy.get(".metadata-field").should("have.class", "read-only");
+  });
+
+  it("asks for a value on a field that is meant to be entered by hand", () => {
+    // Declared with no sources at all: empty because nobody has filled it in yet,
+    // which is a different thing to tell someone from "the file had nothing".
+    mount({ value: null, source: null, bound: false, available: {} });
+
+    cy.get(".source").should("have.attr", "title", "Enter a value");
+  });
+
+  it("says the sources came up empty when they did", () => {
+    mount({ value: null, source: null, bound: false, available: { file: null } });
+
+    cy.get(".source").should("have.attr", "title", "No source has a value for this");
   });
 });

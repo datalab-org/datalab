@@ -1,3 +1,4 @@
+// This file was edited with the assistance of an AI model and requires human review from the contributor.
 // utility functions to deal with fetch server calls
 // all code using fetch should be collected into this file
 
@@ -845,7 +846,6 @@ export async function updateBlockFromServer(item_id, block_id, block_data, event
   // Derived from the metadata and larger than it: every source's value for every
   // field. The server rebuilds it and refuses to load it, so sending it is waste.
   delete block_data.metadata_fields;
-  delete block_data.metadata_source_labels;
 
   store.commit("setBlockUpdating", block_id);
   return fetch_post(`${API_URL}/update-block/`, {

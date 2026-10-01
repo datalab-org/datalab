@@ -1,3 +1,4 @@
+<!-- This file was edited with the assistance of an AI model and requires human review from the contributor. -->
 <template>
   <div :id="block_id" ref="thisDataBlock" class="data-block">
     <div class="datablock-header collapsible" :class="{ expanded: isExpanded }">
@@ -185,7 +186,6 @@
             <MetadataViewer
               :metadata="block.metadata"
               :fields="block.metadata_fields || {}"
-              :source-labels="block.metadata_source_labels || {}"
               :item_id="item_id"
               :block_id="block_id"
             />
