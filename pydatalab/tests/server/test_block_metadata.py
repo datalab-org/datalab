@@ -1,3 +1,5 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
+
 """Tests for metadata resolution and the bindings that decide it.
 
 The rule these are all circling: the block's own choices stay open and are made
@@ -377,3 +379,89 @@ def test_resolving_writes_both_the_values_and_their_provenance():
 
     assert block.data["metadata"]["sample_mass_mg"] == pytest.approx(14.32)
     assert block.data["metadata_fields"]["sample_mass_mg"]["source"] == "file"
+
+
+# --- Declaring where a field comes from ------------------------------------------
+
+
+def test_a_declared_field_keeps_its_sources_its_label_and_its_default():
+    from pydatalab.blocks.metadata import FromFile, FromItem, entry_of, metadata_entry
+
+    class Declared(BaseModel):
+        model_config = ConfigDict(use_attribute_docstrings=True)
+
+        molar_mass_g_mol: float | None = metadata_entry(
+            FromFile("SAMPLE_MOLECULAR_WEIGHT"), FromItem("molar_mass")
+        )
+        """Molar mass (g/mol)."""
+
+        wavelength: float | None = metadata_entry(FromFile("wavelength"), default=1.5406)
+
+    entry = entry_of(Declared.model_fields["molar_mass_g_mol"])
+    assert [source.name for source in entry.sources] == ["file", "item"]
+    assert entry.editable
+
+    # It is still an ordinary pydantic field in every other respect.
+    assert Declared.model_fields["molar_mass_g_mol"].description == "Molar mass (g/mol)."
+    assert Declared().wavelength == pytest.approx(1.5406)
+    assert Declared(molar_mass_g_mol="58.4").molar_mass_g_mol == pytest.approx(58.4)
+    assert "molar_mass_g_mol" in Declared.model_json_schema()["properties"]
+
+
+def test_a_plain_field_is_one_a_person_fills_in():
+    from pydatalab.blocks.metadata import entry_of
+
+    entry = entry_of(Metadata.model_fields["comment"])
+    assert entry.sources == ()
+    assert entry.editable
+
+
+def test_file_needs_to_be_told_which_key_to_read():
+    """Not "the field's own name": a field that quietly looks itself up under a key
+    nobody wrote down is the always-empty field this is meant to rule out."""
+    from pydatalab.blocks.metadata import FromFile
+
+    with pytest.raises(TypeError, match="at least one key"):
+        FromFile()
+
+
+def test_a_source_is_something_that_says_where_a_value_comes_from():
+    from pydatalab.blocks.metadata import metadata_entry
+
+    with pytest.raises(TypeError, match="not a metadata source"):
+        metadata_entry("SAMPLE_MASS")
+
+
+def test_naming_one_source_twice_is_a_mistake_rather_than_a_fallback():
+    """Two FromFile entries would make "bind this to the file" ambiguous; one with
+    several keys says the same thing without that problem."""
+    from pydatalab.blocks.metadata import FromFile, metadata_entry
+
+    with pytest.raises(TypeError, match="several keys"):
+        metadata_entry(FromFile("A"), FromFile("B"))
+
+
+def test_a_field_that_could_only_ever_be_empty_is_refused():
+    from pydatalab.blocks.metadata import metadata_entry
+
+    with pytest.raises(TypeError, match="could only be empty"):
+        metadata_entry(editable=False)
+
+    # A constant is pointless but not empty, so that much is allowed.
+    metadata_entry(default=1.0, editable=False)
+
+
+def test_file_takes_the_first_key_that_holds_a_value():
+    """Newer headers write an unset field as a blank, so a blank is skipped rather
+    than shadowing the spelling an older instrument used."""
+    from pydatalab.blocks.metadata import FileMetadata, FromFile, _Gathered
+
+    source = FromFile("SAMPLE_MASS", "WEIGHT")
+    gathered = lambda values: _Gathered(  # noqa: E731
+        file=FileMetadata(name="measurement.dat", values=values), item_id=None, item={}
+    )
+
+    assert source.read(gathered({"SAMPLE_MASS": "14.3", "WEIGHT": "9"})) == "14.3"
+    assert source.read(gathered({"SAMPLE_MASS": "  ", "WEIGHT": "9"})) == "9"
+    assert source.read(gathered({})) is None
+    assert source.label(gathered({})) == "measurement.dat"

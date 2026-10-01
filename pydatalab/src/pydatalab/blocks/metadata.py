@@ -1,3 +1,5 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
+
 """Resolving a block's metadata, and keeping track of where each value came from.
 
 A block's metadata is rarely all from one place. A sample mass might be written
@@ -24,17 +26,181 @@ no good value for this -- so it is kept too, and is not the same state as a fiel
 nobody has touched.
 """
 
-from typing import Any
+from typing import Any, ClassVar, NamedTuple
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-__all__ = ("USER", "AUTO", "MetadataResolution", "resolve_metadata")
+__all__ = (
+    "USER",
+    "AUTO",
+    "FromFile",
+    "FromItem",
+    "FileMetadata",
+    "MetadataEntry",
+    "MetadataResolution",
+    "metadata_entry",
+    "entry_of",
+    "resolve_metadata",
+)
 
 USER = "user"
 """The binding for a value the user gave, which is stored rather than re-read."""
 
 AUTO = "auto"
 """Not a binding: asking for this clears one, putting the field back to guessing."""
+
+
+class FileMetadata(NamedTuple):
+    """What a block read from its file: the file's name, and its raw metadata."""
+
+    name: str
+    """Shown to a person as where a value came from."""
+
+    values: dict[str, Any]
+    """The raw key/value metadata, as `FromFile` looks keys up in it."""
+
+
+class _Gathered(NamedTuple):
+    """Everything the sources can read from, gathered once per resolution."""
+
+    file: FileMetadata | None
+    item_id: str | None
+    item: dict[str, Any]
+
+
+class MetadataSource:
+    """Somewhere a metadata value can come from."""
+
+    name: ClassVar[str]
+    """The source's name in a binding, and in the interface."""
+
+    def read(self, gathered: _Gathered) -> Any:
+        raise NotImplementedError
+
+    def label(self, gathered: _Gathered) -> str:
+        """How to name this source to a person."""
+        return self.name
+
+
+class FromFile(MetadataSource):
+    """Read from the block's file, under the first of these keys that holds a value.
+
+    The keys are tried in order, so the spellings of one quantity across instrument
+    generations can be listed together: `FromFile("SAMPLE_MASS", "WEIGHT")`.
+    """
+
+    name = "file"
+
+    def __init__(self, *keys: str):
+        if not keys:
+            # Deliberately not "the field's own name": a field that silently looks
+            # itself up under a key nobody wrote down is exactly the always-empty
+            # field this is meant to make impossible.
+            raise TypeError("FromFile needs at least one key to look up in the file.")
+        self.keys = keys
+
+    def read(self, gathered):
+        if gathered.file is None:
+            return None
+        for key in self.keys:
+            value = gathered.file.values.get(key)
+            if value is not None and not (isinstance(value, str) and not value.strip()):
+                return value
+        return None
+
+    def label(self, gathered):
+        return gathered.file.name if gathered.file else self.name
+
+    def __repr__(self):
+        return f"FromFile({', '.join(map(repr, self.keys))})"
+
+
+class FromItem(MetadataSource):
+    """Read from the datalab item the block is attached to, e.g. the molar mass
+    derived from a sample's chemical formula."""
+
+    name = "item"
+
+    def __init__(self, field: str):
+        self.field = field
+
+    def read(self, gathered):
+        return gathered.item.get(self.field)
+
+    def label(self, gathered):
+        return gathered.item_id or self.name
+
+    def __repr__(self):
+        return f"FromItem({self.field!r})"
+
+
+DEFAULT = "default"
+"""The source name for a field's declared default, which is tried after all others."""
+
+
+class MetadataEntry(NamedTuple):
+    """Where one metadata field comes from, and whether a person may change it."""
+
+    sources: tuple[MetadataSource, ...] = ()
+    """Tried in order; the first with a value wins. Empty means only a person can
+    supply the value."""
+
+    editable: bool = True
+    """Whether a person may override what the sources say. Worth turning off for a
+    fact about the file -- the software that wrote it, say -- where an override
+    would muddy the provenance rather than clarify it."""
+
+
+def metadata_entry(
+    *sources: MetadataSource, default: Any = None, editable: bool = True, **field_kwargs
+) -> Any:
+    """Declare a metadata field, and where its value comes from.
+
+    Sources are given in priority order:
+
+        sample_mass_mg: float | None = metadata_entry(FromFile("SAMPLE_MASS", "WEIGHT"))
+        molar_mass_g_mol: float | None = metadata_entry(
+            FromFile("SAMPLE_MOLECULAR_WEIGHT"), FromItem("molar_mass")
+        )
+        wavelength_angstrom: float | None = metadata_entry(FromFile("wavelength"), default=1.5406)
+        density_g_cm3: float | None = metadata_entry()   # entered by hand
+
+    Leaving a source out means the field is never read from it; giving none at all
+    means a person has to enter it. The `default` is tried after every source --
+    always last, which is what makes it a default -- and is shown as one, so that it
+    never passes for a measurement. A value somebody has set wins over all of them,
+    which is what an override is.
+
+    Any other keyword is passed to pydantic's `Field`.
+    """
+    for source in sources:
+        if not isinstance(source, MetadataSource):
+            raise TypeError(f"{source!r} is not a metadata source, e.g. FromFile(...)")
+
+    names = [source.name for source in sources]
+    if len(names) != len(set(names)):
+        raise TypeError(
+            f"Sources {names} name the same source twice; give one source several "
+            "keys instead, e.g. FromFile('SAMPLE_MASS', 'WEIGHT')."
+        )
+
+    if not sources and default is None and not editable:
+        raise TypeError(
+            "A field with no sources, no default, and nobody to edit it could only be empty."
+        )
+
+    field = Field(default, **field_kwargs)
+    field.metadata.append(MetadataEntry(sources=sources, editable=editable))
+    return field
+
+
+def entry_of(field_info) -> MetadataEntry:
+    """The entry declared on a field, or the default for a plain one: no sources,
+    editable -- so a field without `metadata_entry` is one a person fills in."""
+    return next(
+        (marker for marker in field_info.metadata if isinstance(marker, MetadataEntry)),
+        MetadataEntry(),
+    )
 
 
 class MetadataResolution(BaseModel):
