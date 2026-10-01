@@ -201,6 +201,8 @@ describe("Navbar", () => {
     cy.spy(console, "warn").as("consoleWarn");
     store.state.serverInfo.navigation = [
       { view: "missing-view" },
+      { view: "constructor" },
+      { view: "__proto__" },
       { view: "samples", icon: "missing-icon" },
       { view: "about" },
     ];
@@ -215,6 +217,8 @@ describe("Navbar", () => {
     cy.get('[data-testid="navbar-link-samples"] font-awesome-icon').should("not.exist");
     cy.get("#nav .nav-separator").should("have.length", 1);
     cy.get("@consoleWarn").should("have.been.calledWithMatch", "missing-view");
+    cy.get("@consoleWarn").should("have.been.calledWithMatch", "constructor");
+    cy.get("@consoleWarn").should("have.been.calledWithMatch", "__proto__");
     cy.get("@consoleWarn").should("have.been.calledWithMatch", "missing-icon");
   });
 

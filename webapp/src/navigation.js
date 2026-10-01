@@ -57,11 +57,11 @@ export function resolveNavigation(serverInfo) {
 
   return navigation.flatMap((entry) => {
     const view = entry?.view;
-    const definition = NAVIGATION_VIEWS[view];
-    if (!definition) {
+    if (!Object.prototype.hasOwnProperty.call(NAVIGATION_VIEWS, view)) {
       console.warn(`Ignoring unknown navigation view ${JSON.stringify(view)}.`);
       return [];
     }
+    const definition = NAVIGATION_VIEWS[view];
     // Views can become conditional when their corresponding feature exists by adding, e.g.,
     // `isAvailable: (info) => info.features.collections_enabled` to their catalog entry.
     if (definition.isAvailable && !definition.isAvailable(serverInfo)) {
