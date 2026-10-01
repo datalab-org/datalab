@@ -377,6 +377,9 @@ class DataBlock:
         if self.metadata_model is None or field not in self.metadata_model.model_fields:
             raise ValueError(f"{self.blocktype!r} has no metadata field {field!r}")
 
+        if not entry_of(self.metadata_model.model_fields[field]).editable:
+            raise ValueError(f"{field!r} is read from its sources and cannot be overridden")
+
         sources = source_names(self.metadata_model, field)
         bindings = dict(self.data.get("metadata_bindings") or {})
         if source == AUTO:

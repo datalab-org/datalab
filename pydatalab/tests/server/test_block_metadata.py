@@ -80,6 +80,7 @@ def test_every_source_is_reported_not_only_the_winner():
         "value": pytest.approx(14.32),
         "source": "file",
         "bound": False,
+        "editable": True,
         "available": {"file": pytest.approx(14.32), "item": pytest.approx(21.0)},
         "labels": {"file": "measurement.dat", "item": "item-1"},
     }
@@ -550,3 +551,56 @@ def test_a_binding_names_one_of_the_sources_that_field_declares():
             {"event_name": "set_metadata_source", "field": "wavelength", "source": source}
         )
         assert bool(block.data.get("errors")) is not ok, source
+
+
+# --- Fields a person may not override --------------------------------------------
+
+
+class ReadOnly(BaseModel):
+    software: str | None = metadata_entry(FromFile("software"), editable=False)
+    sample_mass_mg: float | None = metadata_entry(FromFile("sample_mass_mg"))
+
+
+class _ReadOnlyBlock(DataBlock):
+    blocktype = "_metadata_test_read_only"
+    metadata_model = ReadOnly
+
+    def file_metadata(self):
+        return FileMetadata(name="measurement.dat", values={"software": "MultiVu 1.61"})
+
+
+@pytest.mark.parametrize(
+    "event",
+    [
+        {"source": "user", "value": "something else"},
+        {"source": "user", "value": None},
+        {"source": "file"},
+    ],
+)
+def test_a_read_only_field_cannot_be_bound_to_anything(event):
+    """A fact about the file -- the software that wrote it -- is not something to
+    correct, and an override would muddy the provenance rather than clarify it."""
+    block = _ReadOnlyBlock(item_id="test")
+    block.process_events({"event_name": "set_metadata_source", "field": "software", **event})
+
+    assert block.data["errors"]
+    assert not block.data.get("metadata_bindings")
+
+
+def test_a_binding_left_over_from_before_a_field_was_read_only_is_ignored():
+    """Making a field read-only means its value follows the file from then on,
+    including for blocks where somebody had overridden it beforehand."""
+    block = _ReadOnlyBlock(item_id="test")
+    block.data["metadata_bindings"] = {"software": {"source": "user", "value": "typed over"}}
+
+    resolution = block.resolve_metadata()
+    assert resolution.metadata.software == "MultiVu 1.61"
+    assert resolution.fields["software"]["source"] == "file"
+    assert resolution.fields["software"]["bound"] is False
+
+
+def test_the_interface_is_told_which_fields_it_may_offer_to_change():
+    fields = _ReadOnlyBlock(item_id="test").resolve_metadata().fields
+
+    assert fields["software"]["editable"] is False
+    assert fields["sample_mass_mg"]["editable"] is True

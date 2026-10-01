@@ -284,8 +284,10 @@ def resolve_metadata(
             labels[DEFAULT] = DEFAULT
 
         binding = bindings.get(field)
-        if not isinstance(binding, dict):
-            binding = None  # nothing readable; treat it as no choice having been made
+        if not isinstance(binding, dict) or not entry.editable:
+            # Nothing readable, or a field nobody may override -- in which case a
+            # binding stored before it was made read-only must not still apply.
+            binding = None
 
         source: str | None
         value: Any
@@ -311,6 +313,7 @@ def resolve_metadata(
             # difference between a decision to leave a field empty and nobody
             # having filled it in yet.
             "bound": binding is not None,
+            "editable": entry.editable,
             "available": available,
             "labels": labels,
             # Carried through from the binding so that the interface has one place
