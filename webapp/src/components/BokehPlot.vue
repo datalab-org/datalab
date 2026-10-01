@@ -1,3 +1,4 @@
+<!-- This file was edited with the assistance of an AI model and requires human review from the contributor. -->
 <template>
   <!-- <div v-if="!loaded" class="alert alert-secondary mt-3">Data will be displayed here</div> -->
   <div v-if="loading" class="alert alert-secondary mt-3">Setting up bokeh plot...</div>
@@ -104,7 +105,9 @@ export default {
 
         const data = { ...target.data };
         for (const [column, values] of Object.entries(response.data)) {
-          data[keys[column] ?? column] = values;
+          // JSON has no NaN, so a missing reading arrives as null -- and Bokeh
+          // plots null as zero. Restore the NaN, which it leaves as a gap.
+          data[keys[column] ?? column] = values.map((value) => (value === null ? NaN : value));
         }
         target.data = data;
 

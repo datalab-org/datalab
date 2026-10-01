@@ -465,7 +465,8 @@ class DataBlock:
 
         Returns:
             `{"data": {name: [...]}, "labels": {name: "..."}}`, where each label is
-            what the axis showing that column should be called.
+            what the axis showing that column should be called. A missing value is
+            `None`, since JSON cannot carry `NaN`.
 
         Raises:
             UnknownColumn: If the block holds no such column.
