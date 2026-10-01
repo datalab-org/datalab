@@ -175,7 +175,7 @@ The built-in views are:
 
 Entries are shown in the configured order, and omitted entries are only hidden from the navigation: their routes remain available unless the corresponding feature is disabled separately.
 An empty list hides the entire set of navigation links.
-Duplicate view IDs and malformed entries are rejected during server configuration, while view IDs unknown to the installed web app are ignored by it with a browser console warning.
+Duplicate view IDs and malformed entries are rejected during server configuration, while view IDs unknown to the installed web app are ignored by it.
 
 The `icon` value must name a Font Awesome solid icon already registered by the web app, such as `vials` or `project-diagram`.
 Unknown icons are omitted without hiding the link.

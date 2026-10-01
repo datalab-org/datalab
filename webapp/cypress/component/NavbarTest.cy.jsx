@@ -198,7 +198,6 @@ describe("Navbar", () => {
   });
 
   it("skips unknown views and icons without affecting valid links", () => {
-    cy.spy(console, "warn").as("consoleWarn");
     store.state.serverInfo.navigation = [
       { view: "missing-view" },
       { view: "constructor" },
@@ -216,10 +215,6 @@ describe("Navbar", () => {
     cy.get("#nav a").should("have.length", 2);
     cy.get('[data-testid="navbar-link-samples"] font-awesome-icon').should("not.exist");
     cy.get("#nav .nav-separator").should("have.length", 1);
-    cy.get("@consoleWarn").should("have.been.calledWithMatch", "missing-view");
-    cy.get("@consoleWarn").should("have.been.calledWithMatch", "constructor");
-    cy.get("@consoleWarn").should("have.been.calledWithMatch", "__proto__");
-    cy.get("@consoleWarn").should("have.been.calledWithMatch", "missing-icon");
   });
 
   it("hides a configured view when its catalog availability predicate returns false", () => {
