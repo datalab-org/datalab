@@ -27,6 +27,17 @@ export const NAVIGATION_VIEWS = {
   },
 };
 
+// Compatibility fallback for API versions that predate `/info.navigation`. Keep this list frozen
+// at the original six-link navbar; current navigation defaults belong to the backend configuration.
+const LEGACY_NAVIGATION = Object.freeze([
+  { view: "about" },
+  { view: "samples" },
+  { view: "collections" },
+  { view: "starting-materials" },
+  { view: "equipment" },
+  { view: "item-graph", icon: "project-diagram" },
+]);
+
 function resolveIcon(icon, view) {
   if (!icon) return null;
   if (findIconDefinition({ prefix: "fas", iconName: icon })) return icon;
@@ -36,7 +47,11 @@ function resolveIcon(icon, view) {
 }
 
 export function resolveNavigation(serverInfo) {
-  const navigation = Array.isArray(serverInfo?.navigation) ? serverInfo.navigation : [];
+  if (serverInfo === null || serverInfo === undefined) return [];
+
+  const navigation = Array.isArray(serverInfo.navigation)
+    ? serverInfo.navigation
+    : LEGACY_NAVIGATION;
 
   return navigation.flatMap((entry) => {
     const view = entry?.view;

@@ -168,12 +168,28 @@ describe("Navbar", () => {
     cy.get("#nav .nav-separator").should("not.exist");
   });
 
-  it("does not render links when navigation metadata is not loaded", () => {
+  it("uses the legacy navigation when loaded server metadata has no navigation", () => {
     store.state.serverInfo = {};
 
     cy.mount(Navbar, {
       global: {
         plugins: [store, router],
+      },
+    });
+
+    cy.get("#nav a").should("have.length", 6);
+    cy.get('[data-testid="navbar-link-item-graph"] font-awesome-icon').should("exist");
+  });
+
+  it("does not render links before server metadata is loaded", () => {
+    store.state.serverInfo = null;
+
+    cy.mount(Navbar, {
+      global: {
+        plugins: [store, router],
+        stubs: {
+          LoginDetails: true,
+        },
       },
     });
 
