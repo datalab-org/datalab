@@ -19,13 +19,14 @@
         />
       </Popover>
     </span>
-    <span v-html="chemFormulaFormat"></span>
+    <span v-html="sanitizedChemFormula"></span>
   </span>
 </template>
 
 <script>
 import { defineAsyncComponent } from "vue";
 import Popover from "primevue/popover";
+import DOMPurify from "dompurify";
 
 export default {
   components: {
@@ -50,6 +51,17 @@ export default {
   computed: {
     hasSubstanceData() {
       return !!(this.smiles || this.inchiKey || this.ghsCodes || this.molarMass || this.cas);
+    },
+    sanitizedChemFormula() {
+      // Formulae are free text provided by users, and are returned unmodified if they do
+      // not match the expected format, so only the formatting tags are allowed through
+      if (!this.chemFormulaFormat) {
+        return "";
+      }
+      return DOMPurify.sanitize(this.chemFormulaFormat, {
+        ALLOWED_TAGS: ["sub", "sup"],
+        ALLOWED_ATTR: [],
+      });
     },
     chemFormulaFormat() {
       // Need to capture several groups, if the overall format doesn't apply, then

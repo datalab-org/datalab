@@ -182,4 +182,38 @@ describe("ChemicalFormula", () => {
     cy.mount(ChemicalFormula, { props: { formula: "Ca<sup>2+</sup>(OH)<sub>2</sub>" } });
     cy.get("span").should("contain.html", "Ca<sup>2+</sup>(OH)<sub>2</sub>");
   });
+
+  // Regression tests for stored XSS via unsanitised formula rendering. `chemform` is
+  // free text that any user can set, and invalid formulae are rendered verbatim, so the
+  // output must be sanitised down to the allowed formatting tags before hitting `v-html`.
+  describe("sanitises malicious input", () => {
+    beforeEach(() => {
+      cy.window().then((win) => {
+        win.__xss_fired = false;
+      });
+    });
+
+    it("does not execute an injected img/onerror payload", () => {
+      const payload = `<img src=x onerror="window.__xss_fired = true">`;
+      cy.mount(ChemicalFormula, { props: { formula: payload } });
+      // No image element should survive sanitisation...
+      cy.get("span").find("img").should("not.exist");
+      // ...and the handler must never have run.
+      cy.window().its("__xss_fired").should("be.false");
+    });
+
+    it("strips event-handler attributes but keeps formatting tags", () => {
+      const payload = `Na3P<sub onmouseover="window.__xss_fired = true">x</sub>`;
+      cy.mount(ChemicalFormula, { props: { formula: payload } });
+      cy.get("span sub").should("exist").and("not.have.attr", "onmouseover");
+      cy.window().its("__xss_fired").should("be.false");
+    });
+
+    it("does not render an injected script tag", () => {
+      const payload = `<script>window.__xss_fired = true</script>Na`;
+      cy.mount(ChemicalFormula, { props: { formula: payload } });
+      cy.get("span").find("script").should("not.exist");
+      cy.window().its("__xss_fired").should("be.false");
+    });
+  });
 });
