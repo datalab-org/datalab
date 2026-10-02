@@ -19,6 +19,7 @@
         />
       </Popover>
     </span>
+    <!-- eslint-disable-next-line vue/no-v-html -- content is sanitized via DOMPurify in `sanitizedChemFormula` -->
     <span v-html="sanitizedChemFormula"></span>
   </span>
 </template>

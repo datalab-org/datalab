@@ -33,7 +33,7 @@ import "markdown-it";
 import hljs from "highlight.js";
 import "highlight.js/styles/a11y-light.css";
 import mermaid from "mermaid";
-import DOMPurify from "dompurify";
+import { sanitizeSVG } from "@/utils/sanitize.js";
 
 export default {
   name: "MessageBubble",
@@ -94,8 +94,7 @@ export default {
           }
         }
         if (lang && lang.toLowerCase() == "svg") {
-          const svg = DOMPurify.sanitize(str, { USE_PROFILES: { svg: true, svgFilters: true } });
-          return `<pre class="svg-drawing">${svg}</pre>`;
+          return `<pre class="svg-drawing">${sanitizeSVG(str)}</pre>`;
         } else if (lang && hljs.getLanguage(lang)) {
           try {
             return hljs.highlight(str, { language: lang }).value;
