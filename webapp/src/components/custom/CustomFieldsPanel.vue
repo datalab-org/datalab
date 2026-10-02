@@ -1,3 +1,4 @@
+<!-- This file was edited with the assistance of an AI model and requires human review from the contributor. -->
 <template>
   <div v-if="customFields.length > 0" class="container custom-fields-panel mt-3">
     <div
@@ -185,6 +186,7 @@ import { prettifyType } from "@/resources.js";
 import DialogModal from "@/components/DialogModal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
 import FormattedItemName from "@/components/FormattedItemName.vue";
+import { resolveQuantity } from "@/utils/quantities.js";
 
 // Pydantic v2 emits nullable fields as anyOf: [{type: X}, {type: "null"}].
 function unwrapNullable(schema) {
@@ -205,22 +207,7 @@ const SCALAR_TYPES = new Set(["string", "number", "integer", "boolean"]);
 function resolveField(name, rawSchema) {
   const { schema } = unwrapNullable(rawSchema);
   const extra = rawSchema["x-json_schema_extra"] || rawSchema;
-  const quantityConfig = extra.datalab_quantity || null;
-  const transforms = Object.fromEntries(
-    Object.entries(quantityConfig?.display_units || {}).map(([unit, transform]) => [
-      unit,
-      { scale: transform.scale ?? 1, offset: transform.offset ?? 0 },
-    ]),
-  );
-  const quantity = quantityConfig
-    ? {
-        canonicalUnit: quantityConfig.canonical_unit,
-        units: Object.keys(transforms),
-        transforms,
-        defaultDisplayUnit: quantityConfig.default_display_unit || quantityConfig.canonical_unit,
-        displayUnitField: quantityConfig.display_unit_field || null,
-      }
-    : null;
+  const quantity = resolveQuantity(rawSchema);
   return {
     name,
     title: rawSchema.title || prettifyType(name),

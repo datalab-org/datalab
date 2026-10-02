@@ -1,3 +1,4 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 from enum import Enum
 from typing import Literal
 
@@ -10,11 +11,6 @@ from pydantic import (
 from pydatalab.models.entries import EntryReference
 from pydatalab.models.items import Item
 from pydatalab.models.utils import CellStatus, Constituent
-
-# Conversion factor from nominal_capacity_unit to the base unit (mAh). Single source of
-# truth: used by `set_nominal_capacity`, so any downstream consumer normalizes
-# consistently regardless of which unit is currently selected on a given item.
-NOMINAL_CAPACITY_TO_MAH = {"mAh": 1, "Ah": 1e3}
 
 
 class CellComponent(Constituent): ...
@@ -50,13 +46,26 @@ class Cell(Item):
     cell_preparation_description: str | None = None
     """Description of how the cell was prepared."""
 
-    characteristic_mass: float | None = None
+    characteristic_mass: float | None = Field(
+        None,
+        json_schema_extra={
+            "datalab_quantity": {
+                "canonical_unit": "mg",
+                "display_units": {
+                    "mg": {"scale": 1.0},
+                    "g": {"scale": 1000.0},
+                },
+            },
+        },
+    )
     """The characteristic mass of the cell in milligrams. Can be used to normalize capacities."""
 
     characteristic_chemical_formula: str | None = None
     """The chemical formula of the active material. Can be used to calculated molar mass in g/mol for normalizing capacities."""
 
-    characteristic_molar_mass: float | None = None
+    characteristic_molar_mass: float | None = Field(
+        None, json_schema_extra={"datalab_quantity": {"canonical_unit": "g/mol"}}
+    )
     """The molar mass of the active material, in g/mol. Will be inferred from the chemical formula, or can be supplied if it cannot be supplied"""
 
     positive_electrode: list[CellComponent] = Field(default_factory=list)
@@ -77,27 +86,33 @@ class Cell(Item):
     status: CellStatus = Field(default=CellStatus.ACTIVE)
     """The status of the cells, indicating its current state."""
 
-    theoretical_capacity: float | None = None
+    theoretical_capacity: float | None = Field(
+        None, json_schema_extra={"datalab_quantity": {"canonical_unit": "mAh/g"}}
+    )
     """The theoretical specific capacity of the active material, in mAh/g."""
 
+    nominal_capacity: float | None = Field(
+        None,
+        json_schema_extra={
+            "datalab_quantity": {
+                "canonical_unit": "mAh",
+                "display_units": {
+                    "mAh": {"scale": 1.0},
+                    "Ah": {"scale": 1000.0},
+                },
+                "default_display_unit": "mAh",
+                "display_unit_field": "nominal_capacity_unit",
+            },
+        },
+    )
+    """The nominal capacity of the cell, always in mAh regardless of the unit it is
+    displayed in (`nominal_capacity_unit`). If no value is provided, it is computed as
+    `theoretical_capacity * characteristic_mass`; a provided value is never overwritten.
+    See `set_nominal_capacity`."""
+
     nominal_capacity_unit: Literal["mAh", "Ah"] = "mAh"
-    """The unit that `nominal_capacity` is given in."""
-
-    nominal_capacity: float | None = None
-    """The nominal capacity of the cell. Computed as `theoretical_capacity *
-    characteristic_mass` unless `nominal_capacity_manual` is set, in which case the
-    user-supplied value is kept as-is. See `set_nominal_capacity`."""
-
-    nominal_capacity_manual: bool = False
-    """Whether `nominal_capacity` was entered directly by a user rather than computed
-    from `theoretical_capacity` and `characteristic_mass`. When set, `set_nominal_capacity`
-    will not overwrite `nominal_capacity`/`nominal_capacity_mah` on save."""
-
-    nominal_capacity_mah: float | None = None
-    """`nominal_capacity` normalized to mAh, regardless of the unit currently selected
-    on this item (`nominal_capacity_unit`). Prefer this field over `nominal_capacity`
-    whenever comparing or aggregating across cells, since `nominal_capacity_unit` can
-    differ from item to item."""
+    """The unit that `nominal_capacity` is displayed in. This is a presentation
+    preference only: the stored value of `nominal_capacity` is always in mAh."""
 
     @field_validator("characteristic_molar_mass", mode="before")
     @classmethod
@@ -115,29 +130,16 @@ class Cell(Item):
 
     @model_validator(mode="after")
     def set_nominal_capacity(self):
-        if self.nominal_capacity_manual:
-            # Trust the user-supplied value; just normalize it to mAh for comparison
-            # across items with different `nominal_capacity_unit`.
-            if self.nominal_capacity is None:
-                self.nominal_capacity_mah = None
-            else:
-                self.nominal_capacity_mah = (
-                    self.nominal_capacity * NOMINAL_CAPACITY_TO_MAH[self.nominal_capacity_unit]
-                )
+        # A provided value is kept as-is; it is already in the canonical unit (mAh).
+        if self.nominal_capacity is not None:
             return self
 
         if self.theoretical_capacity is None or self.characteristic_mass is None:
-            self.nominal_capacity_mah = None
             return self
 
         # theoretical_capacity is in mAh/g; characteristic_mass is in mg (divide by
         # 1000 to get grams).
-        nominal_capacity_mah = self.theoretical_capacity * self.characteristic_mass / 1000
-
-        self.nominal_capacity_mah = nominal_capacity_mah
-        self.nominal_capacity = (
-            nominal_capacity_mah / NOMINAL_CAPACITY_TO_MAH[self.nominal_capacity_unit]
-        )
+        self.nominal_capacity = self.theoretical_capacity * self.characteristic_mass / 1000
         return self
 
     @model_validator(mode="after")

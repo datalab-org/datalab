@@ -1,3 +1,4 @@
+// This file was edited with the assistance of an AI model and requires human review from the contributor.
 import { createStore } from "vuex";
 
 import CreateItemModal from "@/components/CreateItemModal.vue";
@@ -165,5 +166,83 @@ describe("Custom item UI", () => {
     cy.findByRole("button", { name: "Keep number" }).click();
     cy.findByLabelText("Voltage").should("have.value", "1000");
     cy.then(() => expect(store.state.all_item_data.direct1.voltage).to.equal(1000));
+  });
+
+  it("converts quantities without storing a display unit", () => {
+    registerDynamicItemType(DIRECT_TYPE, {
+      title: "Direct item",
+      base_type: "items",
+    });
+
+    const store = createStore({
+      state() {
+        return {
+          all_item_data: {
+            direct1: { item_id: "direct1", type: DIRECT_TYPE, mass: 1500, molar_mass: 55.8 },
+          },
+          schemas: {
+            [DIRECT_TYPE]: {
+              attributes: {
+                base_fields: ["item_id", "type"],
+                schema: {
+                  type: "object",
+                  properties: {
+                    item_id: { type: "string" },
+                    type: { type: "string" },
+                    // No `display_unit_field`: the chosen unit is not stored with the item.
+                    mass: {
+                      title: "Mass",
+                      type: "number",
+                      datalab_quantity: {
+                        canonical_unit: "mg",
+                        display_units: { mg: { scale: 1 }, g: { scale: 1000 } },
+                      },
+                    },
+                    // No `display_units` either: only ever shown in the canonical unit.
+                    molar_mass: {
+                      title: "Molar mass",
+                      type: "number",
+                      datalab_quantity: { canonical_unit: "g/mol" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        };
+      },
+      mutations: {
+        updateItemData(state, { item_id, item_data }) {
+          Object.assign(state.all_item_data[item_id], item_data);
+        },
+      },
+    });
+
+    cy.mount(CustomFieldsPanel, {
+      props: { item_id: "direct1", itemType: DIRECT_TYPE },
+      global: { plugins: [store] },
+    });
+
+    // A canonical-only quantity shows its unit as a plain label, with no selector.
+    cy.findByLabelText("Molar mass").should("have.value", "55.8");
+    cy.contains(".input-group-text", "g/mol").should("be.visible");
+    cy.get(".unit-select").should("have.length", 1);
+
+    cy.findByLabelText("Mass").should("have.value", "1500");
+    cy.get(".unit-select").select("g");
+    cy.findByRole("button", { name: "Convert value" }).click();
+    cy.findByLabelText("Mass").should("have.value", "1.5");
+
+    // Values entered in the display unit are stored in the canonical unit, and only
+    // the canonical value is written to the item.
+    cy.findByLabelText("Mass").clear().type("2").blur();
+    cy.then(() => {
+      expect(store.state.all_item_data.direct1).to.deep.equal({
+        item_id: "direct1",
+        type: DIRECT_TYPE,
+        mass: 2000,
+        molar_mass: 55.8,
+      });
+    });
   });
 });

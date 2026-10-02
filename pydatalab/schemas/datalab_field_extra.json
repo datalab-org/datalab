@@ -14,7 +14,7 @@
           "additionalProperties": {
             "$ref": "#/$defs/DatalabUnitTransform"
           },
-          "description": "Allowed display units and their affine transforms to the canonical unit.",
+          "description": "Allowed display units and their affine transforms to the canonical unit. May be\nomitted when the field is only ever displayed in its canonical unit.",
           "title": "Display Units",
           "type": "object"
         },
@@ -46,8 +46,7 @@
         }
       },
       "required": [
-        "canonical_unit",
-        "display_units"
+        "canonical_unit"
       ],
       "title": "DatalabQuantity",
       "type": "object"

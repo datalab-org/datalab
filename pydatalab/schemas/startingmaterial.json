@@ -1262,6 +1262,9 @@
           "type": "null"
         }
       ],
+      "datalab_quantity": {
+        "canonical_unit": "g/mol"
+      },
       "default": null,
       "description": "Mass per formula unit, in g/mol.",
       "title": "Molar Mass"

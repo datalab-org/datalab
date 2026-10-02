@@ -1,3 +1,4 @@
+<!-- This file was edited with the assistance of an AI model and requires human review from the contributor. -->
 # Plugins
 
 *datalab* supports plugins that extend the server with new functionality, in
@@ -242,6 +243,42 @@ canonical = displayed * scale + offset
 
 The optional `display_unit_field` stores only the user's display-unit preference. It must name a
 companion string `Literal` whose possible values exactly match the keys in `display_units`.
+
+`display_unit_field` can be omitted, in which case nothing extra is stored: the field opens in
+`default_display_unit` (or the canonical unit) and values are converted on display. This is the
+natural choice when the unit is already part of the field name:
+
+```python
+    capacity_mAh: float | None = Field(
+        None,
+        json_schema_extra={
+            "datalab_quantity": {
+                "canonical_unit": "mAh",
+                "display_units": {"mAh": {"scale": 1.0}, "Ah": {"scale": 1000.0}},
+            },
+        },
+    )
+```
+
+`display_units` can be omitted too, for a field that is only ever displayed in its canonical unit;
+the hint then simply declares the unit of the field:
+
+```python
+    molar_mass: float | None = Field(
+        None, json_schema_extra={"datalab_quantity": {"canonical_unit": "g/mol"}}
+    )
+```
+
+Built-in models use the same hint, so anything reading these fields (blocks, plugins, API clients)
+can rely on the canonical unit:
+
+| Field | Canonical unit | Other display units | Display unit stored? |
+|---|---|---|---|
+| `Cell.characteristic_mass` | mg | g | no |
+| `Cell.characteristic_molar_mass` | g/mol | – | no |
+| `Cell.theoretical_capacity` | mAh/g | – | no |
+| `Cell.nominal_capacity` | mAh | Ah | yes, in `nominal_capacity_unit` |
+| `molar_mass` (samples, starting materials) | g/mol | – | no |
 
 ### Custom panels (full control)
 

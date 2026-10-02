@@ -1,3 +1,4 @@
+<!-- This file was edited with the assistance of an AI model and requires human review from the contributor. -->
 <template>
   <div class="container-lg">
     <!-- Sample information -->
@@ -84,22 +85,43 @@
         </div>
 
         <div class="form-row py-4">
-          <div class="form-group col-lg-3 col-md-4 pr-3">
-            <label for="cell-characteristic-mass">Active mass (mg)</label>
-            <input
-              id="cell-characteristic-mass"
-              v-model="CharacteristicMass"
-              class="form-control"
-              type="text"
-              :class="{ 'red-border': isNaN(CharacteristicMass) }"
-            />
+          <div class="form-group col-lg-4 col-md-4 pr-3">
+            <label for="cell-characteristic-mass">Active mass</label>
+            <div class="input-group">
+              <input
+                id="cell-characteristic-mass"
+                v-model="CharacteristicMassInput"
+                class="form-control"
+                type="text"
+                :class="{ 'red-border': isNaN(CharacteristicMassInput) }"
+              />
+              <div class="input-group-append">
+                <select
+                  id="cell-characteristic-mass-unit"
+                  class="form-control"
+                  aria-label="Active mass display unit"
+                  :value="displayUnit('characteristic_mass')"
+                  @change="setDisplayUnit('characteristic_mass', $event.target.value)"
+                >
+                  <option
+                    v-for="unit in quantities.characteristic_mass.units"
+                    :key="unit"
+                    :value="unit"
+                  >
+                    {{ unit }}
+                  </option>
+                </select>
+              </div>
+            </div>
           </div>
           <div class="form-group col-lg-4 col-md-4 pr-3">
             <label for="cell-chemform">Active formula</label>
             <ChemFormulaInput id="cell-chemform" v-model="ChemForm" />
           </div>
           <div class="form-group col-lg-3 col-md-4">
-            <label for="cell-characteristic-molar-mass">Molar mass</label>
+            <label for="cell-characteristic-molar-mass">
+              Molar mass ({{ quantities.characteristic_molar_mass.canonicalUnit }})
+            </label>
             <input
               id="cell-characteristic-molar-mass"
               v-model="MolarMass"
@@ -111,7 +133,9 @@
         </div>
         <div class="form-row py-4">
           <div class="form-group col-lg-4 col-md-4 pr-3">
-            <label for="cell-theoretical-capacity">Theoretical capacity (mAh/g)</label>
+            <label for="cell-theoretical-capacity">
+              Theoretical capacity ({{ quantities.theoretical_capacity.canonicalUnit }})
+            </label>
             <input
               id="cell-theoretical-capacity"
               v-model="TheoreticalCapacity"
@@ -124,7 +148,7 @@
             <label for="cell-nominal-capacity">
               Nominal capacity
               <a
-                v-if="NominalCapacityManual"
+                v-if="nominalCapacityOverridden"
                 href="#"
                 class="ml-1"
                 title="Reset to the value calculated from theoretical capacity × active mass."
@@ -142,9 +166,20 @@
                 :class="{ 'red-border': isNaN(NominalCapacityInput) }"
               />
               <div class="input-group-append">
-                <select v-model="NominalCapacityUnit" class="form-control">
-                  <option value="mAh">mAh</option>
-                  <option value="Ah">Ah</option>
+                <select
+                  id="cell-nominal-capacity-unit"
+                  class="form-control"
+                  aria-label="Nominal capacity display unit"
+                  :value="displayUnit('nominal_capacity')"
+                  @change="setDisplayUnit('nominal_capacity', $event.target.value)"
+                >
+                  <option
+                    v-for="unit in quantities.nominal_capacity.units"
+                    :key="unit"
+                    :value="unit"
+                  >
+                    {{ unit }}
+                  </option>
                 </select>
               </div>
             </div>
@@ -190,6 +225,12 @@ import ToggleableTagsFormGroup from "@/components/ToggleableTagsFormGroup";
 import LocationInput from "@/components/LocationInput";
 import { cellFormats } from "@/resources.js";
 import { getLocations } from "@/server_fetch_utils.js";
+import {
+  canonicalOnlyQuantity,
+  fromDisplayValue,
+  resolveQuantity,
+  toDisplayValue,
+} from "@/utils/quantities.js";
 
 export default {
   components: {
@@ -220,6 +261,8 @@ export default {
         { title: "Cell Construction", targetID: "cell-preparation-information" },
       ],
       availableCellFormats: cellFormats,
+      // Display units chosen for quantities that do not persist one with the item.
+      localDisplayUnits: {},
     };
   },
   computed: {
@@ -242,8 +285,6 @@ export default {
     Tags: createComputedSetterForItemField("tags"),
     Status: createComputedSetterForItemField("status"),
     TheoreticalCapacity: createComputedSetterForItemField("theoretical_capacity"),
-    NominalCapacityUnit: createComputedSetterForItemField("nominal_capacity_unit"),
-    NominalCapacityManual: createComputedSetterForItemField("nominal_capacity_manual"),
     Location: createComputedSetterForItemField("location"),
     enableTags() {
       return this.$store.state.serverInfo?.features?.tags ?? false;
@@ -254,11 +295,41 @@ export default {
     possibleItemStatuses() {
       return this.schema?.attributes?.schema?.["$defs"]?.CellStatus?.enum;
     },
-    // The value that would be calculated from theoretical capacity × active mass,
-    // in the currently selected unit. Used both to auto-fill the field while it is
-    // not manually overridden, and to warn when a manual value diverges from it.
+    // These fields are always stored in their canonical unit; that unit, the other
+    // units they can be displayed in and the conversions between them come from the
+    // `datalab_quantity` hints on the cell schema.
+    quantities() {
+      const properties = this.schema?.attributes?.schema?.properties || {};
+      const canonicalUnits = {
+        characteristic_mass: "mg",
+        characteristic_molar_mass: "g/mol",
+        theoretical_capacity: "mAh/g",
+        nominal_capacity: "mAh",
+      };
+      return Object.fromEntries(
+        Object.entries(canonicalUnits).map(([field, unit]) => [
+          field,
+          resolveQuantity(properties[field]) || canonicalOnlyQuantity(unit),
+        ]),
+      );
+    },
+    CharacteristicMassInput: {
+      get() {
+        return this.toDisplay("characteristic_mass", this.CharacteristicMass);
+      },
+      set(value) {
+        this.CharacteristicMass =
+          value === "" ? null : this.fromDisplay("characteristic_mass", value);
+      },
+    },
+    // The value that would be calculated from theoretical capacity × active mass, in
+    // the canonical unit (mAh). Used to fill the field while no value has been
+    // provided, and to tell whether a stored value overrides the calculation.
     CalculatedNominalCapacity() {
-      const nominalCapacityToMah = { mAh: 1, Ah: 1e3 };
+      const isMissing = (value) => value === null || value === undefined || value === "";
+      if (isMissing(this.TheoreticalCapacity) || isMissing(this.CharacteristicMass)) {
+        return null;
+      }
 
       // theoretical_capacity is always mAh/g.
       const theoreticalCapacity = Number(this.TheoreticalCapacity);
@@ -267,69 +338,106 @@ export default {
         return null;
       }
 
-      const nominalCapacityUnit = this.NominalCapacityUnit || "mAh";
-
       // characteristic_mass is stored in mg; divide by 1000 to get grams.
-      const mAh = (theoreticalCapacity * characteristicMass) / 1000;
-      return mAh / nominalCapacityToMah[nominalCapacityUnit];
+      return (theoreticalCapacity * characteristicMass) / 1000;
+    },
+    // There is no separate "manual" flag: a stored value overrides the calculation
+    // exactly when it differs from it.
+    nominalCapacityOverridden() {
+      const storedValue = this.item?.nominal_capacity;
+      if (storedValue === null || storedValue === undefined) return false;
+      if (this.CalculatedNominalCapacity === null) return false;
+      return !this.nominalCapacitiesMatch(storedValue, this.CalculatedNominalCapacity);
     },
     NominalCapacityInput: {
       get() {
-        if (this.NominalCapacityManual) {
-          return this.item?.nominal_capacity;
+        const storedValue = this.item?.nominal_capacity;
+        if (storedValue !== null && storedValue !== undefined) {
+          // A stored value that matches the calculation is shown as the calculation is.
+          return this.nominalCapacityOverridden || this.CalculatedNominalCapacity === null
+            ? this.toDisplay("nominal_capacity", storedValue)
+            : this.displayedCalculatedNominalCapacity;
         }
-        return this.CalculatedNominalCapacity === null
-          ? null
-          : Number(this.CalculatedNominalCapacity.toFixed(4));
+        return this.displayedCalculatedNominalCapacity;
       },
       set(value) {
-        const numericValue = value === "" ? null : Number(value);
+        // Clearing the field leaves the value unset, so that it is calculated again.
+        const numericValue = value === "" ? null : this.fromDisplay("nominal_capacity", value);
         this.$store.commit("updateItemData", {
           item_id: this.item_id,
-          item_data: { nominal_capacity: numericValue, nominal_capacity_manual: true },
+          item_data: { nominal_capacity: numericValue },
         });
       },
     },
+    // The calculated value in the selected display unit, rounded for display.
+    displayedCalculatedNominalCapacity() {
+      if (this.CalculatedNominalCapacity === null) return null;
+      return Number(this.toDisplay("nominal_capacity", this.CalculatedNominalCapacity).toFixed(4));
+    },
     NominalCapacityMismatchWarning() {
-      if (!this.NominalCapacityManual) {
+      if (!this.nominalCapacityOverridden) {
         return null;
       }
-      const manualValue = Number(this.item?.nominal_capacity);
-      if (!Number.isFinite(manualValue) || this.CalculatedNominalCapacity === null) {
-        return null;
-      }
-      if (Math.abs(manualValue - this.CalculatedNominalCapacity) < 1e-6) {
-        return null;
-      }
-      return `Doesn't match the value calculated from theoretical capacity × active mass (${this.CalculatedNominalCapacity.toFixed(4)} ${this.NominalCapacityUnit || "mAh"}).`;
+      return `Doesn't match the value calculated from theoretical capacity × active mass (${this.displayedCalculatedNominalCapacity} ${this.displayUnit("nominal_capacity")}).`;
     },
   },
   watch: {
-    // While the field is not manually overridden, keep the persisted value in sync
-    // with the live-computed one, so it's saved without relying on a server
-    // round-trip (the backend validator recomputes it again on save regardless).
-    CalculatedNominalCapacity(value) {
-      if (!this.NominalCapacityManual && value !== null && value !== this.item?.nominal_capacity) {
-        this.$store.commit("updateItemData", {
-          item_id: this.item_id,
-          item_data: { nominal_capacity: value },
-        });
-      }
-    },
-  },
-  methods: {
-    resetNominalCapacityToCalculated() {
+    // The backend only calculates `nominal_capacity` while it is unset, so a stored
+    // value that was merely following the calculation is unset again when the
+    // calculation changes; otherwise it would go stale and read as an override. A
+    // value that already differed from the calculation is an override and is left alone.
+    CalculatedNominalCapacity(value, previousValue) {
+      const storedValue = this.item?.nominal_capacity;
+      if (storedValue === null || storedValue === undefined || previousValue === null) return;
+      if (!this.nominalCapacitiesMatch(storedValue, previousValue)) return;
       this.$store.commit("updateItemData", {
         item_id: this.item_id,
-        item_data: {
-          nominal_capacity_manual: false,
-          nominal_capacity: this.CalculatedNominalCapacity,
-        },
+        item_data: { nominal_capacity: null },
       });
     },
   },
   created() {
     getLocations();
+  },
+  methods: {
+    // The unit a quantity is currently displayed in: the one persisted with the item
+    // if the quantity has a display-unit field, otherwise the one chosen in this session.
+    displayUnit(field) {
+      const quantity = this.quantities[field];
+      const unit = quantity.displayUnitField
+        ? this.item?.[quantity.displayUnitField]
+        : this.localDisplayUnits[field];
+      return quantity.units.includes(unit) ? unit : quantity.defaultDisplayUnit;
+    },
+    // Changing the display unit converts the displayed number; the stored value is unchanged.
+    setDisplayUnit(field, unit) {
+      const quantity = this.quantities[field];
+      if (quantity.displayUnitField) {
+        this.$store.commit("updateItemData", {
+          item_id: this.item_id,
+          item_data: { [quantity.displayUnitField]: unit },
+        });
+      } else {
+        this.localDisplayUnits[field] = unit;
+      }
+    },
+    toDisplay(field, canonicalValue) {
+      return toDisplayValue(this.quantities[field], this.displayUnit(field), canonicalValue);
+    },
+    fromDisplay(field, displayedValue) {
+      return fromDisplayValue(this.quantities[field], this.displayUnit(field), displayedValue);
+    },
+    nominalCapacitiesMatch(a, b) {
+      const [x, y] = [Number(a), Number(b)];
+      return Math.abs(x - y) <= 1e-6 * Math.max(1, Math.abs(x), Math.abs(y));
+    },
+    // Unsetting the value leaves it to be calculated again.
+    resetNominalCapacityToCalculated() {
+      this.$store.commit("updateItemData", {
+        item_id: this.item_id,
+        item_data: { nominal_capacity: null },
+      });
+    },
   },
 };
 </script>

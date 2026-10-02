@@ -1,3 +1,4 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 """Models describing unit conversions for numeric item fields."""
 
 from pydantic import ConfigDict, Field, model_validator
@@ -25,8 +26,9 @@ class DatalabQuantity(BaseModel):
     canonical_unit: str = Field(min_length=1)
     """Unit used by the Pydantic field, REST API, application state, and database."""
 
-    display_units: dict[str, DatalabUnitTransform]
-    """Allowed display units and their affine transforms to the canonical unit."""
+    display_units: dict[str, DatalabUnitTransform] = Field(default_factory=dict)
+    """Allowed display units and their affine transforms to the canonical unit. May be
+    omitted when the field is only ever displayed in its canonical unit."""
 
     default_display_unit: str | None = None
     """Initial display unit; defaults to ``canonical_unit`` when omitted."""
@@ -37,7 +39,7 @@ class DatalabQuantity(BaseModel):
     @model_validator(mode="after")
     def _valid_quantity(self):
         if not self.display_units:
-            raise ValueError("display_units must contain at least the canonical unit")
+            self.display_units = {self.canonical_unit: DatalabUnitTransform()}
 
         if any(not unit for unit in self.display_units):
             raise ValueError("display unit names must not be empty")

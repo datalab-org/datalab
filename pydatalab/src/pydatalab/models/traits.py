@@ -1,3 +1,4 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 from typing import TYPE_CHECKING, Any
 
 from pydantic import AliasChoices, ConfigDict, Field, field_validator, model_validator
@@ -268,7 +269,12 @@ class HasSubstanceInfo(BaseModel):
     )
     """A string describing any GHS hazard codes associated with this item. See https://pubchem.ncbi.nlm.nih.gov/ghs/ for code definitions."""
 
-    molar_mass: float | None = Field(None, alias="Molecular Weight", validate_default=True)
+    molar_mass: float | None = Field(
+        None,
+        alias="Molecular Weight",
+        validate_default=True,
+        json_schema_extra={"datalab_quantity": {"canonical_unit": "g/mol"}},
+    )
     """Mass per formula unit, in g/mol."""
 
     CAS: str | None = Field(None, alias="Substance CAS")

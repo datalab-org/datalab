@@ -1,3 +1,4 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 import datetime
 import json
 
@@ -569,102 +570,207 @@ def test_cell_relationship_deduplication():
 
 
 def test_cell_nominal_capacity():
-    """`nominal_capacity` (and its mAh-normalized counterpart `nominal_capacity_mah`)
-    are derived from `theoretical_capacity` (mAh/g) * `characteristic_mass` (mg),
-    unit-aware with respect to `nominal_capacity_unit`."""
+    """`nominal_capacity` is derived from `theoretical_capacity` (mAh/g) *
+    `characteristic_mass` (mg) and is always held in its canonical unit (mAh);
+    `nominal_capacity_unit` only records the unit it is displayed in."""
     from pydatalab.models.cells import Cell
 
     # Neither input supplied: no capacity can be computed.
     cell = Cell(item_id="abcd-1-2-3")
     assert cell.nominal_capacity is None
-    assert cell.nominal_capacity_mah is None
 
     # Only one of the two inputs supplied: still no capacity can be computed.
     cell = Cell(item_id="abcd-1-2-3", theoretical_capacity=200.0)
     assert cell.nominal_capacity is None
-    assert cell.nominal_capacity_mah is None
 
     cell = Cell(item_id="abcd-1-2-3", characteristic_mass=5.0)
     assert cell.nominal_capacity is None
-    assert cell.nominal_capacity_mah is None
 
     # Default unit (mAh): 200 mAh/g * 5 mg = 1 mAh.
     cell = Cell(item_id="abcd-1-2-3", characteristic_mass=5.0, theoretical_capacity=200.0)
     assert cell.nominal_capacity_unit == "mAh"
     assert cell.nominal_capacity == pytest.approx(1.0)
-    assert cell.nominal_capacity_mah == pytest.approx(1.0)
 
-    # Requesting the result in Ah: same underlying quantity, different display unit.
+    # Displaying the result in Ah does not change the canonical (mAh) value.
     cell = Cell(
         item_id="abcd-1-2-3",
         characteristic_mass=5.0,
         theoretical_capacity=200.0,
         nominal_capacity_unit="Ah",
     )
-    assert cell.nominal_capacity == pytest.approx(0.001)
-    # nominal_capacity_mah is unit-independent and always mAh.
-    assert cell.nominal_capacity_mah == pytest.approx(1.0)
+    assert cell.nominal_capacity_unit == "Ah"
+    assert cell.nominal_capacity == pytest.approx(1.0)
 
-    # A client-supplied nominal_capacity is not trusted by default: it is always
-    # recomputed from theoretical_capacity * characteristic_mass.
+    # An explicitly unset nominal_capacity is computed, just like a missing one.
     cell = Cell(
         item_id="abcd-1-2-3",
         characteristic_mass=5.0,
         theoretical_capacity=200.0,
-        nominal_capacity=999,
+        nominal_capacity=None,
     )
     assert cell.nominal_capacity == pytest.approx(1.0)
 
     # Round-tripping through JSON (as happens on save/load) preserves the computed values.
     cell = Cell(**json.loads(cell.model_dump_json()))
     assert cell.nominal_capacity == pytest.approx(1.0)
-    assert cell.nominal_capacity_mah == pytest.approx(1.0)
 
 
-def test_cell_nominal_capacity_manual_override():
-    """When `nominal_capacity_manual` is set, a user-supplied `nominal_capacity` is
-    kept as-is rather than being recomputed from `theoretical_capacity` and
-    `characteristic_mass`, but `nominal_capacity_mah` is still normalized from it."""
+def test_cell_nominal_capacity_provided_value_is_kept():
+    """A provided `nominal_capacity` is never overwritten by the value computed from
+    `theoretical_capacity` and `characteristic_mass`; whether it overrides that
+    calculation is determined by comparing the two, not by a separate flag."""
     from pydatalab.models.cells import Cell
 
-    # Manual value is honoured even though mass/theoretical capacity would imply
+    # A provided value is honoured even though mass/theoretical capacity would imply
     # a different result.
     cell = Cell(
         item_id="abcd-1-2-3",
         characteristic_mass=5.0,
         theoretical_capacity=200.0,
         nominal_capacity=5.0,
-        nominal_capacity_manual=True,
     )
     assert cell.nominal_capacity == pytest.approx(5.0)
-    assert cell.nominal_capacity_mah == pytest.approx(5.0)
 
-    # Manual value in a non-default unit is normalized to mAh.
+    # The display unit is a presentation preference: a provided value is canonical
+    # (mAh) and is not rescaled by it.
     cell = Cell(
         item_id="abcd-1-2-3",
-        nominal_capacity=5.0,
+        nominal_capacity=5000.0,
         nominal_capacity_unit="Ah",
-        nominal_capacity_manual=True,
     )
-    assert cell.nominal_capacity == pytest.approx(5.0)
-    assert cell.nominal_capacity_mah == pytest.approx(5000.0)
+    assert cell.nominal_capacity == pytest.approx(5000.0)
+    assert cell.nominal_capacity_unit == "Ah"
 
-    # Manual flag with no supplied value: nothing to normalize.
-    cell = Cell(item_id="abcd-1-2-3", nominal_capacity_manual=True)
-    assert cell.nominal_capacity is None
-    assert cell.nominal_capacity_mah is None
-
-    # Round-tripping through JSON preserves the manual value rather than recomputing it.
+    # Round-tripping through JSON preserves the provided value rather than recomputing it.
     cell = Cell(
         item_id="abcd-1-2-3",
         characteristic_mass=5.0,
         theoretical_capacity=200.0,
         nominal_capacity=5.0,
-        nominal_capacity_manual=True,
     )
     cell = Cell(**json.loads(cell.model_dump_json()))
     assert cell.nominal_capacity == pytest.approx(5.0)
-    assert cell.nominal_capacity_mah == pytest.approx(5.0)
+
+    # Once computed, the value counts as provided: it is not recomputed when the
+    # inputs later change, until it is unset again.
+    cell = Cell(item_id="abcd-1-2-3", characteristic_mass=5.0, theoretical_capacity=200.0)
+    stored = json.loads(cell.model_dump_json())
+    cell = Cell(**{**stored, "characteristic_mass": 10.0})
+    assert cell.nominal_capacity == pytest.approx(1.0)
+    cell = Cell(**{**stored, "characteristic_mass": 10.0, "nominal_capacity": None})
+    assert cell.nominal_capacity == pytest.approx(2.0)
+
+    # Documents saved with the removed `nominal_capacity_manual` flag still load.
+    cell = Cell(item_id="abcd-1-2-3", nominal_capacity=5.0, nominal_capacity_manual=True)
+    assert cell.nominal_capacity == pytest.approx(5.0)
+    assert "nominal_capacity_manual" not in cell.model_dump()
+
+
+def test_cell_nominal_capacity_quantity_hints():
+    """`nominal_capacity` declares its canonical unit and display-unit conversions via
+    the `datalab_quantity` schema hint, with `nominal_capacity_unit` as its companion
+    display-unit field."""
+    from pydatalab.models.cells import Cell
+    from pydatalab.models.schema_hints import validate_schema_hints
+    from pydatalab.models.units import DatalabQuantity
+
+    validate_schema_hints(Cell)
+
+    properties = Cell.model_json_schema(by_alias=False)["properties"]
+    quantity = DatalabQuantity(**properties["nominal_capacity"]["datalab_quantity"])
+    assert quantity.canonical_unit == "mAh"
+    assert quantity.display_unit_field == "nominal_capacity_unit"
+    assert set(quantity.display_units) == set(properties["nominal_capacity_unit"]["enum"])
+
+    # canonical = displayed * scale + offset
+    assert quantity.display_units["mAh"].scale == pytest.approx(1.0)
+    assert quantity.display_units["Ah"].scale == pytest.approx(1000.0)
+    assert all(transform.offset == 0 for transform in quantity.display_units.values())
+
+    # The canonical value is the only capacity field: there is no separate
+    # unit-normalized copy to keep in sync, nor a flag recording where it came from.
+    assert "nominal_capacity_mah" not in properties
+    assert "nominal_capacity_manual" not in properties
+
+
+def test_unit_bearing_fields_declare_quantities():
+    """Built-in numeric fields with a fixed unit declare it via the `datalab_quantity`
+    schema hint. Only `nominal_capacity` persists a display unit; for the others the
+    display unit is not stored and values are converted on display."""
+    from pydatalab.models.cells import Cell
+    from pydatalab.models.samples import Sample
+    from pydatalab.models.starting_materials import StartingMaterial
+    from pydatalab.models.units import DatalabQuantity
+
+    def quantities(model):
+        properties = model.model_json_schema(by_alias=False)["properties"]
+        return {
+            name: DatalabQuantity(**prop["datalab_quantity"])
+            for name, prop in properties.items()
+            if "datalab_quantity" in prop
+        }
+
+    cell = quantities(Cell)
+    assert {name: quantity.canonical_unit for name, quantity in cell.items()} == {
+        "characteristic_mass": "mg",
+        "characteristic_molar_mass": "g/mol",
+        "theoretical_capacity": "mAh/g",
+        "nominal_capacity": "mAh",
+    }
+    assert cell["characteristic_mass"].display_units["g"].scale == pytest.approx(1000.0)
+    assert {name for name, quantity in cell.items() if quantity.display_unit_field} == {
+        "nominal_capacity"
+    }
+
+    for model in (Sample, StartingMaterial):
+        molar_mass = quantities(model)["molar_mass"]
+        assert molar_mass.canonical_unit == "g/mol"
+        assert molar_mass.display_unit_field is None
+
+    # The hints are metadata only: values are still read and stored in the canonical unit.
+    cell = Cell(item_id="abcd-1-2-3", characteristic_mass=5.0, theoretical_capacity=200.0)
+    assert cell.characteristic_mass == 5.0
+    assert cell.nominal_capacity == pytest.approx(1.0)
+
+
+def test_datalab_quantity_display_units_default_to_canonical_unit():
+    """`display_units` may be omitted for a field only displayed in its canonical unit."""
+    from pydatalab.models.units import DatalabQuantity
+
+    quantity = DatalabQuantity(canonical_unit="g/mol")
+    assert set(quantity.display_units) == {"g/mol"}
+    assert quantity.display_units["g/mol"].scale == 1.0
+    assert quantity.display_units["g/mol"].offset == 0.0
+
+    # When display units are given, they must still include the canonical unit.
+    with pytest.raises(pydantic.ValidationError, match="canonical_unit must be present"):
+        DatalabQuantity(canonical_unit="g", display_units={"mg": {"scale": 0.001}})
+
+
+def test_example_custom_models_declare_quantities_without_display_unit_fields():
+    """A quantity may omit `display_unit_field`, in which case no companion field is
+    needed and the display unit is not stored with the item."""
+    from pydatalab.models._example_custom import MyItem, MySample
+    from pydatalab.models.schema_hints import validate_schema_hints
+    from pydatalab.models.units import DatalabQuantity
+
+    for model in (MySample, MyItem):
+        validate_schema_hints(model)
+
+    sample_properties = MySample.model_json_schema(by_alias=False)["properties"]
+    drying_time = DatalabQuantity(**sample_properties["drying_time"]["datalab_quantity"])
+    assert drying_time.canonical_unit == "h"
+    assert drying_time.display_unit_field is None
+    assert drying_time.display_units["min"].scale == pytest.approx(1 / 60)
+    # Other hints on the same field are unaffected.
+    assert sample_properties["drying_time"]["datalab_include_field_in_summary"] is True
+
+    item_properties = MyItem.model_json_schema(by_alias=False)["properties"]
+    for name in ("width", "height"):
+        quantity = DatalabQuantity(**item_properties[name]["datalab_quantity"])
+        assert quantity.canonical_unit == "mm"
+        assert quantity.display_units["cm"].scale == pytest.approx(10.0)
+    assert not any(name.endswith("_unit") for name in item_properties)
 
 
 def test_sample_synthesis_relationship_deduplication():
