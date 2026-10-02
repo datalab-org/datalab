@@ -4,6 +4,17 @@
 > Release candidates and other pre-releases are not included in this changelog; there may be more
 recent changes described in the [release notes on GitHub](https://github.com/datalab-org/datalab/releases).
 
+## v0.7.11 (October 2026)
+
+This release backports an XSS bug for moderate severity advisory [GHSA-9cgv-hvcw-jxgx](https://github.com/datalab-org/datalab/security/advisories/GHSA-9cgv-hvcw-jxgx).
+More details can be found above, but deployments are recommended to update.
+
+### What's Changed
+
+* Backport of "XSS fixes for chemical formulae and user display names" by @ml-evs in https://github.com/datalab-org/datalab/pull/2173
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.10...v0.7.11
+
 ## v0.7.10 (September 2026)
 
 This release backports a security fix for email (magic-link) authentication.
