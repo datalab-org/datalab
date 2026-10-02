@@ -170,10 +170,10 @@ export function validateEntryID(id, takenIds = [], existingIds = []) {
     return "";
   }
 
-  if (takenIds.includes(id) || existingIds.includes(id)) {
-    return `<a href='edit/${id}'>${id}</a> already in use.`;
-  }
-
+  // Validate the character set *before* the "already in use" branch below, which
+  // interpolates `id` into an HTML string rendered via `v-html`. Running these checks
+  // first guarantees that only `[a-zA-Z0-9_-]` can ever reach that interpolation, so no
+  // HTML/script can be injected through a crafted ID.
   if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
     return "ID can only contain alphanumeric characters, dashes ('-'), and underscores ('_').";
   }
@@ -183,5 +183,10 @@ export function validateEntryID(id, takenIds = [], existingIds = []) {
   if (id.length < 1 || id.length > 40) {
     return "ID must be between 1 and 40 characters.";
   }
+
+  if (takenIds.includes(id) || existingIds.includes(id)) {
+    return `<a href='edit/${id}'>${id}</a> already in use.`;
+  }
+
   return "";
 }

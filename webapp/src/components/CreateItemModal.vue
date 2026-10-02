@@ -19,7 +19,7 @@
               :disabled="generateIDAutomatically"
               :required="!generateIDAutomatically"
             />
-            <!-- eslint-disable-next-line vue/no-v-html -->
+            <!-- eslint-disable-next-line vue/no-v-html -- only renders validateEntryID/validateGroupID output, whose sole HTML is an <a> link built from a charset-validated ID -->
             <div class="form-error" v-html="isValidEntryID"></div>
             <div class="form-check mt-1 ml-1">
               <input
