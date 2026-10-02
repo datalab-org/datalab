@@ -17,6 +17,7 @@ describe("EquipmentTable Component Tests", () => {
     store = createStore({
       state() {
         return {
+          serverInfo: { features: { collections_enabled: true } },
           datatablePaginationSettings: {
             equipment: {
               page: 0,
@@ -42,6 +43,9 @@ describe("EquipmentTable Component Tests", () => {
             },
           ],
         };
+      },
+      getters: {
+        collectionsEnabled: (state) => state.serverInfo.features.collections_enabled,
       },
     });
 
@@ -73,6 +77,10 @@ describe("EquipmentTable Component Tests", () => {
     cy.get('[data-testid="add-to-collection-button"]').should("not.exist");
     cy.get('[data-testid="delete-selected-button"]').should("not.exist");
     cy.get('[data-testid="search-input"]').should("exist");
+    cy.get('[data-testid="selection-summary"]').should(
+      "contain.text",
+      "Number of equipment items:",
+    );
   });
 
   it("renders the correct columns in the table", () => {

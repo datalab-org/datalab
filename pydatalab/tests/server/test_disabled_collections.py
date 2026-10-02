@@ -2,6 +2,8 @@ import pytest
 from bson import ObjectId
 
 
+# Register this module-local fixture as "app" so the shared client fixtures use an app with
+# collections disabled instead of the standard app from conftest.py.
 @pytest.fixture(scope="module", name="app")
 def app_without_collections(real_mongo_client, app_config):
     """Create this module's API with collections disabled at startup."""

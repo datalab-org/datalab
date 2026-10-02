@@ -1,4 +1,5 @@
 import datetime
+import inspect
 import os
 import pathlib
 import time
@@ -197,12 +198,23 @@ def create_app(
     def log_request(response):
         """Write a single access log line per request handled."""
         duration_ms = 1000 * (time.perf_counter() - g.start_time)
+
+        # Attribute the line to the route that handled the request, rather than to this hook
+        source = None
+        view_func = app.view_functions.get(request.endpoint) if request.endpoint else None
+        if view_func is not None:
+            view_func = inspect.unwrap(view_func)
+            code = getattr(view_func, "__code__", None)
+            if code is not None:
+                source = f"{view_func.__module__}:{view_func.__name__}:{code.co_firstlineno}"
+
         LOGGER.info(
             '"%s %s" %s in %.1fms',
             request.method,
             request.path,
             response.status_code,
             duration_ms,
+            extra={"source_override": source},
         )
         return response
 

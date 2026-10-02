@@ -1,4 +1,5 @@
 import StartingMaterialTable from "@/components/StartingMaterialTable.vue";
+import { EDITABLE_INVENTORY } from "@/resources.js";
 import PrimeVue from "primevue/config";
 import { createStore } from "vuex";
 
@@ -15,6 +16,7 @@ describe("StartingMaterialTable Component Tests", () => {
     store = createStore({
       state() {
         return {
+          serverInfo: { features: { collections_enabled: true } },
           datatablePaginationSettings: {
             startingMaterials: {
               page: 0,
@@ -47,6 +49,9 @@ describe("StartingMaterialTable Component Tests", () => {
           ],
         };
       },
+      getters: {
+        collectionsEnabled: (state) => state.serverInfo.features.collections_enabled,
+      },
     });
 
     cy.mount(StartingMaterialTable, {
@@ -68,11 +73,22 @@ describe("StartingMaterialTable Component Tests", () => {
     cy.get('[data-testid="batch-item-button"]').should("not.exist");
     cy.get('[data-testid="scan-qr-button"]').should("not.exist");
     cy.get('[data-testid="add-collection-button"]').should("not.exist");
-    cy.get('[data-testid="add-starting-material-button"]').should("not.exist");
+    if (EDITABLE_INVENTORY) {
+      cy.get('[data-testid="add-starting-material-button"]').should(
+        "contain.text",
+        "Add a starting material",
+      );
+    } else {
+      cy.get('[data-testid="add-starting-material-button"]').should("not.exist");
+    }
     cy.get('[data-testid="add-equipment-button"]').should("not.exist");
     cy.get('[data-testid="add-to-collection-button"]').should("not.exist");
     cy.get('[data-testid="delete-selected-button"]').should("not.exist");
     cy.get('[data-testid="search-input"]').should("exist");
+    cy.get('[data-testid="selection-summary"]').should(
+      "contain.text",
+      "Number of starting materials:",
+    );
   });
 
   it("renders the correct columns in the table", () => {
