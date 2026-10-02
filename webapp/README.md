@@ -2,13 +2,6 @@
 
 More detailed instructions can be found in the top-level [README](../README.md).
 
-## Settings pages
-
-Authenticated users can open **Settings** from the user dropdown. Account settings are available at
-`/settings`, with tag management available at `/settings?section=tags` when tags are enabled. The
-selected section is retained on refresh and in browser history. The legacy `/tags` route redirects
-to the tag-management section, so existing links remain valid.
-
 ## Project setup
 
 ```
