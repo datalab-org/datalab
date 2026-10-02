@@ -32,6 +32,10 @@ module.exports = {
     "vue/prop-name-casing": "off",
     "vue/no-unused-components": process.env.NODE_ENV === "production" ? "error" : "warn",
     "vue/no-unused-vars": process.env.NODE_ENV === "production" ? "error" : "warn",
+    // Raw HTML rendering is a stored-XSS risk. Any intentional use must sanitize the
+    // content (e.g. via DOMPurify) and carry an inline `eslint-disable-next-line vue/no-v-html`
+    // stating where it is sanitized, so each occurrence is reviewed deliberately.
+    "vue/no-v-html": "error",
     "cypress/no-assigning-return-values": "warn",
     "cypress/no-unnecessary-waiting": "warn",
     "cypress/unsafe-to-chain-command": "warn",
