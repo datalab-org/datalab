@@ -3,7 +3,7 @@ import Samples from "../views/Samples.vue";
 import Equipment from "../views/Equipment.vue";
 import StartingMaterials from "../views/StartingMaterials.vue";
 import Collections from "@/views/Collections.vue";
-import Tags from "@/views/Tags.vue";
+import Settings from "@/views/Settings.vue";
 import NotFound from "../views/NotFound.vue";
 import EditPage from "../views/EditPage.vue";
 import CollectionPage from "../views/CollectionPage.vue";
@@ -62,14 +62,19 @@ const routes = [
     component: Collections,
   },
   {
+    path: "/settings",
+    name: "settings",
+    component: Settings,
+  },
+  {
     path: "/tags",
     name: "tags",
-    component: Tags,
+    component: Settings,
     // Only reachable when the backend reports the tags feature as enabled.
     beforeEnter: async (to, from, next) => {
       const serverInfo = store.state.serverInfo ?? (await getInfo());
       if (serverInfo.features?.tags) {
-        next();
+        next({ name: "settings", query: { section: "tags" }, replace: true });
       } else {
         next({ path: "/" });
       }

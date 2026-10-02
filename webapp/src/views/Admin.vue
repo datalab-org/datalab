@@ -1,24 +1,31 @@
 <template>
   <Navbar />
-  <div v-if="!canAccessAdminPage" class="error-message">
+  <div v-if="!isUserLoaded" class="admin-loading" role="status">Loading administration…</div>
+  <div v-else-if="!canAccessAdminPage" class="error-message">
     <p class="error-text">You do not have permission to access this page.</p>
   </div>
   <div v-else class="admin-container">
-    <AdminNavbar :items="items" :selected-item="selectedItem" @item-selected="onItemSelected" />
+    <SidebarNavigation
+      title="Admin Menu"
+      test-id="admin-table"
+      :items="items"
+      :selected-item="selectedItem"
+      @item-selected="onItemSelected"
+    />
     <AdminDisplay :selected-item="selectedItem" />
   </div>
 </template>
 
 <script>
 import Navbar from "@/components/Navbar";
-import AdminNavbar from "@/components/AdminNavbar.vue";
+import SidebarNavigation from "@/components/SidebarNavigation.vue";
 import AdminDisplay from "@/components/AdminDisplay.vue";
 import { getUserInfo } from "@/server_fetch_utils.js";
 
 export default {
   components: {
     Navbar,
-    AdminNavbar,
+    SidebarNavigation,
     AdminDisplay,
   },
   data() {
@@ -26,23 +33,24 @@ export default {
       items: ["Users", "Groups", "Access Tokens"],
       selectedItem: "Users",
       user: null,
+      isUserLoaded: false,
     };
+  },
+  computed: {
+    canAccessAdminPage() {
+      return this.user?.role === "admin";
+    },
   },
   created() {
     this.getUser();
   },
   methods: {
     async getUser() {
-      const user = await getUserInfo();
-      if (user !== null) {
-        this.user = user;
-      }
+      this.user = await getUserInfo();
+      this.isUserLoaded = true;
     },
     onItemSelected(item) {
       this.selectedItem = item;
-    },
-    canAccessAdminPage() {
-      return !this.user || (this.user && this.user.role !== "admin");
     },
   },
 };
@@ -51,6 +59,11 @@ export default {
 <style scoped>
 .admin-container {
   display: flex;
+}
+
+.admin-loading {
+  padding: 1em;
+  text-align: center;
 }
 
 .error-message {
