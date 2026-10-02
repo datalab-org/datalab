@@ -25,6 +25,12 @@ if [ -z "$VUE_APP_GIT_VERSION" ]; then
     VUE_APP_GIT_VERSION="0.0.0-git"
 fi
 
+# If VUE_APP_WEBSITE_TITLE is unset, default to "datalab" so the sed
+# substitution below doesn't blank out the title in the built app.
+if [ -z "$VUE_APP_WEBSITE_TITLE" ]; then
+    VUE_APP_WEBSITE_TITLE="datalab"
+fi
+
 echo "Replacing env vars in Javascript files"
 echo "Settings:"
 echo ""
@@ -32,7 +38,7 @@ echo "  APP_VERSION: ${VUE_APP_GIT_VERSION}"
 echo "  API_URL: ${VUE_APP_API_URL}"
 echo "  LOGO_URL: ${VUE_APP_LOGO_URL}"
 echo "  LOGO_WIDTH: ${VUE_APP_LOGO_WIDTH}"
-echo "  HOMEPAGE_URL: ${VUE_APP_HOMPAGE_URL}"
+echo "  HOMEPAGE_URL: ${VUE_APP_HOMEPAGE_URL}"
 echo "  EDITABLE_INVENTORY: ${VUE_APP_EDITABLE_INVENTORY}"
 echo "  HIDE_COLLECTIONS: ${VUE_APP_HIDE_COLLECTIONS}"
 echo "  WEBSITE_TITLE: ${VUE_APP_WEBSITE_TITLE}"
