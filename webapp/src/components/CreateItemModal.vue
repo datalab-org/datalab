@@ -64,8 +64,8 @@
             <input id="create-item-name" v-model="name" type="text" class="form-control" />
           </div>
         </div>
-        <!-- All item types can be added to a collection, so this is always available -->
-        <div class="form-row">
+        <!-- When collections are visible, any item type can be added to a collection. -->
+        <div v-if="$store.getters.collectionsEnabled" class="form-row">
           <div class="col-md-12 form-group">
             <label id="startInCollection">(Optional) Insert into collection:</label>
             <CollectionSelect

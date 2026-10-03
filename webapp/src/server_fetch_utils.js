@@ -1479,18 +1479,17 @@ export function saveUserManagers(user_id, managers) {
 }
 
 export async function getApiConfig() {
-  return fetch_get(`${API_URL}/info`)
-    .then((response_json) => {
-      const config = {
-        maxUploadBytes: response_json.data?.attributes?.max_upload_bytes || null,
-      };
-      store.commit("setApiConfig", config);
-      return config;
-    })
-    .catch((error) => {
-      console.error("Failed to fetch API config:", error);
-      return { maxUploadBytes: null };
-    });
+  try {
+    const serverInfo = store.state.serverInfo ?? (await getInfo());
+    const config = {
+      maxUploadBytes: serverInfo?.max_upload_bytes || null,
+    };
+    store.commit("setApiConfig", config);
+    return config;
+  } catch (error) {
+    console.error("Failed to fetch API config:", error);
+    return { maxUploadBytes: null };
+  }
 }
 
 export function fetchUserActivity(userId = null) {

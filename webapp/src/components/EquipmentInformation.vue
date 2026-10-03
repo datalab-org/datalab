@@ -23,7 +23,7 @@
           :possible-item-statuses="possibleItemStatuses"
         />
       </div>
-      <div class="form-group col-md-3 col-sm-3">
+      <div v-if="$store.getters.collectionsEnabled" class="form-group col-md-3 col-sm-3">
         <label id="collections" class="mr-2">Collections</label>
         <div>
           <CollectionList aria-labelledby="collections" :collections="Collections" />
