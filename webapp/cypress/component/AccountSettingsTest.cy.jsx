@@ -1,8 +1,8 @@
 import store from "@/store/index.js";
-import EditAccountSettingsModal from "@/components/EditAccountSettingsModal.vue";
+import AccountSettings from "@/components/AccountSettings.vue";
 import { invalidateCurrentUserCache } from "@/server_fetch_utils.js";
 
-describe("EditAccountSettingsModal profile submission", () => {
+describe("AccountSettings profile submission", () => {
   const baseUser = {
     immutable_id: "111111111111111111111111",
     display_name: "Test User",
@@ -26,7 +26,7 @@ describe("EditAccountSettingsModal profile submission", () => {
     ],
   };
 
-  function mountModal(user, { emailVerification = true } = {}) {
+  function mountAccountSettings(user, { emailVerification = true } = {}) {
     invalidateCurrentUserCache();
     store.commit("setServerInfo", {
       features: { auth_mechanisms: { email: emailVerification } },
@@ -39,15 +39,9 @@ describe("EditAccountSettingsModal profile submission", () => {
       body: { status: "success", message: "User updated successfully" },
     }).as("saveUser");
 
-    const onUpdate = cy.spy().as("closed");
-    // The modal only opens on a change of `modelValue`, so mount closed and then open it
-    cy.mount(EditAccountSettingsModal, {
+    cy.mount(AccountSettings, {
       global: { plugins: [store] },
-      props: { modelValue: false, "onUpdate:modelValue": onUpdate },
-    }).then(({ wrapper }) => wrapper.setProps({ modelValue: true }));
-    // Bootstrap's modal z-index is not loaded in component tests, so hide the backdrop
-    // overlay that would otherwise cover the modal and block interactions
-    cy.get("#dummyDivForModalBackground").invoke("css", "display", "none");
+    });
     cy.wait("@getUser");
     cy.get("#account-name").should("have.value", user.display_name);
   }
@@ -57,22 +51,23 @@ describe("EditAccountSettingsModal profile submission", () => {
   }
 
   it("only sends changed fields", () => {
-    mountModal(baseUser);
+    mountAccountSettings(baseUser);
 
-    cy.get("#account-name").clear().type("New Name");
+    cy.get("#account-name").clear();
+    cy.get("#account-name").type("New Name");
     submit();
 
     cy.wait("@saveUser").its("request.body").should("deep.equal", { display_name: "New Name" });
   });
 
   it("cannot be saved when nothing changed and the contact email is verified", () => {
-    mountModal(baseUser);
+    mountAccountSettings(baseUser);
 
     cy.get("input[type='submit']").should("be.disabled");
   });
 
   it("warns about and re-sends an unchanged, unverified contact email", () => {
-    mountModal({ ...baseUser, contact_email: "pending@example.org" });
+    mountAccountSettings({ ...baseUser, contact_email: "pending@example.org" });
 
     cy.contains(".alert-warning", "Your contact email is not verified").should("exist");
     // Saving is still allowed with no changes, so that the verification email can be re-sent
@@ -85,7 +80,10 @@ describe("EditAccountSettingsModal profile submission", () => {
   });
 
   it("explains that no verification email is sent when verification is disabled", () => {
-    mountModal({ ...baseUser, contact_email: "pending@example.org" }, { emailVerification: false });
+    mountAccountSettings(
+      { ...baseUser, contact_email: "pending@example.org" },
+      { emailVerification: false },
+    );
 
     cy.contains(".alert-secondary", "Your contact email is not verified")
       .should("exist")
@@ -94,7 +92,7 @@ describe("EditAccountSettingsModal profile submission", () => {
   });
 
   it("offers known emails in the contact email dropdown", () => {
-    mountModal(baseUser);
+    mountAccountSettings(baseUser);
 
     cy.get("select#account-email").should("have.value", "verified@example.org");
     cy.get("select#account-email option").then((options) => {
@@ -110,7 +108,7 @@ describe("EditAccountSettingsModal profile submission", () => {
   });
 
   it("sends a newly added email address", () => {
-    mountModal(baseUser);
+    mountAccountSettings(baseUser);
 
     cy.get("select#account-email").select("Add a new email address…");
     cy.get("input#account-email").should("have.value", "");
@@ -126,7 +124,7 @@ describe("EditAccountSettingsModal profile submission", () => {
   });
 
   it("restores the previous contact email when adding is cancelled", () => {
-    mountModal(baseUser);
+    mountAccountSettings(baseUser);
 
     cy.get("select#account-email").select("Add a new email address…");
     cy.get("input#account-email").type("new@example.org");
