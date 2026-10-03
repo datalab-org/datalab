@@ -6,6 +6,7 @@
   <span v-else-if="status === 'deactivated'" class="badge activity-badge text-secondary">
     Deactivated
   </span>
+  <span v-else-if="status === 'deleted'" class="badge activity-badge text-muted">Deleted</span>
 </template>
 
 <script>
