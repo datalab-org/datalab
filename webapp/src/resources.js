@@ -161,7 +161,7 @@ const BASE_TYPE_COMPONENTS = {
 
 export function prettifyType(type) {
   return type
-    .replace(/_/g, " ")
+    .replace(/[-_:]+/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase())
     .trim();
 }
