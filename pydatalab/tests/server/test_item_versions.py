@@ -25,6 +25,25 @@ def api_sample(client, default_sample_dict):
 
 
 @pytest.fixture
+def group_sample(client, group_id):
+    """Create a sample through the API that is shared with the conftest's group."""
+    response = client.post(
+        "/new-sample/",
+        json={
+            "item_id": "version_group_sample",
+            "type": "samples",
+            "groups": [{"immutable_id": str(group_id)}],
+        },
+    )
+    assert response.status_code == 201
+    entry = response.json["sample_list_entry"]
+
+    yield {"item_id": entry["item_id"], "refcode": entry["refcode"]}
+
+    client.post("/delete-sample/", json={"item_id": entry["item_id"]})
+
+
+@pytest.fixture
 def sample_with_version(client, user_id):
     """Create and insert a sample for version testing."""
     from pydatalab.models import Sample
@@ -937,6 +956,79 @@ class TestPermissions:
 
         # Should fail because another_client doesn't have access to this item
         assert response.status_code == 404
+
+    def test_save_version_requires_write_permission(
+        self, client, another_client, group_sample, user_id
+    ):
+        """Test that a group member, who can read the item's history, cannot add to it,
+        even after editing one of its blocks."""
+        from pydatalab.mongo import flask_mongo
+
+        item_id = group_sample["item_id"]
+        full_refcode = group_sample["refcode"]
+        refcode = full_refcode.split(":")[1]
+
+        # Adding a block puts the live item ahead of its last snapshot, so there is
+        # something for a save-version call to record
+        response = client.post(
+            "/add-data-block/", json={"block_type": "comment", "item_id": item_id, "index": None}
+        )
+        assert response.status_code == 200
+        block_id = response.json["new_block_obj"]["block_id"]
+
+        response = another_client.get(f"/items/{refcode}/versions/")
+        assert response.status_code == 200
+
+        item_versions_before = flask_mongo.db.item_versions.count_documents(
+            {"refcode": full_refcode}
+        )
+        block_versions_before = flask_mongo.db.block_versions.count_documents(
+            {"block_id": block_id}
+        )
+        version_field_before = flask_mongo.db.items.find_one({"refcode": full_refcode}).get(
+            "version"
+        )
+
+        response = another_client.post(f"/items/{refcode}/save-version/")
+        assert response.status_code == 404
+
+        # Whether or not the group member may edit the block, they must not be able
+        # to commit that edit to the item's history
+        another_client.post(
+            "/update-block/",
+            json={
+                "block_data": {
+                    "item_id": item_id,
+                    "block_id": block_id,
+                    "blocktype": "comment",
+                    "freeform_comment": "edited by a group member",
+                }
+            },
+        )
+        response = another_client.post(f"/items/{refcode}/save-version/")
+        assert response.status_code == 404
+
+        assert (
+            flask_mongo.db.item_versions.count_documents({"refcode": full_refcode})
+            == item_versions_before
+        )
+        assert (
+            flask_mongo.db.block_versions.count_documents({"block_id": block_id})
+            == block_versions_before
+        )
+        assert (
+            flask_mongo.db.items.find_one({"refcode": full_refcode}).get("version")
+            == version_field_before
+        )
+
+        # The pending changes can still be saved by a creator
+        response = client.post(f"/items/{refcode}/save-version/")
+        assert response.status_code == 200
+        assert "version" in response.json
+        version = flask_mongo.db.item_versions.find_one(
+            {"refcode": full_refcode, "version": response.json["version"]}
+        )
+        assert version["user_id"] == user_id
 
 
 class TestEdgeCases:
