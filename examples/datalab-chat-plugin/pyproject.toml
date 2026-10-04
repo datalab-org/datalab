@@ -1,0 +1,27 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
+[build-system]
+requires = ["setuptools >= 64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "datalab-chat-plugin"
+version = "0.1.0"
+description = "Example datalab plugin providing the chat block's webapp component."
+requires-python = ">=3.10"
+# Mirrors the `chat` extra of datalab-server, as the entry point imports the core chat block.
+dependencies = [
+    "langchain >= 0.2.6, < 0.3",
+    "langchain-openai ~= 0.1",
+    "langchain-anthropic ~= 0.1",
+    "tiktoken ~= 0.7",
+    "transformers ~= 5.5",
+]
+
+[project.entry-points."pydatalab.apps.plugins"]
+chat = "datalab_chat_plugin.blocks:ChatBlock"
+
+[tool.setuptools]
+packages = ["datalab_chat_plugin"]
+
+[tool.setuptools.package-data]
+datalab_chat_plugin = ["webapp/*"]
