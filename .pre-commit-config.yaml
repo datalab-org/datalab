@@ -50,7 +50,7 @@ repos:
           - eslint-plugin-cypress@3.3.0
           - "@babel/core@7.29.7"
           - "@babel/eslint-parser@7.28.6"
-          - "@babel/plugin-transform-export-namespace-from@7.27.1"
+          - "@babel/plugin-transform-export-namespace-from@7.29.7"
           - "@babel/plugin-transform-class-static-block@7.29.7"
         types: [file]
         files: \.(js|jsx|ts|tsx|vue)$
