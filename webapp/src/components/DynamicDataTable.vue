@@ -55,6 +55,7 @@
           @open-create-equipment-modal="createEquipmentModalIsOpen = true"
           @open-create-tag-modal="$emit('open-create-tag-modal')"
           @open-add-to-collection-modal="addToCollectionModalIsOpen = true"
+          @open-batch-tag-modal="batchTagModalIsOpen = true"
           @open-batch-share-modal="batchShareModalIsOpen = true"
           @delete-selected-items="deleteSelectedItems"
           @remove-selected-items-from-collection="removeSelectedItemsFromCollection"
@@ -155,6 +156,12 @@
     :items-selected="itemsSelected"
     @items-updated="handleItemsUpdated"
   />
+  <BatchTagModal
+    v-model="batchTagModalIsOpen"
+    :items-selected="itemsSelected"
+    :data-type="dataType"
+    @items-updated="handleItemsUpdated"
+  />
 </template>
 
 <script>
@@ -166,6 +173,7 @@ import CreateCollectionModal from "@/components/CreateCollectionModal";
 import CreateEquipmentModal from "@/components/CreateEquipmentModal";
 import AddToCollectionModal from "@/components/AddToCollectionModal";
 import BatchShareModal from "@/components/BatchShareModal";
+import BatchTagModal from "@/components/BatchTagModal";
 
 import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY } from "@/resources.js";
 
@@ -183,6 +191,7 @@ export default {
     CreateEquipmentModal,
     AddToCollectionModal,
     BatchShareModal,
+    BatchTagModal,
     DataTable,
     Column,
   },
@@ -247,6 +256,7 @@ export default {
       createEquipmentModalIsOpen: false,
       addToCollectionModalIsOpen: false,
       batchShareModalIsOpen: false,
+      batchTagModalIsOpen: false,
       isSampleFetchError: false,
       itemsSelected: [],
       allSelected: false,
