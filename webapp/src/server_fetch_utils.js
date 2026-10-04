@@ -386,6 +386,42 @@ export async function getInfo() {
     });
 }
 
+export function getNotifications({ includeArchived = false, unreadOnly = false, limit = 50 } = {}) {
+  const url = new URL(`${API_URL}/notifications`);
+  if (includeArchived) url.searchParams.set("include_archived", "1");
+  if (unreadOnly) url.searchParams.set("unread_only", "1");
+  url.searchParams.set("limit", limit);
+  return fetch_get(url);
+}
+
+export function getNotificationUnreadCount() {
+  return fetch_get(`${API_URL}/notifications/unread-count`);
+}
+
+export function createNotification(payload) {
+  return fetch_post(`${API_URL}/notifications`, payload);
+}
+
+export function updateNotification(notificationId, payload) {
+  return fetch_patch(`${API_URL}/notifications/${notificationId}`, payload);
+}
+
+export function deleteNotification(notificationId) {
+  return fetch_delete(`${API_URL}/notifications/${notificationId}`, {});
+}
+
+export function markAllNotificationsRead() {
+  return fetch_post(`${API_URL}/notifications/mark-all-read`, {});
+}
+
+export function getAdminNotifications() {
+  return fetch_get(`${API_URL}/admin/notifications`);
+}
+
+export function deleteAdminNotification(notificationId) {
+  return fetch_delete(`${API_URL}/admin/notifications/${notificationId}`, {});
+}
+
 export function getSampleList() {
   return fetch_get(`${API_URL}/samples/`)
     .then(function (response_json) {

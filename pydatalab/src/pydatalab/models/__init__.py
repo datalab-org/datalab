@@ -7,6 +7,11 @@ from pydatalab.models.collections import Collection
 from pydatalab.models.equipment import Equipment
 from pydatalab.models.files import File
 from pydatalab.models.items import Item
+from pydatalab.models.notifications import (
+    Notification,
+    NotificationGrouping,
+    NotificationOccurrence,
+)
 from pydatalab.models.people import Person
 from pydatalab.models.samples import Sample
 from pydatalab.models.schema_hints import validate_schema_hints
@@ -252,6 +257,9 @@ __all__ = (
     "Equipment",
     "Tag",
     "ItemVersion",
+    "Notification",
+    "NotificationGrouping",
+    "NotificationOccurrence",
     "ITEM_MODELS",
     "ITEM_SCHEMAS",
     "BUILTIN_ITEM_TYPES",
