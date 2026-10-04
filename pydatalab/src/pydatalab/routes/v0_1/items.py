@@ -182,7 +182,7 @@ def get_starting_materials():
                 },
                 {"$lookup": creators_lookup()},
                 {"$lookup": groups_lookup()},
-                {"$lookup": collections_lookup()},
+                *collections_lookup_stages(),
                 *block_store.blocks_preview_stages(),
                 {
                     "$project": {
@@ -298,7 +298,7 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
                 {"$match": match},
                 {"$lookup": creators_lookup()},
                 {"$lookup": groups_lookup()},
-                {"$lookup": collections_lookup()},
+                *collections_lookup_stages(),
                 *block_store.blocks_preview_stages(),
                 {"$project": _project},
                 {"$sort": {"date": -1}},
@@ -377,7 +377,7 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
                 {"$match": match},
                 {"$lookup": creators_lookup()},
                 {"$lookup": groups_lookup()},
-                {"$lookup": collections_lookup()},
+                *collections_lookup_stages(),
                 *block_store.blocks_preview_stages(),
                 {"$project": _project},
                 {"$sort": {"date": -1}},
@@ -503,6 +503,11 @@ def collections_lookup() -> dict:
         ],
         "as": "collections",
     }
+
+
+def collections_lookup_stages() -> list[dict]:
+    """Return no collection lookup when collections are disabled."""
+    return [] if CONFIG.DISABLE_COLLECTIONS else [{"$lookup": collections_lookup()}]
 
 
 def _check_collections(sample_dict: dict) -> list[dict[str, str]]:
@@ -707,13 +712,16 @@ def _create_sample(
     if copy_from_item_id:
         sample_dict = _copy_sample_from_id(sample_dict, copy_from_item_id)
 
-    try:
-        # If passed collection data, dereference it and check if the collection exists
-        sample_dict["collections"] = _check_collections(sample_dict)
-    except ValueError as exc:
-        raise NotFound(
-            f"Unable to create new item {sample_dict['item_id']!r} inside non-existent collection(s) {exc}"
-        ) from exc
+    if CONFIG.DISABLE_COLLECTIONS:
+        sample_dict.pop("collections", None)
+    else:
+        try:
+            # If passed collection data, dereference it and check if the collection exists
+            sample_dict["collections"] = _check_collections(sample_dict)
+        except ValueError as exc:
+            raise NotFound(
+                f"Unable to create new item {sample_dict['item_id']!r} inside non-existent collection(s) {exc}"
+            ) from exc
 
     sample_dict.pop("refcode", None)  # Refcodes cannot be set manually
     # Check type
@@ -833,10 +841,14 @@ def _create_sample(
             str(e),
         )
 
+    sample_list_entry = data_model.model_dump()
+    if CONFIG.DISABLE_COLLECTIONS:
+        sample_list_entry.pop("collections", None)
+
     data = {
         "status": "success",
         "item_id": data_model.item_id,
-        "sample_list_entry": data_model.model_dump(),
+        "sample_list_entry": sample_list_entry,
     }
 
     return (data, 201)  # 201 Created
@@ -1231,7 +1243,7 @@ def get_item_data(
             },
             {"$lookup": creators_lookup()},
             {"$lookup": groups_lookup()},
-            {"$lookup": collections_lookup()},
+            *collections_lookup_stages(),
             {"$lookup": files_lookup()},
         ],
     )
@@ -1776,6 +1788,9 @@ def save_item():
 
     item_id = str(request_json["item_id"])
     updated_data = request_json["data"]
+
+    if CONFIG.DISABLE_COLLECTIONS:
+        updated_data.pop("collections", None)
 
     # These keys should not be updated here and cannot be modified by the user through this endpoint.
     # `blocks` is not a field of any item model at all: it is a flattened copy of `blocks_obj`

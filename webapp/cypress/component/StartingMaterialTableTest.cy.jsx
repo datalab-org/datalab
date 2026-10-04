@@ -16,6 +16,7 @@ describe("StartingMaterialTable Component Tests", () => {
     store = createStore({
       state() {
         return {
+          serverInfo: { features: { collections_enabled: true } },
           datatablePaginationSettings: {
             startingMaterials: {
               page: 0,
@@ -47,6 +48,9 @@ describe("StartingMaterialTable Component Tests", () => {
             },
           ],
         };
+      },
+      getters: {
+        collectionsEnabled: (state) => state.serverInfo.features.collections_enabled,
       },
     });
 

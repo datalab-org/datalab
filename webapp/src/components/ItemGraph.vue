@@ -77,14 +77,16 @@
         @option:deselected="readdItemToGraph"
       />
 
-      <label for="ignore-collections">Ignore connections to collections:</label>
-      <CollectionSelect
-        id="ignore-collections"
-        v-model="ignoreCollections"
-        multiple
-        @option:selected="removeItemFromGraph"
-        @option:deselected="readdItemToGraph"
-      />
+      <template v-if="$store.getters.collectionsEnabled">
+        <label for="ignore-collections">Ignore connections to collections:</label>
+        <CollectionSelect
+          id="ignore-collections"
+          v-model="ignoreCollections"
+          multiple
+          @option:selected="removeItemFromGraph"
+          @option:deselected="readdItemToGraph"
+        />
+      </template>
 
       <div class="form-group form-check mt-3">
         <input

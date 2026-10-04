@@ -11,6 +11,10 @@ describe("Navbar", () => {
     store = createStore({
       state: {
         currentUserDisplayName: null,
+        serverInfo: { features: { collections_enabled: true } },
+      },
+      getters: {
+        collectionsEnabled: (state) => state.serverInfo.features.collections_enabled,
       },
     });
 
@@ -106,6 +110,21 @@ describe("Navbar", () => {
       cy.contains("Inventory").should("have.attr", "href", "/starting-materials");
       cy.contains("Equipment").should("have.attr", "href", "/equipment");
       cy.contains("Graph View").should("have.attr", "href", "/item-graph");
+    });
+  });
+
+  it("hides the collections navigation link when configured", () => {
+    store.state.serverInfo.features.collections_enabled = false;
+
+    cy.mount(Navbar, {
+      global: {
+        plugins: [store, router],
+      },
+    });
+
+    cy.get("#nav").within(() => {
+      cy.contains("Collections").should("not.exist");
+      cy.contains("Inventory").should("have.attr", "href", "/starting-materials");
     });
   });
 

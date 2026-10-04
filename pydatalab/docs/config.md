@@ -41,6 +41,16 @@ This prefix should be set to something relatively short (max 10 chars.) that des
 This can be set either via a config file, or as an environment variable (e.g., `PYDATALAB_IDENTIFIER_PREFIX='grey'`).
 Be warned, if the prefix changes between server launches, all entries will have to be migrated manually to the desired prefix, or maintained at the old prefix.
 
+## Disabling collections
+
+Collections are enabled by default. To disable them for a deployment, set
+[`DISABLE_COLLECTIONS`][pydatalab.config.ServerConfig.DISABLE_COLLECTIONS] to `true` in the server
+configuration, or set `PYDATALAB_DISABLE_COLLECTIONS=true` in the API environment.
+
+The setting is read when the API starts. When enabled, collection routes and exports are
+unavailable, collection fields and controls are hidden from the web app, item writes cannot add
+collection memberships, and collection membership does not grant access to items.
+
 ## User registration & authentication
 
 *datalab* has two supported user registration/authentication
