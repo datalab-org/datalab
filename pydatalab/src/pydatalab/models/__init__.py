@@ -1,5 +1,6 @@
 import functools
 import inspect
+import re
 
 from pydatalab.models.blocks import Block
 from pydatalab.models.cells import Cell
@@ -69,16 +70,20 @@ ITEM_SCHEMAS: dict[str, dict] = {}
 # `refresh_item_models` below, which is the only call made before it is set.
 BUILTIN_ITEM_TYPES: frozenset[str] = frozenset()
 
+# Custom item types use a namespace-qualified identifier (e.g. ``battery:electrode``).
+# Core models are registered before this validation is applied and retain
+# their established identifiers.
+CUSTOM_ITEM_TYPE_PATTERN = re.compile(r"^[a-z0-9]+(?:[-_][a-z0-9]+)*:[a-z0-9]+(?:[-_][a-z0-9]+)*$")
+
 
 def refresh_item_models() -> None:
     """Rebuild the built-in entries of `ITEM_MODELS`/`ITEM_SCHEMAS` in place from
     the current set of `Item` subclasses.
 
     Custom item types are deliberately *not* rediscovered by the subclass walk:
-    they are owned by `register_item_model`, which validates them and rewrites
-    un-namespaced types in place. Picking them up here would register whatever
-    `type` they happen to declare, bypassing that namespacing, so any already
-    registered custom types are left untouched instead.
+    they are owned by `register_item_model`, which validates them before adding
+    them to the registries, so any already registered custom types are left
+    untouched instead.
     """
     get_item_models.cache_clear()
     generate_schemas.cache_clear()
@@ -103,52 +108,13 @@ refresh_item_models()
 BUILTIN_ITEM_TYPES = frozenset(ITEM_MODELS)
 
 
-def _namespace_item_model(model: type[Item], item_type: str) -> str:
-    """Rewrite the `type` literal of an item model *in place* to `item_type`.
-
-    Custom item types are namespaced with a leading to
-    reserve the un-prefixed namespace for built-in types. Rather than
-    registering a synthesised subclass carrying the namespaced literal, the
-    declaring class itself is modified, so that a model constructed directly by
-    plugin code (`MySample(item_id=...)`) and one constructed by the server
-    through the registry agree on their `type`, and so that `isinstance` checks
-    against the declaring class continue to hold.
-
-    Returns the namespaced type.
-    """
-    from typing import Literal
-
-    from pydantic.fields import FieldInfo
-
-    # Imported lazily: `pydatalab.logger` pulls in `CONFIG`, which imports this
-    # module, so a top-level import would be circular.
-    from pydatalab.logger import LOGGER
-
-    field = model.model_fields["type"]
-    fields = getattr(model, "__pydantic_fields__", model.model_fields)
-    fields["type"] = FieldInfo(
-        annotation=Literal[item_type],  # type: ignore[valid-type]
-        default=item_type,
-        description=field.description,
-    )
-    # Force a rebuild so the validators and (JSON) schemas are regenerated from
-    # the rewritten field rather than the cached core schema.
-    model.model_rebuild(force=True)
-
-    LOGGER.debug("Namespaced custom item type of %s as %s", model.__name__, item_type)
-
-    return item_type
-
-
 def register_item_model(model: type[Item]) -> None:
     """Register a custom `Item` subclass into the global registries in place.
 
     Validates that `model` is a concrete `Item` subclass declaring its own
-    unique `type` literal that does not collide with a built-in type. A type
-    that is not already namespaced (i.e. does not begin with an underscore) is
-    rewritten in place by `_namespace_item_model`, so a model declaring
-    `my_samples` is registered and served as `_my_samples`. Safe to call
-    repeatedly with the same model.
+    unique, namespace-qualified `type` identifier. Bare built-in identifiers are
+    explicitly rejected. The declared identifier is used as the registry key,
+    and re-registering the same model is idempotent.
     """
     if not (isinstance(model, type) and issubclass(model, Item)):
         raise TypeError(f"{model!r} must be a subclass of Item to be registered as an item type.")
@@ -164,8 +130,13 @@ def register_item_model(model: type[Item]) -> None:
             "custom types must declare their own unique `type` literal."
         )
 
-    if not item_type.startswith("_"):
-        item_type = _namespace_item_model(model, f"_{item_type}")
+    if not isinstance(item_type, str) or CUSTOM_ITEM_TYPE_PATTERN.fullmatch(item_type) is None:
+        raise ValueError(
+            f"Custom item model {model.__name__!r} uses invalid type {item_type!r}; "
+            "custom types must use a lowercase namespace and type name separated by one colon, "
+            "with dashes or underscores allowed within either part, such as "
+            "'battery-lab:coin_cell'."
+        )
 
     existing = ITEM_MODELS.get(item_type)
     if existing is not None and existing is not model:

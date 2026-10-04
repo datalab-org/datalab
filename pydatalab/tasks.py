@@ -142,15 +142,6 @@ def _panel_name(entry_point_value: str) -> str:
     return f"{class_name}Panel"
 
 
-def _panel_item_type(entry_point) -> str:
-    """Return the server-facing type registered for an item plugin panel."""
-    model = entry_point.load()
-    item_type = model.model_json_schema()["properties"]["type"]["default"]
-    if not item_type.startswith("_"):
-        item_type = f"_{item_type}"
-    return item_type
-
-
 def _write_plugin_panel_index(path: pathlib.Path, registered: dict[str, str]) -> None:
     """Write the deterministic generated Vue panel registry."""
     lines = [
@@ -159,7 +150,7 @@ def _write_plugin_panel_index(path: pathlib.Path, registered: dict[str, str]) ->
         "export const PLUGIN_PANELS = {",
     ]
     for type_name, import_path in sorted(registered.items()):
-        lines.append(f'  {type_name}: () => import("{import_path}"),')
+        lines.append(f"  {json.dumps(type_name)}: () => import({json.dumps(import_path)}),")
     lines.append("};")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -235,7 +226,9 @@ def _collect_plugin_panels(src_path: pathlib.Path | None = None) -> dict[str, st
         panel_name = _panel_name(ep.value)
         dest_file = plugins_dir / package_name / f"{panel_name}.vue"
         if dest_file.is_file():
-            registered[_panel_item_type(ep)] = f"./{package_name}/{panel_name}.vue"
+            model = ep.load()
+            item_type = model.model_json_schema()["properties"]["type"]["default"]
+            registered[item_type] = f"./{package_name}/{panel_name}.vue"
 
     generated_index = plugins_dir / "panels.generated.js"
     _write_plugin_panel_index(generated_index, registered)
