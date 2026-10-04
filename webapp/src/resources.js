@@ -1,11 +1,10 @@
 // Resources for the application
 
-import { reactive } from "vue";
+import { defineAsyncComponent, reactive } from "vue";
 
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import MediaBlock from "@/components/datablocks/MediaBlock";
 import XRDInsituBlock from "@/components/datablocks/XRDInsituBlock";
-import ChatBlock from "@/components/datablocks/ChatBlock";
 import CycleBlock from "@/components/datablocks/CycleBlock";
 import NMRBlock from "@/components/datablocks/NMRBlock";
 import NMRInsituBlock from "@/components/datablocks/NMRInsituBlock";
@@ -19,7 +18,7 @@ import CollectionInformation from "@/components/CollectionInformation";
 import EquipmentInformation from "@/components/EquipmentInformation";
 import ItemInformation from "@/components/ItemInformation";
 
-import { PLUGIN_PANELS } from "./plugins/index.js";
+import { PLUGIN_BLOCKS, PLUGIN_PANELS } from "./plugins/index.js";
 
 import SampleCreateModalAddon from "@/components/itemCreateModalAddons/SampleCreateModalAddon";
 import CellCreateModalAddon from "@/components/itemCreateModalAddons/CellCreateModalAddon";
@@ -72,7 +71,6 @@ export const customBlockTypes = {
   media: { description: "Media", component: MediaBlock, name: "Media" },
   cycle: { description: "Electrochemistry", component: CycleBlock, name: "Electrochemistry" },
   nmr: { description: "Nuclear Magnetic Resonance Spectroscopy", component: NMRBlock, name: "NMR" },
-  chat: { description: "Virtual assistant", component: ChatBlock, name: "Virtual Assistant" },
   "uv-vis": { description: "UV-Vis", component: UVVisBlock, name: "UV-Vis" },
   "insitu-nmr": { description: "NMR insitu", component: NMRInsituBlock, name: "NMR insitu" },
   "insitu-uvvis": {
@@ -82,6 +80,16 @@ export const customBlockTypes = {
   },
   "insitu-xrd": { description: "XRD insitu", component: XRDInsituBlock, name: "XRD insitu" },
 };
+
+// Blocks contributed by plugin manifests; built-in components take precedence.
+// Each component is wrapped once here so it is not remounted on every render.
+for (const [blocktype, loader] of Object.entries(PLUGIN_BLOCKS)) {
+  if (blocktype in customBlockTypes) {
+    console.warn(`Plugin block "${blocktype}" shadows a built-in block; ignoring.`);
+    continue;
+  }
+  customBlockTypes[blocktype] = { component: defineAsyncComponent(loader) };
+}
 
 // Reactive so that components re-render when dynamic (plugin) types are
 // registered after app startup — plain mutation would be cached forever by
