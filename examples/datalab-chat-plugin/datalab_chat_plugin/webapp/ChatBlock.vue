@@ -100,7 +100,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
 
 <script>
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
-import ChatWindow from "@/components/ChatWindow";
+import ChatWindow from "./ChatWindow.vue";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
 import { updateBlockFromServer } from "@/server_fetch_utils.js";

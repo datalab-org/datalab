@@ -1,4 +1,5 @@
 # This file was edited with the assistance of an AI model and requires human review from the contributor.
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 default_language_version:
   python: python3.11
   node: "22.19.0"
@@ -55,6 +56,8 @@ repos:
           - "@babel/plugin-transform-class-static-block@7.29.7"
         types: [file]
         files: \.(js|jsx|ts|tsx|vue)$
+        # example plugins are outside the webapp's eslint config
+        exclude: ^examples/
         args: [--fix]
 
   - repo: https://github.com/asottile/pyupgrade
