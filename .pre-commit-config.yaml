@@ -1,3 +1,4 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 default_language_version:
   python: python3.11
   node: "22.19.0"
@@ -40,16 +41,16 @@ repos:
     hooks:
       - id: eslint
         additional_dependencies:
-          - prettier@3.9.8
+          - prettier@3.9.9
           - eslint@8.57.1
-          - eslint-config-prettier@8.10.0
+          - eslint-config-prettier@8.10.2
           - eslint-plugin-prettier@5.5.6
-          - eslint-plugin-vue@8.0.3
-          - "@vue/cli-plugin-babel@5.0.8"
+          - eslint-plugin-vue@8.7.1
+          - "@vue/cli-plugin-babel@5.0.9"
           - "@vue/eslint-config-prettier@8.0.0"
-          - eslint-plugin-cypress@3.3.0
+          - eslint-plugin-cypress@3.6.0
           - "@babel/core@7.29.7"
-          - "@babel/eslint-parser@7.28.6"
+          - "@babel/eslint-parser@7.29.9"
           - "@babel/plugin-transform-export-namespace-from@7.29.7"
           - "@babel/plugin-transform-class-static-block@7.29.7"
         types: [file]
