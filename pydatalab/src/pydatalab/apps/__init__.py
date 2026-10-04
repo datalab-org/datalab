@@ -102,6 +102,13 @@ def load_app_blocks():
     except ImportError as e:
         _check_error(e)
 
+    try:
+        from pydatalab.apps.xrd_refinement import XRDRefinementBlock
+
+        app_blocks.append(XRDRefinementBlock)
+    except ImportError as e:
+        _check_error(e)
+
     return app_blocks
 
 
