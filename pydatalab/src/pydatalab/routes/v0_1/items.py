@@ -1742,11 +1742,14 @@ def delete_version(refcode, version_id):
 
 @ITEMS.route("/items/<refcode>/save-version/", methods=["POST"])
 def save_version(refcode):
-    """Manually save the current state of an item as a version snapshot with an incremental version number."""
+    """Manually save the current state of an item as a version snapshot with an incremental version number.
+
+    Requires write access to the item.
+    """
     response, status_code = save_version_snapshot(
         refcode,
         action=None,  # let the function determine the appropriate action (e.g. AGENT_SAVE vs MANUAL_SAVE) based on user-agent
-        permission_filter=get_default_permissions(user_only=False),
+        permission_filter=get_default_permissions(user_only=True),
     )
     if status_code == 200 and "version" in response:
         if len(refcode.split(":")) != 2:
