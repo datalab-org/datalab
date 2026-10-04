@@ -17,7 +17,9 @@ Plugins can also be kept private and installed from e.g., a private git reposito
 
 At present, a *datalab* plugin is a Python package that registers one or more [data block](blocks/index.md) classes or item types via a Python entry point.
 Data blocks ingest a file (or set of files) attached to an item and render an interactive view of the parsed data, e.g. an NMR spectrum, an electrochemistry cycler trace, or an XRD pattern.
-Plugins (and deployments) can also register **custom item types**, new top-level item models served through the generic item endpoints (see [below](#custom-item-types)). Further plugin types, e.g., ingestion hooks and webapp components, are planned in the future (see [roadmap.md](roadmap.md)); please reach out if you have a specific use case.
+Plugins (and deployments) can also register **custom item types**, new top-level item models served through the generic item endpoints (see [below](#custom-item-types)).
+Plugins can ship Vue components for their blocks and item types (see [below](#webapp-components)).
+Further plugin types, e.g., ingestion hooks, are planned in the future (see [roadmap.md](roadmap.md)); please reach out if you have a specific use case.
 *datalab* discovers them at server startup by enumerating the relevant entry point group, with no changes required to the core code.
 
 ## Writing a plugin
@@ -319,6 +321,34 @@ resulting mixture live — none of which the core panel can do on its own.
     installing or updating a UI plugin means rebuilding the frontend. The Docker commands above
     perform collection before the development or production frontend is compiled. Only install
     panels from sources you trust.
+
+## Webapp components
+
+A plugin can ship Vue components by placing a `webapp/` folder containing an `index.js` manifest
+inside its Python package. The manifest declares components for two extension points: `blocks`,
+keyed by blocktype, and `itemPanels`, keyed by item type (as with the panel convention above,
+with a leading underscore, e.g. `_mixed_solutions`):
+
+```js
+// my_plugin/webapp/index.js
+export default {
+  apiVersion: 1,
+  blocks: {
+    my_block: () => import("./MyBlock.vue"),
+  },
+  itemPanels: {},
+};
+```
+
+The whole folder is collected into the webapp by `invoke dev.install` (as for custom panels above),
+so components can import each other relatively and datalab's own components via `@/…`. A block
+component receives `item_id` and `block_id` props and typically wraps `DataBlockBase`. Plugin
+blocks cannot replace built-in block components, and a manifest takes precedence over the
+`<ClassName>Panel.vue` convention for its package.
+The plugin's `pyproject.toml` must include the folder as package data.
+
+Plugins cannot yet declare their own npm dependencies, so components may only import packages
+already present in the core webapp.
 
 ## Deployment integration
 
