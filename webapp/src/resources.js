@@ -207,6 +207,20 @@ export function registerDynamicItemType(type, { title, base_type, hidden_fields,
 }
 
 export const SAMPLE_TABLE_TYPES = ["samples", "cells"];
+
+// Extend a list of allowed built-in types with the creatable custom/plugin item types
+// (registered from `schemas`). Custom types all live in the Samples page for now, so
+// they are only added when `allowedTypes` is a samples-table context, and kept out of
+// e.g. the Inventory modals even when they inherit from StartingMaterial.
+export function withCreatableDynamicTypes(allowedTypes, schemas) {
+  const isSamplesContext = allowedTypes.some((type) => SAMPLE_TABLE_TYPES.includes(type));
+  const dynamic = isSamplesContext
+    ? Object.keys(schemas || {}).filter(
+        (type) => itemTypes[type]?.isDynamic && itemTypes[type]?.isCreateable,
+      )
+    : [];
+  return [...new Set([...allowedTypes, ...dynamic])];
+}
 export const INVENTORY_TABLE_TYPES = ["starting_materials"];
 export const EQUIPMENT_TABLE_TYPES = ["equipment"];
 // Item types that are shared across the deployment, optionally restricted to groups
