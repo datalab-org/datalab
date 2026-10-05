@@ -1,4 +1,3 @@
-# This file was edited with the assistance of an AI model and requires human review from the contributor.
 import importlib
 import json
 import os
@@ -131,7 +130,7 @@ def generate_schemas(_):
             json.dump(hint_schema, f, indent=2)
 
     with open(schemas_path / "plugin_config.json", "w") as f:
-        json.dump(load_plugin_schema().schema(), f, indent=2)
+        json.dump(load_plugin_schema().model_json_schema(), f, indent=2)
 
 
 dev.add_task(generate_schemas)
@@ -612,13 +611,13 @@ def install(_, dev=True):
             raw_plugin_data = tomlkit.load(f)
 
         try:
-            plugin_data = load_plugin_schema().parse_obj(raw_plugin_data.unwrap())
+            plugin_data = load_plugin_schema().model_validate(raw_plugin_data.unwrap())
         except Exception as exc:
             raise SystemExit(f"Invalid plugins.toml at {plugin_cfg}:\n{exc}") from None
 
         deps = list(plugin_data.dependencies)
         sources = {
-            name: source.dict(exclude_none=True)
+            name: source.model_dump(exclude_none=True)
             for name, source in plugin_data.tool.uv.sources.items()
         }
 
@@ -648,8 +647,11 @@ def install(_, dev=True):
 
         pyproject_data["project"]["optional-dependencies"]["plugins"] = deps
 
-        original_sources = pyproject_data.get("tool", {}).get("uv", {}).get("sources", {})
-        original_sources.update(sources)
+        # Create the table if the base pyproject.toml has no sources of its own,
+        # otherwise the plugin sources would be written to a throwaway dict
+        pyproject_data.setdefault("tool", {}).setdefault("uv", {}).setdefault("sources", {}).update(
+            sources
+        )
 
     build_dir = pathlib.Path(__file__).parent / "build"
     build_dir.mkdir(exist_ok=True)
