@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import AliasChoices, ConfigDict, Field, field_validator, model_validator
 
-from pydatalab.models.people import Group, Person
+from pydatalab.models.people import GroupReference, PersonReference
 from pydatalab.models.utils import (
     BaseModel,
     Constituent,
@@ -31,13 +31,13 @@ class HasOwner(BaseModel):
     creator_ids: list[PyObjectId] = Field([])
     """The database IDs of the user(s) who created the item."""
 
-    creators: list[Person] | None = Field(None)
+    creators: list[PersonReference] | None = Field(None)
     """Inlined info for the people associated with this item."""
 
     group_ids: list[PyObjectId] = Field([])
     """The database IDs of the group(s) that have read-access to this item."""
 
-    groups: list[Group] | None = Field(None)
+    groups: list[GroupReference] | None = Field(None)
     """Inlined info for the groups with access to this item."""
 
 
