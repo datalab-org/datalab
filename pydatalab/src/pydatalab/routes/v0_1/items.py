@@ -620,6 +620,16 @@ def search_items():
     return jsonify({"status": "success", "items": list(cursor)}), 200
 
 
+COPYABLE_CONSTITUENT_FIELDS: tuple[str, ...] = (
+    "synthesis_constituents",
+    "positive_electrode",
+    "negative_electrode",
+    "electrolyte",
+)
+"""Constituent list fields that are merged (rather than overwritten) when an item is
+created as a copy of another item."""
+
+
 def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
     copied_doc = flask_mongo.db.items.find_one(
         {"item_id": copy_from_item_id, **get_default_permissions(user_only=False)}
@@ -647,47 +657,35 @@ def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
     copied_doc.pop("blocks", None)
     copied_doc.pop("file_ObjectIds", None)
 
-    # any provided constituents will be added to the synthesis information table in
-    # addition to the constituents copied from the copy_from_item_id, avoiding duplicates
-    if copied_doc["type"] == "samples":
+    requested_type = sample_dict.get("type")
+    if requested_type and requested_type != copied_doc["type"]:
+        raise BadRequest(
+            f"Request to copy item with id {copy_from_item_id} of type {copied_doc['type']!r} "
+            f"into a new item of different type {requested_type!r} is not supported."
+        )
+
+    # any provided constituents will be added to the relevant constituent tables in
+    # addition to the constituents copied from the copy_from_item_id, avoiding duplicates.
+    # This is keyed on the fields present rather than the item type, so that custom item
+    # types inheriting these fields (e.g., `Sample` subclasses) are handled too.
+    for component in COPYABLE_CONSTITUENT_FIELDS:
+        if not isinstance(copied_doc.get(component), list):
+            continue
         existing_consituent_ids = [
-            constituent["item"].get("item_id", None)
-            for constituent in copied_doc["synthesis_constituents"]
+            constituent["item"].get("item_id", None) for constituent in copied_doc[component]
         ]
-        copied_doc["synthesis_constituents"] += [
+        copied_doc[component] += [
             constituent
-            for constituent in sample_dict.get("synthesis_constituents", [])
-            if constituent["item"].get("item_id") is None
+            for constituent in sample_dict.get(component, [])
+            if constituent["item"].get("item_id", None) is None
             or constituent["item"].get("item_id") not in existing_consituent_ids
         ]
 
-        original_collections = sample_dict.get("collections", [])
-        sample_dict = copied_doc
+    original_collections = sample_dict.get("collections", [])
+    sample_dict = copied_doc
 
-        if original_collections:
-            sample_dict["collections"] = original_collections
-
-    elif copied_doc["type"] == "cells":
-        for component in (
-            "positive_electrode",
-            "negative_electrode",
-            "electrolyte",
-        ):
-            existing_consituent_ids = [
-                constituent["item"].get("item_id", None) for constituent in copied_doc[component]
-            ]
-            copied_doc[component] += [
-                constituent
-                for constituent in sample_dict.get(component, [])
-                if constituent["item"].get("item_id", None) is None
-                or constituent["item"].get("item_id") not in existing_consituent_ids
-            ]
-
-        original_collections = sample_dict.get("collections", [])
-        sample_dict = copied_doc
-
-        if original_collections:
-            sample_dict["collections"] = original_collections
+    if original_collections:
+        sample_dict["collections"] = original_collections
 
     return sample_dict
 
