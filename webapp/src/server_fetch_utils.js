@@ -343,18 +343,32 @@ export async function createNewCollection(
   });
 }
 
-export async function getStats() {
-  return fetch_get(`${API_URL}/info/stats`)
-    .then(function (response_json) {
-      return response_json.counts;
-    })
-    .catch((error) => {
-      if (error === "UNAUTHORIZED") {
-        return null;
-      } else {
+let statsHistoryPromise = null;
+
+export function getStatsHistory() {
+  // Fetched at most once per session, unless the server was still updating the stats
+  if (store.state.statsHistory) {
+    return Promise.resolve(store.state.statsHistory);
+  }
+  if (!statsHistoryPromise) {
+    statsHistoryPromise = fetch_get(`${API_URL}/info/stats/history`)
+      .then(function (response_json) {
+        if (response_json.data.updating) {
+          statsHistoryPromise = null;
+        } else {
+          store.commit("setStatsHistory", response_json.data);
+        }
+        return response_json.data;
+      })
+      .catch((error) => {
+        statsHistoryPromise = null;
+        if (error === "UNAUTHORIZED") {
+          return null;
+        }
         throw error;
-      }
-    });
+      });
+  }
+  return statsHistoryPromise;
 }
 
 export async function getInfo() {

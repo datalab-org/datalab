@@ -81,6 +81,10 @@ updates:
     # BokehJS version has to stay in sync with bokeh; don't bump either to 3 (until we can bump both)
     - dependency-name: "@bokeh/bokehjs"
       versions: [ ">=3" ]
+    # ESLint tooling is pinned to the legacy (eslintrc) setup; never bump it automatically
+    - dependency-name: "eslint*"
+    - dependency-name: "@babel/eslint-parser"
+    - dependency-name: "@vue/eslint-config-*"
 - package-ecosystem: docker
   directories:
     - ".docker/app"
