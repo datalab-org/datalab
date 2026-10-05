@@ -2,6 +2,7 @@ import importlib.metadata
 from types import ModuleType, SimpleNamespace
 from typing import Literal
 
+import pytest
 import tomlkit
 
 import tasks
@@ -245,3 +246,44 @@ def test_install_adds_plugin_sources_without_existing_sources_table(tmp_path, mo
     assert build_pyproject["tool"]["uv"]["sources"]["my-plugin"]["path"] == str(
         (tmp_path / "my-plugin").resolve()
     )
+
+
+def test_collect_plugin_panels_rejects_shared_webapp_dependencies(tmp_path, monkeypatch):
+    src_path = tmp_path / "webapp" / "src"
+    (src_path / "plugins").mkdir(parents=True)
+    module = _fake_plugin(tmp_path, "block_plugin", ("MyBlock.vue",))
+    webapp_dir = tmp_path / "block_plugin" / "webapp"
+    (webapp_dir / "index.js").write_text(BLOCK_PLUGIN_MANIFEST, encoding="utf-8")
+    (webapp_dir / "package.json").write_text(
+        '{"name": "block-plugin-webapp", "version": "0.0.0", '
+        '"dependencies": {"vue": "^3.5.0", "markdown-it": "^14.0.0"}}',
+        encoding="utf-8",
+    )
+    block_ep = SimpleNamespace(name="my_block", value="block_plugin.blocks:MyBlock")
+    monkeypatch.setattr(
+        importlib.metadata, "entry_points", _entry_points_by_group(blocks=[block_ep])
+    )
+    monkeypatch.setattr(tasks.importlib, "import_module", lambda package_name: module)
+
+    with pytest.raises(ValueError, match="peerDependencies"):
+        tasks._collect_plugin_panels(src_path)
+
+
+def test_install_plugin_webapp_dependencies_runs_yarn_for_workspaces(tmp_path, monkeypatch):
+    src_path = tmp_path / "webapp" / "src"
+    (src_path / "plugins" / "block_plugin").mkdir(parents=True)
+    commands = []
+    monkeypatch.setattr(tasks.shutil, "which", lambda name: "/usr/bin/yarn")
+    monkeypatch.setattr(
+        tasks.subprocess, "run", lambda command, **kwargs: commands.append((command, kwargs))
+    )
+
+    # No plugin declares webapp dependencies, so yarn is not run
+    assert tasks._install_plugin_webapp_dependencies(src_path) is False
+    assert commands == []
+
+    (src_path / "plugins" / "block_plugin" / "package.json").write_text("{}", encoding="utf-8")
+    assert tasks._install_plugin_webapp_dependencies(src_path) is True
+    assert commands == [
+        (["/usr/bin/yarn", "install", "--pure-lockfile"], {"cwd": src_path.parent, "check": True})
+    ]
