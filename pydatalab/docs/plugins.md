@@ -347,8 +347,23 @@ blocks cannot replace built-in block components, and a manifest takes precedence
 `<ClassName>Panel.vue` convention for its package.
 The plugin's `pyproject.toml` must include the folder as package data.
 
-Plugins cannot yet declare their own npm dependencies, so components may only import packages
-already present in the core webapp.
+A plugin can declare npm dependencies with a `package.json` (requiring `name` and `version`)
+in the same folder. Each collected plugin becomes a [yarn workspace](https://classic.yarnpkg.com/en/docs/workspaces/)
+of the webapp, and `invoke dev.install` runs `yarn install --pure-lockfile`, which keeps the
+webapp's locked versions without writing the plugin's dependencies into `yarn.lock`. Versions
+that conflict with the webapp's are installed alongside it for the plugin alone. Packages that
+must be shared with the webapp (`vue`, `vuex`, `vue-router`, `primevue`, `@primeuix/themes`,
+`@bokeh/bokehjs` and `@fortawesome/*`) may only be listed under `peerDependencies`:
+
+```json
+{
+  "name": "my-plugin-webapp",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": { "markdown-it": "^14.1.0" },
+  "peerDependencies": { "vue": "^3.5.0" }
+}
+```
 
 ## Deployment integration
 

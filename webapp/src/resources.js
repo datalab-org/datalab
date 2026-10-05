@@ -4,11 +4,8 @@ import { defineAsyncComponent, reactive } from "vue";
 
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import MediaBlock from "@/components/datablocks/MediaBlock";
-import XRDInsituBlock from "@/components/datablocks/XRDInsituBlock";
 import CycleBlock from "@/components/datablocks/CycleBlock";
 import NMRBlock from "@/components/datablocks/NMRBlock";
-import NMRInsituBlock from "@/components/datablocks/NMRInsituBlock";
-import UVVisInsituBlock from "@/components/datablocks/UVVisInsituBlock.vue";
 import UVVisBlock from "@/components/datablocks/UVVisBlock";
 
 import SampleInformation from "@/components/SampleInformation";
@@ -72,13 +69,6 @@ export const customBlockTypes = {
   cycle: { description: "Electrochemistry", component: CycleBlock, name: "Electrochemistry" },
   nmr: { description: "Nuclear Magnetic Resonance Spectroscopy", component: NMRBlock, name: "NMR" },
   "uv-vis": { description: "UV-Vis", component: UVVisBlock, name: "UV-Vis" },
-  "insitu-nmr": { description: "NMR insitu", component: NMRInsituBlock, name: "NMR insitu" },
-  "insitu-uvvis": {
-    description: "UV-Vis insitu",
-    component: UVVisInsituBlock,
-    name: "UV-Vis insitu",
-  },
-  "insitu-xrd": { description: "XRD insitu", component: XRDInsituBlock, name: "XRD insitu" },
 };
 
 // Blocks contributed by plugin manifests; built-in components take precedence.

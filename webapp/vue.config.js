@@ -6,7 +6,6 @@ const customAboutPath = path.resolve(__dirname, "public/custom/components/Custom
 const customLoginInfoPath = path.resolve(__dirname, "public/custom/components/CustomLoginInfo.vue");
 
 module.exports = {
-  transpileDependencies: ["mermaid"],
   configureWebpack: (config) => {
     config.resolve.symlinks = false;
 
