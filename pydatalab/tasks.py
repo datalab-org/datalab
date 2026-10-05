@@ -174,6 +174,57 @@ def _write_plugin_panel_index(
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+# Packages holding global state that plugins must share with the webapp, so
+# they may only be declared as `peerDependencies` of a plugin's package.json.
+SHARED_WEBAPP_PACKAGES = {
+    "vue",
+    "vuex",
+    "vue-router",
+    "primevue",
+    "@primeuix/themes",
+    "@bokeh/bokehjs",
+}
+SHARED_WEBAPP_PACKAGE_PREFIXES = ("@fortawesome/",)
+
+
+def _check_plugin_package_json(path: pathlib.Path, package_name: str) -> None:
+    """Validate the package.json shipped in a plugin's webapp folder."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    for key in ("name", "version"):
+        if not data.get(key):
+            raise ValueError(f"{package_name}/webapp/package.json must set `{key}`.")
+    shared = sorted(
+        dep
+        for dep in data.get("dependencies", {})
+        if dep in SHARED_WEBAPP_PACKAGES or dep.startswith(SHARED_WEBAPP_PACKAGE_PREFIXES)
+    )
+    if shared:
+        raise ValueError(
+            f"{package_name}/webapp/package.json lists {shared} in `dependencies`; "
+            "declare them in `peerDependencies` so the webapp's copies are shared."
+        )
+
+
+def _install_plugin_webapp_dependencies(src_path: pathlib.Path) -> bool:
+    """Install npm dependencies declared by collected plugins.
+
+    Each plugin folder with a package.json is a yarn workspace of the webapp.
+    ``--pure-lockfile`` keeps the committed ``yarn.lock`` pins for the core webapp
+    without writing the plugins' entries back into it.
+    """
+    if not any((src_path / "plugins").glob("*/package.json")):
+        return False
+    yarn = shutil.which("yarn")
+    if yarn is None:
+        print(
+            "Plugins declare webapp dependencies but `yarn` was not found; "
+            "run `yarn install --pure-lockfile` in webapp/ to install them."
+        )
+        return False
+    subprocess.run([yarn, "install", "--pure-lockfile"], cwd=src_path.parent, check=True)  # noqa: S603
+    return True
+
+
 def _collect_plugin_panels(src_path: pathlib.Path | None = None) -> dict[str, str]:
     """Collect installed plugin Vue components into ``webapp/src/plugins``.
 
@@ -242,8 +293,10 @@ def _collect_plugin_panels(src_path: pathlib.Path | None = None) -> dict[str, st
             shutil.copytree(
                 webapp_dir,
                 plugins_dir / package_name,
-                ignore=shutil.ignore_patterns("__pycache__"),
+                ignore=shutil.ignore_patterns("__pycache__", "node_modules"),
             )
+            if (webapp_dir / "package.json").is_file():
+                _check_plugin_package_json(webapp_dir / "package.json", package_name)
             manifests.append(package_name)
             print(f"  Copied  {package_name}/webapp/ (manifest)")
             continue
@@ -282,12 +335,14 @@ def _collect_plugin_panels(src_path: pathlib.Path | None = None) -> dict[str, st
 
 
 def _collect_plugin_panels_if_available() -> bool:
-    """Collect panels when a complete source checkout includes the webapp."""
+    """Collect panels, and install their npm dependencies, when a complete source checkout
+    includes the webapp."""
     src_path = _webapp_src_path()
     if not src_path.is_dir():
         print(f"No webapp/src found at {src_path}; skipping plugin panel collection.")
         return False
     _collect_plugin_panels(src_path)
+    _install_plugin_webapp_dependencies(src_path)
     return True
 
 
