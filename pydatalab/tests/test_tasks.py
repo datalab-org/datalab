@@ -2,6 +2,8 @@ import importlib.metadata
 from types import ModuleType, SimpleNamespace
 from typing import Literal
 
+import tomlkit
+
 import tasks
 from pydatalab.models.samples import Sample
 
@@ -212,3 +214,34 @@ def test_install_collects_panels_after_installation(tmp_path, monkeypatch):
 
     assert collection_calls == [True]
     assert commands[-1] == ["uv", "pip", "install", "-e", "."]
+
+
+def test_install_adds_plugin_sources_without_existing_sources_table(tmp_path, monkeypatch):
+    project_dir = tmp_path / "pydatalab"
+    project_dir.mkdir()
+    (project_dir / "tasks.py").write_text("", encoding="utf-8")
+    (project_dir / "pyproject.toml").write_text(
+        '[project]\nname = "test-project"\n[tool.setuptools_scm]\nroot = ".."\n[tool.uv]\n',
+        encoding="utf-8",
+    )
+    (project_dir / "uv.lock").write_text("version = 1\n", encoding="utf-8")
+    plugins_toml = tmp_path / "plugins.toml"
+    plugins_toml.write_text(
+        'dependencies = ["my-plugin"]\n\n[tool.uv.sources]\nmy-plugin = { path = "my-plugin" }\n',
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(tasks, "__file__", str(project_dir / "tasks.py"))
+    monkeypatch.setattr(tasks, "PLUGINS_TOML_PATH", plugins_toml)
+    monkeypatch.setattr(tasks.subprocess, "run", lambda command, **kwargs: None)
+    monkeypatch.setattr(tasks, "_collect_plugin_panels_if_available", lambda: None)
+
+    tasks.install.body(None, dev=False)
+
+    build_pyproject = tomlkit.loads(
+        (project_dir / "build" / "pyproject.toml").read_text(encoding="utf-8")
+    )
+    assert build_pyproject["project"]["optional-dependencies"]["plugins"] == ["my-plugin"]
+    assert build_pyproject["tool"]["uv"]["sources"]["my-plugin"]["path"] == str(
+        (tmp_path / "my-plugin").resolve()
+    )
