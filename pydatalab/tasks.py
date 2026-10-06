@@ -508,16 +508,24 @@ def list_test_users(_):
             if group.get("immutable_id") is not None
         ]
         groups = database.groups.find(
-            {"_id": {"$in": group_ids}},
-            {"display_name": 1, "group_id": 1},
+            {
+                "$or": [
+                    {"_id": {"$in": group_ids}},
+                    {"managers": document["_id"]},
+                ]
+            },
+            {"display_name": 1, "group_id": 1, "managers": 1},
         )
-        group_names = sorted(
-            (
-                group.get("display_name") or group.get("group_id") or str(group["_id"])
-                for group in groups
-            ),
-            key=str.casefold,
-        )
+        group_names = []
+        for group in groups:
+            relationships = []
+            if group["_id"] in group_ids:
+                relationships.append("member")
+            if document["_id"] in group.get("managers", []):
+                relationships.append("admin")
+            group_name = group.get("display_name") or group.get("group_id") or str(group["_id"])
+            group_names.append(f"{group_name} ({', '.join(relationships)})")
+        group_names.sort(key=str.casefold)
         users.append(
             {
                 "email": email,
