@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 
 def test_default_settings():
@@ -26,6 +27,140 @@ def test_update_settings():
     assert new_settings["new_key"] == config.NEW_KEY
     assert config.SECRET_KEY
     assert Path(config.FILE_DIRECTORY).name == "files"
+
+
+def test_default_navigation(monkeypatch):
+    from pydatalab.config import ServerConfig
+
+    monkeypatch.delenv("PYDATALAB_NAVIGATION", raising=False)
+    config = ServerConfig(TESTING=True, _env_file=None)
+
+    assert [entry.model_dump(exclude_none=True) for entry in config.NAVIGATION] == [
+        {"view": "about", "default": False},
+        {"view": "samples", "default": True},
+        {"view": "collections", "default": False},
+        {"view": "starting-materials", "default": False},
+        {"view": "equipment", "default": False},
+        {"view": "item-graph", "icon": "project-diagram", "default": False},
+    ]
+
+
+def test_custom_navigation():
+    from pydatalab.config import ServerConfig
+
+    config = ServerConfig(
+        TESTING=True,
+        NAVIGATION=[
+            {
+                "view": "starting-materials",
+                "label": "Starting Materials",
+                "icon": "vials",
+                "default": True,
+            },
+            {"view": "my-custom-view"},
+        ],
+    )
+
+    assert [entry.model_dump(exclude_none=True) for entry in config.NAVIGATION] == [
+        {
+            "view": "starting-materials",
+            "label": "Starting Materials",
+            "icon": "vials",
+            "default": True,
+        },
+        {"view": "my-custom-view", "default": False},
+    ]
+
+
+def test_navigation_uses_first_entry_as_default():
+    from pydatalab.config import ServerConfig
+
+    config = ServerConfig(
+        TESTING=True,
+        NAVIGATION=[{"view": "equipment"}, {"view": "about"}],
+    )
+
+    assert [entry.default for entry in config.NAVIGATION] == [True, False]
+
+
+def test_navigation_from_environment(monkeypatch):
+    from pydatalab.config import ServerConfig
+
+    monkeypatch.setenv(
+        "PYDATALAB_NAVIGATION",
+        '[{"view":"samples","label":"Experiments"},{"view":"about","default":true}]',
+    )
+
+    config = ServerConfig(TESTING=True, _env_file=None)
+
+    assert [entry.model_dump(exclude_none=True) for entry in config.NAVIGATION] == [
+        {"view": "samples", "label": "Experiments", "default": False},
+        {"view": "about", "default": True},
+    ]
+
+
+def test_navigation_from_dotenv(tmp_path, monkeypatch):
+    from pydatalab.config import ServerConfig
+
+    monkeypatch.delenv("PYDATALAB_NAVIGATION", raising=False)
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "PYDATALAB_NAVIGATION='["
+        '{"view":"starting-materials","label":"Starting Materials"},'
+        '{"view":"about"}'
+        "]'\n",
+        encoding="utf-8",
+    )
+
+    config = ServerConfig(TESTING=True, _env_file=env_file)
+
+    assert [entry.model_dump(exclude_none=True) for entry in config.NAVIGATION] == [
+        {"view": "starting-materials", "label": "Starting Materials", "default": True},
+        {"view": "about", "default": False},
+    ]
+
+
+def test_navigation_rejects_duplicate_views():
+    from pydatalab.config import ServerConfig
+
+    with pytest.raises(ValidationError, match="duplicate view IDs"):
+        ServerConfig(TESTING=True, NAVIGATION=[{"view": "samples"}, {"view": "samples"}])
+
+
+def test_navigation_rejects_empty_list():
+    from pydatalab.config import ServerConfig
+
+    with pytest.raises(ValidationError, match="at least one entry"):
+        ServerConfig(TESTING=True, NAVIGATION=[])
+
+
+def test_navigation_rejects_multiple_default_views():
+    from pydatalab.config import ServerConfig
+
+    with pytest.raises(ValidationError, match="multiple default views"):
+        ServerConfig(
+            TESTING=True,
+            NAVIGATION=[
+                {"view": "samples", "default": True},
+                {"view": "about", "default": True},
+            ],
+        )
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        {"view": ""},
+        {"view": "samples", "label": " "},
+        {"view": "samples", "icon": ""},
+        {"view": "samples", "unknown": "value"},
+    ],
+)
+def test_navigation_rejects_malformed_entries(entry):
+    from pydatalab.config import ServerConfig
+
+    with pytest.raises(ValidationError):
+        ServerConfig(TESTING=True, NAVIGATION=[entry])
 
 
 def test_config_override():
