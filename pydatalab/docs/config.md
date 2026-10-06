@@ -179,7 +179,7 @@ The built-in views are:
 | `item-graph` | Graph View | `/item-graph` |
 
 Entries are shown in the configured order, and omitted entries are only hidden from the navigation: their routes remain available unless the corresponding feature is disabled separately.
-Set `default` to `true` on the entry that should open when a user visits `/`.
+Set `default` to `true` on the entry that should open when a user visits `/`; only one entry can be marked as the default.
 If no entry is explicitly marked as the default, the first entry is used.
 The built-in navigation marks Samples as the default to preserve the existing landing page.
 The navigation must contain at least one entry, and duplicate view IDs, multiple defaults, and malformed entries are rejected during server configuration.
