@@ -1,19 +1,44 @@
 <template>
-  <div v-if="hasMetadata" class="metadata-viewer">
-    <div class="metadata-header">
+  <div v-if="hasComputed || hasMetadata" class="metadata-viewer">
+    <div v-if="hasComputed" class="metadata-header">
+      <span class="metadata-title">Computed</span>
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-secondary copy-button"
+        :aria-label="copiedComputed ? 'Computed copied' : 'Copy computed data as JSON'"
+        @click="copyAsJson(displayedComputed, 'copiedComputed')"
+      >
+        <font-awesome-icon :icon="copiedComputed ? 'check' : 'copy'" fixed-width />
+        {{ copiedComputed ? "Copied" : "Copy JSON" }}
+      </button>
+    </div>
+
+    <dl v-if="hasComputed" class="metadata-list">
+      <template v-for="(value, key) in displayedComputed" :key="key">
+        <dt :title="String(key)">{{ formatLabel(key) }}</dt>
+        <dd>
+          <details v-if="isExpandable(value)" class="value-details">
+            <summary>{{ summaryFor(value) }}</summary>
+            <pre class="value-json">{{ prettyPrint(value) }}</pre>
+          </details>
+          <span v-else class="value">{{ formatValue(value) }}</span>
+        </dd>
+      </template>
+    </dl>
+    <div v-if="hasMetadata" class="metadata-header">
       <span class="metadata-title">Metadata</span>
       <button
         type="button"
         class="btn btn-sm btn-outline-secondary copy-button"
-        :aria-label="copied ? 'Metadata copied' : 'Copy metadata as JSON'"
-        @click="copyAsJson"
+        :aria-label="copiedMetadata ? 'Metadata copied' : 'Copy metadata as JSON'"
+        @click="copyAsJson(displayedMetadata, 'copiedMetadata')"
       >
-        <font-awesome-icon :icon="copied ? 'check' : 'copy'" fixed-width />
-        {{ copied ? "Copied" : "Copy JSON" }}
+        <font-awesome-icon :icon="copiedMetadata ? 'check' : 'copy'" fixed-width />
+        {{ copiedMetadata ? "Copied" : "Copy JSON" }}
       </button>
     </div>
 
-    <dl class="metadata-list">
+    <dl v-if="hasMetadata" class="metadata-list">
       <template v-for="(value, key) in displayedMetadata" :key="key">
         <dt :title="String(key)">{{ formatLabel(key) }}</dt>
         <dd>
@@ -39,6 +64,10 @@ export default {
       type: Object,
       default: () => ({}),
     },
+    computedData: {
+      type: Object,
+      default: () => ({}),
+    },
     labels: {
       type: Object,
       default: () => ({}),
@@ -50,30 +79,40 @@ export default {
   },
   data() {
     return {
-      copied: false,
+      copiedMetadata: false,
+      copiedComputed: false,
       copyResetTimeout: null,
     };
   },
   computed: {
     displayedMetadata() {
-      if (!this.metadata) return {};
-
-      const filtered = {};
-      for (const [key, value] of Object.entries(this.metadata)) {
-        if (!this.excludeKeys.includes(key) && value !== null && value !== undefined) {
-          filtered[key] = value;
-        }
-      }
-      return filtered;
+      return this.filterFields(this.metadata);
+    },
+    displayedComputed() {
+      return this.filterFields(this.computedData);
     },
     hasMetadata() {
       return Object.keys(this.displayedMetadata).length > 0;
+    },
+    hasComputed() {
+      return Object.keys(this.displayedComputed).length > 0;
     },
   },
   beforeUnmount() {
     clearTimeout(this.copyResetTimeout);
   },
   methods: {
+    filterFields(dct) {
+      if (!dct) return {};
+
+      const filtered = {};
+      for (const [key, value] of Object.entries(dct)) {
+        if (!this.excludeKeys.includes(key) && value !== null && value !== undefined) {
+          filtered[key] = value;
+        }
+      }
+      return filtered;
+    },
     formatLabel(key) {
       if (this.labels[key]) {
         return this.labels[key];
@@ -123,13 +162,21 @@ export default {
       }
       return String(value);
     },
-    async copyAsJson() {
+    /**
+     * Copy an object to the clipboard as pretty-printed JSON, and briefly set
+     * the given data flag so the corresponding button shows "Copied".
+     *
+     * @param {Object} dct - The object to serialise and copy.
+     * @param {string} flag - Name of the boolean data property to toggle
+     *   (e.g. `"copiedMetadata"` or `"copiedComputed"`).
+     */
+    async copyAsJson(dct, flag) {
       try {
-        await navigator.clipboard.writeText(JSON.stringify(this.displayedMetadata, null, 2));
-        this.copied = true;
+        await navigator.clipboard.writeText(JSON.stringify(dct, null, 2));
+        this[flag] = true;
         clearTimeout(this.copyResetTimeout);
         this.copyResetTimeout = setTimeout(() => {
-          this.copied = false;
+          this[flag] = false;
         }, 2000);
       } catch (error) {
         console.error("Could not copy metadata to the clipboard:", error);
