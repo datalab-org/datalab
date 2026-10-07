@@ -1,5 +1,6 @@
-import { execSync } from "node:child_process";
-import { defineConfig } from "cypress";
+// This file was edited with the assistance of an AI model and requires human review from the contributor.
+const { execSync } = require("node:child_process");
+const { defineConfig } = require("cypress");
 
 // The e2e tests log in with tokens minted by `invoke dev.seed-e2e-users`, which must use the
 // same database and secret key as the API under test. Set `DATALAB_E2E_SEED_COMMAND` to run it
@@ -27,7 +28,7 @@ function getLoginTokens(projectRoot) {
   return loginTokens;
 }
 
-export default defineConfig({
+module.exports = defineConfig({
   projectId: "4kqx5i",
   e2e: {
     baseUrl: "http://localhost:8080",
