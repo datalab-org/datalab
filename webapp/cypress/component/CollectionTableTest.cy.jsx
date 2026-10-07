@@ -111,6 +111,7 @@ describe("CollectionTable Component Tests", () => {
       "ID",
       "Title",
       "Creators",
+      "", //clear filters
     ];
 
     cy.get(".p-datatable-column-header-content").should("have.length", headers.length);
