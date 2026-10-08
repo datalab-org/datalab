@@ -129,7 +129,7 @@ Export to the recently standardized [ELNFileFormat](https://github.com/TheELNCon
 We found that one of the major barriers is actually the deployment of a system such as *datalab*; this makes adoption of any self-hosted system (such as those listed above) difficult without significant institutional support, and provides another source of vendor lock-in, even for otherwise open-source projects.
 To combat this, *datalab* is accompanied by a series of automated deployment rules, written as [Ansible playbooks](https://ansible.com), that can be used alongside [Terraform](https://developer.hashicorp.com/terraform)/[OpenTofu](https://opentofu.org/) to (optionally) provision a cloud server and deploy a robust *datalab* instance with encrypted offsite backups (using [Borg](https://www.borgbackup.org/)) and a full monitoring stack (using the open-source [Grafana](https://grafana.com/) stack).
 
-## Research impact statement
+# Research impact statement
 
 *datalab* is in use in a variety of academic research labs, consortia, and companies across the world.
 There exists an opt-in federation, where each individual deployment is encouraged to register a (mutable) canonical URL and a prefix [datalab-org/datalab-federation](https://github.com/datalab-org/datalab-federation) in order to ensure item IDs are globally unique and to provide persistent URLs for physical labelling and data sharing via the resolver service at [purl.datalab-org.io](https://purl.datalab-org.io).
