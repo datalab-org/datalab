@@ -3,13 +3,13 @@
   <div class="settings-container">
     <SidebarNavigation
       title="Settings"
-      test-id="settings-table"
+      data-testid="settings-table"
       :items="items"
       :selected-item="selectedItem"
       @item-selected="onItemSelected"
     />
     <main class="settings-display">
-      <AccountSettings v-show="selectedItem === accountItem" />
+      <AccountSettings v-show="selectedItem === accountItem" ref="accountSettings" />
       <template v-if="selectedItem === tagsItem">
         <h1 class="h3 mb-4">Tag management</h1>
         <TagManagementTable />
@@ -23,6 +23,7 @@ import Navbar from "@/components/Navbar";
 import AccountSettings from "@/components/AccountSettings.vue";
 import SidebarNavigation from "@/components/SidebarNavigation.vue";
 import TagManagementTable from "@/components/TagManagementTable";
+import { DialogService } from "@/services/DialogService";
 
 const ACCOUNT_ITEM = "Account";
 const TAGS_ITEM = "Tag management";
@@ -34,6 +35,23 @@ export default {
     AccountSettings,
     SidebarNavigation,
     TagManagementTable,
+  },
+  async beforeRouteLeave(to, from, next) {
+    if (!this.hasUnsavedAccountChanges()) {
+      next();
+      return;
+    }
+
+    const leave = await DialogService.confirm({
+      title: "Unsaved Changes",
+      message: "You have unsaved changes. Leave without saving?",
+      type: "warning",
+      confirmButtonText: "Leave",
+      cancelButtonText: "Stay",
+    });
+
+    if (leave) next();
+    else next(false);
   },
   data() {
     return {
@@ -64,7 +82,22 @@ export default {
     },
     "$route.query.section": "normalizeSection",
   },
+  mounted() {
+    window.addEventListener("beforeunload", this.leavePageWarningListener);
+  },
+  beforeUnmount() {
+    window.removeEventListener("beforeunload", this.leavePageWarningListener);
+  },
   methods: {
+    hasUnsavedAccountChanges() {
+      return Boolean(this.$refs.accountSettings?.hasChanges);
+    },
+    leavePageWarningListener(event) {
+      if (!this.hasUnsavedAccountChanges()) return;
+
+      event.preventDefault();
+      event.returnValue = "";
+    },
     onItemSelected(item) {
       this.navigateToSection(item === TAGS_ITEM ? "tags" : undefined);
     },

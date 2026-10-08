@@ -1,5 +1,5 @@
 <template>
-  <nav class="sidebar" :aria-label="title" :data-testid="testId">
+  <nav class="sidebar" :aria-label="title">
     <h2 class="sidebar-menu-header">{{ title }}</h2>
     <ul>
       <li v-for="item in items" :key="item">
@@ -8,7 +8,7 @@
           class="sidebar-item"
           :class="{ selected: item === selectedItem }"
           :aria-current="item === selectedItem ? 'page' : undefined"
-          @click="selectItem(item)"
+          @click="$emit('item-selected', item)"
         >
           {{ item }}
         </button>
@@ -33,17 +33,8 @@ export default {
       type: String,
       required: true,
     },
-    testId: {
-      type: String,
-      default: undefined,
-    },
   },
   emits: ["item-selected"],
-  methods: {
-    selectItem(item) {
-      this.$emit("item-selected", item);
-    },
-  },
 };
 </script>
 

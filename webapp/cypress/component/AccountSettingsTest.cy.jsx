@@ -1,6 +1,6 @@
 import store from "@/store/index.js";
 import AccountSettings from "@/components/AccountSettings.vue";
-import { invalidateCurrentUserCache } from "@/server_fetch_utils.js";
+import { getUserInfo, invalidateCurrentUserCache } from "@/server_fetch_utils.js";
 
 describe("AccountSettings profile submission", () => {
   const baseUser = {
@@ -58,6 +58,17 @@ describe("AccountSettings profile submission", () => {
     submit();
 
     cy.wait("@saveUser").its("request.body").should("deep.equal", { display_name: "New Name" });
+  });
+
+  it("does not mutate the cached user while editing the form", () => {
+    mountAccountSettings(baseUser);
+
+    cy.get("#account-name").clear();
+    cy.get("#account-name").type("Unsaved Name");
+
+    cy.then(() => getUserInfo())
+      .its("display_name")
+      .should("equal", "Test User");
   });
 
   it("cannot be saved when nothing changed and the contact email is verified", () => {

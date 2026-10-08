@@ -1,9 +1,12 @@
-import { createRouter, createMemoryHistory } from "vue-router";
+import { createRouter, createMemoryHistory, RouterView } from "vue-router";
 import { createStore } from "vuex";
 
 import Settings from "@/views/Settings.vue";
+import { DialogService } from "@/services/DialogService";
 
-function mountSettings(path, { tagsEnabled = true } = {}) {
+let mountedSettings;
+
+function mountSettings(path, { tagsEnabled = true, accountHasChanges } = {}) {
   const store = createStore({
     state: {
       serverInfo: { features: { tags: tagsEnabled } },
@@ -13,6 +16,7 @@ function mountSettings(path, { tagsEnabled = true } = {}) {
     history: createMemoryHistory(),
     routes: [
       { path: "/settings", name: "settings", component: Settings },
+      { path: "/samples", name: "samples", component: { template: "<div />" } },
       {
         path: "/tags",
         name: "tags",
@@ -23,15 +27,28 @@ function mountSettings(path, { tagsEnabled = true } = {}) {
 
   router.push(path);
   cy.wrap(router.isReady()).then(() => {
-    cy.mount(Settings, {
-      global: {
-        plugins: [store, router],
-        stubs: {
-          Navbar: true,
-          AccountSettings: true,
-          TagManagementTable: true,
+    const accountSettingsStub =
+      accountHasChanges === undefined
+        ? true
+        : {
+            template: "<div />",
+            data: () => ({ hasChanges: accountHasChanges }),
+          };
+
+    cy.mount(
+      { components: { RouterView }, template: "<RouterView />" },
+      {
+        global: {
+          plugins: [store, router],
+          stubs: {
+            Navbar: true,
+            AccountSettings: accountSettingsStub,
+            TagManagementTable: true,
+          },
         },
       },
+    ).then(({ wrapper }) => {
+      mountedSettings = wrapper;
     });
   });
 
@@ -108,5 +125,77 @@ describe("Settings view", () => {
     cy.get("account-settings-stub").should(($settings) => {
       expect($settings[0]).to.equal(accountSettingsElement);
     });
+  });
+
+  it("leaves without prompting when the account form is unchanged", () => {
+    const confirm = cy.stub(DialogService, "confirm").resolves(false);
+    const router = mountSettings("/settings", { accountHasChanges: false });
+
+    cy.then(() => router.push("/samples"));
+    cy.wrap(null).should(() => {
+      expect(router.currentRoute.value.fullPath).to.equal("/samples");
+      expect(confirm).not.to.have.been.called;
+    });
+  });
+
+  it("stays on Settings when leaving with unsaved account changes is cancelled", () => {
+    const confirm = cy.stub(DialogService, "confirm").resolves(false);
+    const router = mountSettings("/settings", { accountHasChanges: true });
+
+    cy.then(() => router.push("/samples"));
+    cy.wrap(null).should(() => {
+      expect(router.currentRoute.value.fullPath).to.equal("/settings");
+      expect(confirm).to.have.been.calledOnceWith({
+        title: "Unsaved Changes",
+        message: "You have unsaved changes. Leave without saving?",
+        type: "warning",
+        confirmButtonText: "Leave",
+        cancelButtonText: "Stay",
+      });
+    });
+  });
+
+  it("leaves Settings when discarding unsaved account changes is confirmed", () => {
+    cy.stub(DialogService, "confirm").resolves(true).as("confirmLeave");
+    const router = mountSettings("/settings", { accountHasChanges: true });
+
+    cy.then(() => router.push("/samples"));
+    cy.wrap(null).should(() => {
+      expect(router.currentRoute.value.fullPath).to.equal("/samples");
+    });
+    cy.get("@confirmLeave").should("have.been.calledOnce");
+  });
+
+  it("only prevents browser unload when the account form has unsaved changes", () => {
+    mountSettings("/settings", { accountHasChanges: false });
+
+    cy.window().then((win) => {
+      const event = new win.Event("beforeunload", { cancelable: true });
+      win.dispatchEvent(event);
+      expect(event.defaultPrevented).to.be.false;
+    });
+
+    cy.then(() => mountedSettings.unmount());
+    mountSettings("/settings", { accountHasChanges: true });
+
+    cy.window().then((win) => {
+      const event = new win.Event("beforeunload", { cancelable: true });
+      win.dispatchEvent(event);
+      expect(event.defaultPrevented).to.be.true;
+    });
+  });
+
+  it("removes the browser unload listener when Settings is unmounted", () => {
+    cy.window().then((win) => {
+      cy.spy(win, "removeEventListener").as("removeEventListener");
+    });
+    mountSettings("/settings", { accountHasChanges: true });
+
+    cy.then(() => mountedSettings.unmount());
+    cy.get("@removeEventListener").should(
+      "have.been.calledWith",
+      "beforeunload",
+      Cypress.sinon.match.func,
+    );
   });
 });

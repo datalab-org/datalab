@@ -3,9 +3,9 @@ import SidebarNavigation from "@/components/SidebarNavigation.vue";
 describe("SidebarNavigation", () => {
   it("preserves the admin sidebar design and highlights the selected item", () => {
     cy.mount(SidebarNavigation, {
+      attrs: { "data-testid": "admin-table" },
       props: {
         title: "Admin Menu",
-        testId: "admin-table",
         items: ["Users", "Groups", "Access Tokens"],
         selectedItem: "Users",
       },

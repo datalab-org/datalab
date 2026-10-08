@@ -7,7 +7,7 @@
   <div v-else class="admin-container">
     <SidebarNavigation
       title="Admin Menu"
-      test-id="admin-table"
+      data-testid="admin-table"
       :items="items"
       :selected-item="selectedItem"
       @item-selected="onItemSelected"

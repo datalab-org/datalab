@@ -53,7 +53,7 @@
         </li>
       </ul>
 
-      <div class="account-panes scroll-shadows">
+      <div class="account-panes">
         <div
           v-show="activeTab === 'profile'"
           id="account-panel-profile"
@@ -201,7 +201,7 @@
         >
           <APIKeyHelp />
 
-          <ul v-if="apiKeys.length" class="list-group mb-2 api-key-list scroll-shadows">
+          <ul v-if="apiKeys.length" class="list-group mb-2 api-key-list">
             <li class="list-group-item d-flex align-items-center api-key-header">
               <span class="api-key-name">Label</span>
               <span class="api-key-middle text-center mx-2">Key</span>
@@ -495,7 +495,7 @@ export default {
     async getUser() {
       let user = await getUserInfo();
       if (user != null) {
-        this.user = user;
+        this.user = { ...user };
         this.savedUser = {
           display_name: user.display_name,
           contact_email: user.contact_email,
@@ -692,22 +692,6 @@ export default {
 .account-panes {
   grid-area: panes;
   min-width: 0;
-}
-
-/* Soft shadows at the top/bottom edges of a scrollable area when more content is hidden */
-.scroll-shadows {
-  background:
-    linear-gradient(white 30%, rgba(255, 255, 255, 0)) center top,
-    linear-gradient(rgba(255, 255, 255, 0), white 70%) center bottom,
-    radial-gradient(farthest-side at 50% 0, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0)) center top,
-    radial-gradient(farthest-side at 50% 100%, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0)) center bottom;
-  background-repeat: no-repeat;
-  background-size:
-    100% 40px,
-    100% 40px,
-    100% 12px,
-    100% 12px;
-  background-attachment: local, local, scroll, scroll;
 }
 
 @media (min-width: 992px) {
