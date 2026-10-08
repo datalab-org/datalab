@@ -1,5 +1,5 @@
 ---
-title: '*datalab*: federated data management infrastructure for materials chemistry and beyond'
+title: 'datalab: federated data management infrastructure for materials chemistry and beyond'
 authors:
   - name: Matthew L. Evans
     orcid: 0000-0002-1182-9098
@@ -35,9 +35,9 @@ affiliations:
    index: 3
  - name: datalab industries ltd., King's Lynn, Norfolk, United Kingdom
    index: 4
- - name: Department of Chemistry, University of Houston, Houston, TX, USA
+ - name: Department of Chemistry, University of Houston, Houston, Texas, United States of America
    index: 5
- - name: Texas Center for Superconductivity, University of Houston, Houston, TX, USA
+ - name: Texas Center for Superconductivity, University of Houston, Houston, Texas, United States of America
    index: 6
  - name: WEL Research Institute, Avenue Pasteur, 6, 1300 Wavre, Belgium
    index: 7
@@ -48,8 +48,8 @@ bibliography: paper.bib
 
 # Summary
 
-*datalab* is an open source laboratory data management platform for chemical and material sciences, consisting of a Python web server, user-friendly Vue.js web app, and an associated ecosystem of plugins and tools.
-It is designed to be deployed at the level of a research group or consortium, providing functionality to track samples and their connections through the entire research lifecycle. In doing so, *datalab* seeks to enable FAIR (Findable, Accessible, Interoperable and Reusable) [@Wilkinson2016; @Scheffler2022a] data workflows while simultaneously saving researchers time and effort in managing and analyzing experiments.
+*datalab* is an open-source laboratory data management platform for chemical and material sciences, consisting of a Python web server, user-friendly Vue.js web app, and an associated ecosystem of plugins and tools.
+It is designed to be deployed at the level of a research group or consortium, providing functionality to track samples and their connections through the entire research lifecycle. In doing so, *datalab* seeks to enable FAIR (Findable, Accessible, Interoperable, and Reusable) [@Wilkinson2016; @Scheffler2022a] data workflows while simultaneously saving researchers time and effort in managing and analyzing experiments.
 
 # Statement of need
 
@@ -63,7 +63,7 @@ The recent growth in data-driven research and artificial intelligence (AI) for c
 # State of the field
 
 Currently, there are several open-source electronic lab notebooks (ELNs) or Laboratory Information Management Systems (LIMSs) aimed at performing FAIR research data management in the experimental chemical and materials sciences. Each package draws a different boundary around which types of data and aspects of the data lifecycle they intend to cover. Importantly, these frameworks are often relied on not just for data recording, but also robust backed-up file storage, syncing from remote scientific instruments, data sharing and collaboration, and data analysis and visualization [@Higgins2022].
-Exemplary open source frameworks include: [NOMAD](https://nomad-lab.eu/nomad-lab) [@Scheidgen2023; @Ghiringhelli2023], [openBIS](https://openbis.ch) [@Barillari2016; @Lam2025], [eLabFTW](https://www.elabftw.net), [Chemotion](https://chemotion.net) [@Tremouilhac2017a; @Herrmann2025], [Kadi4Mat](https://kadi.iam.kit.edu) [@Brandt2021; @Schlabach2024] and [SampleDB](https://scientific-it-systems.iffgit.fz-juelich.de/SampleDB) [@Rhiem2021].
+Exemplary open-source frameworks include: [NOMAD](https://nomad-lab.eu/nomad-lab) [@Scheidgen2023; @Ghiringhelli2023], [openBIS](https://openbis.ch) [@Barillari2016; @Lam2025], [eLabFTW](https://www.elabftw.net), [Chemotion](https://chemotion.net) [@Tremouilhac2017a; @Herrmann2025], [Kadi4Mat](https://kadi.iam.kit.edu) [@Brandt2021; @Schlabach2024], and [SampleDB](https://scientific-it-systems.iffgit.fz-juelich.de/SampleDB) [@Rhiem2021].
 
 One dividing line between the various existing approaches is the balance between extensibility and ease-of-use, with some platforms being highly customizable at the expense of requiring substantial technical expertise. Another differentiator is in the manner in which raw data makes its way into the platform, i.e., whether the user must pre-process data into a generic format or if the platform can directly ingest data from instruments.
 
@@ -72,13 +72,13 @@ One dividing line between the various existing approaches is the balance between
 *datalab* consists of a server (using [Flask](https://flask.palletsproject.com)), a database ([MongoDB](https://mongodb.com)), and a web frontend (written in [Vue.js](https://vuejs.org)), alongside a growing ecosystem of plugins and tools.
 This stack is designed to be deployed and configured for a single research group or research consortium, allowing users to record all the data involved in their research projects.
 
-The core data model is inspired by how researchers traditionally record data in physical lab notebooks. Each sample or device (generically, `Item`) studied in a lab is stored as a document in the database. Unique identifying information for each item is recorded along with information such as its chemical formula, synthesis procedure, chemical hazard statements, qualitative notes, etc., along with data files and visualizations from any measurements that were performed on that sample. Similar interfaces are also provided for managing a chemical inventory, and lab equipment.
+The core data model is inspired by how researchers traditionally record data in physical lab notebooks. Each sample or device (generically, `Item`) studied in a lab is stored as a document in the database. Unique identifying information for each item is recorded along with information such as its chemical formula, synthesis procedure, chemical hazard statements, qualitative notes, etc., along with data files and visualizations from any measurements that were performed on that sample. Similar interfaces are also provided for managing a chemical inventory and lab equipment.
 
 Data models for `Item`s are described with [Pydantic](https://pydantic.dev) models and are kept relatively lightweight: enforcing critical information (e.g., a unique id and date), specifying useful optional fields (e.g., chemical formula), and always including arbitrary free-text fields to allow for the flexibility required by the often-unpredictable nature of laboratory research. If needed, the base schemas can also be extended to specify additional fields for specialized `Item` types studied in a given lab (e.g., battery cells). The user is provided with a simple web interface to input, edit, and view data, including interactive views of their measurement data. A Python client library, [datalab-org/datalab-api](https://github.com/datalab-org/datalab-api) is also available to streamline access and perform more complicated tasks, such as aggregated searches, or downstream tasks like syncing with a chemical inventory system ([datalab-industries/datalab-cheminventory-plugin](https://github.com/datalab-industries/datalab-cheminventory-plugin)) or other remote filesystem/API ([datalab-industries/datalab-beholder-plugin](https://github.com/datalab-industries/datalab-beholder-plugin)).
 
 In addition to data and metadata, *datalab* also emphasizes recording connections between items, such as linking samples to the starting materials (or other samples) that were used in their synthesis, or linking battery test cells to the electrode materials that were used in the cell construction. This creates an evolving graph of connected research items that is stored in the database and displayed in the GUI, allowing researchers to explore measurements from associated items.
 
-The measurement data, which are quite variable and diverse in typical experimental labs, are handled via modular "data blocks" that consist of raw data parsers, validators and visualizers. Data blocks can be written as applications in Python, generally using [Bokeh](https://bokeh.org) for interactive visualizations. A core set of commonly used blocks is included in the core of *datalab*, while others can be added using a plugin system.
+The measurement data, which are quite variable and diverse in typical experimental labs, are handled via modular "data blocks" that consist of raw data parsers, validators, and visualizers. Data blocks can be written as applications in Python, generally using [Bokeh](https://bokeh.org) for interactive visualizations. A core set of commonly used blocks is included in the core of *datalab*, while others can be added using a plugin system.
 
 These data blocks vary in complexity, from simple CSV parsing and visualization, up to two-way reactive components that can perform automated analysis (normalization, baseline corrections), capture additional out-of-band metadata from the user (e.g., the wavelength used in an X-ray diffraction experiment, where not provided in the file), and index particular properties or metadata in the database for future search (e.g., peak positions or $d$-spacings from an X-ray diffraction experiment).
 Data blocks can be rendered either synchronously or asynchronously, via simple scheduled background tasks, depending on the application. Table 1 provides a non-exhaustive summary of the support for different characterization techniques and file types in the current version of the *datalab* core.
@@ -123,11 +123,11 @@ ${\star}$ In situ XRD, NMR \& UV-Vis & \begin{tabular}[t]{@{}l@{}} - Semi-standa
 ```
 
 Data and metadata can be readily exported from *datalab* via the GUI or API.
-Where available, *datalab* also aims to export in community-accepted standardized formats, such as the [Battery Data Format (BDF)](https://battery-data-alliance.github.io/battery-data-format/) for electrochemical cycling data, as well as exporting in generic container formats with well-reported schemas, such as JSON, CSV or HDF5.
+Where available, *datalab* also aims to export in community-accepted standardized formats, such as the [Battery Data Format (BDF)](https://battery-data-alliance.github.io/battery-data-format/) for electrochemical cycling data, as well as exporting in generic container formats with well-reported schemas, such as JSON, CSV, or HDF5.
 Export to the recently standardized [ELNFileFormat](https://github.com/TheELNConsortium/TheELNFileFormat) [@ELNFileFormat] is also supported, allowing for metadata pertaining to multiple items to be provided and combined with any uploaded files in a single archive. *datalab* allows ELN exports not just of individual items or user-defined collections of items, but also of entire subgraphs of related entries to an item.
 
-We found that one of the major barriers is actually the deployment of a system such as *datalab*; this makes adoption of any self-hosted system (such as those listed above) difficult without significant institutional support, and provides another source of vendor lock-in, even for otherwise open source projects.
-To combat this, *datalab* is accompanied by a series of automated deployment rules, written as [Ansible playbooks](https://ansible.com), that can be used alongside [Terraform](https://developer.hashicorp.com/terraform)/[OpenTofu](https://opentofu.org/) to (optionally) provision a cloud server and deploy a robust *datalab* instance with encrypted offsite backups (using [Borg](https://www.borgbackup.org/)) and a full monitoring stack (using the open source [Grafana](https://grafana.com/) stack).
+We found that one of the major barriers is actually the deployment of a system such as *datalab*; this makes adoption of any self-hosted system (such as those listed above) difficult without significant institutional support, and provides another source of vendor lock-in, even for otherwise open-source projects.
+To combat this, *datalab* is accompanied by a series of automated deployment rules, written as [Ansible playbooks](https://ansible.com), that can be used alongside [Terraform](https://developer.hashicorp.com/terraform)/[OpenTofu](https://opentofu.org/) to (optionally) provision a cloud server and deploy a robust *datalab* instance with encrypted offsite backups (using [Borg](https://www.borgbackup.org/)) and a full monitoring stack (using the open-source [Grafana](https://grafana.com/) stack).
 
 ## Research impact statement
 
@@ -148,13 +148,13 @@ We expect *datalab* to continue to scale horizontally to new domains and measure
 
 The technical roadmap for a *datalab* v1.0 release includes:
 
-- A rework of the schema system for easier customizability, sharing and extension by deployments, as well as the ability to provide semantic annotations via LinkML [@Moxon2026]; this will be accommodated by a rework of the user interface to allow custom schemas to use the same user-friendly web components that exist in the core *datalab* models for rich text input and relationship tracking.
+- A rework of the schema system for easier customizability, sharing, and extension by deployments, as well as the ability to provide semantic annotations via LinkML [@Moxon2026]; this will be accommodated by a rework of the user interface to allow custom schemas to use the same user-friendly web components that exist in the core *datalab* models for rich text input and relationship tracking.
 - Further improvements to the *datalab* plugin ecosystem, including enhancements of the base data block with features such as caching, offloading compute, and UI generation, providing clean interfaces to make it easier for contributors to build powerful extensions to handle arbitrary data types.
 - An expansion of existing prototypes for AI-driven user interfaces, building on existing work on conversational interfaces [@Jablonka2023] and coding agents ([datalab-org/yellowhammer](https://github.com/datalab-org/yellowhammer)) [@Zimmermann2025], with the aim of allowing users to create rich and expressive pipelines via end user programming.
 
 # AI usage disclosure
 
-While the initial development of *datalab* (architecture, proof-of-concept) was performed without the use of AI, recent development (approximately v0.6.3 onwards) has made use of LLM-based AI coding harnesses (e.g., OpenAI's Codex, Anthropic's Claude Code) in various parts of *datalab* and related development, including: code generation for prototyping new features and interfaces, refactoring, code review (usually initial reviews for PRs from external authors) and generation of test cases.
+While the initial development of *datalab* (architecture, proof-of-concept) was performed without the use of AI, recent development (approximately v0.6.3 onwards) has made use of LLM-based AI coding harnesses (e.g., OpenAI's Codex, Anthropic's Claude Code) in various parts of *datalab* and related development, including: code generation for prototyping new features and interfaces, refactoring, code review (usually initial reviews for PRs from external authors), and generation of test cases.
 Models used include OpenAI's GPT-5.x series, Anthropic's Claude Sonnet and Opus series from versions 3.7 and above, and open weights models such as Qwen3.6.
 
 Every pull request is still thoroughly reviewed by a human and we maintain an extensive test suite that runs on each pull request to catch regressions across the project; the human authors and reviewers are ultimately responsible for the code that is merged.
@@ -164,7 +164,7 @@ AI tools were used in a limited way in the preparation of this manuscript, for p
 # Acknowledgements
 
 M.L.E. thanks the Leverhulme Trust for funding via an Early Career Fellowship, as well as the BEWARE scheme of the Wallonia-Brussels Federation for previous funding under the European Commission's Marie Curie-Skłodowska Action (COFUND 847587).
-M.L.E., J.D.B. and C.P.G. acknowledge funding from the European Union's Horizon 2020 research and innovation programme under grant agreement 957189 (DOI: 10.3030/957189), the Battery Interface Genome – Materials Acceleration Platform (BIG-MAP), where *datalab* was prototyped as an external stakeholder project.
+M.L.E., J.D.B., and C.P.G. acknowledge funding from the European Union's Horizon 2020 research and innovation programme under grant agreement 957189 (DOI: 10.3030/957189), the Battery Interface Genome – Materials Acceleration Platform (BIG-MAP), where *datalab* was prototyped as an external stakeholder project.
 J.D.B. was supported by the Faraday Institution CATMAT project (FIRG016) during initial development of *datalab* and is currently supported by the Welch Foundation (E-2179-20240404).
 
 # Conflict of interest
@@ -175,5 +175,5 @@ M.L.E. is the founder and director of datalab industries ltd.
 
 M.L.E. and J.D.B. conceived the project and designed the architecture.
 M.L.E. and J.D.B. implemented the first release of the software.
-M.L.E., B.C., B.E.S. and J.D.B. developed and maintain the software.
-M.L.E., J.D.B., G-M.R., D.W. and C.P.G. acquired funding and supervised the project.
+M.L.E., B.C., B.E.S., and J.D.B. developed and maintain the software.
+M.L.E., J.D.B., G-M.R., D.W., and C.P.G. acquired funding and supervised the project.
