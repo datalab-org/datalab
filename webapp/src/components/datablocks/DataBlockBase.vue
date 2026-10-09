@@ -150,7 +150,7 @@
       </div>
       <slot name="controls"></slot>
 
-      <div v-if="hasMetadata" class="mt-2 mb-2">
+      <div v-if="hasMetadata || hasComputed" class="mt-2 mb-2">
         <span
           class="metadata-toggle d-inline-flex align-items-center"
           role="button"
@@ -169,10 +169,10 @@
         </span>
       </div>
 
-      <div v-if="$slots.plot || hasMetadata" class="row mt-2">
+      <div v-if="$slots.plot || hasMetadata || hasComputed" class="row mt-2">
         <div
           :class="
-            hasMetadata && metadataShown
+            (hasMetadata || hasComputed) && metadataShown
               ? 'col-xl-8 col-lg-8 col-md-12'
               : 'col-xl-9 col-lg-10 col-md-11 mx-auto'
           "
@@ -180,9 +180,12 @@
           <slot name="plot"></slot>
         </div>
 
-        <div v-if="hasMetadata && metadataShown" class="col-xl-4 col-lg-4 col-md-12">
-          <slot name="metadata" :metadata="block.metadata">
-            <MetadataViewer :metadata="block.metadata" />
+        <div
+          v-if="(hasMetadata || hasComputed) && metadataShown"
+          class="col-xl-4 col-lg-4 col-md-12"
+        >
+          <slot name="metadata" :metadata="block.metadata" :computed-data="block.computed">
+            <MetadataViewer :metadata="block.metadata" :computed-data="block.computed" />
           </slot>
         </div>
       </div>
@@ -248,6 +251,9 @@ export default {
     hasMetadata() {
       this.notifyLayoutChange();
     },
+    hasComputed() {
+      this.notifyLayoutChange();
+    },
   },
   computed: {
     block() {
@@ -287,6 +293,9 @@ export default {
     },
     hasMetadata() {
       return this.block?.metadata && Object.keys(this.block.metadata).length > 0;
+    },
+    hasComputed() {
+      return this.block?.computed && Object.keys(this.block.computed).length > 0;
     },
   },
   mounted() {
