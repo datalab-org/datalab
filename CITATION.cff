@@ -1,7 +1,7 @@
 # YAML 1.2
 # Metadata for citation of this software according to the CFF format (https://citation-file-format.github.io/)
 cff-version: 1.2.0
-message: If you use this software in a publication, please cite the ChemRxiv preprint and/or source code archive on Zenodo.
+message: If you use this software in a publication, please cite the JOSS paper and/or source code archive on Zenodo.
 title: datalab
 abstract: datalab is a place to store experimental data and the connections between them.
 repository-code: https://github.com/datalab-org/datalab
@@ -12,11 +12,12 @@ authors:
 - given-names: The datalab development team
 identifiers:
   - type: doi
-    value: 10.5281/zenodo.14719467
+    value: 10.5281/zenodo.8127782
 preferred-citation:
   type: article
   title: 'datalab: federated data management infrastructure for materials chemistry and beyond'
-  doi: 10.26434/chemrxiv.15001945/v1
+  doi: <await DOI>
+  journal: Journal of Open Source Software
   authors:
   - given-names: Matthew L.
     family-names: Evans
