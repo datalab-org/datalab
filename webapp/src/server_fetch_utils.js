@@ -7,6 +7,8 @@ import {
   SAMPLE_TABLE_TYPES,
   INVENTORY_TABLE_TYPES,
   EQUIPMENT_TABLE_TYPES,
+  INVENTORY_TYPES,
+  expandItemTypes,
   registerDynamicItemType,
   itemTypes,
 } from "@/resources.js";
@@ -290,8 +292,9 @@ export function createNewItem(
         getEquipmentList();
       }
     }
-    // Custom/plugin types are surfaced in the samples table for now.
-    if (itemTypes[response_json.sample_list_entry.type]?.isDynamic) {
+    // Custom/plugin types are surfaced in the samples table unless they behave as an inventory type.
+    const newType = response_json.sample_list_entry.type;
+    if (itemTypes[newType]?.isDynamic && !INVENTORY_TYPES.includes(newType)) {
       store.commit("prependToSampleList", response_json.sample_list_entry);
     }
     return response_json.sample_list_entry.item_id;
@@ -585,7 +588,7 @@ export function getLocations({ force = false } = {}) {
 export function searchItems(query, nresults = 100, types = null) {
   // construct a url with parameters:
   var url = new URL(`${API_URL}/search-items/`);
-  var params = { query: query, nresults: nresults, types: types };
+  var params = { query: query, nresults: nresults, types: types && expandItemTypes(types) };
   Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
   return fetch_get(url).then(function (response_json) {
     return response_json.items;
@@ -1456,6 +1459,7 @@ export async function loadItemSchemas() {
         base_type: typeInfo.attributes?.base_type,
         hidden_fields: typeInfo.attributes?.hidden_fields,
         ui_color: typeInfo.attributes?.ui_color,
+        behave_as: typeInfo.attributes?.behave_as,
       }),
     );
     await Promise.all(supportedTypes.map((typeInfo) => ensureItemSchema(typeInfo.id)));
