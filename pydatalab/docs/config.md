@@ -23,6 +23,7 @@ These can be provided as either:
         - `VUE_APP_LOGO_URL`: the URL of an image to use as the logo header in the web app.
         - `VUE_APP_HOMEPAGE_URL`: a URL to provide as a link from the web app header, and as a button on the dedicated login page.
         - `VUE_APP_EDITABLE_INVENTORY`: whether the inventory can be edited by non-admin users in the web app.
+        - `VUE_APP_HIDE_COLLECTIONS`: whether to hide collection pages and controls in the web app. This defaults to `false`. It is not an access-control mechanism and does not disable collection API routes or alter stored collection data.
         - `VUE_APP_WEBSITE_TITLE`: the title of the web app, which is displayed in the browser tab and header. It is also used in the heading of the dedicated login page, as "Welcome to the <title>".
         - `VUE_APP_QR_CODE_RESOLVER_URL`: the URL of a service that can resolve QR codes to *datalab* entries, which is used by the web app to display QR codes for entries (see [datalab-org/datalab-purl](https://github.com/datalab-org/datalab-purl) for more information).
         - `VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT`: whether to automatically generate IDs for new entries in the web app by default, or require a checkbox to be ticked at item creation.
