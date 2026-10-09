@@ -2,7 +2,6 @@ from typing import Any
 
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
-from werkzeug.exceptions import BadRequest
 
 from pydatalab.config import CONFIG
 from pydatalab.permissions import active_users_or_get_only
@@ -10,18 +9,7 @@ from pydatalab.remote_filesystems import (
     get_directory_structure,
     get_directory_structures,
 )
-
-
-def _check_invalidate_cache(args: dict[str, str]) -> bool | None:
-    invalidate_cache: bool | None = None
-    if "invalidate_cache" in args:
-        invalidate_cache_arg = args.get("invalidate_cache")
-        if invalidate_cache_arg not in ("1", "0"):
-            raise BadRequest("invalidate_cache must be 0 or 1")
-        invalidate_cache = bool(int(invalidate_cache_arg))
-
-    return invalidate_cache
-
+from pydatalab.utils import is_truthy_query_value
 
 REMOTES = Blueprint("remotes", __name__)
 
@@ -52,19 +40,9 @@ def list_remote_directories():
             401,
         )
 
-    try:
-        invalidate_cache = _check_invalidate_cache(request.args)
-    except RuntimeError as e:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "title": "Invalid Argument",
-                    "detail": str(e),
-                }
-            ),
-            400,
-        )
+    invalidate_cache = request.args.get(
+        "invalidate_cache", default=None, type=is_truthy_query_value
+    )
 
     all_directory_structures = get_directory_structures(
         CONFIG.REMOTE_FILESYSTEMS, invalidate_cache=invalidate_cache
@@ -101,19 +79,9 @@ def get_remote_directory(remote_id: str):
             401,
         )
 
-    try:
-        invalidate_cache = _check_invalidate_cache(request.args)
-    except RuntimeError as e:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "title": "Invalid Argument",
-                    "detail": str(e),
-                }
-            ),
-            400,
-        )
+    invalidate_cache = request.args.get(
+        "invalidate_cache", default=None, type=is_truthy_query_value
+    )
 
     for d in CONFIG.REMOTE_FILESYSTEMS:
         if remote_id == d.name:
