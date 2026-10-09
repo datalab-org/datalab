@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, request
 from pydatalab.blocks.store import is_block_reference
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
+from pydatalab.utils import is_truthy_query_value
 
 GRAPHS = Blueprint("graphs", __name__)
 
@@ -22,7 +23,7 @@ def get_graph_cy_format(
 ):
     collection_id = request.args.get("collection_id", type=str)
     hide_collections = request.args.get(
-        "hide_collections", default=True, type=lambda v: v.lower() == "true"
+        "hide_collections", default=True, type=is_truthy_query_value
     )
     max_depth = request.args.get("max_depth", default=1, type=int)
 

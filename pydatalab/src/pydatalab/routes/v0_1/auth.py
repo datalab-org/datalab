@@ -28,6 +28,7 @@ from pydatalab.models.people import AccountStatus, Identity, IdentityType, Perso
 from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
 from pydatalab.permissions import ApiKey, authenticate, exclude_api_key
 from pydatalab.send_email import send_mail
+from pydatalab.utils import is_truthy_query_value
 
 __all__ = ("AUTH", "OAUTH", "OAUTH_PROXIES")
 
@@ -1145,7 +1146,7 @@ def store_oauth_next_path(blueprint, url):  # pylint: disable=unused-argument
         session[session_key] = next_path
 
     session.pop(REMEMBER_ME_SESSION_KEY, None)
-    if request.args.get("remember") == "1":
+    if request.args.get("remember", default=False, type=is_truthy_query_value):
         session[REMEMBER_ME_SESSION_KEY] = True
 
 

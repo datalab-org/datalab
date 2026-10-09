@@ -59,6 +59,7 @@ from pydatalab.tags import (
     strip_tag_display_fields,
     tag_immutable_ids,
 )
+from pydatalab.utils import is_truthy_query_value
 from pydatalab.versioning import (
     apply_protected_fields,
     check_version_access,
@@ -1201,7 +1202,7 @@ def get_item_data(
     or `refcode` additionally resolving relationships to files and other items.
     """
 
-    redirect_to_ui = bool(request.args.get("redirect-to-ui", default=False, type=json.loads))
+    redirect_to_ui = request.args.get("redirect-to-ui", default=False, type=is_truthy_query_value)
     access_token = request.args.get("at")
     if refcode and redirect_to_ui and CONFIG.APP_URL:
         redirect_url = f"{CONFIG.APP_URL}/items/{refcode}"

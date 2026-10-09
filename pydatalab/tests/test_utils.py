@@ -1,4 +1,29 @@
+import pytest
+
+from pydatalab.utils import is_truthy_query_value
 from pydatalab.utils.plotting import generate_unique_labels
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("1", True),
+        ("true", True),
+        ("TRUE", True),
+        ("TrUe", True),
+        ("0", False),
+        ("false", False),
+        ("FALSE", False),
+        ("null", False),
+        ("", False),
+        ("malformed", False),
+        ('"false"', False),
+        ("[1]", False),
+        ('{"value": true}', False),
+    ],
+)
+def test_is_truthy_query_value(value, expected):
+    assert is_truthy_query_value(value) is expected
 
 
 def test_generate_unique_labels_single_file():

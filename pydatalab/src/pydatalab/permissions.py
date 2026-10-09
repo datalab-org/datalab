@@ -14,6 +14,7 @@ from pydatalab.login import UserRole
 from pydatalab.models.people import AccountStatus
 from pydatalab.models.utils import BaseModel, PyObjectId
 from pydatalab.mongo import flask_mongo, get_database
+from pydatalab.utils import is_truthy_query_value
 
 PUBLIC_USER_ID = ObjectId(24 * "0")
 
@@ -224,7 +225,7 @@ def _get_base_permissions(
     i.e., based purely on `creator_ids`/`group_ids` and the various admin/
     testing/access-token short-circuits.
     """
-    # Super-user mode for admins: only activates on GET with ?sudo=1
+    # Super-user mode for admins: only activates on GET with ?sudo=1 or ?sudo=true
     # For non-GET methods, admins always have full access
     if (
         current_user.is_authenticated
@@ -235,8 +236,8 @@ def _get_base_permissions(
         # Non-GET methods: admin always has full access
         if request.method != "GET":
             return {}
-        # GET methods: require ?sudo=1 for full access
-        if request.args.get("sudo") == "1":
+        # GET methods: require an explicit truthy sudo flag for full access
+        if request.args.get("sudo", default=False, type=is_truthy_query_value):
             return {}
         # Otherwise: treat admin as normal user (fall through)
 
