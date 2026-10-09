@@ -13,18 +13,25 @@
       </button>
     </div>
 
-    <dl v-if="hasComputed" class="metadata-list">
-      <template v-for="(value, key) in displayedComputed" :key="key">
-        <dt :title="String(key)">{{ formatLabel(key) }}</dt>
-        <dd>
-          <details v-if="isExpandable(value)" class="value-details">
-            <summary>{{ summaryFor(value) }}</summary>
-            <pre class="value-json">{{ prettyPrint(value) }}</pre>
-          </details>
-          <span v-else class="value">{{ formatValue(value) }}</span>
-        </dd>
+    <div v-if="hasComputed" class="metadata-list computed-list">
+      <template v-for="section in computedSections" :key="section.key">
+        <div v-if="section.title" class="computed-section-title" :title="section.key">
+          {{ section.title }}
+        </div>
+        <dl class="mb-0">
+          <template v-for="(value, key) in section.fields" :key="key">
+            <dt :title="String(key)">{{ formatLabel(key) }}</dt>
+            <dd>
+              <details v-if="isExpandable(value)" class="value-details">
+                <summary>{{ summaryFor(value) }}</summary>
+                <pre class="value-json">{{ prettyPrint(value) }}</pre>
+              </details>
+              <span v-else class="value">{{ formatComputedValue(value) }}</span>
+            </dd>
+          </template>
+        </dl>
       </template>
-    </dl>
+    </div>
     <div v-if="hasMetadata" class="metadata-header">
       <span class="metadata-title">Metadata</span>
       <button
@@ -97,6 +104,30 @@ export default {
     hasComputed() {
       return Object.keys(this.displayedComputed).length > 0;
     },
+    /**
+     * Group computed fields for display: top-level scalars form an untitled
+     * section, and each nested object (e.g. a plugin's namespaced results such
+     * as `fast_metrics`) becomes its own titled section with its null fields
+     * omitted.
+     */
+    computedSections() {
+      const ungrouped = {};
+      const sections = [];
+      for (const [key, value] of Object.entries(this.displayedComputed)) {
+        if (this.isPlainObject(value)) {
+          const fields = this.filterFields(value);
+          if (Object.keys(fields).length > 0) {
+            sections.push({ key, title: this.formatLabel(key), fields });
+          }
+        } else {
+          ungrouped[key] = value;
+        }
+      }
+      if (Object.keys(ungrouped).length > 0) {
+        sections.unshift({ key: "__ungrouped__", title: null, fields: ungrouped });
+      }
+      return sections;
+    },
   },
   beforeUnmount() {
     clearTimeout(this.copyResetTimeout);
@@ -118,15 +149,15 @@ export default {
         return this.labels[key];
       }
 
-      return (
-        key
-          .replace(/_/g, " ")
-          // Split camelCase only at a lowercase/digit -> uppercase boundary, so
+      // snake_case keys are already word-separated, and may embed mixed-case
+      // units (e.g. `capacity_mAh`) that camelCase splitting would mangle.
+      const label = key.includes("_")
+        ? key.replace(/_/g, " ")
+        : // Split camelCase only at a lowercase/digit -> uppercase boundary, so
           // that unit acronyms such as `MHz` or `ppm` survive intact.
-          .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-          .trim()
-          .replace(/^\w/, (c) => c.toUpperCase())
-      );
+          key.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+
+      return label.trim().replace(/^\w/, (c) => c.toUpperCase());
     },
     isExpandable(value) {
       if (value !== null && typeof value === "object" && !Array.isArray(value)) {
@@ -149,6 +180,19 @@ export default {
         return JSON.stringify(value, null, 2);
       }
       return String(value);
+    },
+    isPlainObject(value) {
+      return value !== null && typeof value === "object" && !Array.isArray(value);
+    },
+    /**
+     * As `formatValue`, but rounds non-integer numbers to a readable number of
+     * significant figures (the copied JSON keeps full precision).
+     */
+    formatComputedValue(value) {
+      if (typeof value === "number" && !Number.isInteger(value)) {
+        return String(Number(value.toPrecision(5)));
+      }
+      return this.formatValue(value);
     },
     formatValue(value) {
       if (value === null || value === undefined) {
@@ -227,6 +271,17 @@ export default {
   overflow-y: auto;
   /* Keeps values clear of the scrollbar when one appears. */
   padding-right: 0.35rem;
+}
+
+.computed-list {
+  margin-bottom: 0.75rem;
+}
+
+.computed-section-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #454545;
+  margin: 0.25rem 0 0.4rem;
 }
 
 .metadata-list dt {
