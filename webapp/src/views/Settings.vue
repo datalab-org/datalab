@@ -1,6 +1,6 @@
 <template>
   <Navbar />
-  <div class="settings-container">
+  <div class="settings-container d-flex flex-column flex-md-row">
     <SidebarNavigation
       title="Settings"
       data-testid="settings-table"
@@ -9,7 +9,11 @@
       @item-selected="onItemSelected"
     />
     <main class="settings-display">
-      <AccountSettings v-show="selectedItem === accountItem" ref="accountSettings" />
+      <AccountSettings
+        v-show="selectedItem === accountItem"
+        ref="accountSettings"
+        :active="selectedItem === accountItem"
+      />
       <template v-if="selectedItem === tagsItem">
         <h1 class="h3 mb-4">Tag management</h1>
         <TagManagementTable />
@@ -44,7 +48,7 @@ export default {
 
     const leave = await DialogService.confirm({
       title: "Unsaved Changes",
-      message: "You have unsaved changes. Leave without saving?",
+      message: "Your profile has unsaved changes. Leave without saving?",
       type: "warning",
       confirmButtonText: "Leave",
       cancelButtonText: "Stay",
@@ -126,13 +130,20 @@ export default {
 
 <style scoped>
 .settings-container {
-  display: flex;
+  min-width: 0;
 }
 
 .settings-display {
-  width: 100%;
+  flex: 1 1 auto;
+  width: auto;
   min-width: 0;
   padding: 1em;
   margin: 0.5em;
+}
+
+@media (max-width: 767.98px) {
+  .settings-display {
+    margin-top: 0;
+  }
 }
 </style>

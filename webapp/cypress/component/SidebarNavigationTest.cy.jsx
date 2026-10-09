@@ -40,4 +40,18 @@ describe("SidebarNavigation", () => {
     cy.focused().type("{enter}");
     cy.get("@itemSelected").should("have.been.calledWith", "Users");
   });
+
+  it("displays navigation items horizontally on narrow screens", () => {
+    cy.viewport(575, 667);
+    cy.mount(SidebarNavigation, {
+      props: {
+        title: "Admin Menu",
+        items: ["Users", "Groups", "Access Tokens"],
+        selectedItem: "Users",
+      },
+    });
+
+    cy.get("nav").should("have.css", "border-right-width", "0px");
+    cy.get("ul").should("have.css", "display", "flex");
+  });
 });

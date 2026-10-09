@@ -1,4 +1,4 @@
-// E2e tests for the tag management page (/tags). Needs the dev server + API (:5001) running
+// E2e tests for the tag management section. Needs the dev server + API (:5001) running
 // in testing mode AND with the tags feature enabled (PYDATALAB_ENABLE_TAGS).
 //
 // Tags have two scopes: "global" (admin-managed, usable by everyone) and "user" (user-defined,
@@ -27,7 +27,7 @@ describe("Tag management page (admin, global tags)", () => {
   });
 
   it("creates, edits and deletes a global tag", () => {
-    cy.visit("/tags");
+    cy.visit("/settings?section=tags");
 
     // Create (an admin picks the "global" scope).
     cy.get('[data-testid="add-tag-button"]').click();
@@ -78,7 +78,7 @@ describe("Tag management page (user, user-defined tags)", () => {
   });
 
   it("lets a non-admin create, edit and delete their own user-defined tag", () => {
-    cy.visit("/tags");
+    cy.visit("/settings?section=tags");
 
     // Create. A non-admin has no scope choice; the tag is user-defined by default.
     cy.get('[data-testid="add-tag-button"]').click();
@@ -122,7 +122,7 @@ describe("Tag management permissions", () => {
 
   it("lets a non-admin create tags but not manage a global tag", () => {
     cy.loginViaTestMagicLink(userEmail);
-    cy.visit("/tags");
+    cy.visit("/settings?section=tags");
     cy.contains("tr", tagName).should("exist"); // the global tag is visible to everyone
     // A non-admin can now create their own (user-defined) tags.
     cy.get('[data-testid="add-tag-button"]').should("exist");
@@ -135,7 +135,7 @@ describe("Tag management permissions", () => {
 
   it("shows edit/delete controls on a global tag for an admin", () => {
     cy.loginViaTestMagicLink(adminEmail);
-    cy.visit("/tags");
+    cy.visit("/settings?section=tags");
     cy.get('[data-testid="add-tag-button"]').should("exist");
     cy.contains("tr", tagName).within(() => {
       cy.get('button[title="Edit tag"]').should("exist");

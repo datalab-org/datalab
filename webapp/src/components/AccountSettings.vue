@@ -30,28 +30,57 @@
         </div>
       </div>
 
-      <ul class="nav nav-tabs mb-3" role="tablist" aria-label="Account settings sections">
-        <li v-for="tab in tabs" :key="tab.id" class="nav-item" role="presentation">
+      <div class="account-toolbar d-sm-flex align-items-start mb-3">
+        <ul
+          class="nav nav-tabs flex-grow-1 mb-2 mb-sm-0"
+          role="tablist"
+          aria-label="Account settings sections"
+        >
+          <li v-for="tab in tabs" :key="tab.id" class="nav-item" role="presentation">
+            <button
+              :id="`account-tab-${tab.id}`"
+              ref="tabButtons"
+              class="nav-link"
+              :class="{ active: activeTab === tab.id }"
+              type="button"
+              role="tab"
+              :aria-label="
+                tab.id === 'profile' && hasChanges ? `${tab.label}, unsaved changes` : tab.label
+              "
+              :aria-selected="activeTab === tab.id"
+              :aria-controls="`account-panel-${tab.id}`"
+              :tabindex="activeTab === tab.id ? 0 : -1"
+              @click="activeTab = tab.id"
+              @keydown.left.prevent="moveTabFocus(-1)"
+              @keydown.right.prevent="moveTabFocus(1)"
+              @keydown.home.prevent="moveTabFocus(0, true)"
+              @keydown.end.prevent="moveTabFocus(tabs.length - 1, true)"
+            >
+              {{ tab.label }}
+              <template v-if="tab.id === 'profile' && hasChanges">
+                <span class="profile-unsaved-dot" aria-hidden="true"></span>
+              </template>
+            </button>
+          </li>
+        </ul>
+
+        <div
+          v-if="activeTab === 'profile'"
+          class="account-save d-flex flex-shrink-0 justify-content-end ml-sm-3"
+        >
           <button
-            :id="`account-tab-${tab.id}`"
-            ref="tabButtons"
-            class="nav-link"
-            :class="{ active: activeTab === tab.id }"
-            type="button"
-            role="tab"
-            :aria-selected="activeTab === tab.id"
-            :aria-controls="`account-panel-${tab.id}`"
-            :tabindex="activeTab === tab.id ? 0 : -1"
-            @click="activeTab = tab.id"
-            @keydown.left.prevent="moveTabFocus(-1)"
-            @keydown.right.prevent="moveTabFocus(1)"
-            @keydown.home.prevent="moveTabFocus(0, true)"
-            @keydown.end.prevent="moveTabFocus(tabs.length - 1, true)"
+            type="submit"
+            class="btn btn-sm"
+            :class="hasChanges ? 'btn-warning' : 'btn-info'"
+            :disabled="submitDisabled"
+            :title="submitDisabled && !hasChanges ? 'No changes to save' : undefined"
+            data-testid="profile-save"
           >
-            {{ tab.label }}
+            <font-awesome-icon icon="save" fixed-width />
+            <span class="ml-1">Save</span>
           </button>
-        </li>
-      </ul>
+        </div>
+      </div>
 
       <div class="account-panes">
         <div
@@ -143,8 +172,7 @@
                     <strong>Your contact email is not verified.</strong>
                     <div class="small">
                       Use the link in the verification email sent to
-                      {{ savedUser.contact_email }}, or choose a verified address above. Submitting
-                      this form will send a new verification email.
+                      {{ savedUser.contact_email }}, or choose a verified address above.
                     </div>
                   </div>
                 </div>
@@ -201,7 +229,8 @@
         >
           <APIKeyHelp />
 
-          <ul v-if="apiKeys.length" class="list-group mb-2 api-key-list">
+          <div v-if="apiKeys === null" class="text-muted mb-2" role="status">Loading API keys…</div>
+          <ul v-else-if="apiKeys.length" class="list-group mb-2 api-key-list">
             <li class="list-group-item d-flex align-items-center api-key-header">
               <span class="api-key-name">Label</span>
               <span class="api-key-middle text-center mx-2">Key</span>
@@ -221,12 +250,15 @@
                     v-model="apiKey"
                     :readonly="true"
                     :help-message="apiKeyHelpMessage"
+                    aria-label="Generated API key"
                     class="form-control form-control-sm"
                   />
                   <span class="input-group-append">
                     <button
                       class="btn btn-sm btn-outline-secondary"
                       type="button"
+                      title="Copy API key"
+                      aria-label="Copy API key"
                       @click="copyToClipboard"
                     >
                       <font-awesome-icon icon="copy" />
@@ -299,15 +331,6 @@
         </div>
       </div>
     </div>
-    <div v-if="activeTab === 'profile'" class="account-actions mt-4">
-      <input
-        type="submit"
-        class="btn btn-info"
-        :disabled="submitDisabled"
-        :title="submitDisabled && !hasChanges ? 'No changes to save' : undefined"
-        value="Save"
-      />
-    </div>
   </form>
 </template>
 
@@ -345,6 +368,12 @@ export default {
     UserActivityGraph,
     FormattedGroupName,
   },
+  props: {
+    active: {
+      type: Boolean,
+      default: true,
+    },
+  },
   data() {
     return {
       user: {
@@ -354,7 +383,7 @@ export default {
       },
       savedUser: {},
       hasGravatar: null,
-      apiKeys: [],
+      apiKeys: null,
       apiKey: null,
       newKeyName: "",
       newKeyNameError: false,
@@ -416,8 +445,7 @@ export default {
     submitDisabled() {
       if (this.displayNameValidationMessage || this.contactEmailValidationMessage) return true;
       if (this.addingEmail) return !this.user.contact_email;
-      // Saving an unchanged but unverified email is how a new verification email is requested
-      return !this.hasChanges && !(this.contactEmailUnverified && this.emailVerificationEnabled);
+      return !this.hasChanges;
     },
     contactEmailUnverified() {
       const saved = this.savedUser.contact_email?.toLowerCase();
@@ -443,24 +471,21 @@ export default {
     },
   },
   mounted() {
+    document.addEventListener("keydown", this.handleSaveShortcut);
     this.getUser();
     this.loadAPIKeys();
   },
+  beforeUnmount() {
+    document.removeEventListener("keydown", this.handleSaveShortcut);
+  },
   methods: {
     async submitForm() {
-      // Only send changed fields, plus an unverified contact email so its verification is re-sent
+      // Only send changed fields
       const changes = {};
       for (const field of ["display_name", "contact_email"]) {
         if ((this.user[field] || null) !== (this.savedUser[field] || null)) {
           changes[field] = this.user[field];
         }
-      }
-      if (
-        this.emailVerificationEnabled &&
-        this.contactEmailUnverified &&
-        this.user.contact_email === this.savedUser.contact_email
-      ) {
-        changes.contact_email = this.user.contact_email;
       }
       this.addingEmail = false;
       if (Object.keys(changes).length) {
@@ -471,6 +496,12 @@ export default {
         await this.getUser();
       }
       this.$store.commit("setDisplayName", this.user.display_name);
+    },
+    handleSaveShortcut(event) {
+      if (!this.active || event.key !== "s" || (!event.ctrlKey && !event.metaKey)) return;
+
+      event.preventDefault();
+      if (!this.submitDisabled) this.submitForm();
     },
     editDisplayName() {
       this.activeTab = "profile";
@@ -609,12 +640,8 @@ export default {
   cursor: not-allowed;
 }
 
-.account-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
 .nav-tabs .nav-link {
+  position: relative;
   color: #0056b3;
   font-weight: 600;
   background-color: transparent;
@@ -685,8 +712,19 @@ export default {
   line-height: 1.3;
 }
 
-.account-layout > .nav-tabs {
+.account-toolbar {
   grid-area: tabs;
+}
+
+.profile-unsaved-dot {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background-color: #ffc845;
+  box-shadow: 0 0 0 2px rgba(255, 200, 69, 0.3);
 }
 
 .account-panes {
@@ -789,5 +827,47 @@ export default {
 
 .api-key-input-group :deep(input) {
   width: 12rem;
+}
+
+@media (max-width: 767.98px) {
+  .api-key-header {
+    display: none !important;
+  }
+
+  .api-key-row {
+    flex-wrap: wrap;
+  }
+
+  .api-key-row .api-key-name {
+    order: 1;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .api-key-row .api-key-revoke {
+    order: 2;
+    flex: 0 0 auto;
+    margin-left: 0.5rem !important;
+  }
+
+  .api-key-row .api-key-middle {
+    order: 3;
+    flex: 1 0 100%;
+    justify-content: flex-start !important;
+    margin: 0.5rem 0 0 !important;
+  }
+
+  .api-key-row .api-key-date {
+    order: 4;
+    flex: 1 0 100%;
+    margin-top: 0.25rem;
+    text-align: left !important;
+  }
+
+  .api-key-input-group,
+  .api-key-input-group :deep(input) {
+    width: 100%;
+    min-width: 0;
+  }
 }
 </style>

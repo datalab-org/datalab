@@ -1,6 +1,6 @@
 <template>
   <nav class="sidebar" :aria-label="title">
-    <h2 class="sidebar-menu-header">{{ title }}</h2>
+    <div class="sidebar-menu-header">{{ title }}</div>
     <ul>
       <li v-for="item in items" :key="item">
         <button
@@ -79,5 +79,22 @@ li {
   font-weight: bold;
   text-decoration: underline;
   text-underline-offset: 0.2em;
+}
+
+@media (max-width: 767.98px) {
+  .sidebar {
+    margin-bottom: 0;
+    border-right: 0;
+    border-bottom: 1px solid lightgray;
+  }
+
+  ul {
+    display: flex;
+  }
+
+  li {
+    flex: 1 1 0;
+    margin: 0.25rem;
+  }
 }
 </style>

@@ -1,10 +1,11 @@
 <template>
   <Navbar />
+  <h1 class="sr-only">Administration</h1>
   <div v-if="!isUserLoaded" class="admin-loading" role="status">Loading administration…</div>
   <div v-else-if="!canAccessAdminPage" class="error-message">
     <p class="error-text">You do not have permission to access this page.</p>
   </div>
-  <div v-else class="admin-container">
+  <div v-else class="admin-container d-flex flex-column flex-md-row">
     <SidebarNavigation
       title="Admin Menu"
       data-testid="admin-table"
@@ -58,7 +59,7 @@ export default {
 
 <style scoped>
 .admin-container {
-  display: flex;
+  min-width: 0;
 }
 
 .admin-loading {

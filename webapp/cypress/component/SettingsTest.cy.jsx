@@ -3,6 +3,8 @@ import { createStore } from "vuex";
 
 import Settings from "@/views/Settings.vue";
 import { DialogService } from "@/services/DialogService";
+import applicationStore from "@/store/index.js";
+import { routes as applicationRoutes } from "@/router/index.js";
 
 let mountedSettings;
 
@@ -17,40 +19,30 @@ function mountSettings(path, { tagsEnabled = true, accountHasChanges } = {}) {
     routes: [
       { path: "/settings", name: "settings", component: Settings },
       { path: "/samples", name: "samples", component: { template: "<div />" } },
-      {
-        path: "/tags",
-        name: "tags",
-        redirect: { name: "settings", query: { section: "tags" } },
-      },
     ],
   });
 
-  router.push(path);
-  cy.wrap(router.isReady()).then(() => {
-    const accountSettingsStub =
-      accountHasChanges === undefined
-        ? true
-        : {
-            template: "<div />",
-            data: () => ({ hasChanges: accountHasChanges }),
-          };
+  const accountSettingsStub =
+    accountHasChanges === undefined
+      ? true
+      : {
+          template: "<div />",
+          data: () => ({ hasChanges: accountHasChanges }),
+        };
 
-    cy.mount(
-      { components: { RouterView }, template: "<RouterView />" },
-      {
-        global: {
-          plugins: [store, router],
-          stubs: {
-            Navbar: true,
-            AccountSettings: accountSettingsStub,
-            TagManagementTable: true,
-          },
-        },
+  cy.mount(RouterView, {
+    global: {
+      plugins: [store, router],
+      stubs: {
+        Navbar: true,
+        AccountSettings: accountSettingsStub,
+        TagManagementTable: true,
       },
-    ).then(({ wrapper }) => {
-      mountedSettings = wrapper;
-    });
+    },
+  }).then(({ wrapper }) => {
+    mountedSettings = wrapper;
   });
+  cy.then(() => router.push(path));
 
   return router;
 }
@@ -86,16 +78,6 @@ describe("Settings view", () => {
     });
   });
 
-  it("redirects the legacy tags route and opens tag management", () => {
-    const router = mountSettings("/tags");
-
-    cy.contains("button", "Tag management").should("have.class", "selected");
-    cy.get("tag-management-table-stub").should("exist");
-    cy.wrap(null).should(() => {
-      expect(router.currentRoute.value.fullPath).to.equal("/settings?section=tags");
-    });
-  });
-
   it("hides tag management when tags are disabled", () => {
     mountSettings("/settings", { tagsEnabled: false });
 
@@ -127,6 +109,24 @@ describe("Settings view", () => {
     });
   });
 
+  it("preserves an unsaved profile draft while viewing Tag management", () => {
+    const confirm = cy.stub(DialogService, "confirm").resolves(false);
+    const router = mountSettings("/settings", { accountHasChanges: true });
+
+    cy.contains("button", "Tag management").click();
+    cy.wrap(null).should(() => {
+      expect(router.currentRoute.value.fullPath).to.equal("/settings?section=tags");
+      expect(confirm).not.to.have.been.called;
+    });
+
+    cy.contains("button", "Account").click();
+    cy.then(() => router.push("/samples"));
+    cy.wrap(null).should(() => {
+      expect(router.currentRoute.value.fullPath).to.equal("/settings");
+      expect(confirm).to.have.been.calledOnce;
+    });
+  });
+
   it("leaves without prompting when the account form is unchanged", () => {
     const confirm = cy.stub(DialogService, "confirm").resolves(false);
     const router = mountSettings("/settings", { accountHasChanges: false });
@@ -147,7 +147,7 @@ describe("Settings view", () => {
       expect(router.currentRoute.value.fullPath).to.equal("/settings");
       expect(confirm).to.have.been.calledOnceWith({
         title: "Unsaved Changes",
-        message: "You have unsaved changes. Leave without saving?",
+        message: "Your profile has unsaved changes. Leave without saving?",
         type: "warning",
         confirmButtonText: "Leave",
         cancelButtonText: "Stay",
@@ -155,7 +155,7 @@ describe("Settings view", () => {
     });
   });
 
-  it("leaves Settings when discarding unsaved account changes is confirmed", () => {
+  it("leaves Settings when leaving with unsaved account changes is confirmed", () => {
     cy.stub(DialogService, "confirm").resolves(true).as("confirmLeave");
     const router = mountSettings("/settings", { accountHasChanges: true });
 
@@ -197,5 +197,44 @@ describe("Settings view", () => {
       "beforeunload",
       Cypress.sinon.match.func,
     );
+  });
+
+  it("stacks navigation above the content on narrow screens", () => {
+    cy.viewport(575, 667);
+    mountSettings("/settings");
+
+    cy.get(".settings-container")
+      .should("have.class", "flex-column")
+      .and("have.class", "flex-md-row");
+    cy.get("[data-testid='settings-table'] ul").should("have.css", "display", "flex");
+    cy.get("[data-testid='settings-table']").should("have.css", "border-right-width", "0px");
+    cy.get(".settings-container").should(($container) => {
+      expect($container[0].scrollWidth).to.be.at.most($container[0].clientWidth);
+    });
+  });
+});
+
+describe("Settings routes", () => {
+  function createApplicationRouter() {
+    return createRouter({ history: createMemoryHistory(), routes: applicationRoutes });
+  }
+
+  afterEach(() => {
+    applicationStore.commit("setServerInfo", null);
+  });
+
+  it("loads server metadata before resolving a cold Settings route", () => {
+    applicationStore.commit("setServerInfo", null);
+    cy.intercept("GET", "**/info", {
+      body: { data: { attributes: { features: { tags: true } } } },
+    }).as("getServerInfo");
+    const router = createApplicationRouter();
+
+    cy.then(() => router.push("/settings?section=tags"));
+    cy.wait("@getServerInfo");
+    cy.then(() => {
+      expect(router.currentRoute.value.fullPath).to.equal("/settings?section=tags");
+      expect(applicationStore.state.serverInfo.features.tags).to.be.true;
+    });
   });
 });

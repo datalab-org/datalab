@@ -14,7 +14,11 @@ import { API_URL, WEBSITE_TITLE } from "@/resources.js";
 import { getInfo } from "@/server_fetch_utils.js";
 import store from "@/store/index.js";
 
-const routes = [
+async function getServerInfo() {
+  return store.state.serverInfo ?? (await getInfo());
+}
+
+export const routes = [
   {
     path: "/about",
     name: "About",
@@ -65,19 +69,8 @@ const routes = [
     path: "/settings",
     name: "settings",
     component: Settings,
-  },
-  {
-    path: "/tags",
-    name: "tags",
-    component: Settings,
-    // Only reachable when the backend reports the tags feature as enabled.
-    beforeEnter: async (to, from, next) => {
-      const serverInfo = store.state.serverInfo ?? (await getInfo());
-      if (serverInfo.features?.tags) {
-        next({ name: "settings", query: { section: "tags" }, replace: true });
-      } else {
-        next({ path: "/" });
-      }
+    beforeEnter: async () => {
+      await getServerInfo();
     },
   },
   {
