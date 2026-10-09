@@ -19,10 +19,10 @@ from pydatalab.config import CONFIG
 from pydatalab.feature_flags import FEATURE_FLAGS
 from pydatalab.logger import LOGGER
 from pydatalab.models import (
-    BUILTIN_ITEM_TYPES,
     ITEM_MODELS,
     ItemVersion,
     flagged_summary_fields,
+    item_types_behaving_as,
 )
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
@@ -100,7 +100,8 @@ def get_equipment_summary():
         },
     }
 
-    for field in flagged_summary_fields(("equipment",)):
+    equipment_types = item_types_behaving_as("equipment")
+    for field in flagged_summary_fields(equipment_types):
         _project.setdefault(field, 1)
 
     items = [
@@ -109,7 +110,7 @@ def get_equipment_summary():
             [
                 {
                     "$match": {
-                        "type": "equipment",
+                        "type": {"$in": equipment_types},
                         **get_default_permissions(user_only=False, inherit_from_collections=False),
                     }
                 },
@@ -167,7 +168,8 @@ def get_starting_materials():
         },
     }
 
-    for field in flagged_summary_fields(("starting_materials",)):
+    starting_material_types = item_types_behaving_as("starting_materials")
+    for field in flagged_summary_fields(starting_material_types):
         _project.setdefault(field, 1)
 
     items = [
@@ -176,7 +178,7 @@ def get_starting_materials():
             [
                 {
                     "$match": {
-                        "type": "starting_materials",
+                        "type": {"$in": starting_material_types},
                         **get_default_permissions(user_only=False, inherit_from_collections=False),
                     }
                 },
@@ -319,10 +321,9 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
     if not match:
         match = {}
     match.update(get_default_permissions(user_only=False, inherit_from_collections=False))
-    # Custom/plugin item types are surfaced in the samples listing for now (a
-    # `base_type`-aware split into samples/equipment/inventory can refine this later).
-    custom_item_types = [t for t in ITEM_MODELS if t not in BUILTIN_ITEM_TYPES]
-    match["type"] = {"$in": ["samples", "cells", *custom_item_types]}
+    # Custom/plugin item types are surfaced in the samples listing, unless they behave as
+    # an inventory type (via the `datalab_behave_as` model hint).
+    match["type"] = {"$in": [t for t in ITEM_MODELS if t not in INVENTORY_TYPES]}
 
     _project = {
         "_id": 0,

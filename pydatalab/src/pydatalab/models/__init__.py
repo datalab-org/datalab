@@ -103,6 +103,21 @@ refresh_item_models()
 BUILTIN_ITEM_TYPES = frozenset(ITEM_MODELS)
 
 
+def _behave_as_hint(model: type[Item]) -> str | None:
+    """Return the ``datalab_behave_as`` hint declared on a model's config, if any."""
+    extra = model.model_config.get("json_schema_extra")
+    return extra.get("datalab_behave_as") if isinstance(extra, dict) else None
+
+
+def item_types_behaving_as(builtin_type: str) -> list[str]:
+    """Return `builtin_type` and the registered custom types that behave as it."""
+    return [
+        item_type
+        for item_type, model in ITEM_MODELS.items()
+        if item_type == builtin_type or _behave_as_hint(model) == builtin_type
+    ]
+
+
 def _namespace_item_model(model: type[Item], item_type: str) -> str:
     """Rewrite the `type` literal of an item model *in place* to `item_type`.
 
@@ -176,8 +191,21 @@ def register_item_model(model: type[Item]) -> None:
 
     validate_schema_hints(model)
 
+    behave_as = _behave_as_hint(model)
+    if behave_as is not None and not issubclass(model, ITEM_MODELS[behave_as]):
+        raise ValueError(
+            f"Custom item model {model.__name__!r} declares datalab_behave_as={behave_as!r} "
+            f"but does not inherit from {ITEM_MODELS[behave_as].__name__!r}."
+        )
+
     ITEM_MODELS[item_type] = model
     ITEM_SCHEMAS[item_type] = model.model_json_schema(by_alias=False)
+
+    # Imported lazily, as `pydatalab.permissions` imports this module (via the config)
+    from pydatalab.permissions import INVENTORY_TYPES
+
+    if behave_as in INVENTORY_TYPES:
+        INVENTORY_TYPES.add(item_type)
 
 
 def constituent_item_types() -> set[str]:
@@ -255,6 +283,7 @@ __all__ = (
     "ITEM_MODELS",
     "ITEM_SCHEMAS",
     "BUILTIN_ITEM_TYPES",
+    "item_types_behaving_as",
     "register_item_model",
     "refresh_item_models",
     "load_custom_item_models",

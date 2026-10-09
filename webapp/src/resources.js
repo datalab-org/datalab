@@ -187,7 +187,11 @@ function lightTint(hex, amount = 0.82) {
 // - hidden_fields: base-component fields the plugin wants to hide (from model_config)
 // - title: human-readable display name
 // - ui_color: accent color for navbar/labels (`datalab_ui_color` on model_config)
-export function registerDynamicItemType(type, { title, base_type, hidden_fields, ui_color } = {}) {
+// - behave_as: inventory type whose page, pickers and sharing this type follows (`datalab_behave_as`)
+export function registerDynamicItemType(
+  type,
+  { title, base_type, hidden_fields, ui_color, behave_as } = {},
+) {
   if (!type || itemTypes[type]) return; // never clobber a built-in / existing entry
   const display = title || prettifyType(type);
   const color = ui_color || "#4a4a4a";
@@ -201,16 +205,31 @@ export function registerDynamicItemType(type, { title, base_type, hidden_fields,
     display: display.toLowerCase(),
     isDynamic: true,
     baseType: base_type || null,
+    behaveAs: behave_as || null,
     hiddenFields: hidden_fields || [],
     customPanel: PLUGIN_PANELS[type] || null,
   };
+  // As in the backend, these lists are mutated in place as they are imported by value elsewhere
+  if (behave_as === "starting_materials") {
+    INVENTORY_TABLE_TYPES.push(type);
+    INVENTORY_TYPES.push(type);
+  } else if (behave_as === "equipment") {
+    EQUIPMENT_TABLE_TYPES.push(type);
+    INVENTORY_TYPES.push(type);
+  }
 }
 
 export const SAMPLE_TABLE_TYPES = ["samples", "cells"];
-export const INVENTORY_TABLE_TYPES = ["starting_materials"];
-export const EQUIPMENT_TABLE_TYPES = ["equipment"];
+export const INVENTORY_TABLE_TYPES = reactive(["starting_materials"]);
+export const EQUIPMENT_TABLE_TYPES = reactive(["equipment"]);
 // Item types that are shared across the deployment, optionally restricted to groups
-export const INVENTORY_TYPES = [...INVENTORY_TABLE_TYPES, ...EQUIPMENT_TABLE_TYPES];
+export const INVENTORY_TYPES = reactive([...INVENTORY_TABLE_TYPES, ...EQUIPMENT_TABLE_TYPES]);
+
+// Add the custom types behaving as any of the given types, e.g. for item pickers
+export function expandItemTypes(types) {
+  const custom = Object.keys(itemTypes).filter((type) => types.includes(itemTypes[type].behaveAs));
+  return [...new Set([...types, ...custom])];
+}
 
 // Curated palette of distinguishable preset colors offered for tag colors.
 export const TAG_COLOR_PALETTE = [

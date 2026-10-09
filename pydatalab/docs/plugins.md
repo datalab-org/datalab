@@ -105,8 +105,33 @@ class MySample(Sample):
     )
 ```
 
-For now, all custom item types are created and listed from the Samples page, regardless of their
-Python base model.
+By default, custom item types are created and listed from the Samples page, and are owned by
+their creators like samples, regardless of their Python base model. A custom type that subclasses
+`StartingMaterial` or `Equipment` can instead opt into behaving like that built-in type, by
+declaring the `datalab_behave_as` hint on its model config:
+
+```python
+from pydantic import ConfigDict
+from pydatalab.models.starting_materials import StartingMaterial
+
+
+class Precursor(StartingMaterial):
+    model_config = ConfigDict(
+        title="Precursor",
+        json_schema_extra={"datalab_behave_as": "starting_materials"},
+    )
+    type: Literal["precursors"] = "precursors"
+```
+
+Such a type is then:
+
+- listed and created from the Inventory (or Equipment) page rather than the Samples page;
+- offered by item pickers that search for the built-in type (e.g. synthesis constituents);
+- shared like an inventory item: it has no creators, is readable and editable by all users
+  unless restricted to groups, and follows the `UNGROUPED_INVENTORY` server setting.
+
+The hint must name a built-in type that the model inherits from, otherwise registration fails.
+Without it, the behaviour of a custom type is unchanged.
 
 There are two ways to register a custom item type, both of which run at server startup and require no changes to the core code:
 
@@ -183,6 +208,7 @@ A few keys on the model's `model_config` control the type as a whole:
 | `datalab_ui_color` | accent colour for the navbar, field labels and the item's reference badge |
 | `datalab_ui_hidden_fields` | base-component sections to hide (`status`, `collections`, `description`, `substance_information`, `synthesis_information`, `tags`, `location`) |
 | `datalab_section_title` | title of the default custom-fields card |
+| `datalab_behave_as` | built-in type (`starting_materials`, `equipment`, `samples`, `cells`) whose listing page, item pickers and sharing permissions the type follows (see above) |
 
 Only **scalar-like** fields are rendered automatically: strings, numbers, enums, booleans, unit
 quantities, and single item references. Lists, nested objects, computed values or charts need a
