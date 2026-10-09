@@ -11,7 +11,12 @@ import pandas as pd
 from bson import ObjectId
 from flask.json.provider import DefaultJSONProvider
 
-__all__ = ("reduce_df_size", "CustomJSONEncoder", "BSONProvider")
+__all__ = ("reduce_df_size", "CustomJSONEncoder", "BSONProvider", "is_truthy_query_value")
+
+
+def is_truthy_query_value(value: str) -> bool:
+    """Return whether a query value is ``1`` or case-insensitive ``true``."""
+    return value.casefold() in {"1", "true"}
 
 
 def reduce_df_size(df: pd.DataFrame, target_nrows: int, endpoint: bool = True) -> pd.DataFrame:

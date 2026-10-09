@@ -9,6 +9,7 @@ from pydatalab.mongo import (
     flask_mongo,
 )
 from pydatalab.permissions import active_users_or_get_only
+from pydatalab.utils import is_truthy_query_value
 
 GROUPS = Blueprint("groups", __name__)
 
@@ -25,7 +26,7 @@ def search_groups():
         query: String with the search terms.
         nresults: Maximum number of results (default 100)
         member_only: Whether to only return groups that the current user is a member of
-            (default false); admins are always shown all groups.
+            (`1` or case-insensitive `true`; default false); admins are always shown all groups.
 
     Returns:
         response list of dictionaries containing the matching groups in order of
@@ -34,7 +35,7 @@ def search_groups():
 
     query = request.args.get("query", type=str)
     nresults = request.args.get("nresults", default=100, type=int)
-    member_only = request.args.get("member_only", default="false").lower() == "true"
+    member_only = request.args.get("member_only", default=False, type=is_truthy_query_value)
 
     if not query:
         return jsonify({"status": "error", "message": "No query provided"}), 400

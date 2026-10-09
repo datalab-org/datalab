@@ -63,6 +63,14 @@ def test_store_oauth_next_path_rejects_external_url(app):
         assert session_key not in session
 
 
+def test_store_oauth_remember_accepts_true(app):
+    blueprint = SimpleNamespace(name="github")
+
+    with app.test_request_context("/login/github", query_string={"remember": "true"}):
+        store_oauth_next_path(blueprint, "https://github.com/login/oauth/authorize")
+        assert session[REMEMBER_ME_SESSION_KEY] is True
+
+
 def test_oauth_redirect_uses_next_path_once(app, monkeypatch):
     from pydatalab import config
 
