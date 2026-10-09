@@ -1,32 +1,13 @@
-# <div align="center"><i>datalab</i></div>
+<div align="center"><img width="250" height="250" alt="logo" src="https://github.com/user-attachments/assets/ea95e467-dd39-4f2b-83d5-5d70abb5c844" /></div>
 
+
+# <div align="center"><i>datalab</i></div>
 
 
 <div align="center" style="padding-bottom: 5px">
 <a href="https://demo.datalab-org.io"><img src="https://img.shields.io/badge/try_it_out!-public_demo_server-orange?logo=firefox"></a>
-</div>
-
-<div align="center">
-<a href="https://github.com/datalab-org/datalab/releases"><img src="https://img.shields.io/github/v/release/datalab-org/datalab?color=blue&logo=github"></a>
 <a href="https://github.com/datalab-org/datalab#MIT-1-ov-file"><img src="https://img.shields.io/github/license/datalab-org/datalab?color=purple&logo=github"></a>
-</div>
-
-<div align="center">
-<a href="https://github.com/datalab-org/datalab/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/datalab-org/datalab/ci.yml?logo=github"></a>
-<a href="https://cloud.cypress.io/projects/4kqx5i/runs"><img src="https://img.shields.io/endpoint?url=https://cloud.cypress.io/badge/simple/4kqx5i/main&style=flat&logo=cypress"></a>
 <a href="https://the-datalab.readthedocs.io/en/latest/?badge=latest"><img src="https://img.shields.io/readthedocs/the-datalab?logo=readthedocs"></a>
-</div>
-
-<div align="center">
-<a href="https://github.com/datalab-org/datalab-ansible-terraform">
-  <img alt="Static Badge" src="https://img.shields.io/badge/Ansible-playbook-white?logo=ansible">
-</a>
-<a href="https://pypi.org/project/datalab-api">
-  <img alt="PyPI - Version" src="https://img.shields.io/pypi/v/datalab-api?logo=pypi&label=Python%20API">
-</a>
-</div>
-
-<div align="center">
 <a href="https://join.slack.com/t/datalab-world/shared_invite/zt-2h58ev3pc-VV496~5je~QoT2TgFIwn4g"><img src="https://img.shields.io/badge/Slack-chat_with_us-yellow?logo=slack"></a>
 </div>
 
