@@ -224,7 +224,12 @@ def search_users():
     if not query:
         return jsonify({"status": "error", "message": "No query provided."}), 400
 
-    pipeline = build_search_pipeline(query, USERS_FTS_FIELDS, permissions=None)
+    # Deleted accounts cannot be given access to anything, so are never offered as results
+    pipeline = build_search_pipeline(
+        query,
+        USERS_FTS_FIELDS,
+        permissions={"account_status": {"$ne": AccountStatus.DELETED}},
+    )
     pipeline.append({"$limit": nresults})
     pipeline.append(
         {
