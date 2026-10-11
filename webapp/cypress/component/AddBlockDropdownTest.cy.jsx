@@ -38,4 +38,35 @@ describe("AddBlockDropdown", () => {
 
     cy.get('[data-testid="add-block-trigger"]').should("not.exist");
   });
+
+  it("intersects global availability with the item type allowlist", () => {
+    cy.mount(AddBlockDropdown, {
+      props: {
+        triggerTestid: "add-block-trigger",
+        blockTypeAllowList: ["comment", "media"],
+        allBlockTypes: [
+          blockInfo("comment", "Comment", true),
+          blockInfo("media", "Media", false),
+          blockInfo("xrd", "Powder XRD", true),
+        ],
+      },
+    });
+
+    cy.get('[data-testid="add-block-trigger"]').click();
+    cy.contains("Comment").should("exist");
+    cy.contains("Media").should("not.exist");
+    cy.contains("Powder XRD").should("not.exist");
+  });
+
+  it("hides the control for an empty item type allowlist", () => {
+    cy.mount(AddBlockDropdown, {
+      props: {
+        triggerTestid: "add-block-trigger",
+        blockTypeAllowList: [],
+        allBlockTypes: [blockInfo("comment", "Comment", true)],
+      },
+    });
+
+    cy.get('[data-testid="add-block-trigger"]').should("not.exist");
+  });
 });

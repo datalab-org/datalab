@@ -23,6 +23,50 @@ def test_block_type_allow_list_settings():
     ]
 
 
+def test_item_type_allow_list_settings(monkeypatch):
+    from pydatalab.config import ServerConfig, normalize_item_type_allow_list
+
+    assert ServerConfig().ITEM_TYPE_ALLOW_LIST is None
+    assert (
+        normalize_item_type_allow_list(ServerConfig(ITEM_TYPE_ALLOW_LIST=[]).ITEM_TYPE_ALLOW_LIST)
+        == {}
+    )
+
+    config = ServerConfig(
+        ITEM_TYPE_ALLOW_LIST=[
+            "samples",
+            {"type": "cells", "block_type_allow_list": ["comment", "cycle"]},
+            {"type": "equipment", "block_type_allow_list": []},
+        ]
+    )
+    assert normalize_item_type_allow_list(config.ITEM_TYPE_ALLOW_LIST) == {
+        "samples": None,
+        "cells": ["comment", "cycle"],
+        "equipment": [],
+    }
+
+    monkeypatch.setenv(
+        "PYDATALAB_ITEM_TYPE_ALLOW_LIST",
+        '["samples", {"type": "cells", "block_type_allow_list": ["comment"]}]',
+    )
+    assert normalize_item_type_allow_list(ServerConfig().ITEM_TYPE_ALLOW_LIST) == {
+        "samples": None,
+        "cells": ["comment"],
+    }
+
+
+def test_item_type_allow_list_rejects_duplicate_types():
+    from pydatalab.config import ServerConfig
+
+    with pytest.raises(ValueError, match="duplicate item types: samples"):
+        ServerConfig(
+            ITEM_TYPE_ALLOW_LIST=[
+                "samples",
+                {"type": "samples", "block_type_allow_list": []},
+            ]
+        )
+
+
 def test_update_settings():
     from pydatalab.config import ServerConfig
 

@@ -135,6 +135,12 @@ There are two ways to register a custom item type, both of which run at server s
 Fields tagged with `json_schema_extra={"datalab_include_field_in_summary": True}` are additionally included in item list/summary responses.
 A worked example of both a `Sample` subclass and a standalone `Item` subclass lives at `pydatalab/src/pydatalab/models/_example_custom.py`.
 
+Deployments using `ITEM_TYPE_ALLOW_LIST` must refer to a custom type by its final registered slug,
+including the leading underscore (for example, `_my_samples`). A string entry permits every
+globally available block, while an object entry can provide a narrower `block_type_allow_list`.
+See [Item and block availability](config.md#item-and-block-availability) for the complete
+configuration semantics.
+
 ### What belongs in a custom item type
 
 Custom item types are for metadata that describes the item itself, and in particular for values recorded for *every* item of that type:

@@ -227,7 +227,9 @@ def create_app(
     register_endpoints(app)
 
     from pydatalab.apps import warn_for_unknown_block_types
+    from pydatalab.models import warn_for_unknown_item_types
 
+    warn_for_unknown_item_types()
     warn_for_unknown_block_types()
     LOGGER.info("App created.")
 

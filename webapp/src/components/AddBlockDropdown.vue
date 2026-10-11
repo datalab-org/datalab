@@ -74,6 +74,10 @@ export default {
       type: Array,
       default: () => [],
     },
+    blockTypeAllowList: {
+      type: Array,
+      default: null,
+    },
     // "navlink" renders a navbar nav-link trigger; "button" renders a btn-primary trigger
     variant: {
       type: String,
@@ -111,12 +115,10 @@ export default {
   },
   computed: {
     availableSuggestedBlockTypes() {
-      return this.suggestedBlockTypes.filter(
-        (blockInfo) => blockInfo.attributes?.available !== false,
-      );
+      return this.suggestedBlockTypes.filter(this.isBlockAvailable);
     },
     availableBlockTypes() {
-      return this.allBlockTypes.filter((blockInfo) => blockInfo.attributes?.available !== false);
+      return this.allBlockTypes.filter(this.isBlockAvailable);
     },
     hasAvailableBlockTypes() {
       return this.availableSuggestedBlockTypes.length > 0 || this.availableBlockTypes.length > 0;
@@ -136,6 +138,12 @@ export default {
     document.removeEventListener("keydown", this.handleEscape);
   },
   methods: {
+    isBlockAvailable(blockInfo) {
+      return (
+        blockInfo.attributes?.available !== false &&
+        (this.blockTypeAllowList === null || this.blockTypeAllowList.includes(blockInfo.id))
+      );
+    },
     toggle() {
       this.isOpen = !this.isOpen;
     },

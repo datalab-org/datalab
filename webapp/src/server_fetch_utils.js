@@ -1456,6 +1456,8 @@ export async function loadItemSchemas() {
         base_type: typeInfo.attributes?.base_type,
         hidden_fields: typeInfo.attributes?.hidden_fields,
         ui_color: typeInfo.attributes?.ui_color,
+        available: typeInfo.attributes?.available,
+        block_type_allow_list: typeInfo.attributes?.block_type_allow_list,
       }),
     );
     await Promise.all(supportedTypes.map((typeInfo) => ensureItemSchema(typeInfo.id)));

@@ -41,7 +41,7 @@ This prefix should be set to something relatively short (max 10 chars.) that des
 This can be set either via a config file, or as an environment variable (e.g., `PYDATALAB_IDENTIFIER_PREFIX='grey'`).
 Be warned, if the prefix changes between server launches, all entries will have to be migrated manually to the desired prefix, or maintained at the old prefix.
 
-## Block availability
+## Item and block availability
 
 Deployments can restrict which data block types users may add with
 [`BLOCK_TYPE_ALLOW_LIST`][pydatalab.config.ServerConfig.BLOCK_TYPE_ALLOW_LIST].
@@ -68,6 +68,52 @@ startup, which allows temporarily missing plugins without preventing the deploym
 Changing the allowlist does not remove or disable blocks that are already stored. Existing blocks
 remain viewable, editable, and deletable; the setting only controls which types may be added after
 the restriction is applied.
+
+Deployments can also restrict which item types users may create, and optionally narrow the blocks
+that may be added to each item type, with
+[`ITEM_TYPE_ALLOW_LIST`][pydatalab.config.ServerConfig.ITEM_TYPE_ALLOW_LIST]. Entries can be either
+an item type slug or an object containing a `type` and `block_type_allow_list`:
+
+```json
+{
+  "ITEM_TYPE_ALLOW_LIST": [
+    "samples",
+    {
+      "type": "cells",
+      "block_type_allow_list": ["comment", "cycle"]
+    },
+    {
+      "type": "equipment",
+      "block_type_allow_list": []
+    }
+  ]
+}
+```
+
+A string entry allows that item type to use every block permitted by the global
+`BLOCK_TYPE_ALLOW_LIST`. An object entry restricts new blocks to the intersection of its
+`block_type_allow_list` and the global list. An empty nested list allows creating the item type but
+prevents adding blocks to it.
+
+The equivalent environment variable is a JSON list:
+
+```bash
+export PYDATALAB_ITEM_TYPE_ALLOW_LIST='["samples", {"type": "cells", "block_type_allow_list": ["comment", "cycle"]}]'
+```
+
+The default value, `null`/`None`, allows every registered item type with no additional per-type
+block restriction. An empty top-level list prevents creating any new items or blocks. When the
+setting is present, item types omitted from it cannot be created and existing items of those types
+cannot receive new blocks. Duplicate item type entries are invalid because their block policy
+would be ambiguous.
+
+Item and block slugs are exact and case-sensitive. Built-in and plugin-provided types use the same
+registries; custom item types must use their final registered slug (including the leading `_` added
+by Datalab when applicable). Unknown slugs produce a startup warning and are ignored.
+
+These settings only control creation. Existing restricted items and blocks remain viewable,
+editable, saveable, deletable, exportable, and restorable, so changing deployment policy does not
+require a database migration.
 
 ## User registration & authentication
 

@@ -210,6 +210,93 @@ def test_unknown_custom_type_rejected(client, custom_item_models):
     assert response.status_code == 400, response.json
 
 
+def test_item_type_allow_list_controls_info_and_creation(client, custom_item_models, monkeypatch):
+    from pydatalab.config import CONFIG, ItemTypeAllowListEntry
+
+    monkeypatch.setattr(
+        CONFIG,
+        "ITEM_TYPE_ALLOW_LIST",
+        [
+            "samples",
+            ItemTypeAllowListEntry(
+                type="_my_samples",
+                block_type_allow_list=["comment"],
+            ),
+        ],
+    )
+
+    response = client.get("/info/types")
+    assert response.status_code == 200
+    type_info = {entry["id"]: entry["attributes"] for entry in response.json["data"]}
+    assert type_info["samples"]["available"] is True
+    assert type_info["samples"]["block_type_allow_list"] is None
+    assert type_info["_my_samples"]["available"] is True
+    assert type_info["_my_samples"]["block_type_allow_list"] == ["comment"]
+    assert type_info["cells"]["available"] is False
+    assert type_info["cells"]["block_type_allow_list"] == []
+
+    response = client.post(
+        "/new-sample/",
+        json={"new_sample_data": {"type": "cells", "item_id": "restricted-cell-type"}},
+    )
+    assert response.status_code == 403
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "_my_samples",
+                "item_id": "allowed-custom-type",
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+
+def test_existing_item_remains_editable_when_type_is_restricted(
+    client, default_sample_dict, monkeypatch
+):
+    from pydatalab.config import CONFIG
+
+    sample_data = default_sample_dict.copy()
+    sample_data["item_id"] = "existing-restricted-item-type"
+    response = client.post("/new-sample/", json=sample_data)
+    assert response.status_code == 201, response.json
+
+    monkeypatch.setattr(CONFIG, "ITEM_TYPE_ALLOW_LIST", [])
+
+    response = client.get(f"/get-item-data/{sample_data['item_id']}")
+    assert response.status_code == 200
+    item_data = response.json["item_data"]
+    item_data["description"] = "Updated after restricting its item type"
+
+    response = client.post(
+        "/save-item/",
+        json={"item_id": sample_data["item_id"], "data": item_data},
+    )
+    assert response.status_code == 200, response.json
+
+
+def test_unknown_item_types_warn_and_are_ignored(monkeypatch):
+    from pydatalab.config import CONFIG
+    from pydatalab.logger import LOGGER
+    from pydatalab.models import warn_for_unknown_item_types
+
+    warning_messages = []
+    monkeypatch.setattr(CONFIG, "ITEM_TYPE_ALLOW_LIST", ["samples", "missing-plugin-item"])
+    monkeypatch.setattr(
+        LOGGER,
+        "warning",
+        lambda message, *args: warning_messages.append(message % args),
+    )
+
+    warn_for_unknown_item_types()
+
+    assert warning_messages == [
+        "Ignoring unknown item types in ITEM_TYPE_ALLOW_LIST: missing-plugin-item"
+    ]
+
+
 def test_bad_custom_item_type_rejected():
     """A custom model is rejected at registration time if it reuses a reserved
     built-in `type`, or is not an `Item` subclass at all."""
