@@ -148,7 +148,9 @@ def save_role(user_id):
             403,
         )
 
-    existing_user = flask_mongo.db.users.find_one({"_id": ObjectId(user_id)})
+    existing_user = flask_mongo.db.users.find_one(
+        {"_id": ObjectId(user_id), "account_status": {"$ne": AccountStatus.DELETED}}
+    )
 
     if not existing_user:
         return (jsonify({"status": "error", "message": "User not found."}), 404)
@@ -197,7 +199,9 @@ def update_user_managers(user_id):
     if not isinstance(managers, list):
         return jsonify({"status": "error", "message": "Managers must be a list"}), 400
 
-    existing_user = flask_mongo.db.users.find_one({"_id": ObjectId(user_id)})
+    existing_user = flask_mongo.db.users.find_one(
+        {"_id": ObjectId(user_id), "account_status": {"$ne": AccountStatus.DELETED}}
+    )
     if not existing_user:
         return jsonify({"status": "error", "message": "User not found"}), 404
 
@@ -211,7 +215,9 @@ def update_user_managers(user_id):
                     {"status": "error", "message": f"Invalid manager ID format: {manager_id}"}
                 ), 400
 
-            if not flask_mongo.db.users.find_one({"_id": manager_oid}):
+            if not flask_mongo.db.users.find_one(
+                {"_id": manager_oid, "account_status": {"$ne": AccountStatus.DELETED}}
+            ):
                 return jsonify(
                     {"status": "error", "message": f"Manager with ID {manager_id} not found"}
                 ), 404
@@ -520,7 +526,11 @@ def create_group():
         raise BadRequest(f"Invalid new group data: {str(e)}")
 
     bad_managers = [
-        m for m in group_json["managers"] if not flask_mongo.db.users.find_one({"_id": ObjectId(m)})
+        m
+        for m in group_json["managers"]
+        if not flask_mongo.db.users.find_one(
+            {"_id": ObjectId(m), "account_status": {"$ne": AccountStatus.DELETED}}
+        )
     ]
     if bad_managers:
         raise BadRequest(
@@ -575,7 +585,11 @@ def update_group(group_immutable_id: str):
     if "managers" in request_json:
         update_data["managers"] = [ObjectId(u) for u in request_json["managers"]]
         bad_managers = [
-            m for m in update_data["managers"] if not flask_mongo.db.users.find_one({"_id": m})
+            m
+            for m in update_data["managers"]
+            if not flask_mongo.db.users.find_one(
+                {"_id": m, "account_status": {"$ne": AccountStatus.DELETED}}
+            )
         ]
         if bad_managers:
             raise BadRequest(
@@ -622,7 +636,7 @@ def add_user_to_group(group_immutable_id: str):
         raise NotFound("Group does not exist.")
 
     update_user = flask_mongo.db.users.update_one(
-        {"_id": ObjectId(user_id)},
+        {"_id": ObjectId(user_id), "account_status": {"$ne": AccountStatus.DELETED}},
         {"$addToSet": {"groups": {"immutable_id": ObjectId(group_immutable_id)}}},
     )
 
