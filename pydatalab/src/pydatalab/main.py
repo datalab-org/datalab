@@ -225,6 +225,10 @@ def create_app(
     load_custom_item_models(CONFIG.CUSTOM_ITEM_MODELS)
 
     register_endpoints(app)
+
+    from pydatalab.apps import warn_for_unknown_block_types
+
+    warn_for_unknown_block_types()
     LOGGER.info("App created.")
 
     @app.route(f"{CONFIG.ROOT_PATH}logout")

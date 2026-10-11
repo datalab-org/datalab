@@ -1,5 +1,5 @@
 <template>
-  <div ref="root" :class="rootClass">
+  <div v-if="hasAvailableBlockTypes" ref="root" :class="rootClass">
     <button
       v-if="variant === 'button'"
       :id="triggerId"
@@ -31,23 +31,23 @@
       :data-testid="menuTestid"
       :aria-labelledby="triggerId"
     >
-      <h6 v-if="suggestedBlockTypes.length > 0" class="dropdown-header">
+      <h6 v-if="availableSuggestedBlockTypes.length > 0" class="dropdown-header">
         Suggested based on your files
       </h6>
       <span
-        v-for="blockInfo in suggestedBlockTypes"
+        v-for="blockInfo in availableSuggestedBlockTypes"
         :key="keyPrefix + '-suggested-' + blockInfo.id"
         @click="onSelect(blockInfo.id)"
       >
         <BlockTooltip :block-info="blockInfo.attributes" />
       </span>
       <div
-        v-if="suggestedBlockTypes.length > 0 && allBlockTypes.length > 0"
+        v-if="availableSuggestedBlockTypes.length > 0 && availableBlockTypes.length > 0"
         class="dropdown-divider"
       ></div>
-      <h6 v-if="allBlockTypes.length > 0" class="dropdown-header">All block types</h6>
+      <h6 v-if="availableBlockTypes.length > 0" class="dropdown-header">All block types</h6>
       <span
-        v-for="blockInfo in allBlockTypes"
+        v-for="blockInfo in availableBlockTypes"
         :key="keyPrefix + '-all-' + blockInfo.id"
         @click="onSelect(blockInfo.id)"
       >
@@ -110,6 +110,17 @@ export default {
     };
   },
   computed: {
+    availableSuggestedBlockTypes() {
+      return this.suggestedBlockTypes.filter(
+        (blockInfo) => blockInfo.attributes?.available !== false,
+      );
+    },
+    availableBlockTypes() {
+      return this.allBlockTypes.filter((blockInfo) => blockInfo.attributes?.available !== false);
+    },
+    hasAvailableBlockTypes() {
+      return this.availableSuggestedBlockTypes.length > 0 || this.availableBlockTypes.length > 0;
+    },
     rootClass() {
       const base = this.variant === "button" ? ["d-inline-block"] : ["nav-item"];
       base.push(this.direction === "up" ? "dropup" : "dropdown");
