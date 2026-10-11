@@ -247,9 +247,17 @@ def _find_user_references(user_id: ObjectId) -> dict[str, int]:
         "items": db.items.count_documents({"creator_ids": user_id}),
         "collections": db.collections.count_documents({"creator_ids": user_id}),
         "files": db.files.count_documents({"creator_ids": user_id}),
-        "item_versions": db.item_versions.count_documents({"user_id": user_id}),
+        "blocks": db.blocks.count_documents({"creator_ids": user_id}),
+        # Versions record both the saving user and a snapshot of the item, whose
+        # creators may since have changed
+        "item_versions": db.item_versions.count_documents(
+            {"$or": [{"user_id": user_id}, {"data.creator_ids": user_id}]}
+        ),
         "block_versions": db.block_versions.count_documents({"user_id": user_id}),
         "tasks": db.tasks.count_documents({"creator_id": user_id}),
+        "tags": db.tags.count_documents({"owner": user_id}),
+        # Item access tokens are kept when tombstoning, so would be left dangling
+        "access_tokens": db.api_keys.count_documents({"user": user_id, "type": "access_token"}),
     }
     return {k: v for k, v in references.items() if v}
 
