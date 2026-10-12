@@ -200,12 +200,12 @@ export function registerDynamicItemType(
 ) {
   if (!type) return;
 
-  const deploymentMetadata = {
+  const itemTypeAvailability = {
     available: available !== false,
     blockTypeAllowList: block_type_allow_list,
   };
   if (itemTypes[type]) {
-    Object.assign(itemTypes[type], deploymentMetadata);
+    Object.assign(itemTypes[type], itemTypeAvailability);
     return;
   }
 
@@ -223,7 +223,7 @@ export function registerDynamicItemType(
     baseType: base_type || null,
     hiddenFields: hidden_fields || [],
     customPanel: PLUGIN_PANELS[type] || null,
-    ...deploymentMetadata,
+    ...itemTypeAvailability,
   };
 }
 

@@ -72,7 +72,7 @@ the restriction is applied.
 Deployments can also restrict which item types users may create, and optionally narrow the blocks
 that may be added to each item type, with
 [`ITEM_TYPE_ALLOW_LIST`][pydatalab.config.ServerConfig.ITEM_TYPE_ALLOW_LIST]. Entries can be either
-an item type slug or an object containing a `type` and `block_type_allow_list`:
+an item type name or an object containing a `type` and `block_type_allow_list`:
 
 ```json
 {
@@ -107,9 +107,8 @@ setting is present, item types omitted from it cannot be created and existing it
 cannot receive new blocks. Duplicate item type entries are invalid because their block policy
 would be ambiguous.
 
-Item and block slugs are exact and case-sensitive. Built-in and plugin-provided types use the same
-registries; custom item types must use their final registered slug (including the leading `_` added
-by Datalab when applicable). Unknown slugs produce a startup warning and are ignored.
+Item names and block slugs are exact and case-sensitive. Built-in and plugin-provided types use the same
+registries; custom item types must use their final registered names. Unknown types produce a startup warning and are ignored.
 
 These settings only control creation. Existing restricted items and blocks remain viewable,
 editable, saveable, deletable, exportable, and restorable, so changing deployment policy does not
