@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import platform
+from collections import Counter
 from pathlib import Path
 from typing import Any, Literal
 
@@ -26,7 +27,6 @@ __all__ = (
     "DeploymentMetadata",
     "ItemTypeAllowListEntry",
     "RemoteFilesystem",
-    "normalize_item_type_allow_list",
 )
 
 config_logger = logging.getLogger("pydatalab.config")
@@ -316,7 +316,7 @@ its importance when deploying a datalab instance.""",
 
     ITEM_TYPE_ALLOW_LIST: list[str | ItemTypeAllowListEntry] | None = Field(
         None,
-        description="A list of item type slugs that users may create. A string entry permits every globally available block type, while an object entry with `type` and `block_type_allow_list` restricts which blocks may be added to that item type. Setting the value to `None` permits every registered item type, while an empty list prevents adding any new items or blocks.",
+        description="A list of item types that users may create. A string entry permits every globally available block type, while an object entry with `type` and `block_type_allow_list` restricts which blocks may be added to that item type. Setting the value to `None` permits every registered item type, while an empty list prevents adding any new items or blocks.",
     )
 
     CUSTOM_ITEM_MODELS: list[str] = Field(
@@ -377,7 +377,7 @@ its importance when deploying a datalab instance.""",
 
         item_types = [entry if isinstance(entry, str) else entry.type for entry in value]
         duplicates = sorted(
-            item_type for item_type in set(item_types) if item_types.count(item_type) > 1
+            item_type for item_type, count in Counter(item_types).items() if count > 1
         )
         if duplicates:
             raise ValueError(
