@@ -19,11 +19,14 @@
           <div class="about-panel-content">
             <DeploymentInfo :title="'Software versions'" />
           </div>
+        </details>
+
+        <details class="about-panel" open>
+          <summary>
+            <span class="h5 d-inline">Usage statistics</span>
+          </summary>
           <div class="about-panel-content">
-            <StatisticsTable :title="'Deployment statistics'" />
-          </div>
-          <div class="about-panel-content">
-            <UserActivityGraph :combined="true" :title="'User activity'" />
+            <DeploymentStats />
           </div>
         </details>
 
@@ -135,13 +138,12 @@
 
 <script>
 import Navbar from "@/components/Navbar";
-import StatisticsTable from "@/components/StatisticsTable";
-import UserActivityGraph from "@/components/UserActivityGraph.vue";
+import DeploymentStats from "@/components/DeploymentStats.vue";
 import DeploymentInfo from "@/components/DeploymentInfo.vue";
 import CustomAbout from "@/components/CustomAbout.vue";
 
 export default {
-  components: { Navbar, StatisticsTable, UserActivityGraph, DeploymentInfo, CustomAbout },
+  components: { Navbar, DeploymentStats, DeploymentInfo, CustomAbout },
   computed: {
     customAboutHasContent() {
       return CustomAbout.hasContent !== false;

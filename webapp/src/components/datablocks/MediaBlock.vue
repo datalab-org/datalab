@@ -25,6 +25,7 @@
     <div v-else-if="isSVG" class="svg-wrapper">
       <div v-if="svgLoading" class="text-center p-3">Loading SVG...</div>
       <div v-else-if="svgError" class="text-danger p-3">Error loading SVG: {{ svgError }}</div>
+      <!-- eslint-disable-next-line vue/no-v-html -- content is sanitized via DOMPurify in `sanitizedSVG` -->
       <div v-else class="svg-content" v-html="sanitizedSVG"></div>
     </div>
   </DataBlockBase>
@@ -36,7 +37,7 @@ import FileSelectDropdown from "@/components/FileSelectDropdown";
 import { createComputedSetterForBlockField } from "@/field_utils.js";
 import { API_URL } from "@/resources.js";
 import { fetch_file } from "@/server_fetch_utils.js";
-import DOMPurify from "dompurify";
+import { sanitizeSVG } from "@/utils/sanitize.js";
 
 export default {
   components: {
@@ -115,14 +116,7 @@ export default {
       return extension === ".svg";
     },
     sanitizedSVG() {
-      if (!this.svgContent) return "";
-      // Configure DOMPurify to allow SVG elements but remove scripts and event handlers
-      return DOMPurify.sanitize(this.svgContent, {
-        USE_PROFILES: { svg: true, svgFilters: true },
-        ADD_TAGS: ["use"], // Allow SVG <use> elements
-        FORBID_TAGS: ["script", "style"], // Explicitly forbid scripts and styles
-        FORBID_ATTR: ["onerror", "onload", "onclick"], // Remove event handlers
-      });
+      return sanitizeSVG(this.svgContent);
     },
   },
   watch: {

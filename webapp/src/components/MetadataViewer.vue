@@ -1,19 +1,51 @@
 <template>
-  <div v-if="hasMetadata" class="metadata-viewer">
-    <div class="metadata-header">
+  <div v-if="hasComputed || hasMetadata" class="metadata-viewer">
+    <div v-if="hasComputed" class="metadata-header">
+      <span class="metadata-title">Computed</span>
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-secondary copy-button"
+        :aria-label="copiedComputed ? 'Computed copied' : 'Copy computed data as JSON'"
+        @click="copyAsJson(displayedComputed, 'copiedComputed')"
+      >
+        <font-awesome-icon :icon="copiedComputed ? 'check' : 'copy'" fixed-width />
+        {{ copiedComputed ? "Copied" : "Copy JSON" }}
+      </button>
+    </div>
+
+    <div v-if="hasComputed" class="metadata-list computed-list">
+      <template v-for="section in computedSections" :key="section.key">
+        <div v-if="section.title" class="computed-section-title" :title="section.key">
+          {{ section.title }}
+        </div>
+        <dl class="mb-0">
+          <template v-for="(value, key) in section.fields" :key="key">
+            <dt :title="String(key)">{{ formatLabel(key) }}</dt>
+            <dd>
+              <details v-if="isExpandable(value)" class="value-details">
+                <summary>{{ summaryFor(value) }}</summary>
+                <pre class="value-json">{{ prettyPrint(value) }}</pre>
+              </details>
+              <span v-else class="value">{{ formatComputedValue(value) }}</span>
+            </dd>
+          </template>
+        </dl>
+      </template>
+    </div>
+    <div v-if="hasMetadata" class="metadata-header">
       <span class="metadata-title">Metadata</span>
       <button
         type="button"
         class="btn btn-sm btn-outline-secondary copy-button"
-        :aria-label="copied ? 'Metadata copied' : 'Copy metadata as JSON'"
-        @click="copyAsJson"
+        :aria-label="copiedMetadata ? 'Metadata copied' : 'Copy metadata as JSON'"
+        @click="copyAsJson(displayedMetadata, 'copiedMetadata')"
       >
-        <font-awesome-icon :icon="copied ? 'check' : 'copy'" fixed-width />
-        {{ copied ? "Copied" : "Copy JSON" }}
+        <font-awesome-icon :icon="copiedMetadata ? 'check' : 'copy'" fixed-width />
+        {{ copiedMetadata ? "Copied" : "Copy JSON" }}
       </button>
     </div>
 
-    <dl class="metadata-list">
+    <dl v-if="hasMetadata" class="metadata-list">
       <template v-for="(value, key) in displayedMetadata" :key="key">
         <dt :title="String(key)">{{ formatLabel(key) }}</dt>
         <dd>
@@ -39,6 +71,10 @@ export default {
       type: Object,
       default: () => ({}),
     },
+    computedData: {
+      type: Object,
+      default: () => ({}),
+    },
     labels: {
       type: Object,
       default: () => ({}),
@@ -50,44 +86,78 @@ export default {
   },
   data() {
     return {
-      copied: false,
+      copiedMetadata: false,
+      copiedComputed: false,
       copyResetTimeout: null,
     };
   },
   computed: {
     displayedMetadata() {
-      if (!this.metadata) return {};
-
-      const filtered = {};
-      for (const [key, value] of Object.entries(this.metadata)) {
-        if (!this.excludeKeys.includes(key) && value !== null && value !== undefined) {
-          filtered[key] = value;
-        }
-      }
-      return filtered;
+      return this.filterFields(this.metadata);
+    },
+    displayedComputed() {
+      return this.filterFields(this.computedData);
     },
     hasMetadata() {
       return Object.keys(this.displayedMetadata).length > 0;
+    },
+    hasComputed() {
+      return Object.keys(this.displayedComputed).length > 0;
+    },
+    /**
+     * Group computed fields for display: top-level scalars form an untitled
+     * section, and each nested object (e.g. a plugin's namespaced results such
+     * as `fast_metrics`) becomes its own titled section with its null fields
+     * omitted.
+     */
+    computedSections() {
+      const ungrouped = {};
+      const sections = [];
+      for (const [key, value] of Object.entries(this.displayedComputed)) {
+        if (this.isPlainObject(value)) {
+          const fields = this.filterFields(value);
+          if (Object.keys(fields).length > 0) {
+            sections.push({ key, title: this.formatLabel(key), fields });
+          }
+        } else {
+          ungrouped[key] = value;
+        }
+      }
+      if (Object.keys(ungrouped).length > 0) {
+        sections.unshift({ key: "__ungrouped__", title: null, fields: ungrouped });
+      }
+      return sections;
     },
   },
   beforeUnmount() {
     clearTimeout(this.copyResetTimeout);
   },
   methods: {
+    filterFields(dct) {
+      if (!dct) return {};
+
+      const filtered = {};
+      for (const [key, value] of Object.entries(dct)) {
+        if (!this.excludeKeys.includes(key) && value !== null && value !== undefined) {
+          filtered[key] = value;
+        }
+      }
+      return filtered;
+    },
     formatLabel(key) {
       if (this.labels[key]) {
         return this.labels[key];
       }
 
-      return (
-        key
-          .replace(/_/g, " ")
-          // Split camelCase only at a lowercase/digit -> uppercase boundary, so
+      // snake_case keys are already word-separated, and may embed mixed-case
+      // units (e.g. `capacity_mAh`) that camelCase splitting would mangle.
+      const label = key.includes("_")
+        ? key.replace(/_/g, " ")
+        : // Split camelCase only at a lowercase/digit -> uppercase boundary, so
           // that unit acronyms such as `MHz` or `ppm` survive intact.
-          .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-          .trim()
-          .replace(/^\w/, (c) => c.toUpperCase())
-      );
+          key.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+
+      return label.trim().replace(/^\w/, (c) => c.toUpperCase());
     },
     isExpandable(value) {
       if (value !== null && typeof value === "object" && !Array.isArray(value)) {
@@ -111,6 +181,19 @@ export default {
       }
       return String(value);
     },
+    isPlainObject(value) {
+      return value !== null && typeof value === "object" && !Array.isArray(value);
+    },
+    /**
+     * As `formatValue`, but rounds non-integer numbers to a readable number of
+     * significant figures (the copied JSON keeps full precision).
+     */
+    formatComputedValue(value) {
+      if (typeof value === "number" && !Number.isInteger(value)) {
+        return String(Number(value.toPrecision(5)));
+      }
+      return this.formatValue(value);
+    },
     formatValue(value) {
       if (value === null || value === undefined) {
         return "";
@@ -123,13 +206,21 @@ export default {
       }
       return String(value);
     },
-    async copyAsJson() {
+    /**
+     * Copy an object to the clipboard as pretty-printed JSON, and briefly set
+     * the given data flag so the corresponding button shows "Copied".
+     *
+     * @param {Object} dct - The object to serialise and copy.
+     * @param {string} flag - Name of the boolean data property to toggle
+     *   (e.g. `"copiedMetadata"` or `"copiedComputed"`).
+     */
+    async copyAsJson(dct, flag) {
       try {
-        await navigator.clipboard.writeText(JSON.stringify(this.displayedMetadata, null, 2));
-        this.copied = true;
+        await navigator.clipboard.writeText(JSON.stringify(dct, null, 2));
+        this[flag] = true;
         clearTimeout(this.copyResetTimeout);
         this.copyResetTimeout = setTimeout(() => {
-          this.copied = false;
+          this[flag] = false;
         }, 2000);
       } catch (error) {
         console.error("Could not copy metadata to the clipboard:", error);
@@ -180,6 +271,17 @@ export default {
   overflow-y: auto;
   /* Keeps values clear of the scrollbar when one appears. */
   padding-right: 0.35rem;
+}
+
+.computed-list {
+  margin-bottom: 0.75rem;
+}
+
+.computed-section-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #454545;
+  margin: 0.25rem 0 0.4rem;
 }
 
 .metadata-list dt {
