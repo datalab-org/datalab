@@ -9,7 +9,7 @@ from pydatalab.mongo import (
     flask_mongo,
 )
 from pydatalab.permissions import active_users_or_get_only
-from pydatalab.utils import is_truthy_query_value
+from pydatalab.utils import is_truthy_arg_value
 
 GROUPS = Blueprint("groups", __name__)
 
@@ -35,7 +35,7 @@ def search_groups():
 
     query = request.args.get("query", type=str)
     nresults = request.args.get("nresults", default=100, type=int)
-    member_only = request.args.get("member_only", default=False, type=is_truthy_query_value)
+    member_only = request.args.get("member_only", default=False, type=is_truthy_arg_value)
 
     if not query:
         return jsonify({"status": "error", "message": "No query provided"}), 400

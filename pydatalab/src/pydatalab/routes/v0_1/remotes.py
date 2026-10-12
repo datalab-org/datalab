@@ -9,7 +9,7 @@ from pydatalab.remote_filesystems import (
     get_directory_structure,
     get_directory_structures,
 )
-from pydatalab.utils import is_truthy_query_value
+from pydatalab.utils import is_truthy_arg_value
 
 REMOTES = Blueprint("remotes", __name__)
 
@@ -40,9 +40,7 @@ def list_remote_directories():
             401,
         )
 
-    invalidate_cache = request.args.get(
-        "invalidate_cache", default=None, type=is_truthy_query_value
-    )
+    invalidate_cache = request.args.get("invalidate_cache", default=None, type=is_truthy_arg_value)
 
     all_directory_structures = get_directory_structures(
         CONFIG.REMOTE_FILESYSTEMS, invalidate_cache=invalidate_cache
@@ -79,9 +77,7 @@ def get_remote_directory(remote_id: str):
             401,
         )
 
-    invalidate_cache = request.args.get(
-        "invalidate_cache", default=None, type=is_truthy_query_value
-    )
+    invalidate_cache = request.args.get("invalidate_cache", default=None, type=is_truthy_arg_value)
 
     for d in CONFIG.REMOTE_FILESYSTEMS:
         if remote_id == d.name:

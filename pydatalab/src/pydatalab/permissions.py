@@ -14,7 +14,7 @@ from pydatalab.login import UserRole
 from pydatalab.models.people import AccountStatus
 from pydatalab.models.utils import BaseModel, PyObjectId
 from pydatalab.mongo import flask_mongo, get_database
-from pydatalab.utils import is_truthy_query_value
+from pydatalab.utils import is_truthy_arg_value
 
 PUBLIC_USER_ID = ObjectId(24 * "0")
 
@@ -237,7 +237,7 @@ def _get_base_permissions(
         if request.method != "GET":
             return {}
         # GET methods: require an explicit truthy sudo flag for full access
-        if request.args.get("sudo", default=False, type=is_truthy_query_value):
+        if request.args.get("sudo", default=False, type=is_truthy_arg_value):
             return {}
         # Otherwise: treat admin as normal user (fall through)
 

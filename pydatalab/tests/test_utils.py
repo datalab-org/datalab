@@ -1,6 +1,6 @@
 import pytest
 
-from pydatalab.utils import is_truthy_query_value
+from pydatalab.utils import is_truthy_arg_value
 from pydatalab.utils.plotting import generate_unique_labels
 
 
@@ -14,6 +14,7 @@ from pydatalab.utils.plotting import generate_unique_labels
         ("0", False),
         ("false", False),
         ("FALSE", False),
+        ("yes", False),
         ("null", False),
         ("", False),
         ("malformed", False),
@@ -22,8 +23,8 @@ from pydatalab.utils.plotting import generate_unique_labels
         ('{"value": true}', False),
     ],
 )
-def test_is_truthy_query_value(value, expected):
-    assert is_truthy_query_value(value) is expected
+def test_is_truthy_arg_value(value, expected):
+    assert is_truthy_arg_value(value) is expected
 
 
 def test_generate_unique_labels_single_file():
