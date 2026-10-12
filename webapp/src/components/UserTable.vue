@@ -56,7 +56,7 @@ export default {
             },
             match: matchStringValues,
             operator: FilterOperator.OR,
-            options: () => ["active", "unverified", "deactivated"],
+            options: () => ["active", "unverified", "deactivated", "deleted"],
           },
         },
         {
