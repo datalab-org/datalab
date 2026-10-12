@@ -25,6 +25,7 @@ from pydatalab.models import (
     flagged_summary_fields,
 )
 from pydatalab.models.items import Item
+from pydatalab.models.people import AccountStatus
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import (
     InlineSubstance,
@@ -981,9 +982,20 @@ def _process_item_permissions(
         )
 
     # Validate all creator IDs are present in the database
+    # Deleted users cannot be newly added as creators, but any already present are kept
     if creator_ids:
         found_creator_ids = [
-            d for d in flask_mongo.db.users.find({"_id": {"$in": creator_ids}}, {"_id": 1})
+            d
+            for d in flask_mongo.db.users.find(
+                {
+                    "_id": {"$in": creator_ids},
+                    "$or": [
+                        {"account_status": {"$ne": AccountStatus.DELETED}},
+                        {"_id": {"$in": current_creator_ids}},
+                    ],
+                },
+                {"_id": 1},
+            )
         ]
         if len(found_creator_ids) != len(creator_ids):
             raise BadRequest("One or more creator IDs not found in the database.")
