@@ -85,13 +85,12 @@ Beyond data blocks, a deployment can register **custom item types**: new top-lev
 
 A custom item type is a subclass either of an existing item model (to extend it) or of the base `Item` model (for a wholly new type).
 At a minimum, it **must** declare its own `type` literal, which must not collide with a built-in type.
-Its identifier must have the form `<namespace>:<type-name>`, matching
-`^[a-z0-9]+(?:[-_][a-z0-9]+)*:[a-z0-9]+(?:[-_][a-z0-9]+)*$`; examples include
-`battery:electrode` and `battery_lab:coin-cell`. The complete value is the canonical type identifier:
-it must be used wherever the type is referenced, including Python models, REST payloads and URLs,
-database documents, relationships, constituents, schemas and the web UI. The namespace and type
-name are conceptual components of the naming convention only; they are not stored or queried
-separately.
+Its identifier must have the form `<namespace>:<type-name>`, for example `battery:electrode` and `battery_lab:coin-cell`.
+Both parts must use lowercase letters and numbers, with hyphens or underscores allowed between words.
+Exactly one colon separates the namespace from the type name.
+The complete value is the canonical type identifier. It must be used wherever the type is referenced, including Python models,
+REST payloads and URLs, database documents, relationships, constituents, schemas and the web UI.
+The namespace and type name are only components of the naming convention; they are not stored or queried separately.
 
 Existing core identifiers such as `samples` and `cells` remain bare and are exempt from this
 custom-type rule. All built-in item types use bare identifiers. Choose a stable namespace owned by
