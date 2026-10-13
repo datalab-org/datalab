@@ -1,5 +1,9 @@
 <template>
-  <div class="activity-graph-container" :class="{ compact: compact }">
+  <div
+    class="activity-graph-container"
+    :class="{ compact: compact }"
+    :style="{ '--cell-size': `${cellSize}px` }"
+  >
     <div v-if="isLoading" class="text-center p-4">
       <font-awesome-icon :icon="['fa', 'sync']" spin />
     </div>
@@ -15,7 +19,7 @@
           <div class="activity-stat-label">{{ stat.label }}</div>
         </div>
       </div>
-      <div class="heatmap-container">
+      <div ref="heatmapContainer" class="heatmap-container">
         <div class="heatmap-inner">
           <div class="months-labels">
             <span
@@ -88,6 +92,11 @@ export default {
       type: Boolean,
       default: false,
     },
+    cellSize: {
+      // Width and height of each day's cell, in pixels
+      type: Number,
+      default: 10,
+    },
   },
   data() {
     return {
@@ -122,9 +131,6 @@ export default {
         },
       ];
     },
-    cellSize() {
-      return this.compact ? 10 : 10;
-    },
     gridPadding() {
       return this.compact ? 8 : 10;
     },
@@ -135,6 +141,12 @@ export default {
   async mounted() {
     await this.fetchActivityData();
     this.generateCalendar();
+    // If the heatmap is too wide for its container, start scrolled to the most recent weeks
+    await this.$nextTick();
+    const container = this.$refs.heatmapContainer;
+    if (container) {
+      container.scrollLeft = container.scrollWidth;
+    }
   },
   beforeUnmount() {
     this.destroyTooltip();
@@ -350,7 +362,7 @@ export default {
   flex-direction: column;
   gap: 8px;
   width: 100%;
-  overflow: hidden;
+  overflow-x: auto;
   padding: 15px;
   background: #fafafa;
   border-radius: 12px;
@@ -396,17 +408,12 @@ export default {
 }
 
 .day-cell {
-  width: 10px;
-  height: 10px;
+  width: var(--cell-size);
+  height: var(--cell-size);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.15s ease;
   border: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-.activity-graph-container.compact .day-cell {
-  width: 10px;
-  height: 10px;
 }
 
 .day-cell:hover {
@@ -490,11 +497,6 @@ export default {
 }
 
 @media (max-width: 900px) {
-  .day-cell {
-    width: 10px;
-    height: 10px;
-  }
-
   .heatmap-grid {
     gap: 2px;
   }
