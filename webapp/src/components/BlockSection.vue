@@ -1,11 +1,11 @@
 <template>
   <div :id="sectionId" class="block-section">
-    <div class="section-header collapsible" :class="{ expanded: isExpanded }">
+    <div class="section-header collapsible" :class="{ expanded: expanded }">
       <font-awesome-icon
         :icon="['fas', 'chevron-right']"
         fixed-width
         class="collapse-arrow"
-        @click="toggleExpanded"
+        @click="$emit('toggle')"
       />
       <font-awesome-icon :icon="['fas', 'folder-open']" fixed-width />
       <input v-model="title" class="form-control-plaintext section-title" type="text" />
@@ -19,7 +19,7 @@
         @click="confirmDeleteSection"
       />
     </div>
-    <div v-show="isExpanded" class="section-body">
+    <div v-show="expanded" class="section-body">
       <TiptapInline
         v-model="description"
         placeholder="Add a description..."
@@ -27,6 +27,9 @@
       />
       <div class="section-content">
         <slot />
+      </div>
+      <div v-if="loading" class="section-loading-indicator text-center">
+        <font-awesome-icon icon="spinner" class="fa-spin" fixed-width size="2x" />
       </div>
     </div>
   </div>
@@ -54,12 +57,16 @@ export default {
       type: Number,
       default: 0,
     },
+    expanded: {
+      type: Boolean,
+      default: false,
+    },
+    loading: {
+      type: Boolean,
+      default: false,
+    },
   },
-  data() {
-    return {
-      isExpanded: false,
-    };
-  },
+  emits: ["toggle"],
   computed: {
     section() {
       return (this.$store.state.all_item_data[this.itemId]?.display_order || []).find(
@@ -92,9 +99,6 @@ export default {
     },
   },
   methods: {
-    toggleExpanded() {
-      this.isExpanded = !this.isExpanded;
-    },
     async confirmDeleteSection() {
       const confirmed = await DialogService.confirm({
         title: "Ungroup Section",
@@ -171,6 +175,11 @@ export default {
 
 .section-body {
   padding: 18px 18px 0px 18px;
+}
+
+.section-loading-indicator {
+  color: grey;
+  padding-bottom: 18px;
 }
 
 .section-description {

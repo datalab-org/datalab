@@ -82,7 +82,7 @@
 </template>
 
 <script>
-import { isSection } from "@/utils/displayOrderSections.js";
+import { isSection, sectionIdOfBlock } from "@/utils/displayOrderSections.js";
 
 export default {
   props: {
@@ -104,7 +104,7 @@ export default {
   },
   computed: {
     display_order() {
-      return this.$store.state.all_item_data[this.item_id]?.display_order || {};
+      return this.$store.state.all_item_data[this.item_id]?.display_order || [];
     },
     blocks() {
       return this.$store.state.all_item_data[this.item_id]?.blocks_obj || {};
@@ -134,8 +134,11 @@ export default {
   methods: {
     isSection,
     scrollToID(event, id) {
-      var element = document.getElementById(id);
-      element.scrollIntoView({ behavior: "smooth" });
+      const element = document.getElementById(id);
+      const target = element?.offsetParent
+        ? element
+        : document.getElementById(sectionIdOfBlock(this.display_order, id));
+      target?.scrollIntoView({ behavior: "smooth" });
     },
     // Whether a scrollable element still has content hidden above or below
     // its visible area, i.e. it isn't scrolled all the way to that edge.

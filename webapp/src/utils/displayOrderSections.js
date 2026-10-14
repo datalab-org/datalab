@@ -64,3 +64,17 @@ export function groupDisplayOrder(displayOrder) {
 export function blockIdsOf(displayOrder) {
   return (displayOrder || []).filter((entry) => !isSection(entry));
 }
+
+/**
+ * Finds the section a block is grouped under, if any.
+ *
+ * @param {Array<string|object>} displayOrder
+ * @param {string} blockId
+ * @returns {string|null} The `section_id` of the enclosing section, or null for an ungrouped block.
+ */
+export function sectionIdOfBlock(displayOrder, blockId) {
+  const group = groupDisplayOrder(displayOrder).find(
+    (entry) => entry.type === "section" && entry.block_ids.includes(blockId),
+  );
+  return group ? group.section.section_id : null;
+}

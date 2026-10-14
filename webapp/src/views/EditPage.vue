@@ -126,34 +126,7 @@
 
     <!-- Display the blocks -->
     <div v-if="blocksLoaded && blockInfoLoaded" class="container block-container">
-      <transition-group name="block-list" tag="div">
-        <div
-          v-for="group in displayGroups"
-          :key="group.type === 'section' ? group.section.section_id : group.block_id"
-          class="block-list-item"
-        >
-          <component
-            :is="getBlockDisplayType(group.block_id)"
-            v-if="group.type === 'block'"
-            :item_id="item_id"
-            :block_id="group.block_id"
-          />
-          <BlockSection
-            v-else
-            :item-id="item_id"
-            :section-id="group.section.section_id"
-            :block-count="group.block_ids.length"
-          >
-            <div v-for="block_id in group.block_ids" :key="block_id" class="block-list-item">
-              <component
-                :is="getBlockDisplayType(block_id)"
-                :item_id="item_id"
-                :block_id="block_id"
-              />
-            </div>
-          </BlockSection>
-        </div>
-      </transition-group>
+      <BlockList ref="blockList" :item_id="item_id" />
       <div ref="blockLoadingIndicator" class="text-center">
         <font-awesome-icon
           v-if="isLoadingNewBlock"
@@ -215,7 +188,6 @@ import {
   getItemByRefcode,
   addABlock,
   saveItem,
-  updateBlockFromServer,
   getBlocksInfos,
 } from "@/server_fetch_utils";
 import LoginDetails from "@/components/LoginDetails";
@@ -225,17 +197,15 @@ import CustomFieldsPanel from "@/components/custom/CustomFieldsPanel.vue";
 
 import setupUppy from "@/file_upload.js";
 
-import { itemTypes, API_URL, customBlockTypes } from "@/resources.js";
-import BokehBlock from "@/components/datablocks/BokehBlock.vue";
-import ErrorBlock from "@/components/datablocks/ErrorBlock.vue";
+import { itemTypes, API_URL } from "@/resources.js";
 import { formatDistanceToNow } from "date-fns";
 
 import AddBlockDropdown from "@/components/AddBlockDropdown";
 
 import ExportDropdown from "@/components/ExportDropdown";
-import BlockSection from "@/components/BlockSection";
+import BlockList from "@/components/BlockList";
 
-import { groupDisplayOrder, blockIdsOf, createSection } from "@/utils/displayOrderSections.js";
+import { blockIdsOf, createSection } from "@/utils/displayOrderSections.js";
 
 export default {
   components: {
@@ -250,7 +220,7 @@ export default {
     CustomFieldsPanel,
     AddBlockDropdown,
     ExportDropdown,
-    BlockSection,
+    BlockList,
   },
   provide() {
     return {
@@ -320,9 +290,6 @@ export default {
     },
     blocks() {
       return this.item_data.blocks_obj;
-    },
-    displayGroups() {
-      return groupDisplayOrder(this.item_data.display_order);
     },
     savedStatus() {
       if (!this.itemDataLoaded) {
@@ -412,9 +379,6 @@ export default {
     this.getSampleData();
     this.interval = setInterval(() => this.setLastModified(), 30000);
   },
-  beforeMount() {
-    this.customBlockTypes = customBlockTypes; // bind customBlockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
-  },
   mounted() {
     // overwrite ctrl-s and cmd-s to save the page
     this._keyListener = function (e) {
@@ -462,25 +426,6 @@ export default {
         behavior: "smooth",
       });
     },
-    getBlockDisplayType(block_id) {
-      const block = this.blocks[block_id];
-
-      if (!block || this.$store.state.block_errors[block_id]) {
-        return ErrorBlock;
-      }
-
-      const type = block.blocktype;
-
-      if (!(type in this.$store.state.blocksInfos)) {
-        return ErrorBlock;
-      }
-
-      if (type in customBlockTypes) {
-        return customBlockTypes[type].component;
-      } else {
-        return BokehBlock;
-      }
-    },
     saveSample() {
       saveItem(this.item_id);
       this.lastModified = "just now";
@@ -519,14 +464,7 @@ export default {
     },
     async updateBlocks() {
       if (this.itemDataLoaded && this.item_data && this.item_data.display_order) {
-        // update each block asynchronously
-        blockIdsOf(this.item_data.display_order).forEach((block_id) => {
-          updateBlockFromServer(this.item_id, block_id, this.item_data.blocks_obj[block_id]).catch(
-            (error) => {
-              console.error(`Error updating block ${block_id}:`, error);
-            },
-          );
-        });
+        this.$refs.blockList?.reloadBlocks();
         this.blocksLoaded = true;
         this.setLastModified();
       }
@@ -659,24 +597,6 @@ label,
 .block-container {
   padding-bottom: 100px;
   position: relative;
-}
-
-.block-list-item {
-  transition: all 0.6s ease;
-  /*display: inline-block;*/
-  width: 100%;
-  position: relative;
-}
-
-.block-list-enter-from,
-.block-list-leave-to {
-  opacity: 0;
-  /*transform: translateX(-100px);*/
-}
-
-.block-list-leave-active {
-  position: absolute;
-  max-width: calc(100% - 30px);
 }
 
 .navbar-right-cluster {
