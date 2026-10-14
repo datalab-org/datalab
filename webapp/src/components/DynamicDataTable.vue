@@ -3,13 +3,68 @@
     <div v-if="isSampleFetchError" class="alert alert-danger">
       Server Error. Sample list not retrieved.
     </div>
+    <div v-if="myItemKeysError" class="alert alert-danger">
+      Could not load your items for the "My items" filter: {{ myItemKeysError }}
+    </div>
 
+    <DynamicDataTableButtons
+      :data-type="dataType"
+      :items-selected="itemsSelected"
+      :displayed-item-count="filteredItemCount"
+      :filters="filters"
+      :editable-inventory="editable_inventory"
+      :show-buttons="showButtons"
+      :available-columns="availableColumns"
+      :selected-columns="selectedColumns"
+      :collection-id="collectionId"
+      :all-users="allUsers"
+      :advanced-query-config="advancedQueryConfig"
+      :active-quick-filters="activeQuickFilters"
+      :group-by-fields="groupByFields"
+      @update:filters="updateFilters"
+      @update:selected-columns="onToggleColumns"
+      @open-create-item-modal="createItemModalIsOpen = true"
+      @open-batch-create-item-modal="batchCreateItemModalIsOpen = true"
+      @open-qr-scanner-modal="qrScannerModalIsOpen = true"
+      @open-create-collection-modal="createCollectionModalIsOpen = true"
+      @open-create-equipment-modal="createEquipmentModalIsOpen = true"
+      @open-create-tag-modal="$emit('open-create-tag-modal')"
+      @open-add-to-collection-modal="addToCollectionModalIsOpen = true"
+      @open-batch-share-modal="batchShareModalIsOpen = true"
+      @delete-selected-items="deleteSelectedItems"
+      @remove-selected-items-from-collection="removeSelectedItemsFromCollection"
+      @reset-table="handleResetTable"
+      @users-data-changed="$emit('users-data-changed')"
+      @bulk-invalidate-tokens="handleItemsUpdated"
+      @bulk-delete-groups="$emit('groups-data-changed')"
+      @advanced-query-results="handleAdvancedQueryResults"
+      @update:active-quick-filters="onUpdateQuickFilters"
+      @update:group-by-fields="onUpdateGroupByFields"
+    />
+
+    <!-- Grouping is a display mode over the same filtered rows the table computes below,
+         not a separate data source: it reads `filteredData`, the output of DataTable's own
+         filter pass (column filters + global search), so switching to Group By never
+         silently drops the active search/filters. -->
+    <GroupedDataTable
+      v-if="groupByFields.length"
+      :items="filteredData"
+      :group-fields="groupByFields"
+      :items-selected="itemsSelected"
+      :columns="availableColumns"
+      @update:items-selected="itemsSelected = $event"
+      @row-click="goToEditPageFromGroup"
+    />
+
+    <!-- Kept mounted (not v-if) even while grouped, so its @filter keeps firing and
+         `filteredData` stays correct for GroupedDataTable above. -->
     <DataTable
+      v-show="!groupByFields.length"
       ref="datatable"
       v-model:filters="filters"
       v-model:selection="itemsSelected"
       v-model:select-all="allSelected"
-      :value="data"
+      :value="displayedData"
       :data-testid="computedDataTestId"
       selection-mode="checkbox"
       paginator
@@ -34,36 +89,6 @@
       @page="onPageChange"
       @sort="onSort"
     >
-      <template #header>
-        <DynamicDataTableButtons
-          :data-type="dataType"
-          :items-selected="itemsSelected"
-          :displayed-item-count="filteredItemCount"
-          :filters="filters"
-          :editable-inventory="editable_inventory"
-          :show-buttons="showButtons"
-          :available-columns="availableColumns"
-          :selected-columns="selectedColumns"
-          :collection-id="collectionId"
-          :all-users="allUsers"
-          @update:filters="updateFilters"
-          @update:selected-columns="onToggleColumns"
-          @open-create-item-modal="createItemModalIsOpen = true"
-          @open-batch-create-item-modal="batchCreateItemModalIsOpen = true"
-          @open-qr-scanner-modal="qrScannerModalIsOpen = true"
-          @open-create-collection-modal="createCollectionModalIsOpen = true"
-          @open-create-equipment-modal="createEquipmentModalIsOpen = true"
-          @open-create-tag-modal="$emit('open-create-tag-modal')"
-          @open-add-to-collection-modal="addToCollectionModalIsOpen = true"
-          @open-batch-share-modal="batchShareModalIsOpen = true"
-          @delete-selected-items="deleteSelectedItems"
-          @remove-selected-items-from-collection="removeSelectedItemsFromCollection"
-          @reset-table="handleResetTable"
-          @users-data-changed="$emit('users-data-changed')"
-          @bulk-invalidate-tokens="handleItemsUpdated"
-          @bulk-delete-groups="$emit('groups-data-changed')"
-        />
-      </template>
       <template #loading>
         <div class="card text-center">
           <div class="card-body">
@@ -159,6 +184,7 @@
 
 <script>
 import DynamicDataTableButtons from "@/components/DynamicDataTableButtons";
+import GroupedDataTable from "@/components/GroupedDataTable";
 import CreateItemModal from "@/components/CreateItemModal";
 import BatchCreateItemModal from "@/components/BatchCreateItemModal";
 import QRScannerModal from "@/components/QRScannerModal";
@@ -172,10 +198,16 @@ import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY } from "@/resources.js";
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
+import { fetchAdvancedQueryConfig, runQueryAllPages } from "@/server_fetch_utils.js";
+import { rowKey } from "@/utils/tableColumns.js";
+
+// Most "my items" fetched for the "My items" quick filter, per searchable type.
+const MAX_MY_ITEMS = 20000;
 
 export default {
   components: {
     DynamicDataTableButtons,
+    GroupedDataTable,
     CreateItemModal,
     BatchCreateItemModal,
     QRScannerModal,
@@ -258,6 +290,19 @@ export default {
       // Names of the per-column matchers this instance registered with the global
       // FilterService, so that they can be removed again when it unmounts.
       registeredMatchModes: [],
+      // Advanced search / group-by state. This is the single source of truth for all
+      // of it: DynamicDataTableButtons and AdvancedSearchDropdown only receive it via
+      // props and emit changes back up, they never keep their own copy.
+      advancedQueryConfig: null,
+      advancedQueryResults: null,
+      advancedQueryConfigRequestId: 0,
+      activeQuickFilters: [],
+      groupByFields: [],
+      // Row keys of the entries the current user created, for the "My items" quick filter:
+      // fetched from the server, since table rows only carry creators' names.
+      myItemKeys: null,
+      myItemKeysError: null,
+      myItemKeysRequestId: 0,
     };
   },
 
@@ -301,12 +346,61 @@ export default {
           ]),
       );
     },
+    // The table's own (current) rows for the advanced query results, in result order, so that
+    // rows edited or deleted after the search are shown as they are now.
+    advancedQueryResultRows() {
+      if (!this.data || this.advancedQueryResults === null) return this.data;
+      const order = new Map(this.advancedQueryResults.map((row, i) => [rowKey(row), i]));
+      return this.data
+        .filter((row) => order.has(rowKey(row)))
+        .sort((a, b) => order.get(rowKey(a)) - order.get(rowKey(b)));
+    },
     availableColumns() {
       return this.columns.map((col) => ({ ...col }));
+    },
+    // Rows after the server-side advanced query and client-side quick filters, before
+    // DataTable's own column filters / global search are applied on top of them.
+    displayedData() {
+      const base = this.advancedQueryResults !== null ? this.advancedQueryResultRows : this.data;
+      if (!base) return base;
+      if (!this.activeQuickFilters.length) return base;
+      return base.filter((item) =>
+        this.activeQuickFilters.every((filterId) => this.matchesQuickFilter(item, filterId)),
+      );
+    },
+  },
+  watch: {
+    // DataTable only reports its filtered rows (@filter) when it has filters, so also take
+    // them from it whenever the rows it is given change, e.g. after an advanced search.
+    displayedData() {
+      this.$nextTick(() => {
+        this.filteredData = this.$refs.datatable?.processedData ?? this.displayedData ?? [];
+      });
+    },
+    activeQuickFilters(filters) {
+      if (!filters.includes("my_items")) {
+        this.myItemKeysError = null;
+      } else if (this.myItemKeys === null) {
+        this.loadMyItemKeys();
+      }
+    },
+    // The table's rows change when items are created or deleted, so refresh which are mine.
+    data() {
+      this.resetMyItemKeys();
+      if (this.activeQuickFilters.includes("my_items")) this.loadMyItemKeys();
+    },
+    dataType() {
+      this.advancedQueryConfig = null;
+      this.advancedQueryResults = null;
+      this.resetMyItemKeys();
+      this.activeQuickFilters = [];
+      this.groupByFields = [];
+      this.loadAdvancedQueryConfig();
     },
   },
   created() {
     this.$store.commit("setPage", { type: this.dataType, page: 0 });
+    this.loadAdvancedQueryConfig();
 
     const savedState = localStorage.getItem(`datatable-state-${this.dataType}`);
     if (savedState) {
@@ -370,6 +464,80 @@ export default {
     this.registeredMatchModes = [];
   },
   methods: {
+    async loadAdvancedQueryConfig() {
+      const requestId = ++this.advancedQueryConfigRequestId;
+      const dataType = this.dataType;
+      try {
+        const config = await fetchAdvancedQueryConfig(dataType);
+        if (requestId === this.advancedQueryConfigRequestId && dataType === this.dataType) {
+          this.advancedQueryConfig = config;
+        }
+      } catch (error) {
+        console.error("Failed to load advanced query configuration:", error);
+        if (requestId === this.advancedQueryConfigRequestId) {
+          this.advancedQueryConfig = null;
+        }
+      }
+    },
+    handleAdvancedQueryResults(items) {
+      this.advancedQueryResults = items;
+    },
+    // Forget the keys, and any request for them still running, so it cannot fill in stale ones.
+    resetMyItemKeys() {
+      this.myItemKeysRequestId++;
+      this.myItemKeys = null;
+      this.myItemKeysError = null;
+    },
+    async loadMyItemKeys() {
+      const requestId = ++this.myItemKeysRequestId;
+      this.myItemKeysError = null;
+      const types = this.advancedQueryConfig?.types || [];
+      try {
+        const results = await Promise.all(
+          types.map((t) => runQueryAllPages(t.id, { mine: true }, MAX_MY_ITEMS)),
+        );
+        if (requestId !== this.myItemKeysRequestId) return;
+        this.myItemKeys = new Set(results.flatMap((r) => r.items.map(rowKey)));
+      } catch (error) {
+        if (requestId !== this.myItemKeysRequestId) return;
+        // Keys stay unloaded, so turning the filter on again retries; until then nothing
+        // matches and the reason is shown above the table, if the filter is still on.
+        if (this.activeQuickFilters.includes("my_items")) this.myItemKeysError = error.message;
+      }
+    },
+    onUpdateQuickFilters(next) {
+      this.activeQuickFilters = next;
+    },
+    onUpdateGroupByFields(next) {
+      this.groupByFields = next;
+    },
+    matchesQuickFilter(item, filterId) {
+      if (filterId === "my_items") {
+        // Matched by ID on the server (see loadMyItemKeys); nothing matches until loaded.
+        return this.myItemKeys !== null && this.myItemKeys.has(rowKey(item));
+      }
+      if (filterId === "latest_week" || filterId === "latest_month") {
+        if (!item.date) return false;
+        const days = filterId === "latest_week" ? 7 : 30;
+        const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+        return new Date(item.date).getTime() >= cutoff;
+      }
+      if (filterId === "active") {
+        return ["active", "working", "available"].includes((item.status || "").toLowerCase());
+      }
+      if (filterId === "has_blocks") {
+        return (item.blocks || []).length > 0 || (item.nblocks || 0) > 0;
+      }
+      return true;
+    },
+    goToEditPageFromGroup(row) {
+      if (this.dataType === "users") {
+        return;
+      }
+      const row_id = row.item_id || row.collection_id;
+      if (!row_id) return;
+      this.$router.push(`/${this.editPageRoutePrefix}/${row_id}`);
+    },
     resolveBodyEvents(column) {
       const listeners = Object.fromEntries(
         (column.body?.events || []).map((event) => [

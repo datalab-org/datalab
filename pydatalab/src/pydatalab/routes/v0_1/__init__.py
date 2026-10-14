@@ -12,6 +12,7 @@ from .groups import GROUPS
 from .healthcheck import HEALTHCHECK
 from .info import INFO
 from .items import ITEMS
+from .query import QUERY
 from .remotes import REMOTES
 from .tags import TAGS
 from .users import USERS
@@ -31,6 +32,7 @@ BLUEPRINTS: tuple[Blueprint, ...] = (
     GRAPHS,
     EXPORT,
     TAGS,
+    QUERY,
 )
 
 __all__ = ("BLUEPRINTS", "OAUTH", "__api_version__", "OAUTH_PROXIES")

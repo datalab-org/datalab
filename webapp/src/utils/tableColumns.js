@@ -36,6 +36,15 @@ import {
 } from "@/utils/filterMatchers";
 
 /**
+ * A stable key identifying a table row (an item, collection, user or group), shared by the
+ * tables and the advanced search, which matches its results to rows by it.
+ */
+export function rowKey(row) {
+  const id = row.item_id || row.collection_id || row.immutable_id || row._id;
+  return typeof id === "object" && id !== null ? id.$oid : id;
+}
+
+/**
  * Column definitions shared by the item tables (samples, starting materials, equipment and
  * a collection's children).
  *

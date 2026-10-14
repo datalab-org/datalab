@@ -27,6 +27,7 @@ dependencies = [
     "pandas[excel] ~= 2.2",
     "pymongo ~= 4.7",
     "deepdiff>=8.1,<10.0",
+    "optimade ~= 1.5",
     "tomlkit ~= 0.14",
 ]
 

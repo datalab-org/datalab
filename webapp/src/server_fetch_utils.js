@@ -1654,3 +1654,63 @@ export function invalidateToken(refcode) {
       throw error;
     });
 }
+
+// Advanced search: filters are written in the OPTIMADE filter language and passed as `?filter=`,
+// see https://www.optimade.org/specification/latest/#api-filtering-format-specification
+
+// Uses `fetch_get` like the other GET requests, so that admins in super-user mode search
+// everything they can see (`sudo=1`).
+function queryGet(path, params = {}) {
+  const url = new URL(`${API_URL}/query/${path}`);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, value);
+    }
+  });
+  // fetch_get rejects with the server's message as a string; callers expect an Error.
+  return fetch_get(url).catch((error) => {
+    throw error instanceof Error ? error : new Error(String(error));
+  });
+}
+
+// The types a table's advanced search can query, or null if it has none.
+export async function fetchAdvancedQueryConfig(dataType) {
+  const { types } = await queryGet("types", { data_type: dataType });
+  return types.length ? { isEnabled: true, types } : null;
+}
+
+// The filterable properties of a type; they do not change while the app runs.
+const querySchemas = new Map();
+export function fetchQuerySchema(typeId) {
+  if (!querySchemas.has(typeId)) {
+    querySchemas.set(
+      typeId,
+      queryGet(`${typeId}/schema`).catch((error) => {
+        querySchemas.delete(typeId);
+        throw error;
+      }),
+    );
+  }
+  return querySchemas.get(typeId);
+}
+
+// Search a type with an OPTIMADE `filter`, plus `sort`, `limit` and `offset`.
+export function runQuery(typeId, params = {}) {
+  return queryGet(typeId, params);
+}
+
+// Collect the matches of a search over all its pages, up to `maxResults`.
+// Resolves to `{ items, total }`, where `total` counts every match, even beyond `maxResults`.
+export async function runQueryAllPages(typeId, params = {}, maxResults = 2000) {
+  const items = [];
+  let page = { next_offset: 0 };
+  while (page.next_offset !== null && items.length < maxResults) {
+    page = await runQuery(typeId, {
+      ...params,
+      limit: Math.min(1000, maxResults - items.length),
+      offset: page.next_offset,
+    });
+    items.push(...page.items);
+  }
+  return { items, total: page.total };
+}
