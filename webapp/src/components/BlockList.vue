@@ -81,7 +81,6 @@ export default {
       const addedSectionIds = sectionIds.filter((id) => !this.knownSectionIds.includes(id));
       this.knownSectionIds = sectionIds;
       this.expandSections(addedSectionIds);
-      this.loadVisibleBlocks();
     },
     blockSections(blockSections) {
       const known = this.knownBlockSections;

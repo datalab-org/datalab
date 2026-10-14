@@ -111,6 +111,20 @@ describe("BlockList", () => {
     expectRequestedBlockIds((ids) => expect(ids).to.have.length(3));
   });
 
+  it("does not reload a block added outside of any section", () => {
+    mountList();
+    cy.wait("@updateBlock");
+    cy.then(() => {
+      const item = store.state.all_item_data[ITEM_ID];
+      item.blocks_obj.block_new = commentBlock("block_new");
+      item.display_order.splice(1, 0, "block_new");
+    });
+
+    cy.get("#block_new").should("exist");
+    cy.wait(500);
+    expectRequestedBlockIds((ids) => expect(ids).not.to.include("block_new"));
+  });
+
   it("expands a collapsed section when a block is added to it", () => {
     mountList();
     cy.wait("@updateBlock");
