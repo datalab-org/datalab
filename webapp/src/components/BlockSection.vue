@@ -111,7 +111,7 @@ export default {
 
 <style scoped>
 .block-section {
-  padding-bottom: 18px;
+  margin-bottom: 18px;
   border: 1px solid #d8dee6;
   border-radius: 3px;
   background-color: #fafbfc;
