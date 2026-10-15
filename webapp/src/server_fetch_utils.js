@@ -343,18 +343,32 @@ export async function createNewCollection(
   });
 }
 
-export async function getStats() {
-  return fetch_get(`${API_URL}/info/stats`)
-    .then(function (response_json) {
-      return response_json.counts;
-    })
-    .catch((error) => {
-      if (error === "UNAUTHORIZED") {
-        return null;
-      } else {
+let statsHistoryPromise = null;
+
+export function getStatsHistory() {
+  // Fetched at most once per session, unless the server was still updating the stats
+  if (store.state.statsHistory) {
+    return Promise.resolve(store.state.statsHistory);
+  }
+  if (!statsHistoryPromise) {
+    statsHistoryPromise = fetch_get(`${API_URL}/info/stats/history`)
+      .then(function (response_json) {
+        if (response_json.data.updating) {
+          statsHistoryPromise = null;
+        } else {
+          store.commit("setStatsHistory", response_json.data);
+        }
+        return response_json.data;
+      })
+      .catch((error) => {
+        statsHistoryPromise = null;
+        if (error === "UNAUTHORIZED") {
+          return null;
+        }
         throw error;
-      }
-    });
+      });
+  }
+  return statsHistoryPromise;
 }
 
 export async function getInfo() {
@@ -1146,6 +1160,16 @@ export function saveUser(user_id, user) {
       });
       throw error;
     });
+}
+
+export function deleteUser(user_id, expunge = false) {
+  const url = `${API_URL}/users/${user_id}` + (expunge ? "?expunge=true" : "");
+  return fetch_delete(url).then(function (response_json) {
+    if (response_json.status !== "success") {
+      throw new Error(response_json.message || response_json.detail || "User deletion failed");
+    }
+    return response_json;
+  });
 }
 
 export function saveRole(user_id, role) {

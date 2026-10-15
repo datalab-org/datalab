@@ -12,7 +12,7 @@
           <div class="form-group col-md-6">
             <label for="equipment-id" class="col-form-label">ID:</label>
             <input id="equipment-id" v-model="item_id" type="text" class="form-control" required />
-            <!-- eslint-disable-next-line vue/no-v-html -->
+            <!-- eslint-disable-next-line vue/no-v-html -- only renders validateEntryID/validateGroupID output, whose sole HTML is an <a> link built from a charset-validated ID -->
             <div class="form-error" v-html="isValidEntryID"></div>
           </div>
           <div class="form-group col-md-6">
