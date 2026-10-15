@@ -161,16 +161,13 @@
               aria-labelledby="selected-actions-dropdown"
             >
               <a
-                v-if="
-                  !['collections', 'collectionItems', 'users', 'tokens', 'groups', 'tags'].includes(
-                    dataType,
-                  )
-                "
-                data-testid="add-to-collection-button"
+                v-for="action in batchActions"
+                :key="action.key"
+                :data-testid="action.batchTestId"
                 class="dropdown-item"
-                @click="handleAddToCollection"
+                @click="requestAction(action)"
               >
-                Add to collection
+                {{ action.label }}
               </a>
               <a
                 v-if="dataType === 'collectionItems'"
@@ -179,26 +176,6 @@
                 @click="confirmRemoveFromCollection"
               >
                 Remove from collection
-              </a>
-              <a
-                v-if="
-                  !['collections', 'collectionItems', 'users', 'tokens', 'groups', 'tags'].includes(
-                    dataType,
-                  )
-                "
-                data-testid="batch-share-button"
-                class="dropdown-item"
-                @click="handleBatchShare"
-              >
-                Batch share
-              </a>
-              <a
-                v-if="!['collectionItems', 'users', 'tokens', 'groups'].includes(dataType)"
-                data-testid="delete-selected-button"
-                class="dropdown-item"
-                @click="confirmDeletion"
-              >
-                Delete items
               </a>
               <a
                 v-if="dataType === 'users'"
@@ -355,6 +332,7 @@
 
 <script>
 import { DialogService } from "@/services/DialogService";
+import { batchActionsFor } from "@/utils/itemActions.js";
 
 import IconField from "primevue/iconfield";
 import InputIcon from "primevue/inputicon";
@@ -368,10 +346,6 @@ import BulkAddToGroupModal from "@/components/BulkAddToGroupModal.vue";
 import BulkChangeManagersModal from "@/components/BulkChangeManagersModal.vue";
 
 import {
-  deleteSample,
-  deleteCollection,
-  deleteStartingMaterial,
-  deleteEquipment,
   removeItemsFromCollection,
   saveUser,
   saveRole,
@@ -379,7 +353,6 @@ import {
   saveUserManagers,
   invalidateToken,
   deleteGroup,
-  deleteTag,
 } from "@/server_fetch_utils.js";
 
 export default {
@@ -450,8 +423,7 @@ export default {
     "open-create-collection-modal",
     "open-create-equipment-modal",
     "open-create-tag-modal",
-    "open-add-to-collection-modal",
-    "open-batch-share-modal",
+    "action-request",
     "delete-selected-items",
     "update:filters",
     "update:selected-columns",
@@ -476,6 +448,9 @@ export default {
     };
   },
   computed: {
+    batchActions() {
+      return batchActionsFor(this.dataType);
+    },
     hasActionButtons() {
       return (
         ["samples", "collections", "equipment"].includes(this.dataType) ||
@@ -516,56 +491,6 @@ export default {
       const [singular, plural] = labels[this.dataType] || ["item", "items"];
       return count === 1 ? singular : plural;
     },
-    async confirmDeletion() {
-      const isTags = this.dataType === "tags";
-      const idsSelected = this.itemsSelected.map(
-        (x) => x.item_id || x.collection_id || x.immutable_id,
-      );
-      // Tags have no human id; label them by name instead of immutable_id.
-      const labels = isTags ? this.itemsSelected.map((x) => x.name) : idsSelected;
-      let labelText = labels;
-      if (labels.length > 10) {
-        labelText = labels.slice(0, 10).join(", ") + ", ...";
-      }
-      const confirmed = await DialogService.confirm({
-        title: "Confirm Deletion",
-        message: isTags
-          ? `Are you sure you want to delete ${this.itemsSelected.length} selected tag(s)? They will be removed from any items using them. (${labelText})`
-          : `Are you sure you want to delete ${this.itemsSelected.length} selected items? (${labelText})`,
-        type: "warning",
-      });
-      if (confirmed) {
-        this.deleteItems(idsSelected);
-        this.$emit("delete-selected-items");
-      }
-      this.isSelectedDropdownVisible = false;
-    },
-    async deleteItems(ids) {
-      try {
-        this.itemCount = ids.length;
-        this.isDeletingItems = true;
-
-        let deletePromises = [];
-
-        if (this.dataType === "samples") {
-          deletePromises = ids.map((id) => deleteSample(id));
-        } else if (this.dataType === "collections") {
-          deletePromises = ids.map((id) => deleteCollection(id, { collection_id: id }));
-        } else if (this.dataType === "startingMaterials") {
-          deletePromises = ids.map((id) => deleteStartingMaterial(id));
-        } else if (this.dataType === "equipment") {
-          deletePromises = ids.map((id) => deleteEquipment(id));
-        } else if (this.dataType === "tags") {
-          deletePromises = ids.map((id) => deleteTag(id));
-        }
-
-        await Promise.all(deletePromises);
-      } catch (error) {
-        console.error("Error during batch deletion:", error);
-      } finally {
-        this.isDeletingItems = false;
-      }
-    },
     async confirmRemoveFromCollection() {
       const refcodesSelected = this.itemsSelected.map((item) => item.refcode);
 
@@ -591,8 +516,12 @@ export default {
         this.isDeletingItems = false;
       }
     },
-    handleAddToCollection() {
-      this.$emit("open-add-to-collection-modal");
+    requestAction(action) {
+      this.$emit("action-request", {
+        action: action.key,
+        items: [...this.itemsSelected],
+        source: "batch",
+      });
       this.isSelectedDropdownVisible = false;
     },
     columnLabel(option) {
@@ -609,10 +538,6 @@ export default {
       if (confirmed) {
         this.$emit("reset-table");
       }
-    },
-    handleBatchShare() {
-      this.$emit("open-batch-share-modal");
-      this.isSelectedDropdownVisible = false;
     },
     async handleBulkActivateUsers() {
       const userIds = this.itemsSelected.map((u) => u.immutable_id);

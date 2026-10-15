@@ -5,7 +5,7 @@
       <template #body>
         <div class="form-row">
           <div class="form-group col-md-8">
-            <label for="items-selected" class="col-form-label">Items Selected:</label>
+            <label for="items-selected" class="col-form-label">Item(s) selected:</label>
             <div id="items-selected" class="dynamic-input">
               <FormattedItemName
                 v-for="(item, index) in itemsSelected"
@@ -37,6 +37,7 @@
 import Modal from "@/components/Modal.vue";
 import FormattedItemName from "@/components/FormattedItemName";
 import CollectionSelect from "@/components/CollectionSelect.vue";
+import { DialogService } from "@/services/DialogService";
 
 import {
   addItemsToCollection,
@@ -86,6 +87,10 @@ export default {
         this.$emit("update:modelValue", false);
       } catch (error) {
         console.error("Error adding items to collections:", error);
+        DialogService.error({
+          title: "Add to Collection Failed",
+          message: error.message || error,
+        });
       }
     },
   },
