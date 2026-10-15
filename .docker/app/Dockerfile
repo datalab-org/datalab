@@ -5,6 +5,12 @@ FROM plugin_environment AS plugin-panels
 COPY webapp /webapp
 RUN /opt/.venv/bin/invoke dev.collect-plugin-panels
 
+# Copy plugin's package.json files alone (yarn workspaces), so that editing a plugin's
+# components does not invalidate the dependency install below
+RUN mkdir /plugin-packages \
+    && cd /webapp/src/plugins \
+    && find . -mindepth 2 -maxdepth 2 -name package.json -exec cp --parents {} /plugin-packages/ \;
+
 FROM node:22.22-trixie-slim AS base
 SHELL ["/bin/bash", "--login", "-c"]
 
@@ -15,9 +21,19 @@ EXPOSE 8081
 RUN apt update && apt install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 
 COPY webapp/package.json webapp/yarn.lock ./
+COPY --from=plugin-panels /plugin-packages ./src/plugins
 
-# Using a custom node_modules location to avoid mounting it outside of docker
-RUN --mount=type=cache,target=/root/.cache/yarn yarn install --frozen-lockfile --modules-folder /node_modules
+# Using a custom node_modules location to avoid mounting it outside of docker.
+# Plugin dependencies are not in the committed yarn.lock, so when plugins declare
+# any, install with --pure-lockfile (core pins are kept; the lockfile is not
+# written). Plugin-specific versions that conflict with the webapp's are nested
+# in src/plugins/<package>/node_modules rather than in /node_modules.
+RUN --mount=type=cache,target=/root/.cache/yarn \
+    if compgen -G "src/plugins/*/package.json" > /dev/null; then \
+        yarn install --pure-lockfile --modules-folder /node_modules; \
+    else \
+        yarn install --frozen-lockfile --modules-folder /node_modules; \
+    fi
 
 # dev target: deps installed, source mounted at runtime — no production build.
 # Also installs the system libraries the Cypress test runner needs (GTK/X11
@@ -25,6 +41,8 @@ RUN --mount=type=cache,target=/root/.cache/yarn yarn install --frozen-lockfile -
 # run inside the container.
 FROM base AS dev
 COPY --from=plugin-panels /webapp/src/plugins /opt/datalab-plugin-panels
+# Add any nested plugin node_modules, as /app/src is bind-mounted at runtime
+RUN cp -a /app/src/plugins/. /opt/datalab-plugin-panels/
 COPY .docker/app_dev_entrypoint.sh /usr/local/bin/datalab-app-dev
 RUN apt update \
     && apt install -y --no-install-recommends \
