@@ -52,7 +52,10 @@ class XRDBlock(DataBlock):
 
     @classmethod
     def load_pattern(
-        cls, location: str | Path, wavelength: float | None = None
+        cls,
+        location: str | Path,
+        wavelength: float | None = None,
+        target_resolution: float | None = 0.01,
     ) -> tuple[pd.DataFrame, list[str], dict]:
         """Load the XRD pattern at the given file location, returning
         a DataFrame with the pattern data, a list of y-axis options for plotting
@@ -61,6 +64,10 @@ class XRDBlock(DataBlock):
         Parameters:
             location: The file location of the XRD pattern.
             wavelength: The wavelength of the X-ray source. Defaults to CuKa.
+            target_resolution: The target resolution for rebinning the data,
+                set to `None` to disable rebinning, otherwise, the data will
+                be rebinned to a uniform 2θ grid with this resolution if the
+                average resolution is lower than this value.
 
         """
 
@@ -68,6 +75,7 @@ class XRDBlock(DataBlock):
             location = str(location)
 
         ext = os.path.splitext(location.split("/")[-1])[-1].lower()
+        LOGGER.debug("Loading XRD pattern from %s as %s", location, ext)
 
         theoretical = False
         peak_data: dict = {}
@@ -137,7 +145,39 @@ class XRDBlock(DataBlock):
         if len(df) == 0:
             raise RuntimeError(f"No compatible data found in {location}")
 
-        df = df.rename(columns={"twotheta": "2θ (°)"})
+        df = df.rename(columns={"twotheta": "2θ (°)", "intensity": "counts"})
+
+        # Always retain the raw measurement as "counts". "intensity" is the signal
+        # used downstream: the rebinned data where the native sampling is finer than
+        # the target resolution, otherwise the raw counts.
+        df["intensity"] = df["counts"]
+        if not theoretical and target_resolution is not None:
+            if target_resolution <= 0:
+                raise ValueError("Target resolution must be a positive number")
+
+            average_two_theta_resolution = np.mean(np.diff(df["2θ (°)"]))
+            if average_two_theta_resolution < target_resolution:
+                warnings.warn(
+                    f"Native 2θ sampling ({average_two_theta_resolution:.4f}°) is finer than the "
+                    f"target resolution; rebinning onto a uniform {target_resolution:.4f}° grid."
+                )
+                two_theta = df["2θ (°)"].to_numpy()
+                # Bin edges span the data range at the target resolution
+                edges = np.arange(
+                    two_theta.min(), two_theta.max() + target_resolution, target_resolution
+                )
+
+                # Weighted histogram rebinning: each bin holds the mean counts
+                # of the input points falling within it
+                bin_counts, _ = np.histogram(two_theta, bins=edges)
+                weighted, _ = np.histogram(two_theta, bins=edges, weights=df["counts"].to_numpy())
+                with np.errstate(invalid="ignore"):
+                    binned_intensity = weighted / bin_counts
+
+                # Map each bin's value back onto the original grid (a point's own
+                # bin is never empty, so no NaNs are introduced here)
+                bin_indices = np.clip(np.digitize(two_theta, edges) - 1, 0, len(bin_counts) - 1)
+                df["intensity"] = binned_intensity[bin_indices]
 
         # if no wavelength (or invalid wavelength) is passed, don't convert to Q and d
         if wavelength:
@@ -161,11 +201,15 @@ class XRDBlock(DataBlock):
             for warning_type, message in warnings_to_ignore:
                 warnings.filterwarnings("ignore", category=warning_type, message=message)
 
+            # Baselines/normalisations are derived from "intensity", which is the
+            # rebinned signal when rebinning occurred (smoother, on a uniform grid)
             y_option_df = cls._calc_baselines_and_normalize(
                 df["2θ (°)"], df["intensity"], theoretical=theoretical
             )
 
-        y_options = ["intensity"] + list(y_option_df.columns)
+        # Expose the raw "counts" alongside "intensity" only when they differ
+        intensity_options = ["counts", "intensity"]
+        y_options = intensity_options + list(y_option_df.columns)
 
         df = pd.concat([df, y_option_df], axis=1)
         df.index.name = location.split("/")[-1] + (" (theoretical)" if theoretical else "")
