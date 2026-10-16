@@ -12,7 +12,7 @@
 </template>
 
 <script>
-import MessageBubble from "@/components/MessageBubble.vue";
+import MessageBubble from "./MessageBubble.vue";
 
 export default {
   components: {
