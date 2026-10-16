@@ -1,16 +1,20 @@
+// This file was edited with the assistance of an AI model and requires human review from the contributor.
 import { createStore } from "vuex";
 
+import BatchCreateItemModal from "@/components/BatchCreateItemModal.vue";
 import CreateItemModal from "@/components/CreateItemModal.vue";
 import CustomFieldsPanel from "@/components/custom/CustomFieldsPanel.vue";
 import { itemTypes, registerDynamicItemType } from "@/resources.js";
 
 const DIRECT_TYPE = "_component_test_direct_item";
 const EQUIPMENT_TYPE = "_component_test_equipment_item";
+const SAMPLE_TYPE = "_component_test_sample_item";
 
 describe("Custom item UI", () => {
   afterEach(() => {
     delete itemTypes[DIRECT_TYPE];
     delete itemTypes[EQUIPMENT_TYPE];
+    delete itemTypes[SAMPLE_TYPE];
   });
 
   it("offers every dynamic type from Samples but not Inventory", () => {
@@ -36,6 +40,50 @@ describe("Custom item UI", () => {
     expect(samplesTypes).to.deep.equal(["samples", "cells", DIRECT_TYPE, EQUIPMENT_TYPE]);
     expect(inventoryTypes).to.deep.equal(["starting_materials"]);
     expect(itemTypes[DIRECT_TYPE].itemInformationComponent.name).to.equal("ItemInformation");
+  });
+
+  it("batch-creates items of a custom type", () => {
+    registerDynamicItemType(SAMPLE_TYPE, {
+      title: "Custom sample",
+      base_type: "samples",
+    });
+
+    const store = createStore({
+      state() {
+        return { sample_list: [], schemas: { [SAMPLE_TYPE]: {} } };
+      },
+    });
+
+    cy.intercept("POST", "**/new-samples/", {
+      statusCode: 207,
+      body: { status: "success", responses: [], nsuccess: 0, nerror: 0 },
+    }).as("newSamples");
+
+    cy.mount(BatchCreateItemModal, {
+      props: { modelValue: true },
+      global: { plugins: [store] },
+    });
+
+    // Component tests run without the app's Bootstrap CSS, so the Modal's backdrop
+    // overlays the dialog; { force: true } bypasses that visual actionability check.
+    cy.get(`#batch-item-type-select option[value="${SAMPLE_TYPE}"]`).should("exist");
+    cy.get("#batch-item-type-select").select(SAMPLE_TYPE, { force: true });
+    cy.get("#batchItemNRows").clear({ force: true }).type("1", { force: true });
+    cy.get(
+      "[data-testid=batch-add-table] > tbody > tr:nth-of-type(1) > td:nth-of-type(1) input",
+    ).type("custom_1", { force: true });
+    cy.get('input[type="submit"]').click({ force: true });
+
+    cy.wait("@newSamples")
+      .its("request.body.new_sample_datas")
+      .should((datas) => {
+        expect(datas).to.have.length(1);
+        expect(datas[0].item_id).to.equal("custom_1");
+        expect(datas[0].type).to.equal(SAMPLE_TYPE);
+        // A Sample-based custom type gets synthesis constituents, not cell components
+        expect(datas[0].synthesis_constituents).to.deep.equal([]);
+        expect(datas[0]).not.to.have.property("positive_electrode");
+      });
   });
 
   it("renders only fields added beyond the advertised Item base", () => {
