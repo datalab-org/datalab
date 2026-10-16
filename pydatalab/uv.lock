@@ -359,14 +359,14 @@ wheels = [
 
 [[package]]
 name = "datalab-org-galvani"
-version = "0.5.4"
+version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/83/71/687486e1bcf9fb7605a708acb0f21c9eb777fa0058abdba4f05aaec739d9/datalab_org_galvani-0.5.4.tar.gz", hash = "sha256:f5c0f56d0023bd7c7250143c720ce5c1a4d2258b6c0de3051f886fb8fffc7e96", size = 56376, upload-time = "2026-07-30T14:03:37.938Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/84/9e/601e4ae8dd8f678930bcdccd5e36a9926e692cec66bdb898797f95d2214e/datalab_org_galvani-0.6.0.tar.gz", hash = "sha256:3a11cc0bcf4082b94659b918a74880cf6811a0f24aec4d2eef40e3b091fa0fa9", size = 56894, upload-time = "2026-10-16T22:52:19.5Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/28/9a/c5d3afd7ee6ba63049a3c495c36ddf480fc985b3edde7af949d395b2ce61/datalab_org_galvani-0.5.4-py3-none-any.whl", hash = "sha256:ec7cd39228bd34b224236944e15ddaa7bc3d3bd4a964629127feb252d4b7ebb3", size = 27480, upload-time = "2026-07-30T14:03:36.805Z" },
+    { url = "https://files.pythonhosted.org/packages/06/f0/3c834142bdc8a2cf28ffd30aa4b9f5e909be6f80f0ae417c71c95b3e66db/datalab_org_galvani-0.6.0-py3-none-any.whl", hash = "sha256:43e23806396833d3972a7b08d55c92b2019076e6e7c1db67a29f51b126e2e475", size = 27538, upload-time = "2026-10-16T22:52:18.213Z" },
 ]
 
 [[package]]
