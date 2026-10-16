@@ -10,6 +10,7 @@ import CollectionPage from "../views/CollectionPage.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
 import Admin from "@/views/Admin.vue";
 import Login from "../views/Login.vue";
+import Notifications from "../views/Notifications.vue";
 import { API_URL, WEBSITE_TITLE } from "@/resources.js";
 import { getInfo } from "@/server_fetch_utils.js";
 import store from "@/store/index.js";
@@ -69,6 +70,19 @@ const routes = [
     beforeEnter: async (to, from, next) => {
       const serverInfo = store.state.serverInfo ?? (await getInfo());
       if (serverInfo.features?.tags) {
+        next();
+      } else {
+        next({ path: "/" });
+      }
+    },
+  },
+  {
+    path: "/notifications",
+    name: "notifications",
+    component: Notifications,
+    beforeEnter: async (to, from, next) => {
+      const serverInfo = store.state.serverInfo ?? (await getInfo());
+      if (serverInfo.features?.notifications?.enabled) {
         next();
       } else {
         next({ path: "/" });

@@ -11,7 +11,10 @@ import router from "./router";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import {
   faBarcode,
+  faArchive,
+  faArrowLeft,
   faBars,
+  faBell,
   faHome,
   faSave,
   faCloudUploadAlt,
@@ -21,6 +24,7 @@ import {
   faFile,
   faCode,
   faEnvelope,
+  faEnvelopeOpen,
   faCog,
   faCubes,
   faFileExport,
@@ -92,7 +96,10 @@ import { faGithub, faOrcid, faGoogle, faMicrosoft } from "@fortawesome/free-bran
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 library.add(
   faBarcode,
+  faArchive,
+  faArrowLeft,
   faBars,
+  faBell,
   faHome,
   faSave,
   faPen,
@@ -103,6 +110,7 @@ library.add(
   faCode,
   faQrcode,
   faEnvelope,
+  faEnvelopeOpen,
   faCog,
   faCubes,
   faFileExport,

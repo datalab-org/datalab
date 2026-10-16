@@ -10,6 +10,18 @@ def test_default_settings():
     assert config.MONGO_URI == "mongodb://localhost:27017/datalabvue"
     assert config.SECRET_KEY
     assert Path(config.FILE_DIRECTORY).name == "files"
+    assert config.ENABLE_NOTIFICATIONS is False
+
+
+def test_notification_feature_flags(monkeypatch):
+    from pydatalab.config import CONFIG
+    from pydatalab.feature_flags import NotificationFeatures
+
+    monkeypatch.setattr(CONFIG, "ENABLE_NOTIFICATIONS", False)
+    assert NotificationFeatures(enabled=CONFIG.ENABLE_NOTIFICATIONS).dict() == {"enabled": False}
+
+    monkeypatch.setattr(CONFIG, "ENABLE_NOTIFICATIONS", True)
+    assert NotificationFeatures(enabled=CONFIG.ENABLE_NOTIFICATIONS).dict() == {"enabled": True}
 
 
 def test_update_settings():

@@ -41,6 +41,12 @@ This prefix should be set to something relatively short (max 10 chars.) that des
 This can be set either via a config file, or as an environment variable (e.g., `PYDATALAB_IDENTIFIER_PREFIX='grey'`).
 Be warned, if the prefix changes between server launches, all entries will have to be migrated manually to the desired prefix, or maintained at the old prefix.
 
+## Notifications
+
+Notifications are disabled by default. Set [`ENABLE_NOTIFICATIONS`][pydatalab.config.ServerConfig.ENABLE_NOTIFICATIONS] to `true` (or set `PYDATALAB_ENABLE_NOTIFICATIONS=true` in the server environment) to enable the notification API and web app interface.
+
+When enabled, users can review and manage their received notifications from the notification bell or the full Notifications page. Administrators can send plain-text notifications to selected active users or all active users, review sent notifications in the Administration page, and delete individual deliveries.
+
 ## User registration & authentication
 
 *datalab* has two supported user registration/authentication

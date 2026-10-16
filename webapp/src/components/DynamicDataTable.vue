@@ -208,6 +208,11 @@ export default {
       required: false,
       default: true,
     },
+    rowNavigation: {
+      type: Boolean,
+      required: false,
+      default: true,
+    },
     editPageRoutePrefix: {
       type: String,
       required: false,
@@ -237,6 +242,8 @@ export default {
     "edit-group",
     "group-deleted",
     "open-create-tag-modal",
+    "row-click",
+    "notification-deleted",
   ],
   data() {
     return {
@@ -440,6 +447,10 @@ export default {
       });
     },
     goToEditPage(event) {
+      if (!this.rowNavigation) {
+        this.$emit("row-click", event.data);
+        return;
+      }
       if (this.dataType === "users" || this.dataType === "groups" || this.dataType === "tags") {
         return;
       }

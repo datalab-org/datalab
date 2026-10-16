@@ -10,11 +10,13 @@
     <img v-else class="logo-banner" :width="logo_width + 'px'" :src="logo_url" />
   </div>
 
-  <div
-    class="container d-flex flex-column align-items-center pt-3"
-    data-testid="navbar-logindetails"
-  >
-    <LoginDetails />
+  <div class="container navbar-account-row pt-3" data-testid="navbar-logindetails">
+    <div class="navbar-account-center">
+      <LoginDetails />
+    </div>
+    <div v-if="isLoggedIn && notificationsEnabled" class="navbar-notifications">
+      <NotificationBell />
+    </div>
   </div>
 
   <div id="nav" data-testid="navbar-navigation">
@@ -50,11 +52,13 @@
 <script>
 import { API_URL, LOGO_URL, LOGO_WIDTH, HOMEPAGE_URL } from "@/resources.js";
 import LoginDetails from "@/components/LoginDetails.vue";
+import NotificationBell from "@/components/notifications/NotificationBell.vue";
 
 export default {
   name: "Navbar",
   components: {
     LoginDetails,
+    NotificationBell,
   },
   data() {
     return {
@@ -71,6 +75,9 @@ export default {
     },
     adminSuperUserMode() {
       return this.$store.getters.isAdminSuperUserModeActive;
+    },
+    notificationsEnabled() {
+      return this.$store.state.serverInfo?.features?.notifications?.enabled ?? false;
     },
   },
   methods: {
@@ -90,6 +97,36 @@ export default {
   margin-right: auto;
   filter: alpha(opacity=100);
   opacity: 1;
+}
+
+.navbar-account-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+}
+
+.navbar-account-center {
+  grid-column: 2;
+  justify-self: center;
+}
+
+.navbar-notifications {
+  grid-column: 3;
+  justify-self: end;
+}
+
+@media (max-width: 576px) {
+  .navbar-account-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  .navbar-account-center,
+  .navbar-notifications {
+    justify-self: auto;
+  }
 }
 a > .logo-banner:hover {
   filter: alpha(opacity=40);

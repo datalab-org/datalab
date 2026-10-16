@@ -20,6 +20,9 @@
         @group-created="onGroupCreated"
       />
     </template>
+    <template v-if="selectedItem === 'Notifications'">
+      <NotificationAdminPanel />
+    </template>
   </div>
 </template>
 
@@ -28,6 +31,7 @@ import UserTable from "./UserTable.vue";
 import TokenTable from "./TokenTable.vue";
 import GroupTable from "./GroupTable.vue";
 import CreateGroupModal from "./CreateGroupModal.vue";
+import NotificationAdminPanel from "./notifications/NotificationAdminPanel.vue";
 
 export default {
   name: "AdminDisplay",
@@ -36,6 +40,7 @@ export default {
     TokenTable,
     GroupTable,
     CreateGroupModal,
+    NotificationAdminPanel,
   },
   props: {
     selectedItem: {
