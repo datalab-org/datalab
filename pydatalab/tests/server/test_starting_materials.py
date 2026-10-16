@@ -1,3 +1,4 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 import datetime
 import json
 
@@ -243,3 +244,46 @@ def test_starting_material_permissions(
         json={"item_id": default_starting_material_dict["item_id"]},
     )
     assert response.status_code == 200
+
+
+def test_copy_starting_material(client):
+    """Copying a starting material carries over its fields, with the provided
+    item_id and name taking precedence."""
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "starting_materials",
+                "item_id": "sm_copy_source",
+                "name": "original",
+                "chemform": "Na2CO3",
+                "CAS": "497-19-8",
+                "chemical_purity": "99%",
+                "location": "SR1 room 22",
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "starting_materials",
+                "item_id": "sm_copy_target",
+                "name": "copy",
+            },
+            "copy_from_item_id": "sm_copy_source",
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.get("/get-item-data/sm_copy_target")
+    assert response.status_code == 200, response.json
+    item_data = response.json["item_data"]
+    assert item_data["type"] == "starting_materials"
+    assert item_data["name"] == "copy"
+    assert item_data["chemform"] == "Na2CO3"
+    assert item_data["CAS"] == "497-19-8"
+    assert item_data["chemical_purity"] == "99%"
+    assert item_data["location"] == "SR1 room 22"
