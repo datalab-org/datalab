@@ -88,7 +88,6 @@ Much of this support is provided by other third-party libraries (many of which t
 ```{=latex}
 \begin{table}[ht]
 \caption{Non-exhaustive summary of supported characterization techniques and file formats in version 0.7. Some are included in the \emph{datalab} core, while others are open-source plugins built using the extensible plugin system (denoted by $\star$).}
-\label{tbl:formats}
 \small
 \begin{tabular}{|l|l|}
 \hline
