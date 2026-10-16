@@ -185,6 +185,83 @@ def test_custom_type_as_synthesis_constituent(client, custom_item_models):
     assert parents[0]["item_id"] == "custom-constituent-1"
 
 
+def test_copy_custom_sample(client, custom_item_models):
+    """Copying a custom sample-derived item carries over its custom fields and
+    merges any newly provided synthesis constituents with the copied ones."""
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "_my_samples",
+                "item_id": "custom-copy-source",
+                "name": "original",
+                "drying_time": 2.0,
+                "custom_properties": {"batch": "C1", "purity": 0.9},
+                "synthesis_constituents": [
+                    {"item": {"name": "inline precursor"}, "quantity": 1.0, "unit": "g"}
+                ],
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "_my_samples",
+                "item_id": "custom-copy-target",
+                "name": "copy",
+                "synthesis_constituents": [
+                    {"item": {"name": "extra precursor"}, "quantity": 2.0, "unit": "g"}
+                ],
+            },
+            "copy_from_item_id": "custom-copy-source",
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.get("/get-item-data/custom-copy-target")
+    assert response.status_code == 200, response.json
+    item_data = response.json["item_data"]
+    assert item_data["type"] == "_my_samples"
+    assert item_data["name"] == "copy"
+    assert item_data["drying_time"] == 2.0
+    assert item_data["custom_properties"] == {"batch": "C1", "purity": 0.9}
+    assert [c["item"]["name"] for c in item_data["synthesis_constituents"]] == [
+        "inline precursor",
+        "extra precursor",
+    ]
+
+
+def test_copy_into_different_type_rejected(client, custom_item_models):
+    """Copying an item into a new item of a different type is rejected, and no
+    item is created."""
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "_my_items",
+                "item_id": "custom-item-copy-source",
+                "width": 1.0,
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {"type": "samples", "item_id": "wrong-type-copy"},
+            "copy_from_item_id": "custom-item-copy-source",
+        },
+    )
+    assert response.status_code == 400, response.json
+
+    response = client.get("/get-item-data/wrong-type-copy")
+    assert response.status_code == 404
+
+
 def test_equipment_rejected_as_synthesis_constituent(client):
     """Types without substance information (e.g. `equipment`) remain invalid as
     synthesis constituents."""
