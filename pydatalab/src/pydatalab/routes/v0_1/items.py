@@ -24,9 +24,11 @@ from pydatalab.models import (
     ItemVersion,
     flagged_summary_fields,
 )
+from pydatalab.models.cells import Cell
 from pydatalab.models.items import Item
 from pydatalab.models.people import AccountStatus
 from pydatalab.models.relationships import RelationshipType
+from pydatalab.models.traits import HasSynthesisInfo
 from pydatalab.models.utils import (
     InlineSubstance,
     construct_location_hierarchy,
@@ -621,14 +623,14 @@ def search_items():
     return jsonify({"status": "success", "items": list(cursor)}), 200
 
 
-COPYABLE_CONSTITUENT_FIELDS: tuple[str, ...] = (
-    "synthesis_constituents",
-    "positive_electrode",
-    "negative_electrode",
-    "electrolyte",
-)
-"""Constituent list fields that are merged (rather than overwritten) when an item is
-created as a copy of another item."""
+def _copyable_constituent_fields(item_type: str) -> tuple[str, ...]:
+    model = ITEM_MODELS[item_type]
+    fields: tuple[str, ...] = ()
+    if issubclass(model, HasSynthesisInfo):
+        fields += ("synthesis_constituents",)
+    if issubclass(model, Cell):
+        fields += ("positive_electrode", "negative_electrode", "electrolyte")
+    return fields
 
 
 def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
@@ -667,19 +669,17 @@ def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
 
     # any provided constituents will be added to the relevant constituent tables in
     # addition to the constituents copied from the copy_from_item_id, avoiding duplicates.
-    # This is keyed on the fields present rather than the item type, so that custom item
-    # types inheriting these fields (e.g., `Sample` subclasses) are handled too.
-    for component in COPYABLE_CONSTITUENT_FIELDS:
+    for component in _copyable_constituent_fields(copied_doc["type"]):
         if not isinstance(copied_doc.get(component), list):
             continue
-        existing_consituent_ids = [
+        existing_constituent_ids = [
             constituent["item"].get("item_id", None) for constituent in copied_doc[component]
         ]
         copied_doc[component] += [
             constituent
             for constituent in sample_dict.get(component, [])
             if constituent["item"].get("item_id", None) is None
-            or constituent["item"].get("item_id") not in existing_consituent_ids
+            or constituent["item"].get("item_id") not in existing_constituent_ids
         ]
 
     original_collections = sample_dict.get("collections", [])
