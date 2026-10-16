@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import platform
+from collections import Counter
 from pathlib import Path
 from typing import Any, Literal
 
@@ -20,7 +21,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydatalab.models import Person
 from pydatalab.models.utils import RandomAlphabeticalRefcodeFactory, RefCodeFactory
 
-__all__ = ("CONFIG", "ServerConfig", "DeploymentMetadata", "RemoteFilesystem")
+__all__ = (
+    "CONFIG",
+    "ServerConfig",
+    "DeploymentMetadata",
+    "ItemTypeAllowListEntry",
+    "RemoteFilesystem",
+)
 
 config_logger = logging.getLogger("pydatalab.config")
 
@@ -111,6 +118,34 @@ class RemoteFilesystem(BaseModel):
         description="The hostname for the filesystem. `None` indicates the filesystem is already mounted locally.",
     )
     path: Path = Field(description="The path to the base of the filesystem to include.")
+
+
+class ItemTypeAllowListEntry(BaseModel):
+    """An item type and the block types that may be added to it."""
+
+    type: str
+    block_type_allow_list: list[str]
+
+    model_config = ConfigDict(extra="forbid")
+
+
+def normalize_item_type_allow_list(
+    allow_list: list[str | ItemTypeAllowListEntry] | None,
+) -> dict[str, list[str] | None] | None:
+    """Normalize the mixed item-type allowlist into a mapping.
+
+    String entries have no additional block restriction, while object entries
+    carry an explicit block-type allowlist.
+    """
+    if allow_list is None:
+        return None
+
+    return {
+        entry if isinstance(entry, str) else entry.type: (
+            None if isinstance(entry, str) else entry.block_type_allow_list
+        )
+        for entry in allow_list
+    }
 
 
 class SMTPSettings(BaseModel):
@@ -274,6 +309,16 @@ its importance when deploying a datalab instance.""",
         description="A list of block type slugs (e.g. ['cycle', 'xrd']) that should be processed asynchronously via the task queue. Defaults to no blocks.",
     )
 
+    BLOCK_TYPE_ALLOW_LIST: list[str] | None = Field(
+        None,
+        description="A list of block type slugs that users may add. Setting the value to `None` allows every installed block type, while an empty list prevents adding any new blocks.",
+    )
+
+    ITEM_TYPE_ALLOW_LIST: list[str | ItemTypeAllowListEntry] | None = Field(
+        None,
+        description="A list of item types that users may create. A string entry permits every globally available block type, while an object entry with `type` and `block_type_allow_list` restricts which blocks may be added to that item type. Setting the value to `None` permits every registered item type, while an empty list prevents adding any new items or blocks.",
+    )
+
     CUSTOM_ITEM_MODELS: list[str] = Field(
         [],
         description="A list of dotted import paths ('package.module:ClassName') to custom `Item` subclasses to register as additional item types served through the generic item endpoints, e.g. ['mypackage.models:MySample']. Each model must declare its own unique `type` literal.",
@@ -322,6 +367,23 @@ its importance when deploying a datalab instance.""",
                 f"The maximum cache age must be greater than the minimum cache age: min {min_age=}, max {max_age=}"
             )
         return self
+
+    @field_validator("ITEM_TYPE_ALLOW_LIST")
+    @classmethod
+    def validate_item_type_allow_list(cls, value):
+        """Reject duplicate item types whose block policy would be ambiguous."""
+        if value is None:
+            return value
+
+        item_types = [entry if isinstance(entry, str) else entry.type for entry in value]
+        duplicates = sorted(
+            item_type for item_type, count in Counter(item_types).items() if count > 1
+        )
+        if duplicates:
+            raise ValueError(
+                "ITEM_TYPE_ALLOW_LIST contains duplicate item types: " + ", ".join(duplicates)
+            )
+        return value
 
     @field_validator("SECRET_KEY", mode="before")
     @classmethod

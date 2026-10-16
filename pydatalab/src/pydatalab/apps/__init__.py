@@ -109,6 +109,53 @@ BLOCKS = COMMON_BLOCKS + load_app_blocks()
 BLOCK_TYPES: dict[str, type["DataBlock"]] = {block.blocktype: block for block in BLOCKS}
 
 
+def is_block_type_available(block_type: str, item_type: str | None = None) -> bool:
+    """Whether an installed block type is available for creating a new block."""
+    from pydatalab.config import CONFIG
+
+    globally_available = block_type in BLOCK_TYPES and (
+        CONFIG.BLOCK_TYPE_ALLOW_LIST is None or block_type in CONFIG.BLOCK_TYPE_ALLOW_LIST
+    )
+    if not globally_available or item_type is None:
+        return globally_available
+
+    from pydatalab.models import get_item_block_type_allow_list
+
+    item_allow_list = get_item_block_type_allow_list(item_type)
+    return item_allow_list is None or block_type in item_allow_list
+
+
+def warn_for_unknown_block_types() -> None:
+    """Warn about configured block types that were not registered at startup."""
+    from pydatalab.config import CONFIG
+    from pydatalab.logger import LOGGER
+
+    if CONFIG.BLOCK_TYPE_ALLOW_LIST is not None:
+        unknown_block_types = sorted(set(CONFIG.BLOCK_TYPE_ALLOW_LIST) - BLOCK_TYPES.keys())
+        if unknown_block_types:
+            LOGGER.warning(
+                "Ignoring unknown block types in BLOCK_TYPE_ALLOW_LIST: %s",
+                ", ".join(unknown_block_types),
+            )
+
+    from pydatalab.models import get_item_type_allow_list
+
+    item_type_allow_list = get_item_type_allow_list()
+    if item_type_allow_list is None:
+        return
+
+    for item_type, block_type_allow_list in item_type_allow_list.items():
+        if block_type_allow_list is None:
+            continue
+        unknown_block_types = sorted(set(block_type_allow_list) - BLOCK_TYPES.keys())
+        if unknown_block_types:
+            LOGGER.warning(
+                "Ignoring unknown block types for item type %r in ITEM_TYPE_ALLOW_LIST: %s",
+                item_type,
+                ", ".join(unknown_block_types),
+            )
+
+
 def load_block_plugins():
     """Search through any registered entrypoints at 'pydatalab.apps.plugins'
     and load them as DataBlock subclasses.

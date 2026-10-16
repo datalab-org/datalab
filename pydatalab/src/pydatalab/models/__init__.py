@@ -103,6 +103,50 @@ refresh_item_models()
 BUILTIN_ITEM_TYPES = frozenset(ITEM_MODELS)
 
 
+def get_item_type_allow_list() -> dict[str, list[str] | None] | None:
+    """Return the normalized deployment item-type allowlist."""
+    from pydatalab.config import CONFIG, normalize_item_type_allow_list
+
+    return normalize_item_type_allow_list(CONFIG.ITEM_TYPE_ALLOW_LIST)
+
+
+def is_item_type_available(item_type: str) -> bool:
+    """Whether a registered item type is available for creating new items."""
+    allow_list = get_item_type_allow_list()
+    return item_type in ITEM_MODELS and (allow_list is None or item_type in allow_list)
+
+
+def get_item_block_type_allow_list(item_type: str) -> list[str] | None:
+    """Return the configured block allowlist for an item type.
+
+    ``None`` means that no item-specific restriction applies. An empty list is
+    returned for unregistered or omitted item types, preventing new blocks.
+    """
+    if item_type not in ITEM_MODELS:
+        return []
+
+    allow_list = get_item_type_allow_list()
+    if allow_list is None:
+        return None
+    return allow_list.get(item_type, [])
+
+
+def warn_for_unknown_item_types() -> None:
+    """Warn about configured item types that were not registered at startup."""
+    from pydatalab.logger import LOGGER
+
+    allow_list = get_item_type_allow_list()
+    if allow_list is None:
+        return
+
+    unknown_item_types = sorted(allow_list.keys() - ITEM_MODELS.keys())
+    if unknown_item_types:
+        LOGGER.warning(
+            "Ignoring unknown item types in ITEM_TYPE_ALLOW_LIST: %s",
+            ", ".join(unknown_item_types),
+        )
+
+
 def _namespace_item_model(model: type[Item], item_type: str) -> str:
     """Rewrite the `type` literal of an item model *in place* to `item_type`.
 
@@ -255,6 +299,10 @@ __all__ = (
     "ITEM_MODELS",
     "ITEM_SCHEMAS",
     "BUILTIN_ITEM_TYPES",
+    "get_item_block_type_allow_list",
+    "get_item_type_allow_list",
+    "is_item_type_available",
+    "warn_for_unknown_item_types",
     "register_item_model",
     "refresh_item_models",
     "load_custom_item_models",
