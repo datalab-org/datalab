@@ -1,6 +1,8 @@
 from flask import Blueprint, jsonify, request
+from werkzeug.exceptions import NotFound
 
 from pydatalab.blocks.store import is_block_reference
+from pydatalab.config import CONFIG
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 
@@ -25,6 +27,11 @@ def get_graph_cy_format(
         "hide_collections", default=True, type=lambda v: v.lower() == "true"
     )
     max_depth = request.args.get("max_depth", default=1, type=int)
+
+    if CONFIG.DISABLE_COLLECTIONS and collection_id is not None:
+        raise NotFound
+    if CONFIG.DISABLE_COLLECTIONS:
+        hide_collections = True
 
     if item_id is None:
         if collection_id is not None:

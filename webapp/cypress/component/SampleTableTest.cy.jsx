@@ -1,5 +1,6 @@
 import "bootstrap/dist/css/bootstrap.css";
 import DynamicDataTable from "@/components/DynamicDataTable.vue";
+import DynamicDataTableButtons from "@/components/DynamicDataTableButtons.vue";
 import SampleTable from "@/components/SampleTable.vue";
 import UserBubble from "@/components/UserBubble.vue";
 import StyledTooltip from "@/components/StyledTooltip.vue";
@@ -65,6 +66,7 @@ describe("SampleTable Component Tests", () => {
               rows: 20,
             },
           },
+          serverInfo: { features: { collections_enabled: true } },
           sample_list: [
             {
               item_id: "sample1",
@@ -165,6 +167,9 @@ describe("SampleTable Component Tests", () => {
           ],
         };
       },
+      getters: {
+        collectionsEnabled: (state) => state.serverInfo.features.collections_enabled,
+      },
     });
 
     cy.mount(SampleTable, {
@@ -197,6 +202,29 @@ describe("SampleTable Component Tests", () => {
     cy.get('[data-testid="add-to-collection-button"]').should("not.exist");
     cy.get('[data-testid="delete-selected-button"]').should("not.exist");
     cy.get('[data-testid="search-input"]').should("exist");
+  });
+
+  it("hides collection table controls when configured", () => {
+    store.state.serverInfo.features.collections_enabled = false;
+
+    cy.then(() => {
+      const dataTable = wrapper.findComponent(DynamicDataTable);
+      dataTable.vm.selectedColumns = dataTable.vm.availableColumns.filter((col) => !col.hidden);
+      dataTable.vm.itemsSelected = [store.state.sample_list[0]];
+
+      const buttons = dataTable.findComponent(DynamicDataTableButtons);
+
+      expect(dataTable.vm.availableColumns.some((col) => col.field === "collections")).to.be.false;
+      return dataTable.vm.$nextTick().then(() => {
+        expect(buttons.props("availableColumns").some((col) => col.field === "collections")).to.be
+          .false;
+      });
+    });
+
+    cy.get(".p-datatable-column-title").should("not.contain.text", "Collections");
+    cy.get('[data-testid="add-to-collection-button"]').should("not.exist");
+    cy.get('[data-testid="add-to-collection-form"]').should("not.exist");
+    cy.contains("Create new collection").should("not.exist");
   });
 
   it("closes table settings outside but keeps them open when selecting columns", () => {

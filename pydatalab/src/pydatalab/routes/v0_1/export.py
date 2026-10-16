@@ -7,6 +7,7 @@ from pathlib import Path
 
 from flask import Blueprint, jsonify, make_response, request, send_file
 from flask_login import current_user
+from werkzeug.exceptions import NotFound
 
 from pydatalab.config import CONFIG
 from pydatalab.export import create_eln_file
@@ -195,6 +196,9 @@ def _generate_export_in_background(
 
 @EXPORT.route("/collections/<string:collection_id>/export", methods=["POST"])
 def start_collection_export(collection_id: str):
+    if CONFIG.DISABLE_COLLECTIONS:
+        raise NotFound
+
     from pydatalab.permissions import get_default_permissions
 
     collection_with_perms = flask_mongo.db.collections.find_one(

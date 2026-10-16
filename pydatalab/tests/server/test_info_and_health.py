@@ -9,6 +9,7 @@ def test_info_endpoint(client, url_prefix, app):
     assert all(k in response.json["data"] for k in ("type", "id", "attributes"))
     attributes = response.json["data"]["attributes"]
     assert (features := attributes.get("features"))
+    assert features["collections_enabled"] is True
     assert (auth := features.get("auth_mechanisms"))
     assert auth["github"] is bool(
         app.config.get("GITHUB_OAUTH_CLIENT_ID", None)

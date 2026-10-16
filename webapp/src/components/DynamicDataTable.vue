@@ -43,7 +43,7 @@
           :editable-inventory="editable_inventory"
           :show-buttons="showButtons"
           :available-columns="availableColumns"
-          :selected-columns="selectedColumns"
+          :selected-columns="displayedColumns"
           :collection-id="collectionId"
           :all-users="allUsers"
           @update:filters="updateFilters"
@@ -87,7 +87,7 @@
       ></Column>
 
       <Column
-        v-for="column in selectedColumns"
+        v-for="column in displayedColumns"
         :key="column.field"
         :field="column.field"
         :sortable="column.sortable !== false"
@@ -143,9 +143,13 @@
   />
   <BatchCreateItemModal v-model="batchCreateItemModalIsOpen" />
   <QRScannerModal v-model="qrScannerModalIsOpen" />
-  <CreateCollectionModal v-model="createCollectionModalIsOpen" />
+  <CreateCollectionModal
+    v-if="$store.getters.collectionsEnabled"
+    v-model="createCollectionModalIsOpen"
+  />
   <CreateEquipmentModal v-model="createEquipmentModalIsOpen" />
   <AddToCollectionModal
+    v-if="$store.getters.collectionsEnabled"
     v-model="addToCollectionModalIsOpen"
     :items-selected="itemsSelected"
     @items-updated="handleItemsUpdated"
@@ -302,7 +306,14 @@ export default {
       );
     },
     availableColumns() {
-      return this.columns.map((col) => ({ ...col }));
+      return this.columns
+        .filter((col) => this.$store.getters.collectionsEnabled || col.field !== "collections")
+        .map((col) => ({ ...col }));
+    },
+    displayedColumns() {
+      return this.selectedColumns.filter(
+        (col) => this.$store.getters.collectionsEnabled || col.field !== "collections",
+      );
     },
   },
   created() {

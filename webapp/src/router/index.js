@@ -14,6 +14,11 @@ import { API_URL, WEBSITE_TITLE } from "@/resources.js";
 import { getInfo } from "@/server_fetch_utils.js";
 import store from "@/store/index.js";
 
+async function requireCollections() {
+  const serverInfo = store.state.serverInfo ?? (await getInfo());
+  return serverInfo.features?.collections_enabled === false ? { path: "/404" } : true;
+}
+
 const routes = [
   {
     path: "/about",
@@ -60,6 +65,7 @@ const routes = [
     path: "/collections",
     name: "collections",
     component: Collections,
+    beforeEnter: requireCollections,
   },
   {
     path: "/tags",
@@ -79,6 +85,7 @@ const routes = [
     path: "/collections/:id",
     name: "Collection",
     component: CollectionPage,
+    beforeEnter: requireCollections,
   },
   {
     path: "/item-graph/",

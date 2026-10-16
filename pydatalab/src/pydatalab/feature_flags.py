@@ -28,6 +28,7 @@ class FeatureFlags(BaseModel):
     auth_mechanisms: AuthMechanisms = AuthMechanisms()
     ai_integrations: AIIntegrations = AIIntegrations()
     email_notifications: bool = False
+    collections_enabled: bool = True
     tags: bool = False
     ungrouped_inventory: Literal["none", "warn", "error"] = "none"
 
@@ -62,8 +63,12 @@ def check_feature_flags(app):
 
     """
 
+    FEATURE_FLAGS.collections_enabled = not CONFIG.DISABLE_COLLECTIONS
     FEATURE_FLAGS.tags = CONFIG.ENABLE_TAGS
     FEATURE_FLAGS.ungrouped_inventory = CONFIG.UNGROUPED_INVENTORY
+
+    if not FEATURE_FLAGS.collections_enabled:
+        LOGGER.warning("`CONFIG.DISABLE_COLLECTIONS` is set; collections will not be enabled.")
 
     if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is None:
         LOGGER.warning(

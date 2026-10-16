@@ -346,6 +346,8 @@ def create_default_indices(
 
     """
 
+    from pydatalab.config import CONFIG
+
     items_fts_fields = get_items_fts_fields()
 
     if not items_fts_fields:
@@ -379,11 +381,12 @@ def create_default_indices(
         weights={"refcode": 3, "item_id": 3, "name": 3, "chemform": 3},
     )
 
-    ret += create_or_recreate_text_index(
-        db.collections,
-        ["collection_id", "title", "description"],
-        weights={"collection_id": 3, "title": 3, "description": 3},
-    )
+    if not CONFIG.DISABLE_COLLECTIONS:
+        ret += create_or_recreate_text_index(
+            db.collections,
+            ["collection_id", "title", "description"],
+            weights={"collection_id": 3, "title": 3, "description": 3},
+        )
 
     ret += create_or_recreate_text_index(
         db.tags,

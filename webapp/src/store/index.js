@@ -477,6 +477,9 @@ export default createStore({
     },
   },
   getters: {
+    collectionsEnabled(state) {
+      return state.serverInfo?.features?.collections_enabled ?? true;
+    },
     getItem: (state) => (item_id) => {
       return state.all_item_data[item_id];
     },
