@@ -37,12 +37,14 @@
               <span class="contents-blocktitle"> {{ section.title }} </span>
             </li>
             <li
-              v-for="block_id in display_order"
-              :key="block_id"
+              v-for="entry in display_order"
+              :key="isSection(entry) ? entry.section_id : entry"
               class="contents-item"
-              @click="scrollToID($event, block_id)"
+              @click="scrollToID($event, isSection(entry) ? entry.section_id : entry)"
             >
-              <span class="contents-blocktitle">{{ blocks[block_id].title }}</span>
+              <span class="contents-blocktitle">{{
+                isSection(entry) ? entry.title : blocks[entry].title
+              }}</span>
             </li>
           </ol>
         </div>
@@ -63,12 +65,14 @@
             <span class="contents-blocktitle"> {{ section.title }} </span>
           </li>
           <li
-            v-for="block_id in display_order"
-            :key="block_id"
+            v-for="entry in display_order"
+            :key="isSection(entry) ? entry.section_id : entry"
             class="contents-item"
-            @click="scrollToID($event, block_id)"
+            @click="scrollToID($event, isSection(entry) ? entry.section_id : entry)"
           >
-            <span class="contents-blocktitle">{{ blocks[block_id].title }}</span>
+            <span class="contents-blocktitle">{{
+              isSection(entry) ? entry.title : blocks[entry].title
+            }}</span>
           </li>
         </ol>
       </div>
@@ -78,6 +82,8 @@
 </template>
 
 <script>
+import { isSection, sectionIdOfBlock } from "@/utils/displayOrderSections.js";
+
 export default {
   props: {
     informationSections: { type: Array, required: true },
@@ -98,7 +104,7 @@ export default {
   },
   computed: {
     display_order() {
-      return this.$store.state.all_item_data[this.item_id]?.display_order || {};
+      return this.$store.state.all_item_data[this.item_id]?.display_order || [];
     },
     blocks() {
       return this.$store.state.all_item_data[this.item_id]?.blocks_obj || {};
@@ -126,9 +132,13 @@ export default {
     window.removeEventListener("resize", this.checkOverflowSoon);
   },
   methods: {
+    isSection,
     scrollToID(event, id) {
-      var element = document.getElementById(id);
-      element.scrollIntoView({ behavior: "smooth" });
+      const element = document.getElementById(id);
+      const target = element?.offsetParent
+        ? element
+        : document.getElementById(sectionIdOfBlock(this.display_order, id));
+      target?.scrollIntoView({ behavior: "smooth" });
     },
     // Whether a scrollable element still has content hidden above or below
     // its visible area, i.e. it isn't scrolled all the way to that edge.
