@@ -657,6 +657,13 @@ export function searchTags(query, nresults = 100) {
   });
 }
 
+export function addTagsToItems(refcodes, tagIds) {
+  return fetch_patch(`${API_URL}/items/batch/tags`, {
+    refcodes: refcodes,
+    tag_ids: tagIds,
+  });
+}
+
 export function searchGroups(query, nresults = 100, memberOnly = false) {
   // construct a url with parameters:
   var url = new URL(`${API_URL}/search/groups`);
