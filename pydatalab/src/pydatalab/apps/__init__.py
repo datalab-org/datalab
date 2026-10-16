@@ -109,6 +109,31 @@ BLOCKS = COMMON_BLOCKS + load_app_blocks()
 BLOCK_TYPES: dict[str, type["DataBlock"]] = {block.blocktype: block for block in BLOCKS}
 
 
+def is_block_type_available(block_type: str) -> bool:
+    """Whether an installed block type is available for creating new blocks."""
+    from pydatalab.config import CONFIG
+
+    return block_type in BLOCK_TYPES and (
+        CONFIG.BLOCK_TYPE_ALLOW_LIST is None or block_type in CONFIG.BLOCK_TYPE_ALLOW_LIST
+    )
+
+
+def warn_for_unknown_block_types() -> None:
+    """Warn about configured block types that were not registered at startup."""
+    from pydatalab.config import CONFIG
+    from pydatalab.logger import LOGGER
+
+    if CONFIG.BLOCK_TYPE_ALLOW_LIST is None:
+        return
+
+    unknown_block_types = sorted(set(CONFIG.BLOCK_TYPE_ALLOW_LIST) - BLOCK_TYPES.keys())
+    if unknown_block_types:
+        LOGGER.warning(
+            "Ignoring unknown block types in BLOCK_TYPE_ALLOW_LIST: %s",
+            ", ".join(unknown_block_types),
+        )
+
+
 def load_block_plugins():
     """Search through any registered entrypoints at 'pydatalab.apps.plugins'
     and load them as DataBlock subclasses.
