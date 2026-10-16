@@ -168,7 +168,7 @@
                 "
                 data-testid="add-to-collection-button"
                 class="dropdown-item"
-                @click="handleAddToCollection"
+                @click="handleAddToCollection()"
               >
                 Add to collection
               </a>
@@ -188,7 +188,7 @@
                 "
                 data-testid="batch-share-button"
                 class="dropdown-item"
-                @click="handleBatchShare"
+                @click="handleBatchShare()"
               >
                 Batch share
               </a>
@@ -196,7 +196,7 @@
                 v-if="!['collectionItems', 'users', 'tokens', 'groups'].includes(dataType)"
                 data-testid="delete-selected-button"
                 class="dropdown-item"
-                @click="confirmDeletion"
+                @click="confirmDeletion()"
               >
                 Delete items
               </a>
@@ -516,13 +516,11 @@ export default {
       const [singular, plural] = labels[this.dataType] || ["item", "items"];
       return count === 1 ? singular : plural;
     },
-    async confirmDeletion() {
+    async confirmDeletion(items = this.itemsSelected) {
       const isTags = this.dataType === "tags";
-      const idsSelected = this.itemsSelected.map(
-        (x) => x.item_id || x.collection_id || x.immutable_id,
-      );
+      const idsSelected = items.map((x) => x.item_id || x.collection_id || x.immutable_id);
       // Tags have no human id; label them by name instead of immutable_id.
-      const labels = isTags ? this.itemsSelected.map((x) => x.name) : idsSelected;
+      const labels = isTags ? items.map((x) => x.name) : idsSelected;
       let labelText = labels;
       if (labels.length > 10) {
         labelText = labels.slice(0, 10).join(", ") + ", ...";
@@ -530,13 +528,13 @@ export default {
       const confirmed = await DialogService.confirm({
         title: "Confirm Deletion",
         message: isTags
-          ? `Are you sure you want to delete ${this.itemsSelected.length} selected tag(s)? They will be removed from any items using them. (${labelText})`
-          : `Are you sure you want to delete ${this.itemsSelected.length} selected items? (${labelText})`,
+          ? `Are you sure you want to delete ${items.length} selected tag(s)? They will be removed from any items using them. (${labelText})`
+          : `Are you sure you want to delete ${items.length} selected item(s)? (${labelText})`,
         type: "warning",
       });
       if (confirmed) {
-        this.deleteItems(idsSelected);
-        this.$emit("delete-selected-items");
+        await this.deleteItems(idsSelected);
+        this.$emit("delete-selected-items", idsSelected);
       }
       this.isSelectedDropdownVisible = false;
     },
@@ -591,8 +589,8 @@ export default {
         this.isDeletingItems = false;
       }
     },
-    handleAddToCollection() {
-      this.$emit("open-add-to-collection-modal");
+    handleAddToCollection(items = null) {
+      this.$emit("open-add-to-collection-modal", items);
       this.isSelectedDropdownVisible = false;
     },
     columnLabel(option) {
@@ -610,8 +608,8 @@ export default {
         this.$emit("reset-table");
       }
     },
-    handleBatchShare() {
-      this.$emit("open-batch-share-modal");
+    handleBatchShare(items = null) {
+      this.$emit("open-batch-share-modal", items);
       this.isSelectedDropdownVisible = false;
     },
     async handleBulkActivateUsers() {
@@ -1121,6 +1119,10 @@ export default {
 .settings-dropdown {
   min-width: 220px;
   padding: 0.5rem 0;
+}
+
+.dropdown-item {
+  cursor: pointer;
 }
 
 .dropdown-item-text {

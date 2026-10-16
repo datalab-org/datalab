@@ -36,6 +36,7 @@
     >
       <template #header>
         <DynamicDataTableButtons
+          ref="tableButtons"
           :data-type="dataType"
           :items-selected="itemsSelected"
           :displayed-item-count="filteredItemCount"
@@ -54,8 +55,8 @@
           @open-create-collection-modal="createCollectionModalIsOpen = true"
           @open-create-equipment-modal="createEquipmentModalIsOpen = true"
           @open-create-tag-modal="$emit('open-create-tag-modal')"
-          @open-add-to-collection-modal="addToCollectionModalIsOpen = true"
-          @open-batch-share-modal="batchShareModalIsOpen = true"
+          @open-add-to-collection-modal="openAddToCollectionModal"
+          @open-batch-share-modal="openBatchShareModal"
           @delete-selected-items="deleteSelectedItems"
           @remove-selected-items-from-collection="removeSelectedItemsFromCollection"
           @reset-table="handleResetTable"
@@ -135,8 +136,84 @@
           />
         </template>
       </Column>
+
+      <Column
+        class="clear-filters-column"
+        :class="{ 'filter-active': hasActiveFilters }"
+        :style="{ minWidth: `${rowActionsColumnWidth}ch` }"
+      >
+        <template #header>
+          <button
+            data-testid="clear-filters-button"
+            class="clear-filters-icon-button"
+            type="button"
+            :disabled="!hasActiveFilters"
+            :title="hasActiveFilters ? 'Clear all filters' : 'No active filters'"
+            @click="handleClearFilters"
+          >
+            <i class="pi pi-filter-slash"></i>
+          </button>
+        </template>
+        <template v-if="showActionsColumn" #body="slotProps">
+          <div class="row-actions">
+            <button
+              v-if="showRowCollectionAndShareActions"
+              data-testid="row-add-to-collection-button"
+              class="row-action-icon-button"
+              type="button"
+              title="Add to collection"
+              @click.stop="handleRowAddToCollection(slotProps.data)"
+            >
+              <font-awesome-icon icon="folder-plus" />
+            </button>
+            <button
+              v-if="showRowCollectionAndShareActions"
+              data-testid="row-share-button"
+              class="row-action-icon-button"
+              type="button"
+              title="Share"
+              @click.stop="handleRowShare(slotProps.data)"
+            >
+              <font-awesome-icon icon="share-alt" />
+            </button>
+            <button
+              v-if="showRowDelete"
+              data-testid="row-delete-button"
+              class="row-action-icon-button"
+              type="button"
+              title="Delete"
+              @click.stop="handleRowDelete(slotProps.data)"
+            >
+              <font-awesome-icon icon="trash" />
+            </button>
+            <button
+              v-if="extraRowActions.length"
+              data-testid="row-more-actions-button"
+              class="row-action-icon-button"
+              type="button"
+              title="More actions"
+              @click.stop="openRowActionsMenu($event, slotProps.data)"
+            >
+              <font-awesome-icon icon="ellipsis-h" />
+            </button>
+          </div>
+        </template>
+      </Column>
     </DataTable>
   </div>
+  <Popover ref="rowActionsPopover">
+    <div class="row-actions-menu">
+      <a
+        v-for="action in extraRowActions"
+        :key="action.key"
+        class="dropdown-item"
+        @click="handleExtraRowAction(action)"
+      >
+        <font-awesome-icon :icon="action.icon" class="mr-2" />
+        {{ action.label }}
+      </a>
+    </div>
+  </Popover>
   <CreateItemModal
     v-model="createItemModalIsOpen"
     :allowed-types="dataType == 'startingMaterials' ? allowedTypes : undefined"
@@ -147,12 +224,12 @@
   <CreateEquipmentModal v-model="createEquipmentModalIsOpen" />
   <AddToCollectionModal
     v-model="addToCollectionModalIsOpen"
-    :items-selected="itemsSelected"
+    :items-selected="rowActionItems.length ? rowActionItems : itemsSelected"
     @items-updated="handleItemsUpdated"
   />
   <BatchShareModal
     v-model="batchShareModalIsOpen"
-    :items-selected="itemsSelected"
+    :items-selected="rowActionItems.length ? rowActionItems : itemsSelected"
     @items-updated="handleItemsUpdated"
   />
 </template>
@@ -172,6 +249,7 @@ import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY } from "@/resources.js";
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
+import Popover from "primevue/popover";
 
 export default {
   components: {
@@ -185,6 +263,7 @@ export default {
     BatchShareModal,
     DataTable,
     Column,
+    Popover,
   },
   props: {
     columns: {
@@ -249,6 +328,8 @@ export default {
       batchShareModalIsOpen: false,
       isSampleFetchError: false,
       itemsSelected: [],
+      rowActionItems: [],
+      activeRowForMenu: null,
       allSelected: false,
       filters: {},
       filteredData: [],
@@ -304,6 +385,45 @@ export default {
     availableColumns() {
       return this.columns.map((col) => ({ ...col }));
     },
+    hasActiveFilters() {
+      return Object.entries(this.filters).some(([field, filter]) => {
+        if (field === "global" || !filter?.constraints) return false;
+        return filter.constraints.some((constraint) => {
+          const value = constraint.value;
+          if (value === null || value === undefined || value === "") return false;
+          if (Array.isArray(value) && value.length === 0) return false;
+          return true;
+        });
+      });
+    },
+    // Mirrors the visibility rules of the "N selected..." batch actions menu
+    // in DynamicDataTableButtons.vue, so per-row actions stay consistent with it.
+    showRowCollectionAndShareActions() {
+      return !["collections", "collectionItems", "users", "tokens", "groups", "tags"].includes(
+        this.dataType,
+      );
+    },
+    // Tags already get per-row edit/delete buttons from their own "Actions" column.
+    showRowDelete() {
+      return !["collectionItems", "users", "tokens", "groups", "tags"].includes(this.dataType);
+    },
+    showActionsColumn() {
+      return this.showRowCollectionAndShareActions || this.showRowDelete;
+    },
+    // Actions beyond add-to-collection/share/delete, surfaced behind the kebab (⋮)
+    // button so the column width doesn't grow with every new action.
+    // Add entries like { key, label, icon, handler(row) } here as they're needed —
+    // the kebab button and column width appear/adjust automatically once non-empty.
+    extraRowActions() {
+      return [];
+    },
+    rowActionsColumnWidth() {
+      const visibleActionCount =
+        (this.showRowCollectionAndShareActions ? 2 : 0) +
+        (this.showRowDelete ? 1 : 0) +
+        (this.extraRowActions.length ? 1 : 0);
+      return Math.max(visibleActionCount * 3, 3);
+    },
   },
   created() {
     this.$store.commit("setPage", { type: this.dataType, page: 0 });
@@ -337,29 +457,18 @@ export default {
       return itemDate >= startDate && itemDate <= endDate;
     });
 
-    const filters = { global: { value: null } };
     for (const col of this.columns) {
-      if (!col.filter) continue;
+      if (!col.filter || typeof col.filter.match !== "function") continue;
 
-      let matchModeName;
-      if (typeof col.filter.match === "function") {
-        matchModeName = `${this.dataType}_${col.field}`;
-        const matchFn = col.filter.match;
-        FilterService.register(matchModeName, (value, filterValue) => {
-          const operator = this.filters[col.field]?.operator;
-          return matchFn(value, filterValue, operator);
-        });
-        this.registeredMatchModes.push(matchModeName);
-      } else {
-        matchModeName = col.filter.matchMode || FilterMatchMode.CONTAINS;
-      }
-
-      filters[col.field] = {
-        operator: col.filter.operator || FilterOperator.AND,
-        constraints: [{ value: null, matchMode: matchModeName }],
-      };
+      const matchModeName = `${this.dataType}_${col.field}`;
+      const matchFn = col.filter.match;
+      FilterService.register(matchModeName, (value, filterValue) => {
+        const operator = this.filters[col.field]?.operator;
+        return matchFn(value, filterValue, operator);
+      });
+      this.registeredMatchModes.push(matchModeName);
     }
-    this.filters = filters;
+    this.filters = this.getDefaultFilters();
   },
   unmounted() {
     // These matchers close over this instance, so drop them rather than leaving them
@@ -370,6 +479,23 @@ export default {
     this.registeredMatchModes = [];
   },
   methods: {
+    getDefaultFilters() {
+      const filters = { global: { value: null } };
+      for (const col of this.columns) {
+        if (!col.filter) continue;
+
+        const matchModeName =
+          typeof col.filter.match === "function"
+            ? `${this.dataType}_${col.field}`
+            : col.filter.matchMode || FilterMatchMode.CONTAINS;
+
+        filters[col.field] = {
+          operator: col.filter.operator || FilterOperator.AND,
+          constraints: [{ value: null, matchMode: matchModeName }],
+        };
+      }
+      return filters;
+    },
     resolveBodyEvents(column) {
       const listeners = Object.fromEntries(
         (column.body?.events || []).map((event) => [
@@ -541,15 +667,52 @@ export default {
         );
       }
     },
-    deleteSelectedItems() {
-      this.itemsSelected = [];
+    deleteSelectedItems(deletedIds) {
+      // Bulk actions (users, tokens, groups) emit without ids: clear the whole selection.
+      if (!deletedIds) {
+        this.itemsSelected = [];
+        return;
+      }
+      const deletedIdSet = new Set(deletedIds);
+      this.itemsSelected = this.itemsSelected.filter(
+        (item) => !deletedIdSet.has(item.item_id || item.collection_id || item.immutable_id),
+      );
     },
     removeSelectedItemsFromCollection() {
       this.itemsSelected = [];
       this.$emit("remove-selected-items-from-collection");
     },
     handleItemsUpdated() {
-      this.itemsSelected = [];
+      // A per-row action only touched that row, so keep the user's checkbox selection.
+      if (!this.rowActionItems.length) {
+        this.itemsSelected = [];
+      }
+      this.rowActionItems = [];
+    },
+    openAddToCollectionModal(items) {
+      this.rowActionItems = items || [];
+      this.addToCollectionModalIsOpen = true;
+    },
+    openBatchShareModal(items) {
+      this.rowActionItems = items || [];
+      this.batchShareModalIsOpen = true;
+    },
+    handleRowAddToCollection(row) {
+      this.$refs.tableButtons.handleAddToCollection([row]);
+    },
+    handleRowShare(row) {
+      this.$refs.tableButtons.handleBatchShare([row]);
+    },
+    handleRowDelete(row) {
+      this.$refs.tableButtons.confirmDeletion([row]);
+    },
+    openRowActionsMenu(event, row) {
+      this.activeRowForMenu = row;
+      this.$refs.rowActionsPopover.show(event, event.currentTarget);
+    },
+    handleExtraRowAction(action) {
+      this.$refs.rowActionsPopover.hide();
+      action.handler(this.activeRowForMenu);
     },
     updateRows(rows) {
       this.$store.commit("setRows", { type: this.dataType, rows });
@@ -648,6 +811,9 @@ export default {
     updateFilters(newFilters) {
       this.filters = { ...newFilters };
     },
+    handleClearFilters() {
+      this.filters = { ...this.getDefaultFilters(), global: this.filters.global };
+    },
     handleResetTable() {
       localStorage.removeItem(`datatable-state-${this.dataType}`);
 
@@ -663,5 +829,58 @@ export default {
 .last-modified-cell {
   font-size: 0.85em;
   font-style: italic;
+}
+
+.clear-filters-icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.25rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.clear-filters-icon-button:hover {
+  opacity: 0.7;
+}
+
+.clear-filters-icon-button:disabled {
+  color: #ced4da;
+  cursor: default;
+  opacity: 1;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.row-action-icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.row-action-icon-button:hover {
+  opacity: 0.7;
+}
+
+.row-actions-menu {
+  min-width: 10rem;
+  padding: 0.5rem 0;
+}
+
+.row-actions-menu .dropdown-item {
+  cursor: pointer;
 }
 </style>
