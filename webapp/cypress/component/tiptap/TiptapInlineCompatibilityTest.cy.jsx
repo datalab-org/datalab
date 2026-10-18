@@ -95,7 +95,7 @@ describe("TiptapInline - TinyMCE HTML Compatibility", () => {
       },
     });
 
-    cy.get(".ProseMirror img")
+    cy.get(".ProseMirror img:not(.ProseMirror-separator)")
       .should("have.attr", "src", "https://example.com/image.png")
       .and("have.attr", "alt", "Test image");
   });
