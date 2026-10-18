@@ -330,13 +330,22 @@ jobs:
             exit 1
           fi
 
+      # Chrome 155 (runner image 20261012) makes the e2e tests very flaky with Cypress 13,
+      # so pin the previous major version until Cypress can be upgraded
+      - name: Install pinned Chrome
+        if: matrix.browser-backend == 'chrome'
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          chrome-version: "154"
+
       - name: Run end-to-end tests
         uses: cypress-io/github-action@v7
         with:
           config: baseUrl=http://localhost:8081
           working-directory: ./webapp
           record: ${{ github.repository == 'datalab-org/datalab' }}
-          browser: ${{ matrix.browser-backend }}
+          browser: ${{ matrix.browser-backend == 'chrome' && steps.setup-chrome.outputs.chrome-path || matrix.browser-backend }}
           group: "End-to-end tests (${{ matrix.browser-backend }})"
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
