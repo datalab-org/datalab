@@ -17,8 +17,8 @@
     "lint": "vue-cli-service lint"
   },
   "resolutions": {
-    "cross-spawn": "^7.0.5",
-    "prosemirror-view": "1.41.1"
+    "@xmldom/xmldom": "^0.9.12",
+    "prosemirror-view": "^1.42.6"
   },
   "dependencies": {
     "@bokeh/bokehjs": "2.4.3",
