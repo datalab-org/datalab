@@ -15,6 +15,8 @@ Names are unique *within a scope*; the stable identity of a tag is its
 import pytest
 from bson import ObjectId
 
+from pydatalab.tags import tag_immutable_ids
+
 
 @pytest.fixture(autouse=True)
 def _isolate_tags(database):
@@ -334,6 +336,174 @@ def test_cannot_add_foreign_tag_on_creation(client, another_client):
     assert response.status_code == 403, response.json
 
 
+# --- batch application -----------------------------------------------------------
+
+
+def test_batch_add_tags_preserves_existing_tags_and_versions_items(client, admin_client, database):
+    existing_tag_id = _create_tag(client, "batch-existing").json["data"]["immutable_id"]
+    user_tag_id = _create_tag(client, "batch-user").json["data"]["immutable_id"]
+    global_tag_id = _create_tag(admin_client, "batch-global", scope="global").json["data"][
+        "immutable_id"
+    ]
+
+    item_ids = ["batch-tag-one", "batch-tag-two"]
+    for item_id in item_ids:
+        response = client.post("/new-sample/", json={"type": "samples", "item_id": item_id})
+        assert response.status_code == 201, response.json
+
+    database.items.update_one(
+        {"item_id": item_ids[0]},
+        {"$set": {"tags": [{"type": "tags", "immutable_id": ObjectId(existing_tag_id)}]}},
+    )
+    items = list(database.items.find({"item_id": {"$in": item_ids}}))
+    refcodes = [item["refcode"] for item in items]
+    versions_before = {
+        refcode: database.item_versions.count_documents({"refcode": refcode})
+        for refcode in refcodes
+    }
+    modified_before = {item["refcode"]: item.get("last_modified") for item in items}
+
+    response = client.patch(
+        "/items/batch/tags",
+        json={
+            "refcodes": [*refcodes, refcodes[0]],
+            "tag_ids": [user_tag_id, global_tag_id, user_tag_id],
+        },
+    )
+    assert response.status_code == 200, response.json
+    assert response.json == {
+        "status": "success",
+        "updated_count": 2,
+        "unchanged_count": 0,
+        "failed_refcodes": [],
+    }
+
+    stored_items = list(database.items.find({"item_id": {"$in": item_ids}}))
+    stored_by_id = {item["item_id"]: item for item in stored_items}
+    assert tag_immutable_ids(stored_by_id[item_ids[0]]["tags"]) == {
+        existing_tag_id,
+        user_tag_id,
+        global_tag_id,
+    }
+    assert tag_immutable_ids(stored_by_id[item_ids[1]]["tags"]) == {
+        user_tag_id,
+        global_tag_id,
+    }
+    for item in stored_items:
+        refcode = item["refcode"]
+        assert database.item_versions.count_documents({"refcode": refcode}) == (
+            versions_before[refcode] + 1
+        )
+        assert item["last_modified"] != modified_before[refcode]
+
+    last_modified_after_update = {item["refcode"]: item["last_modified"] for item in stored_items}
+    version_counts_after_update = {
+        refcode: database.item_versions.count_documents({"refcode": refcode})
+        for refcode in refcodes
+    }
+    response = client.patch(
+        "/items/batch/tags",
+        json={"refcodes": refcodes, "tag_ids": [user_tag_id, global_tag_id]},
+    )
+    assert response.status_code == 200, response.json
+    assert response.json["updated_count"] == 0
+    assert response.json["unchanged_count"] == 2
+
+    for item in database.items.find({"item_id": {"$in": item_ids}}):
+        refcode = item["refcode"]
+        assert item["last_modified"] == last_modified_after_update[refcode]
+        assert (
+            database.item_versions.count_documents({"refcode": refcode})
+            == version_counts_after_update[refcode]
+        )
+
+
+def test_batch_add_tags_reports_items_without_write_access(client, another_client, database):
+    tag_id = _create_tag(client, "batch-partial").json["data"]["immutable_id"]
+    assert (
+        client.post("/new-sample/", json={"type": "samples", "item_id": "batch-owned"}).status_code
+        == 201
+    )
+    assert (
+        another_client.post(
+            "/new-sample/", json={"type": "samples", "item_id": "batch-not-owned"}
+        ).status_code
+        == 201
+    )
+
+    owned = database.items.find_one({"item_id": "batch-owned"})
+    not_owned = database.items.find_one({"item_id": "batch-not-owned"})
+    response = client.patch(
+        "/items/batch/tags",
+        json={
+            "refcodes": [owned["refcode"], not_owned["refcode"]],
+            "tag_ids": [tag_id],
+        },
+    )
+
+    assert response.status_code == 207, response.json
+    assert response.json == {
+        "status": "partial-success",
+        "updated_count": 1,
+        "unchanged_count": 0,
+        "failed_refcodes": [not_owned["refcode"]],
+    }
+    assert tag_immutable_ids(database.items.find_one({"item_id": "batch-owned"})["tags"]) == {
+        tag_id
+    }
+    assert (
+        tag_immutable_ids(database.items.find_one({"item_id": "batch-not-owned"})["tags"]) == set()
+    )
+
+
+def test_batch_add_tags_rejects_unusable_tags_before_writing(client, another_client, database):
+    foreign_tag_id = _create_tag(another_client, "batch-foreign").json["data"]["immutable_id"]
+    assert (
+        client.post(
+            "/new-sample/", json={"type": "samples", "item_id": "batch-rejected"}
+        ).status_code
+        == 201
+    )
+    refcode = database.items.find_one({"item_id": "batch-rejected"})["refcode"]
+
+    for tag_id, expected_status in (
+        ("not-an-object-id", 400),
+        (str(ObjectId()), 403),
+        (foreign_tag_id, 403),
+    ):
+        response = client.patch(
+            "/items/batch/tags", json={"refcodes": [refcode], "tag_ids": [tag_id]}
+        )
+        assert response.status_code == expected_status, response.json
+        assert (
+            tag_immutable_ids(database.items.find_one({"item_id": "batch-rejected"})["tags"])
+            == set()
+        )
+
+
+@pytest.mark.parametrize(
+    "payload",
+    (
+        {},
+        {"refcodes": [], "tag_ids": [str(ObjectId())]},
+        {"refcodes": ["test:missing"], "tag_ids": []},
+        {"refcodes": [None], "tag_ids": [str(ObjectId())]},
+        {"refcodes": ["test:missing"], "tag_ids": [None]},
+    ),
+)
+def test_batch_add_tags_rejects_invalid_payloads(client, payload):
+    assert client.patch("/items/batch/tags", json=payload).status_code == 400
+
+
+def test_batch_add_tags_returns_not_found_without_editable_items(client):
+    tag_id = _create_tag(client, "batch-no-items").json["data"]["immutable_id"]
+    response = client.patch(
+        "/items/batch/tags",
+        json={"refcodes": ["test:missing"], "tag_ids": [tag_id]},
+    )
+    assert response.status_code == 404
+
+
 # --- read-time resolution --------------------------------------------------------
 
 
@@ -395,6 +565,13 @@ def test_tags_feature_flag_gate(client, admin_client, monkeypatch):
     assert client.get("/tags").status_code == 404
     assert client.get("/search-tags", query_string={"query": "x"}).status_code == 404
     assert _create_tag(client, "flagged-off").status_code == 404
+    assert (
+        client.patch(
+            "/items/batch/tags",
+            json={"refcodes": ["test:item"], "tag_ids": [str(ObjectId())]},
+        ).status_code
+        == 404
+    )
 
 
 def test_tags_stripped_on_creation(client, admin_client, database):

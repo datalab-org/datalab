@@ -85,6 +85,7 @@ import {
   faCaretDown,
   faLock,
   faClock,
+  faTags,
   faUser,
 } from "@fortawesome/free-solid-svg-icons";
 import { faPlusSquare } from "@fortawesome/free-regular-svg-icons";
@@ -171,6 +172,7 @@ library.add(
   faCaretDown,
   faLock,
   faClock,
+  faTags,
   faUser,
 );
 
