@@ -1,42 +1,55 @@
 # YAML 1.2
 # Metadata for citation of this software according to the CFF format (https://citation-file-format.github.io/)
 cff-version: 1.2.0
-message: If you use this software in a publication, please cite the ChemRxiv preprint and/or source code archive on Zenodo.
+message: If you use this software in a publication, please cite the JOSS paper and/or source code archive on Zenodo.
 title: datalab
-abstract: datalab is a place to store experimental data and the connections between them.
 repository-code: https://github.com/datalab-org/datalab
 url: https://github.com/datalab-org/datalab
 type: software
 license: MIT
 authors:
 - given-names: The datalab development team
+contact:
+- family-names: Evans
+  given-names: Matthew L.
+  orcid: "https://orcid.org/0000-0002-1182-9098"
+- family-names: Bocarsly
+  given-names: Joshua D.
+  orcid: "https://orcid.org/0000-0002-7523-152X"
 identifiers:
   - type: doi
-    value: 10.5281/zenodo.14719467
+    value: 10.5281/zenodo.8127782
 preferred-citation:
-  type: article
-  title: 'datalab: federated data management infrastructure for materials chemistry and beyond'
-  doi: 10.26434/chemrxiv.15001945/v1
   authors:
-  - given-names: Matthew L.
-    family-names: Evans
-    orcid: https://orcid.org/0000-0002-1182-9098
-  - given-names: Joshua D.
-    family-names: Bocarsly
-    orcid: https://orcid.org/0000-0002-7523-152X
-  - given-names: Benjamin
-    family-names: Charmes
-    orcid: https://orcid.org/0009-0007-9474-8632
-  - given-names: Ben E.
-    family-names: Smith
-    orcid: https://orcid.org/0000-0001-9673-2449
-  - given-names: Gian-Marco
-    family-names: Rignanese
-    orcid: https://orcid.org/0000-0002-1422-1205
-  - given-names: David
-    family-names: Waroquiers
-    orcid: https://orcid.org/0000-0001-8943-9762
-  - given-names: Clare P.
-    family-names: Grey
-    orcid: https://orcid.org/0000-0001-5572-192X
-  year: 2026
+  - family-names: Evans
+    given-names: Matthew L.
+    orcid: "https://orcid.org/0000-0002-1182-9098"
+  - family-names: Bocarsly
+    given-names: Joshua D.
+    orcid: "https://orcid.org/0000-0002-7523-152X"
+  - family-names: Charmes
+    given-names: Benjamin
+    orcid: "https://orcid.org/0009-0007-9474-8632"
+  - family-names: Smith
+    given-names: Ben E.
+    orcid: "https://orcid.org/0000-0001-9673-2449"
+  - family-names: Rignanese
+    given-names: Gian-Marco
+    orcid: "https://orcid.org/0000-0002-1422-1205"
+  - family-names: Waroquiers
+    given-names: David
+    orcid: "https://orcid.org/0000-0001-8943-9762"
+  - family-names: Grey
+    given-names: Clare P.
+    orcid: "https://orcid.org/0000-0001-5572-192X"
+  date-published: 2026-10-19
+  doi: 10.21105/joss.10652
+  issn: 2475-9066
+  issue: 126
+  journal: Journal of Open Source Software
+  publisher:
+    name: Open Journals
+  start: 10652
+  url: "https://joss.theoj.org/papers/10.21105/joss.10652"
+  title: 'datalab: federated data management infrastructure for materials chemistry and beyond'
+  volume: 11
