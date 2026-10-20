@@ -4,6 +4,7 @@ import os
 import pathlib
 import re
 import shutil
+import site
 import subprocess
 import sys
 import time
@@ -225,6 +226,18 @@ def _install_plugin_webapp_dependencies(src_path: pathlib.Path) -> bool:
     return True
 
 
+def _refresh_site_packages() -> None:
+    """Pick up packages installed since this interpreter started.
+
+    Editable installs (e.g. a plugin with `editable = true` in plugins.toml) are
+    wired up via `.pth` files, which Python only reads at startup, so a plugin
+    installed earlier in `dev.install` would otherwise not be importable here.
+    """
+    for path in site.getsitepackages():
+        site.addsitedir(path)
+    importlib.invalidate_caches()
+
+
 def _collect_plugin_panels(src_path: pathlib.Path | None = None) -> dict[str, str]:
     """Collect installed plugin Vue components into ``webapp/src/plugins``.
 
@@ -239,6 +252,7 @@ def _collect_plugin_panels(src_path: pathlib.Path | None = None) -> dict[str, st
     """
     from importlib.metadata import entry_points
 
+    _refresh_site_packages()
     src_path = src_path or _webapp_src_path()
     if not src_path.is_dir():
         raise FileNotFoundError(f"Could not find webapp/src at {src_path}.")
@@ -275,9 +289,10 @@ def _collect_plugin_panels(src_path: pathlib.Path | None = None) -> dict[str, st
 
         try:
             module = importlib.import_module(package_name)
-        except ImportError:
-            print(f"  [skip] Could not import {package_name}")
-            continue
+        except ImportError as exc:
+            # A plugin with a registered entry point that cannot be imported is a
+            # broken install, and skipping it would silently drop its webapp code.
+            raise SystemExit(f"Could not import plugin package {package_name!r}: {exc}") from exc
 
         module_file = getattr(module, "__file__", None)
         if module_file is None:
