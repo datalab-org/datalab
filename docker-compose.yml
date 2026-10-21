@@ -53,6 +53,8 @@ services:
     build:
       context: .
       dockerfile: .docker/mongo/Dockerfile
+      args:
+        - MONGO_IMAGE_TAG=${MONGO_IMAGE_TAG:-8-noble}
     volumes:
       - /data/logs:/var/logs/mongod
       - /data/db:/data/db
@@ -71,6 +73,8 @@ services:
     build:
       context: .
       dockerfile: .docker/mongo/Dockerfile
+      args:
+        - MONGO_IMAGE_TAG=${MONGO_IMAGE_TAG:-8-noble}
     volumes:
       - datalab-dev-dbdata:/data/db
     ports:
