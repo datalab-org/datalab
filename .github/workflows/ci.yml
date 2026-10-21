@@ -9,7 +9,7 @@ on:
 env:
   FORCE_COLOR: true
   UV_VERSION: "0.11.8"
-  NODE_VERSION: "22.22"
+  NODE_VERSION: "22.23"
   # Recent MongoDB 8.x releases exit on startup on the runner's kernel (7.0.0-azure), see
   # https://jira.mongodb.org/browse/SERVER-125742; 8.0.20 is the last 8.0 release without
   # this check. Also update the pytest `mongo` service image below.

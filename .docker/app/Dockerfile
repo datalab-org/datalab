@@ -11,7 +11,10 @@ RUN mkdir /plugin-packages \
     && cd /webapp/src/plugins \
     && find . -mindepth 2 -maxdepth 2 -name package.json -exec cp --parents {} /plugin-packages/ \;
 
-FROM node:22.22-trixie-slim AS base
+# Single source for the Node image used by all Node-based targets
+FROM node:22.23-trixie-slim AS node_base
+
+FROM node_base AS base
 SHELL ["/bin/bash", "--login", "-c"]
 
 WORKDIR /app
@@ -84,7 +87,7 @@ ENV VUE_APP_GIT_VERSION=${VUE_APP_GIT_VERSION}
 
 RUN /node_modules/.bin/vue-cli-service build
 
-FROM node:22.22-trixie-slim AS production
+FROM node_base AS production
 
 ENV PATH=$PATH:/node_modules/.bin
 COPY ./.docker/app_entrypoint.sh /app/
