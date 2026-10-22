@@ -135,6 +135,7 @@ exclude-newer = "1 week"
 navani = false
 datalab-org-galvani = false
 matador-db = false
+certifi = false
 
 [tool.pytest.ini_options]
 # registered here as well as by pytest-memray, so that the mark still
