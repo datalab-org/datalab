@@ -364,6 +364,9 @@ def get_default_permissions(
             no effect when `user_only=True`.
 
     """
+    if CONFIG.DISABLE_COLLECTIONS:
+        inherit_from_collections = False
+
     base = _get_base_permissions(
         user_only=user_only, deleting=deleting, elevate_permissions=elevate_permissions
     )

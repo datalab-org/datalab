@@ -17,6 +17,7 @@ describe("EquipmentTable Component Tests", () => {
     store = createStore({
       state() {
         return {
+          serverInfo: { features: { collections_enabled: true } },
           datatablePaginationSettings: {
             equipment: {
               page: 0,
@@ -42,6 +43,9 @@ describe("EquipmentTable Component Tests", () => {
             },
           ],
         };
+      },
+      getters: {
+        collectionsEnabled: (state) => state.serverInfo.features.collections_enabled,
       },
     });
 

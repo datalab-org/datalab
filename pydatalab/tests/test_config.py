@@ -28,6 +28,19 @@ def test_update_settings():
     assert Path(config.FILE_DIRECTORY).name == "files"
 
 
+def test_collections_are_enabled_by_default():
+    from pydatalab.config import ServerConfig
+
+    assert ServerConfig(_env_file=None).DISABLE_COLLECTIONS is False
+
+
+def test_collections_can_be_disabled_from_environment(monkeypatch):
+    from pydatalab.config import ServerConfig
+
+    monkeypatch.setenv("PYDATALAB_DISABLE_COLLECTIONS", "true")
+    assert ServerConfig(_env_file=None).DISABLE_COLLECTIONS is True
+
+
 def test_config_override():
     from pydatalab.main import create_app
 
