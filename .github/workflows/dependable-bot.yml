@@ -8,9 +8,6 @@ permissions:
   contents: write
   pull-requests: write
 
-env:
-  UV_VERSION: "0.11.8"
-
 jobs:
   uv-update-pins:
     name: Update `uv.lock` pins
@@ -31,7 +28,6 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
         with:
-          version: ${{ env.UV_VERSION }}
           working-directory: "./pydatalab"
           enable-cache: true
 
