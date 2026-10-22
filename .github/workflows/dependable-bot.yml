@@ -9,7 +9,6 @@ permissions:
   pull-requests: write
 
 env:
-  UV_VERSION: "0.11.8"
   MIN_PYTHON_VERSION: "3.11"
 
 jobs:
@@ -32,7 +31,6 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
         with:
-          version: ${{ env.UV_VERSION }}
           working-directory: "./pydatalab"
           enable-cache: true
 
