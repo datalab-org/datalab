@@ -1,3 +1,4 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 from typing import Literal
 
 from pydantic import Field
@@ -26,5 +27,8 @@ class Equipment(Item):
     contact: str | None = None
     """Contact information for equipment (e.g., email address or phone number)."""
 
-    status: EquipmentStatus = Field(default=EquipmentStatus.WORKING)
+    status: EquipmentStatus = Field(
+        default=EquipmentStatus.WORKING,
+        json_schema_extra={"datalab_include_field_in_summary": True},
+    )
     """The status of the equipment, indicating its current state."""
