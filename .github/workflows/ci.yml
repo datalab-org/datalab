@@ -125,6 +125,14 @@ jobs:
         working-directory: ./webapp
         run: yarn install --frozen-lockfile
 
+      # yarn v1's `--frozen-lockfile` does not fail on stale entries in `yarn.lock`
+      # (yarnpkg/yarn#5840), so re-run a normal install and fail if it prunes anything
+      - name: Check yarn.lock has no stale entries
+        working-directory: ./webapp
+        run: |
+          yarn install --ignore-scripts --prefer-offline
+          git diff --exit-code yarn.lock
+
       - name: Build web app
         working-directory: ./webapp
         run: yarn build
