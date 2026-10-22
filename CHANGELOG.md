@@ -4,14 +4,29 @@
 > Release candidates and other pre-releases are not included in this changelog; there may be more
 recent changes described in the [release notes on GitHub](https://github.com/datalab-org/datalab/releases).
 
+## v0.7.12 (October 2026)
+
+This release backports dependency and image updates that address recent vulnerabilities, with no changes to *datalab* functionality.
+The certifi CA bundle is bumped to 2026.10.19 (exempted from the usual one-week dependency cooldown so it can be picked up immediately), and the Docker and CI Node version moves to 22.23.
+The server Docker image and CI now use the latest uv release rather than a pinned version.
+CI also pins MongoDB to 8.0.20, as newer 8.x releases refuse to start on some recent Linux kernels (SERVER-125742 (https://jira.mongodb.org/browse/SERVER-125742)); the Docker Compose MongoDB image can be overridden in the same way with the `MONGO_IMAGE_TAG` environment variable.
+
+Deployments are recommended to update to this or the [v0.8.0-alpha.3](https://github.com/datalab-org/datalab/releases/v0.8.0-alpha.3) alpha and rebuild their containers.
+
+### What's Changed
+
+* Backport CI and docker version pins to resolve recent CA vulns by @ml-evs in https://github.com/datalab-org/datalab/pull/2237
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.11...v0.7.12
+
 ## v0.7.11 (October 2026)
 
-This release backports an XSS bug for moderate severity advisory [GHSA-9cgv-hvcw-jxgx](https://github.com/datalab-org/datalab/security/advisories/GHSA-9cgv-hvcw-jxgx).
+This release backports a fix for an XSS bug for moderate severity advisory [GHSA-9cgv-hvcw-jxgx](https://github.com/datalab-org/datalab/security/advisories/GHSA-9cgv-hvcw-jxgx).
 More details can be found above, but deployments are recommended to update.
 
 ### What's Changed
 
-* Backport of "XSS fixes for chemical formulae and user display names" by @ml-evs in https://github.com/datalab-org/datalab/pull/2173
+* Backport of "XSS fixes for chemical formulae and user display names" by @ml-evs in https://github.com/datalab-org/datalab/pull/2174
 
 **Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.10...v0.7.11
 
