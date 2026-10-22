@@ -3,9 +3,6 @@ on:
   workflow_dispatch:
   workflow_call:
 
-env:
-  UV_VERSION: "0.11.8"
-
 jobs:
   licensing-checks:
     name: "Check dependency licensing"
@@ -26,7 +23,6 @@ jobs:
     - name: Set up uv
       uses: astral-sh/setup-uv@v7
       with:
-        version: ${{ env.UV_VERSION }}
         working-directory: "./pydatalab"
         enable-cache: true
 

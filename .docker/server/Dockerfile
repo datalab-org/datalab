@@ -1,5 +1,4 @@
-ARG UV_VERSION="0.11.8"
-FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv_image
+FROM ghcr.io/astral-sh/uv:latest AS uv_image
 
 FROM python:3.11-slim-trixie AS build
 ARG TARGETARCH
