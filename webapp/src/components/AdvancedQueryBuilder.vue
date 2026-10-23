@@ -87,11 +87,10 @@
       <button
         type="button"
         class="btn btn-primary"
-        :disabled="queryLoading || pendingTypeChange !== null"
+        :disabled="pendingTypeChange !== null"
         :title="pendingTypeChange ? 'Confirm or cancel the change of item type first' : ''"
         @click="submitQuery"
       >
-        <font-awesome-icon v-if="queryLoading" icon="sync" spin class="mr-1" />
         Search
       </button>
     </template>
@@ -99,16 +98,13 @@
 </template>
 
 <script>
-import { fetchQuerySchema, runQuery, runQueryAllPages } from "@/server_fetch_utils.js";
+import { fetchQuerySchema, runQuery } from "@/server_fetch_utils.js";
 import Modal from "@/components/Modal.vue";
 import QueryGroup from "@/components/QueryGroup.vue";
 import { buildOptimadeFilter } from "@/utils/optimadeFilter.js";
 
 const OPTIMADE_FILTER_DOCS =
   "https://www.optimade.org/specification/latest/#api-filtering-format-specification";
-
-// At most this many results are loaded into the table.
-const MAX_RESULTS = 2000;
 
 export default {
   name: "AdvancedQueryBuilder",
@@ -117,7 +113,8 @@ export default {
     // Types this search can query, as `{ id, label }`.
     types: { type: Array, required: true },
   },
-  emits: ["query-results", "update:applied-summary"],
+  // `apply` gives the search to run, `{ typeId, filter }`, or null to stop filtering.
+  emits: ["apply"],
   data() {
     return {
       isOpen: false,
@@ -134,11 +131,7 @@ export default {
       schemaLoading: false,
       schemaError: null,
       rootGroup: this.emptyGroup(),
-      queryLoading: false,
       queryError: null,
-      appliedSummary: null,
-      // Bumped to discard a search still running when it is cancelled or cleared.
-      searchRequestId: 0,
       previewCount: null,
       previewLoading: false,
       previewTimer: null,
@@ -179,13 +172,6 @@ export default {
     },
     manualFilter() {
       this.schedulePreview();
-    },
-    appliedSummary(newVal) {
-      this.$emit("update:applied-summary", newVal);
-    },
-    isOpen(open) {
-      // Closing the modal (Cancel, ×, backdrop) cancels a search that is still running.
-      if (!open && this.queryLoading) this.cancelSearch();
     },
   },
   async mounted() {
@@ -350,67 +336,28 @@ export default {
       }
     },
 
-    async submitQuery() {
+    submitQuery() {
       this.queryError = null;
       const validationError =
         this.manualFilter === null &&
         (this.validateRules(this.rootGroup) || this.generatedFilterResult.error);
-      if (validationError) {
-        this.queryError = validationError;
+      // The preview already ran this filter and the server rejected it.
+      if (validationError || this.previewError) {
+        this.queryError = validationError || this.previewError;
         return;
       }
       const filter = this.effectiveFilter.trim();
-      if (!filter) {
-        // Nothing to search for: show the whole table again rather than only one type.
-        this.clearFilters();
-        this.isOpen = false;
-        return;
-      }
-      const requestId = ++this.searchRequestId;
-      this.queryLoading = true;
-      try {
-        const { items: allItems, total } = await runQueryAllPages(
-          this.selectedType,
-          this.queryParams(),
-          MAX_RESULTS,
-        );
-        if (requestId !== this.searchRequestId) return;
-
-        // Results only contain the searched type, so name it when the table holds several.
-        const typeLabel = this.types.find((t) => t.id === this.selectedType)?.label;
-        let summary = this.types.length > 1 ? `${typeLabel}: ${filter}` : filter;
-        if (total > allItems.length) {
-          summary += ` (first ${allItems.length} of ${total})`;
-        }
-        this.appliedSummary = summary;
-        this.$emit("query-results", allItems);
-        this.isOpen = false;
-      } catch (e) {
-        if (requestId !== this.searchRequestId) return;
-        if (e instanceof TypeError && e.message === "Failed to fetch") {
-          this.queryError = "Cannot reach the server. Check your connection.";
-        } else {
-          this.queryError = e.message || "Query failed. Please try again.";
-        }
-      } finally {
-        if (requestId === this.searchRequestId) this.queryLoading = false;
-      }
-    },
-
-    cancelSearch() {
-      this.searchRequestId++;
-      this.queryLoading = false;
+      // Nothing to search for: show the whole table again rather than only one type.
+      this.$emit("apply", filter ? { typeId: this.selectedType, filter } : null);
+      this.isOpen = false;
     },
 
     clearFilters() {
-      this.cancelSearch();
       this.rootGroup = this.emptyGroup();
       this.manualFilter = null;
-      this.appliedSummary = null;
       this.previewCount = null;
       this.queryError = null;
       this.previewError = null;
-      this.$emit("query-results", null);
     },
   },
 };

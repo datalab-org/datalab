@@ -270,79 +270,14 @@
         </div>
 
         <div class="search-settings-group d-flex flex-nowrap">
-          <div
-            v-if="advancedQueryConfig && advancedQueryConfig.isEnabled"
-            v-on-click-outside="() => (isAdvSearchDropdownVisible = false)"
-            class="dropdown search-field"
-          >
-            <div class="input-group">
-              <div class="input-group-prepend">
-                <span class="input-group-text"><font-awesome-icon icon="search" /></span>
-                <span v-if="activeSearchChips.length" class="input-group-text py-0">
-                  <!-- Only the label is truncated, so the remove button stays visible. -->
-                  <span
-                    v-for="chip in activeSearchChips"
-                    :key="chip.key"
-                    class="badge badge-primary d-inline-flex align-items-center mr-1"
-                    style="max-width: 12rem"
-                    :title="chip.label"
-                  >
-                    <span class="text-truncate" style="min-width: 0">{{ chip.label }}</span>
-                    <button
-                      type="button"
-                      class="btn btn-link p-0 ml-1 text-white flex-shrink-0"
-                      aria-label="Remove"
-                      title="Remove"
-                      @click.stop="chip.clear"
-                    >
-                      &times;
-                    </button>
-                  </span>
-                </span>
-              </div>
-              <input
-                v-model="localFilters.global.value"
-                data-testid="search-input"
-                class="form-control"
-                placeholder="Search"
-              />
-              <div class="input-group-append">
-                <button
-                  data-testid="advanced-search-chevron"
-                  type="button"
-                  class="btn btn-outline-secondary dropdown-toggle"
-                  aria-label="Search options"
-                  title="Search options"
-                  aria-haspopup="true"
-                  :aria-expanded="isAdvSearchDropdownVisible"
-                  @click="isAdvSearchDropdownVisible = !isAdvSearchDropdownVisible"
-                ></button>
-              </div>
-            </div>
-
-            <AdvancedSearchDropdown
-              v-if="isAdvSearchDropdownVisible"
-              :active-filters="activeQuickFilters"
-              :group-by-fields="groupByFields"
-              :available-columns="availableColumns"
-              :advanced-query-config="advancedQueryConfig"
-              @update:active-filters="onUpdateQuickFilters"
-              @update:group-by-fields="onUpdateGroupByFields"
-              @open-advanced-query="openAdvancedQuery"
-            />
-          </div>
-
-          <IconField v-else class="search-field">
-            <InputIcon>
-              <font-awesome-icon icon="search" />
-            </InputIcon>
-            <InputText
-              v-model="localFilters.global.value"
-              data-testid="search-input"
-              class="search-input"
-              placeholder="Search"
-            />
-          </IconField>
+          <AdvancedSearchControl
+            v-model:search="localFilters.global.value"
+            :data-type="dataType"
+            :group-by-fields="groupByFields"
+            :available-columns="availableColumns"
+            @update:result-keys="$emit('update:result-keys', $event)"
+            @update:group-by-fields="$emit('update:group-by-fields', $event)"
+          />
 
           <div v-on-click-outside="() => (isSettingsDropdownVisible = false)" class="dropdown">
             <button
@@ -396,13 +331,6 @@
       </div>
     </div>
 
-    <AdvancedQueryBuilder
-      v-if="advancedQueryConfig && advancedQueryConfig.isEnabled"
-      ref="advancedQueryBuilder"
-      :types="advancedQueryConfig.types"
-      @query-results="$emit('advanced-query-results', $event)"
-      @update:applied-summary="appliedQuerySummary = $event"
-    />
     <BulkChangeRoleModal
       v-model="showBulkChangeRoleModal"
       :selected-users="itemsSelected"
@@ -425,19 +353,14 @@
 <script>
 import { DialogService } from "@/services/DialogService";
 
-import IconField from "primevue/iconfield";
-import InputIcon from "primevue/inputicon";
-import InputText from "primevue/inputtext";
 import MultiSelect from "primevue/multiselect";
 import "primeicons/primeicons.css";
 import { vOnClickOutside } from "@vueuse/components";
 
+import AdvancedSearchControl from "@/components/AdvancedSearchControl.vue";
 import BulkChangeRoleModal from "@/components/BulkChangeRoleModal.vue";
 import BulkAddToGroupModal from "@/components/BulkAddToGroupModal.vue";
 import BulkChangeManagersModal from "@/components/BulkChangeManagersModal.vue";
-import AdvancedQueryBuilder from "@/components/AdvancedQueryBuilder.vue";
-import AdvancedSearchDropdown from "@/components/AdvancedSearchDropdown.vue";
-import { QUICK_FILTERS } from "@/quickSearchOptions.js";
 
 import {
   deleteSample,
@@ -459,15 +382,11 @@ export default {
     onClickOutside: vOnClickOutside,
   },
   components: {
-    IconField,
-    InputIcon,
-    InputText,
+    AdvancedSearchControl,
     MultiSelect,
     BulkChangeRoleModal,
     BulkAddToGroupModal,
     BulkChangeManagersModal,
-    AdvancedQueryBuilder,
-    AdvancedSearchDropdown,
   },
   props: {
     dataType: {
@@ -516,16 +435,6 @@ export default {
       required: false,
       default: () => [],
     },
-    advancedQueryConfig: {
-      type: Object,
-      required: false,
-      default: null,
-    },
-    activeQuickFilters: {
-      type: Array,
-      required: false,
-      default: () => [],
-    },
     groupByFields: {
       type: Array,
       required: false,
@@ -551,8 +460,7 @@ export default {
     "users-data-changed",
     "bulk-invalidate-tokens",
     "bulk-delete-groups",
-    "advanced-query-results",
-    "update:active-quick-filters",
+    "update:result-keys",
     "update:group-by-fields",
   ],
   data() {
@@ -560,13 +468,11 @@ export default {
       localFilters: { ...this.filters },
       isSelectedDropdownVisible: false,
       isSettingsDropdownVisible: false,
-      isAdvSearchDropdownVisible: false,
       isDeletingItems: false,
       itemCount: 0,
       showBulkChangeRoleModal: false,
       showBulkAddToGroupModal: false,
       showBulkChangeManagersModal: false,
-      appliedQuerySummary: null,
     };
   },
   computed: {
@@ -583,33 +489,6 @@ export default {
     isLoggedIn() {
       return this.$store.state.currentUserID !== null;
     },
-    activeSearchChips() {
-      const chips = [];
-      if (this.appliedQuerySummary) {
-        chips.push({
-          key: "query",
-          label: this.appliedQuerySummary,
-          clear: this.clearAppliedQuery,
-        });
-      }
-      if (this.activeQuickFilters.length) {
-        chips.push({
-          key: "quick-filters",
-          label: this.activeQuickFilters
-            .map((id) => QUICK_FILTERS.find((f) => f.id === id)?.label || id)
-            .join(", "),
-          clear: () => this.onUpdateQuickFilters([]),
-        });
-      }
-      if (this.groupByFields.length) {
-        chips.push({
-          key: "group-by",
-          label: `Group: ${this.groupByFields.map((g) => g.label).join(" → ")}`,
-          clear: () => this.onUpdateGroupByFields([]),
-        });
-      }
-      return chips;
-    },
   },
   watch: {
     itemsSelected(newVal) {
@@ -619,12 +498,6 @@ export default {
     },
     "localFilters.global.value"(newValue) {
       this.$emit("update:filters", { ...this.filters, global: { value: newValue } });
-    },
-    dataType() {
-      // activeQuickFilters/groupByFields are reset by DynamicDataTable itself (it owns them);
-      // this only clears this component's own local UI state.
-      this.isAdvSearchDropdownVisible = false;
-      this.appliedQuerySummary = null;
     },
   },
   methods: {
@@ -642,21 +515,6 @@ export default {
       };
       const [singular, plural] = labels[this.dataType] || ["item", "items"];
       return count === 1 ? singular : plural;
-    },
-    openAdvancedQuery() {
-      this.isAdvSearchDropdownVisible = false;
-      this.$refs.advancedQueryBuilder?.open();
-    },
-    // activeQuickFilters/groupByFields are props owned by DynamicDataTable (the single
-    // source of truth); these just forward the change upward instead of keeping a local copy.
-    onUpdateQuickFilters(next) {
-      this.$emit("update:active-quick-filters", next);
-    },
-    onUpdateGroupByFields(next) {
-      this.$emit("update:group-by-fields", next);
-    },
-    clearAppliedQuery() {
-      this.$refs.advancedQueryBuilder?.clearFilters();
     },
     async confirmDeletion() {
       const isTags = this.dataType === "tags";
@@ -1251,7 +1109,7 @@ export default {
   line-height: 1.5;
 }
 
-.search-input {
+.search-field :deep(.search-input) {
   height: calc(1.5em + 0.75rem + 2px);
   padding: 0.375rem 0.75rem;
   font-size: 1rem;

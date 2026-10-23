@@ -72,7 +72,6 @@ _SKIP_FIELDS: set[str] = {
     "creator_ids",
     "group_ids",
     "blocks_obj",
-    "display_order",
     "file_ObjectIds",
     "revision",
     "revisions",
@@ -93,6 +92,7 @@ _FIELD_UI: dict[str, dict] = {
     "refcode": {"label": "Refcode", "group": "Basic", "sortable": True},
     "description": {"label": "Description", "group": "Basic", "sortable": False},
     "date": {"label": "Date", "group": "Basic", "sortable": True},
+    "display_order": {"label": "Block IDs", "group": "Basic", "sortable": False},
     "status": {"label": "Status", "group": "Basic", "sortable": True, "groupable": True},
     "chemform": {
         "label": "Formula",

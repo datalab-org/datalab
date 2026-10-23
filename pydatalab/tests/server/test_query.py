@@ -288,6 +288,22 @@ def test_optimade_filter_execution(client, optimade_samples, filter_, expected):
     assert found == expected
 
 
+def test_quick_filter_presets(client, database, optimade_samples):
+    """The filters the webapp's quick filters ("Have blocks", "Active") send."""
+    database.items.update_one({"item_id": "opt_lfp_1"}, {"$set": {"display_order": ["b1"]}})
+    database.items.update_many(
+        {"item_id": {"$in": ["opt_lfp_1", "opt_lfp_2"]}}, {"$set": {"status": "planned"}}
+    )
+    database.items.update_one({"item_id": "opt_nmc"}, {"$set": {"status": "active"}})
+    ids = {s.item_id for s in optimade_samples}
+
+    has_blocks = _ids(_search(client, filter="NOT display_order LENGTH 0"))
+    assert has_blocks & ids == {"opt_lfp_1"}
+
+    active = 'status = "active" OR status = "working" OR status = "available"'
+    assert _ids(_search(client, filter=active)) & ids == {"opt_nmc"}
+
+
 @pytest.mark.parametrize(
     "filter_",
     [
