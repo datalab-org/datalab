@@ -1,12 +1,12 @@
 <template>
   <form class="modal-enclosure" data-testid="batch-share-form" @submit.prevent="submitForm">
     <Modal :model-value="modelValue" @update:model-value="handleClose">
-      <template #header> Share Items</template>
+      <template #header> Share item(s)</template>
       <template #body>
         <div v-if="modelValue">
           <div class="form-row">
             <div class="form-group col-md-12">
-              <label for="items-selected" class="col-form-label">Items Selected:</label>
+              <label for="items-selected" class="col-form-label">Item(s) selected:</label>
               <div id="items-selected" class="dynamic-input">
                 <FormattedItemName
                   v-for="(item, index) in itemsSelected"
