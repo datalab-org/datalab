@@ -13,7 +13,7 @@ from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
 from werkzeug.exceptions import BadRequest, Conflict, Forbidden, InternalServerError, NotFound
 
-from pydatalab.apps import BLOCK_TYPES
+from pydatalab.apps import BLOCK_TYPES, is_block_type_available
 from pydatalab.blocks import store as block_store
 from pydatalab.config import CONFIG
 from pydatalab.feature_flags import FEATURE_FLAGS
@@ -23,6 +23,8 @@ from pydatalab.models import (
     ITEM_MODELS,
     ItemVersion,
     flagged_summary_fields,
+    get_item_block_type_allow_list,
+    is_item_type_available,
 )
 from pydatalab.models.items import Item
 from pydatalab.models.people import AccountStatus
@@ -706,6 +708,28 @@ def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
     return sample_dict
 
 
+def _check_new_block_types(
+    blocks_obj: dict,
+    item_type: str,
+    existing_block_ids: set[str] | None = None,
+) -> None:
+    """Reject new blocks that are unavailable for the target item type."""
+    if CONFIG.BLOCK_TYPE_ALLOW_LIST is None and get_item_block_type_allow_list(item_type) is None:
+        return
+
+    existing_block_ids = existing_block_ids or set()
+    for block_id, block_data in blocks_obj.items():
+        if block_id in existing_block_ids:
+            continue
+
+        block_type = block_data.get("blocktype")
+        if not is_block_type_available(block_type, item_type):
+            raise Forbidden(
+                f"Block type {block_type!r} is not available in this deployment "
+                f"for item type {item_type!r}."
+            )
+
+
 def _create_sample(
     sample_dict: dict,
     copy_from_item_id: str | None = None,
@@ -734,10 +758,13 @@ def _create_sample(
     type_ = sample_dict["type"]
     if type_ not in ITEM_MODELS:
         raise BadRequest(f"Invalid type {type_!r}, must be one of {ITEM_MODELS.keys()}")
+    if not is_item_type_available(type_):
+        raise Forbidden(f"Item type {type_!r} is not available in this deployment.")
 
     model = ITEM_MODELS[type_]
 
     new_sample = sample_dict.copy()
+    _check_new_block_types(new_sample.get("blocks_obj") or {}, type_)
 
     if type_ in INVENTORY_TYPES:
         # starting_materials and equipment are open to all in the deployment (or to the
@@ -1852,6 +1879,7 @@ def save_item():
 
     if "blocks_obj" in updated_data:
         incoming_blocks = updated_data["blocks_obj"] or {}
+        _check_new_block_types(incoming_blocks, item["type"], set(stored_blocks_obj))
         # Server-authoritative fields (`metadata`, `computed`, ...) never come back
         # from the web, so they have to be restored from the stored payload; for a
         # referenced block that payload lives in the `blocks` collection, not in

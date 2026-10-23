@@ -30,6 +30,7 @@
       >
         <template v-if="dataType === 'samples'">
           <button
+            v-if="canCreateSingleItem"
             data-testid="add-item-button"
             class="btn btn-default btn-action"
             :disabled="!isLoggedIn || adminSuperUserMode"
@@ -45,6 +46,7 @@
             Add an item
           </button>
           <button
+            v-if="canBatchCreateItems"
             data-testid="batch-item-button"
             class="btn btn-default btn-action"
             :disabled="!isLoggedIn || adminSuperUserMode"
@@ -78,7 +80,7 @@
           Create new collection
         </button>
         <button
-          v-if="dataType === 'startingMaterials' && editableInventory"
+          v-if="dataType === 'startingMaterials' && editableInventory && canCreateStartingMaterial"
           data-testid="add-starting-material-button"
           class="btn btn-default btn-action"
           @click="$emit('open-create-item-modal')"
@@ -86,7 +88,7 @@
           Add a starting material
         </button>
         <button
-          v-if="dataType === 'equipment'"
+          v-if="dataType === 'equipment' && canCreateEquipment"
           data-testid="add-equipment-button"
           class="btn btn-default btn-action"
           @click="$emit('open-create-equipment-modal')"
@@ -366,6 +368,7 @@ import { vOnClickOutside } from "@vueuse/components";
 import BulkChangeRoleModal from "@/components/BulkChangeRoleModal.vue";
 import BulkAddToGroupModal from "@/components/BulkAddToGroupModal.vue";
 import BulkChangeManagersModal from "@/components/BulkChangeManagersModal.vue";
+import { itemTypes, SAMPLE_TABLE_TYPES } from "@/resources.js";
 
 import {
   deleteSample,
@@ -478,10 +481,30 @@ export default {
   computed: {
     hasActionButtons() {
       return (
-        ["samples", "collections", "equipment"].includes(this.dataType) ||
-        (this.dataType === "startingMaterials" && this.editableInventory) ||
+        ["samples", "collections"].includes(this.dataType) ||
+        (this.dataType === "equipment" && this.canCreateEquipment) ||
+        (this.dataType === "startingMaterials" &&
+          this.editableInventory &&
+          this.canCreateStartingMaterial) ||
         (this.dataType === "tags" && this.isLoggedIn)
       );
+    },
+    canCreateSingleItem() {
+      return (
+        SAMPLE_TABLE_TYPES.some((type) => itemTypes[type]?.available !== false) ||
+        Object.values(itemTypes).some(
+          (entry) => entry.isDynamic && entry.isCreateable && entry.available !== false,
+        )
+      );
+    },
+    canBatchCreateItems() {
+      return SAMPLE_TABLE_TYPES.some((type) => itemTypes[type]?.available !== false);
+    },
+    canCreateStartingMaterial() {
+      return itemTypes.starting_materials?.available !== false;
+    },
+    canCreateEquipment() {
+      return itemTypes.equipment?.available !== false;
     },
     adminSuperUserMode() {
       return this.$store.getters.isAdminSuperUserModeActive;

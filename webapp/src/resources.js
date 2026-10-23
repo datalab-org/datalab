@@ -179,14 +179,34 @@ function lightTint(hex, amount = 0.82) {
   return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
 }
 
-// Register a custom/plugin item type (one served by the backend but not hardcoded
-// above) into the shared `itemTypes` registry.
+// Apply server-provided metadata to a built-in item type, or register a
+// custom/plugin type that is not hardcoded above, in the shared `itemTypes` registry.
 // - base_type: the built-in type string this model inherits from (e.g. "samples")
 // - hidden_fields: base-component fields the plugin wants to hide (from model_config)
 // - title: human-readable display name
 // - ui_color: accent color for navbar/labels (`datalab_ui_color` on model_config)
-export function registerDynamicItemType(type, { title, base_type, hidden_fields, ui_color } = {}) {
-  if (!type || itemTypes[type]) return; // never clobber a built-in / existing entry
+export function registerDynamicItemType(
+  type,
+  {
+    title,
+    base_type,
+    hidden_fields,
+    ui_color,
+    available = true,
+    block_type_allow_list = null,
+  } = {},
+) {
+  if (!type) return;
+
+  const itemTypeAvailability = {
+    available: available !== false,
+    blockTypeAllowList: block_type_allow_list,
+  };
+  if (itemTypes[type]) {
+    Object.assign(itemTypes[type], itemTypeAvailability);
+    return;
+  }
+
   const display = title || prettifyType(type);
   const color = ui_color || "#4a4a4a";
   itemTypes[type] = {
@@ -201,6 +221,7 @@ export function registerDynamicItemType(type, { title, base_type, hidden_fields,
     baseType: base_type || null,
     hiddenFields: hidden_fields || [],
     customPanel: PLUGIN_PANELS[type] || null,
+    ...itemTypeAvailability,
   };
 }
 

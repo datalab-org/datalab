@@ -3,6 +3,7 @@
     <Modal
       :model-value="modelValue"
       :disable-submit="
+        !item_type ||
         isValidEntryID.some((e) => e) ||
         (!generateIDsAutomatically && items.some((s) => !Boolean(s.item_id))) ||
         isValidBatchSize
@@ -31,7 +32,7 @@
                     class="form-control"
                     required
                   >
-                    <option v-for="type in allowedTypes" :key="type" :value="type">
+                    <option v-for="type in effectiveAllowedTypes" :key="type" :value="type">
                       {{ itemTypes[type].display }}
                     </option>
                   </select>
@@ -421,6 +422,9 @@ export default {
     itemTypes() {
       return itemTypes;
     },
+    effectiveAllowedTypes() {
+      return this.allowedTypes.filter((type) => itemTypes[type]?.available !== false);
+    },
     takenSampleIds() {
       return this.$store.state.sample_list
         ? this.$store.state.sample_list.map((x) => x.item_id)
@@ -450,6 +454,14 @@ export default {
   },
 
   watch: {
+    effectiveAllowedTypes: {
+      handler(types) {
+        if (!types.includes(this.item_type)) {
+          this.item_type = types[0] || "";
+        }
+      },
+      immediate: true,
+    },
     nSamples(newValue, oldValue) {
       if (newValue > 100) {
         this.batchSizeError = "Maximum 100 items can be created at once";
