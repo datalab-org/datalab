@@ -52,7 +52,7 @@
     "@uppy/dashboard": "^4.4.3",
     "@uppy/webcam": "^4.3.2",
     "@uppy/xhr-upload": "^4.4.2",
-    "@vueuse/components": "^14.4.0",
+    "@vueuse/components": "^15.0.0",
     "bootstrap": "^4.5.3",
     "buffer": "^6.0.3",
     "cytoscape": "^3.34.2",
