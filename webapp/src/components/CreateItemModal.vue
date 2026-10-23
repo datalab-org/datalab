@@ -179,12 +179,15 @@ export default {
       return itemTypes;
     },
     effectiveAllowedTypes() {
-      // Custom/plugin item types all live in the Samples page for now. Keep them
-      // out of the Inventory modal even when they inherit from StartingMaterial.
+      // Custom/plugin item types live in the Samples page, unless they behave as an
+      // inventory type (`behave_as`), in which case they are already in `allowedTypes`.
       const isSamplesContext = this.allowedTypes.some((type) => SAMPLE_TABLE_TYPES.includes(type));
       const dynamic = isSamplesContext
         ? Object.keys(this.$store.state.schemas || {}).filter(
-            (type) => itemTypes[type]?.isDynamic && itemTypes[type]?.isCreateable,
+            (type) =>
+              itemTypes[type]?.isDynamic &&
+              itemTypes[type]?.isCreateable &&
+              !INVENTORY_TYPES.includes(type),
           )
         : [];
       return [...new Set([...this.allowedTypes, ...dynamic])];

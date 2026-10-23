@@ -24,7 +24,7 @@
               v-model="item_type"
               class="form-control"
               required
-              disabled
+              :disabled="Object.keys(availableTypes).length < 2"
             >
               <option v-for="(obj, type) in availableTypes" :key="type" :value="type">
                 {{ obj.display }}
@@ -95,7 +95,7 @@ import ItemSelect from "@/components/ItemSelect.vue";
 import GroupSelect from "@/components/GroupSelect.vue";
 import { createNewItem } from "@/server_fetch_utils.js";
 import { validateEntryID, confirmUngroupedInventory } from "@/field_utils.js";
-import { itemTypes } from "@/resources.js";
+import { itemTypes, EQUIPMENT_TABLE_TYPES } from "@/resources.js";
 
 export default {
   name: "CreateEquipmentModal",
@@ -119,11 +119,13 @@ export default {
       selectedItemToCopy: null,
       shareWithGroups: [],
       agesAgo: new Date("1970-01-01").toISOString().slice(0, -8), // a datetime for the unix epoch start
-      //this is all just to filter an object in javascript:
-      availableTypes: { equipment: itemTypes["equipment"] },
     };
   },
   computed: {
+    availableTypes() {
+      // `equipment` plus any custom types that behave as equipment
+      return Object.fromEntries(EQUIPMENT_TABLE_TYPES.map((type) => [type, itemTypes[type]]));
+    },
     itemTypeDisplayName() {
       return itemTypes[this.item_type].display;
     },
