@@ -8,7 +8,17 @@ SHELL ["/bin/bash", "--login", "-c"]
 ENV GIT_LFS_SKIP_SMUDGE=1
 
 # Install system dependencies
-RUN apt update && apt install -y git gnupg curl tree mdbtools && apt clean
+RUN apt update && \
+    apt install -y \
+        git \
+        gnupg \
+        curl \
+        tree \
+        mdbtools \
+        ca-certificates \
+        netbase \
+        tzdata \
+    && apt clean && rm -rf /var/lib/apt/lists/*
 
 # Install MongoDB tools in the official way
 WORKDIR /opt
