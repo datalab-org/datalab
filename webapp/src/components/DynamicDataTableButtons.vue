@@ -1,22 +1,6 @@
 <template>
   <div v-if="showButtons" class="d-flex flex-column w-100">
-    <div
-      v-if="isDeletingItems"
-      class="position-fixed d-flex justify-content-center align-items-center"
-      style="background-color: rgba(255, 255, 255, 0.7); z-index: 1050; inset: 0"
-    >
-      <div class="card p-3 shadow-sm">
-        <div class="text-center">
-          <font-awesome-icon
-            :icon="['fa', 'sync']"
-            class="fa-2x text-primary mb-2"
-            :spin="true"
-            aria-label="loading"
-          />
-          <p class="mb-0 mt-1">Deleting {{ itemCount }} items...</p>
-        </div>
-      </div>
-    </div>
+    <LoadingOverlay v-if="isDeletingItems">Deleting {{ itemCount }} items...</LoadingOverlay>
 
     <div class="button-bar row mx-n1 align-items-center">
       <div
@@ -163,7 +147,7 @@
               <a
                 v-for="action in batchActions"
                 :key="action.key"
-                :data-testid="action.batchTestId"
+                :data-testid="batchActionTestIds[action.key]"
                 class="dropdown-item"
                 @click="requestAction(action)"
               >
@@ -331,8 +315,14 @@
 </template>
 
 <script>
+import LoadingOverlay from "@/components/LoadingOverlay.vue";
 import { DialogService } from "@/services/DialogService";
-import { batchActionsFor } from "@/utils/itemActions.js";
+import {
+  ADD_TO_COLLECTION_ACTION,
+  SHARE_ACTION,
+  DELETE_ACTION,
+  batchActionsFor,
+} from "@/utils/itemActions.js";
 
 import IconField from "primevue/iconfield";
 import InputIcon from "primevue/inputicon";
@@ -360,6 +350,7 @@ export default {
     onClickOutside: vOnClickOutside,
   },
   components: {
+    LoadingOverlay,
     IconField,
     InputIcon,
     InputText,
@@ -445,6 +436,13 @@ export default {
       showBulkChangeRoleModal: false,
       showBulkAddToGroupModal: false,
       showBulkChangeManagersModal: false,
+      // The test ids these menu entries had before being built from the action descriptors,
+      // which the e2e tests rely on.
+      batchActionTestIds: {
+        [ADD_TO_COLLECTION_ACTION.key]: "add-to-collection-button",
+        [SHARE_ACTION.key]: "batch-share-button",
+        [DELETE_ACTION.key]: "delete-selected-button",
+      },
     };
   },
   computed: {

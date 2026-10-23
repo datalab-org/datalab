@@ -17,7 +17,6 @@ export const ADD_TO_COLLECTION_ACTION = {
   label: "Add item(s) to collection",
   rowLabel: "Add to collection",
   icon: "folder-plus",
-  batchTestId: "add-to-collection-button",
   dataTypes: ["samples", "startingMaterials", "equipment"],
 };
 
@@ -26,7 +25,6 @@ export const SHARE_ACTION = {
   label: "Share item(s)",
   rowLabel: "Share",
   icon: "share-alt",
-  batchTestId: "batch-share-button",
   dataTypes: ["samples", "startingMaterials", "equipment"],
 };
 
@@ -35,7 +33,6 @@ export const DELETE_ACTION = {
   label: "Delete item(s)",
   rowLabel: "Delete",
   icon: "trash",
-  batchTestId: "delete-selected-button",
   dataTypes: ["samples", "collections", "startingMaterials", "equipment", "tags"],
   // Tags already have their own per-row edit/delete buttons (`TagActionsCell`).
   rowDataTypes: ["samples", "collections", "startingMaterials", "equipment"],

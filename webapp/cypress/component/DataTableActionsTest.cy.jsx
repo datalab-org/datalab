@@ -1,6 +1,7 @@
 import DataTableRowActions from "@/components/DataTableRowActions.vue";
 import DataTableHeaderActions from "@/components/DataTableHeaderActions.vue";
 import DynamicDataTable from "@/components/DynamicDataTable.vue";
+import LoadingOverlay from "@/components/LoadingOverlay.vue";
 import PrimeVue from "primevue/config";
 import { createStore } from "vuex";
 import { ITEM_ID_COLUMN } from "@/utils/tableColumns.js";
@@ -123,5 +124,22 @@ describe("DynamicDataTable actions column", () => {
       expect(wrapper.vm.filters.global.value).to.equal("sample");
     });
     cy.get('[data-testid="clear-filters-button"]').should("be.disabled");
+  });
+
+  it("keeps the selection menu's test ids", () => {
+    mountTable("samples");
+    cy.get(".p-datatable-tbody > tr").first().find("input[type='checkbox']").click({ force: true });
+    cy.get('[data-testid="selected-dropdown"]').click();
+    cy.get('[data-testid="add-to-collection-button"]').should("contain.text", "Add item(s)");
+    cy.get('[data-testid="batch-share-button"]').should("contain.text", "Share item(s)");
+    cy.get('[data-testid="delete-selected-button"]').should("contain.text", "Delete item(s)");
+  });
+});
+
+describe("LoadingOverlay", () => {
+  it("shows its message under a spinner", () => {
+    cy.mount(LoadingOverlay, { slots: { default: () => "Deleting 2 item(s)..." } });
+    cy.get("[aria-label='loading']").should("exist");
+    cy.contains("Deleting 2 item(s)...").should("be.visible");
   });
 });
