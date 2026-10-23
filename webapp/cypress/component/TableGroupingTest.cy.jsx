@@ -2,62 +2,108 @@ import DynamicDataTable from "@/components/DynamicDataTable.vue";
 import PrimeVue from "primevue/config";
 import { createStore } from "vuex";
 import { ITEM_ID_COLUMN, STATUS_COLUMN } from "@/utils/tableColumns.js";
-import { countGroups, createRowGrouping, groupValue } from "@/utils/tableGrouping.js";
+import {
+  buildGroupTree,
+  filterRows,
+  flattenGroups,
+  groupValues,
+  setRowsSelected,
+  sortRows,
+} from "@/utils/tableGrouping.js";
 
 const tag = (name) => ({ type: "tags", immutable_id: name, name });
 
 describe("tableGrouping", () => {
-  it("groups an item by its whole set of tags", () => {
-    const field = { id: "tags", label: "Tags" };
-    expect(groupValue({ tags: [tag("cathode"), tag("air")] }, field)).to.deep.equal(
-      groupValue({ tags: [tag("air"), tag("cathode")] }, field),
-    );
-    expect(groupValue({ tags: [tag("cathode"), tag("air")] }, field).label).to.equal(
-      "air, cathode",
-    );
+  it("lists an item in the group of each of its tags", () => {
+    const rows = [
+      { item_id: "a", tags: [tag("red"), tag("blue")] },
+      { item_id: "b", tags: [tag("blue")] },
+      { item_id: "c", tags: [] },
+    ];
+    const tree = buildGroupTree(rows, [{ id: "tags", label: "Tags" }]);
+    expect(tree.map((g) => [g.label, g.count])).to.deep.equal([
+      ["blue", 2],
+      ["red", 1],
+      ["No tags", 1],
+    ]);
   });
 
-  it("groups dates by the stored calendar month", () => {
-    const value = groupValue({ date: "2026-01-31T23:30:00" }, { id: "date", grain: "month" });
-    expect(value.key).to.equal("2026-01");
-  });
-
-  it("sorts rows without a value last and labels them", () => {
-    const { groupKey, labelOf } = createRowGrouping([{ id: "status", label: "Status" }]);
-    const keys = [{ status: "planned" }, {}, { status: "active" }].map(groupKey).sort();
-    expect(keys.map(labelOf)).to.deep.equal(["active", "planned", "No status"]);
-  });
-
-  it("combines several fields into one group", () => {
-    const { groupKey, labelOf } = createRowGrouping([
+  it("nests groups, one level per field", () => {
+    const rows = [
+      { item_id: "a", type: "samples", status: "active" },
+      { item_id: "b", type: "samples", status: "planned" },
+      { item_id: "c", type: "cells" },
+    ];
+    const tree = buildGroupTree(rows, [
       { id: "type", label: "Type" },
       { id: "status", label: "Status" },
     ]);
-    expect(labelOf(groupKey({ type: "samples", status: "active" }))).to.equal("samples › active");
+    expect(tree.map((g) => g.label)).to.deep.equal(["cells", "samples"]);
+    expect(tree[0].children.map((g) => g.label)).to.deep.equal(["No status"]);
+    expect(tree[1].children.map((g) => [g.label, g.depth, g.parent.label])).to.deep.equal([
+      ["active", 1, "samples"],
+      ["planned", 1, "samples"],
+    ]);
   });
 
-  it("counts the rows of each group", () => {
-    const { groupKey } = createRowGrouping([{ id: "status", label: "Status" }]);
-    const counts = countGroups([{ status: "a" }, { status: "a" }, { status: "b" }], groupKey);
-    expect(counts.get(groupKey({ status: "a" }))).to.equal(2);
+  it("only lists the rows of expanded groups", () => {
+    const rows = [{ item_id: "a", status: "active" }];
+    const tree = buildGroupTree(rows, [{ id: "status", label: "Status" }]);
+    expect(flattenGroups(tree, new Set())).to.have.length(1);
+    const entries = flattenGroups(tree, new Set([tree[0].key]));
+    expect(entries.map((entry) => entry.group?.label ?? entry.__row.item_id)).to.deep.equal([
+      "active",
+      "a",
+    ]);
+  });
+
+  it("groups dates by the stored calendar month", () => {
+    const [value] = groupValues({ date: "2026-01-31T23:30:00" }, { id: "date", grain: "month" });
+    expect(value.key).to.equal("2026-01");
+  });
+
+  it("filters and sorts rows as DataTable does", () => {
+    const rows = [{ item_id: "b1" }, { item_id: "a1" }, { item_id: "c2" }];
+    const filters = {
+      global: { value: "1" },
+      item_id: { operator: "and", constraints: [{ value: null, matchMode: "contains" }] },
+    };
+    const matching = filterRows(rows, filters, ["item_id"]);
+    expect(
+      sortRows(matching, [{ field: "item_id", order: -1 }]).map((r) => r.item_id),
+    ).to.deep.equal(["b1", "a1"]);
+  });
+
+  it("selects a row once whatever group it is selected from", () => {
+    const row = { item_id: "a" };
+    const selection = setRowsSelected(setRowsSelected([], [row], true), [row], true);
+    expect(selection).to.deep.equal([row]);
+    expect(setRowsSelected(selection, [row], false)).to.deep.equal([]);
   });
 });
 
 describe("DynamicDataTable grouping", () => {
   let table;
-  // 25 rows over two pages of 20: 15 active, then 10 planned.
+  // 25 rows: 15 active, 10 planned; the first is also tagged "red" and "blue".
   const rows = Array.from({ length: 25 }, (_, i) => ({
     item_id: `s${String(i).padStart(2, "0")}`,
     type: "samples",
     status: i % 5 < 3 ? "active" : "planned",
+    tags: i === 0 ? [tag("red"), tag("blue")] : [],
   }));
 
-  const groupHeaders = () =>
-    cy
-      .get('[data-testid="group-header"]')
-      .then((headers) =>
-        [...headers].map((header) => header.textContent.replace(/\s+/g, " ").trim()),
-      );
+  const visibleRows = () =>
+    cy.get(".p-datatable-tbody > tr").then((trs) =>
+      [...trs]
+        .filter((tr) => getComputedStyle(tr).display !== "none")
+        .map((tr) => {
+          const header = tr.querySelector('[data-testid="group-header"]');
+          return header
+            ? `# ${header.textContent.replace(/\s+/g, " ").trim()}`
+            : tr.cells[1].innerText.trim();
+        }),
+    );
+  const header = (label) => cy.contains('[data-testid="group-header"]', label);
 
   beforeEach(() => {
     localStorage.clear();
@@ -97,44 +143,76 @@ describe("DynamicDataTable grouping", () => {
       return table.$nextTick();
     });
 
-  it("shows group headers inside the table, with the counts of whole groups", () => {
+  it("shows collapsed groups inside the table, which open on click", () => {
     groupBy([{ id: "status", label: "Status" }]);
-    groupHeaders().should("deep.equal", ["active 15", "planned 10"]);
+    visibleRows().should("deep.equal", ["# active 15", "# planned 10"]);
     cy.get(".p-datatable-thead th").should("contain.text", "Status");
+
+    header("planned").click();
+    visibleRows().then((shown) => {
+      expect(shown.slice(0, 3)).to.deep.equal(["# active 15", "# planned 10", "s03"]);
+      expect(shown).to.have.length(12);
+    });
+    header("planned").should("have.attr", "aria-expanded", "true");
+    header("planned").click();
+    visibleRows().should("deep.equal", ["# active 15", "# planned 10"]);
   });
 
-  it("pages through the grouped rows with the table's paginator", () => {
+  it("nests groups", () => {
+    groupBy([
+      { id: "tags", label: "Tags" },
+      { id: "status", label: "Status" },
+    ]);
+    visibleRows().should("deep.equal", ["# blue 1", "# red 1", "# No tags 24"]);
+    header("blue").click();
+    header("active 1").click();
+    visibleRows().should("deep.equal", [
+      "# blue 1",
+      "# active 1",
+      "s00",
+      "# red 1",
+      "# No tags 24",
+    ]);
+  });
+
+  it("pages through open groups with the table's paginator", () => {
     groupBy([{ id: "status", label: "Status" }]);
+    header("active").click();
+    header("planned").click();
+    // 2 headers and 25 rows: 20, then 7, per page.
     cy.get(".p-paginator-page").should("have.length", 2);
     cy.get(".p-paginator-page").contains("2").click();
-    // The group continuing from the previous page repeats its header.
-    groupHeaders().should("deep.equal", ["planned 10"]);
-    cy.get(".p-datatable-tbody > tr").should("have.length", 6);
+    // The page continues "planned", so its header is shown again.
+    visibleRows().then((shown) => {
+      expect(shown[0]).to.equal("# planned 10");
+      expect(shown.filter((row) => !row.startsWith("#"))).to.have.length(7);
+    });
   });
 
-  it("keeps groups together when sorting by another column", () => {
+  it("sorts rows within their groups", () => {
     groupBy([{ id: "status", label: "Status" }]);
+    header("active").click();
     cy.get(".p-datatable-sortable-column").contains("ID").as("idHeader");
     // Ascending, then descending.
     cy.get("@idHeader").click();
     cy.get("@idHeader").click();
-    groupHeaders().should("deep.equal", ["active 15", "planned 10"]);
-    cy.get(".p-datatable-tbody > tr").eq(1).should("contain.text", "s22");
+    visibleRows().then((shown) => expect(shown.slice(0, 2)).to.deep.equal(["# active 15", "s22"]));
+  });
+
+  it("selects a row listed in several groups once", () => {
+    groupBy([{ id: "tags", label: "Tags" }]);
+    header("blue").click();
+    header("red").click();
+    cy.get(".p-datatable-tbody input[type='checkbox']").first().click({ force: true });
+    cy.get('[data-testid="selection-summary"]').should("contain.text", "1 item selected");
+    cy.get(".p-datatable-tbody input[type='checkbox']:checked").should("have.length", 2);
   });
 
   it("shows every row again once ungrouped", () => {
     groupBy([{ id: "status", label: "Status" }]);
     groupBy([]);
     cy.get('[data-testid="group-header"]').should("not.exist");
-    cy.get(".p-datatable-tbody > tr")
-      .should("have.length", 20)
-      .first()
-      .should("contain.text", "s00");
-  });
-
-  it("keeps the selection when grouping", () => {
-    cy.get(".p-datatable-tbody > tr").first().find("input[type='checkbox']").click({ force: true });
-    groupBy([{ id: "status", label: "Status" }]);
-    cy.get('[data-testid="selection-summary"]').should("contain.text", "1 item selected");
+    cy.get(".p-datatable-tbody > tr").should("have.length", 20);
+    cy.get('[data-testid="selection-summary"]').should("contain.text", "Number of items: 25");
   });
 });

@@ -39,7 +39,8 @@ The search box of a table offers:
 - **Custom filter**: a query builder that writes an OPTIMADE filter for one type, which can also
   be edited by hand. Quick filters and the custom filter are combined with `AND`.
 - **Group by**: groups the table's rows by one or more fields (type, creators, status, date by
-  day, week, month or year, tags, and the groupable properties of the schema). Groups are shown
-  as headers within the table, which keeps its columns, filters, sorting, selection and
-  paginator. Each row belongs to one group: an item with several tags or creators is grouped
-  under that combination, so that it is not listed (and selected or counted) more than once.
+  day, week, month or year, tags, and the groupable properties of the schema), nesting one level
+  of groups per field. Groups are shown as collapsible headers within the table, which keeps its
+  columns, filters, sorting, selection and paginator; the paginator pages through the headers
+  and the rows of the open groups. An item with several tags or creators is listed under each of
+  them, and selecting it in one group selects it everywhere.

@@ -9,7 +9,7 @@
       v-model:filters="filters"
       v-model:selection="itemsSelected"
       v-model:select-all="allSelected"
-      :value="displayedData"
+      :value="tableRows"
       :data-testid="computedDataTestId"
       selection-mode="checkbox"
       paginator
@@ -24,9 +24,11 @@
       sort-mode="multiple"
       state-storage="local"
       :state-key="`datatable-state-${dataType}`"
-      :row-group-mode="grouping ? 'subheader' : undefined"
-      :group-rows-by="rowGroupKey"
-      :multi-sort-meta="groupSortMeta"
+      :lazy="isGrouped"
+      :total-records="isGrouped ? grouped.entries.length : undefined"
+      :row-group-mode="isGrouped ? 'subheader' : undefined"
+      group-rows-by="__groupKey"
+      :row-style="groupHeaderRowStyle"
       :loading="data === null"
       @state-restore="onStateRestore"
       @state-save="onStateSave"
@@ -70,10 +72,14 @@
           @update:group-by-fields="groupByFields = $event"
         />
       </template>
-      <template #groupheader="{ data: row }">
+      <!-- Shown above the first row of each group on the page: a group header, or a row of a
+           group continued from the previous page. -->
+      <template #groupheader="{ data: row, index }">
         <DataTableGroupHeader
-          :label="grouping.labelOf(rowGroupKey(row))"
-          :count="groupCounts.get(rowGroupKey(row))"
+          :group="grouped.groups.get(row.__groupKey)"
+          :expanded="expandedGroups.has(row.__groupKey)"
+          :with-parents="index === 0"
+          @toggle="toggleGroup(row.__groupKey)"
         />
       </template>
       <template #loading>
@@ -94,9 +100,29 @@
       <Column
         v-if="showButtons"
         class="checkbox"
-        selection-mode="multiple"
+        :selection-mode="isGrouped ? undefined : 'multiple'"
         :style="{ minWidth: '3.5ch' }"
-      ></Column>
+      >
+        <!-- Grouped rows are copies of the table's rows, so they select the rows themselves. -->
+        <template v-if="isGrouped" #header>
+          <Checkbox
+            binary
+            :model-value="allVisibleRowsSelected"
+            aria-label="Select visible rows"
+            @update:model-value="selectRows(visibleRows, $event)"
+          />
+        </template>
+        <template v-if="isGrouped" #body="{ data: row }">
+          <span v-if="row.__row" @click.stop>
+            <Checkbox
+              binary
+              :model-value="isRowSelected(itemsSelected, row.__row)"
+              aria-label="Select row"
+              @update:model-value="selectRows([row.__row], $event)"
+            />
+          </span>
+        </template>
+      </Column>
 
       <Column
         v-for="column in selectedColumns"
@@ -120,12 +146,15 @@
         <template v-if="column.body" #body="slotProps">
           <component
             :is="column.body.component"
+            v-if="!slotProps.data.group"
             v-bind="column.body.props(slotProps.data)"
             v-on="resolveBodyEvents(column)"
           />
         </template>
         <template v-else-if="column.getValue" #body="slotProps">
-          <span :class="column.cellClass">{{ column.getValue(slotProps.data) }}</span>
+          <span v-if="!slotProps.data.group" :class="column.cellClass">
+            {{ column.getValue(slotProps.data) }}
+          </span>
         </template>
         <template v-else #body="slotProps">
           <span :class="column.cellClass">{{ slotProps.data[column.field] }}</span>
@@ -182,9 +211,10 @@ import BatchShareModal from "@/components/BatchShareModal";
 
 import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY } from "@/resources.js";
 import { rowKey } from "@/utils/tableColumns.js";
-import { countGroups, createRowGrouping } from "@/utils/tableGrouping.js";
+import { groupRows, isRowSelected, rowsOfEntries, setRowsSelected } from "@/utils/tableGrouping.js";
 
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
+import Checkbox from "primevue/checkbox";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 
@@ -199,6 +229,7 @@ export default {
     CreateEquipmentModal,
     AddToCollectionModal,
     BatchShareModal,
+    Checkbox,
     DataTable,
     Column,
   },
@@ -277,11 +308,17 @@ export default {
       // Keys of the rows matching the advanced search, or null to show every row.
       resultKeys: null,
       groupByFields: [],
+      expandedGroups: new Set(),
+      // DataTable does not sort grouped tables itself, as it only gets their current page.
+      sortMeta: [],
     };
   },
 
   computed: {
     filteredItemCount() {
+      if (this.isGrouped) {
+        return this.grouped.rows.length;
+      }
       if (this.filteredData === null) {
         return this.data ? this.data.length : 0;
       }
@@ -327,26 +364,44 @@ export default {
       if (!this.data || !this.resultKeys) return this.data;
       return this.data.filter((row) => this.resultKeys.has(rowKey(row)));
     },
-    grouping() {
-      return this.groupByFields.length ? createRowGrouping(this.groupByFields) : null;
+    isGrouped() {
+      return this.groupByFields.length > 0;
     },
-    // Grouped rows must be sorted by group first, and DataTable keeps the first sort it is given
-    // ahead of the columns then sorted by. This is the same for any (or no) grouping, as
-    // `rowGroupKey` is, so changing the grouping re-sorts the rows without resetting the sort.
-    groupSortMeta() {
-      return [{ field: this.rowGroupKey, order: 1 }];
+    // The rows of a grouped table, and the group headers and rows it shows (see `groupRows`).
+    grouped() {
+      if (!this.isGrouped || !this.displayedData)
+        return { rows: [], entries: [], groups: new Map() };
+      return groupRows(this.displayedData, this.groupByFields, {
+        filters: this.filters,
+        globalFilterFields: this.globalFilterFields,
+        sortMeta: this.sortMeta,
+        expandedKeys: this.expandedGroups,
+      });
     },
-    groupCounts() {
-      return this.grouping ? countGroups(this.filteredData, this.rowGroupKey) : new Map();
+    tableRows() {
+      if (!this.isGrouped) return this.displayedData;
+      return this.grouped.entries.slice(this.page * this.rows, (this.page + 1) * this.rows);
+    },
+    visibleRows() {
+      return rowsOfEntries(this.tableRows || []);
+    },
+    allVisibleRowsSelected() {
+      return (
+        this.visibleRows.length > 0 &&
+        this.visibleRows.every((row) => isRowSelected(this.itemsSelected, row))
+      );
     },
   },
   watch: {
     // DataTable only reports its filtered rows (@filter) when its filters change, so also take
     // them from it when the rows it is given change, e.g. after an advanced search.
     displayedData() {
-      this.$nextTick(() => {
-        this.filteredData = this.$refs.datatable?.processedData ?? this.displayedData ?? [];
-      });
+      this.refreshFilteredData();
+    },
+    groupByFields() {
+      this.expandedGroups = new Set();
+      this.updatePage(0);
+      this.refreshFilteredData();
     },
   },
   created() {
@@ -414,12 +469,30 @@ export default {
     this.registeredMatchModes = [];
   },
   methods: {
-    rowGroupKey(row) {
-      return this.grouping ? this.grouping.groupKey(row) : "";
-    },
+    isRowSelected,
     onResultKeys(keys) {
       this.resultKeys = keys;
       this.updatePage(0);
+    },
+    toggleGroup(key) {
+      const expanded = new Set(this.expandedGroups);
+      if (!expanded.delete(key)) expanded.add(key);
+      this.expandedGroups = expanded;
+      // Collapsing a group can leave fewer pages than the current one.
+      const lastPage = Math.max(Math.ceil(this.grouped.entries.length / this.rows) - 1, 0);
+      if (this.page > lastPage) this.updatePage(lastPage);
+    },
+    selectRows(rows, selected) {
+      this.itemsSelected = setRowsSelected(this.itemsSelected, rows, selected);
+    },
+    // A group header's own row only carries the header, which DataTable shows above it.
+    groupHeaderRowStyle(row) {
+      return row.group ? { display: "none" } : undefined;
+    },
+    refreshFilteredData() {
+      this.$nextTick(() => {
+        this.filteredData = this.$refs.datatable?.processedData ?? this.displayedData ?? [];
+      });
     },
     resolveBodyEvents(column) {
       const listeners = Object.fromEntries(
@@ -472,9 +545,8 @@ export default {
       return Math.max(minWidth, MIN_COLUMN_WIDTH) + "ch";
     },
     onSort(event) {
-      const sortedColumns = (event.multiSortMeta || []).filter(
-        (meta) => meta.field !== this.rowGroupKey,
-      );
+      const sortedColumns = event.multiSortMeta || [];
+      this.sortMeta = sortedColumns;
 
       this.$nextTick(() => {
         const tableHeaders = document.querySelectorAll(".p-datatable-sortable-column");
@@ -568,6 +640,7 @@ export default {
       });
     },
     onFilter(event) {
+      if (this.isGrouped) this.updatePage(0);
       this.filteredData = event.filteredValue;
       this.$nextTick(() => {
         this.allSelected = this.checkAllSelected();
