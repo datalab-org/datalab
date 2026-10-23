@@ -1479,3 +1479,39 @@ def test_save_item_collection_change_preserves_other_relationships(
         for r in item["relationships"]
         if r["relation"] == RelationshipType.PARENT.value
     ] == ["rels_parent"]
+
+
+def test_save_item_with_collection_from_search(client, database):
+    """Regression test for #2169: collection references from `/search-collections/`
+    carry extra fields that may not match the stored collection (e.g., an older
+    collection with no stored `relationships`), which previously caused the collection
+    to be silently dropped on save.
+
+    """
+    collection_id = "test_collection_2169"
+    item_id = "test_sample_2169"
+    response = client.put(
+        "/collections", json={"data": {"collection_id": collection_id, "title": "Test"}}
+    )
+    assert response.status_code == 201, response.json
+    database.collections.update_one(
+        {"collection_id": collection_id}, {"$unset": {"relationships": ""}}
+    )
+
+    response = client.post(
+        "/new-sample/", json={"new_sample_data": {"item_id": item_id, "type": "samples"}}
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.get(f"/search-collections/?query={collection_id}")
+    assert response.status_code == 200, response.json
+    found = response.json["data"]
+    assert len(found) == 1
+
+    item = client.get(f"/get-item-data/{item_id}").json["item_data"]
+    item["collections"] = found
+    response = client.post("/save-item/", json={"item_id": item_id, "data": item})
+    assert response.status_code == 200, response.json
+
+    item = client.get(f"/get-item-data/{item_id}").json["item_data"]
+    assert [c["collection_id"] for c in item["collections"]] == [collection_id]
