@@ -22,16 +22,9 @@
         style="display: block"
         aria-labelledby="UserDropdown"
       >
-        <UserDropdown
-          v-model="isUserDropdownVisible"
-          :user="user"
-          @open-account-settings="openAccountSettings"
-        />
+        <UserDropdown :user="user" />
       </div>
     </div>
-    <!-- Kept outside the dropdown so that clicks on teleported dialogs (which count as
-    "outside" the dropdown) do not hide the modal along with the dropdown menu -->
-    <EditAccountSettingsModal v-model="isAccountSettingsOpen" />
   </template>
   <template v-else-if="!isUserLoaded">
     <div class="dropdown">
@@ -83,7 +76,6 @@ import UserBubbleLogin from "@/components/UserBubbleLogin.vue";
 import { getUserInfo, getInfo } from "@/server_fetch_utils.js";
 import UserDropdown from "@/components/UserDropdown.vue";
 import LoginDropdown from "@/components/LoginDropdown.vue";
-import EditAccountSettingsModal from "@/components/EditAccountSettingsModal.vue";
 import { vOnClickOutside } from "@vueuse/components";
 
 export default {
@@ -94,16 +86,11 @@ export default {
     UserBubbleLogin,
     UserDropdown,
     LoginDropdown,
-    EditAccountSettingsModal,
-  },
-  props: {
-    modelValue: Boolean,
   },
   data() {
     return {
       isLoginDropdownVisible: false,
       isUserDropdownVisible: false,
-      isAccountSettingsOpen: false,
       user: null,
       isUserLoaded: false,
     };
@@ -115,33 +102,17 @@ export default {
     isUnverified() {
       return this.$store.getters.getCurrentUserIsUnverified;
     },
-    hasUnverifiedUser() {
-      return this.$store.getters.getHasUnverifiedUser;
-    },
     adminSuperUserMode() {
       return this.$store.getters.isAdminSuperUserModeActive;
     },
   },
-  watch: {
-    modelValue(newValue) {
-      if (newValue) {
-        this.openModal();
-      } else {
-        this.closeModal();
-      }
-    },
-  },
-  async mounted() {
+  mounted() {
     this.getUser();
     if (this.$store.state.serverInfo == null) {
       getInfo();
     }
   },
   methods: {
-    openAccountSettings() {
-      this.isUserDropdownVisible = false;
-      this.isAccountSettingsOpen = true;
-    },
     async getUser() {
       this.user = await getUserInfo();
       this.isUserLoaded = true;

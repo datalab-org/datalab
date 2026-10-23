@@ -62,8 +62,9 @@ export default {
 
 <style scoped>
 .admin-display {
-  max-width: 100%;
-  min-width: 80%;
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
   padding: 1em;
   margin: 0.5em;
 }
