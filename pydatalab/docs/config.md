@@ -41,6 +41,34 @@ This prefix should be set to something relatively short (max 10 chars.) that des
 This can be set either via a config file, or as an environment variable (e.g., `PYDATALAB_IDENTIFIER_PREFIX='grey'`).
 Be warned, if the prefix changes between server launches, all entries will have to be migrated manually to the desired prefix, or maintained at the old prefix.
 
+## Block availability
+
+Deployments can restrict which data block types users may add with
+[`BLOCK_TYPE_ALLOW_LIST`][pydatalab.config.ServerConfig.BLOCK_TYPE_ALLOW_LIST].
+The values are the exact, case-sensitive `blocktype` slugs declared by the block classes, not
+their display names. Built-in and plugin-provided blocks use the same registry and are configured
+in the same way. For example:
+
+```json
+{
+  "BLOCK_TYPE_ALLOW_LIST": ["comment", "media", "xrd", "my-plugin-block"]
+}
+```
+
+The equivalent environment variable is a JSON list:
+
+```bash
+export PYDATALAB_BLOCK_TYPE_ALLOW_LIST='["comment", "media", "xrd", "my-plugin-block"]'
+```
+
+The default value, `null`/`None`, makes every installed block type available. An empty list
+prevents users from adding any new blocks. Unknown slugs are ignored with a warning during server
+startup, which allows temporarily missing plugins without preventing the deployment from starting.
+
+Changing the allowlist does not remove or disable blocks that are already stored. Existing blocks
+remain viewable, editable, and deletable; the setting only controls which types may be added after
+the restriction is applied.
+
 ## User registration & authentication
 
 *datalab* has two supported user registration/authentication

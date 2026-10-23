@@ -8,9 +8,9 @@ import gridfs
 from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_user
 from pymongo import ReturnDocument
-from werkzeug.exceptions import BadRequest, NotFound, NotImplemented
+from werkzeug.exceptions import BadRequest, Forbidden, NotFound, NotImplemented
 
-from pydatalab.apps import BLOCK_TYPES
+from pydatalab.apps import BLOCK_TYPES, is_block_type_available
 from pydatalab.blocks import store
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
@@ -246,6 +246,8 @@ def add_data_block():
         raise NotImplemented(  # noqa
             f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
         )
+    if not is_block_type_available(block_type):
+        raise Forbidden(f"Block type {block_type!r} is not available in this deployment.")
 
     block = BLOCK_TYPES[block_type](item_id=item_id)
 
