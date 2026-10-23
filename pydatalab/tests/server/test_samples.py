@@ -49,6 +49,21 @@ def test_get_item_data(client, default_sample_dict):
 
 
 @pytest.mark.dependency(depends=["test_new_sample"])
+def test_redirect_to_ui_truthy_query_values(client, monkeypatch):
+    from pydatalab import config
+
+    monkeypatch.setattr(config.CONFIG, "APP_URL", "https://datalab.example/app")
+    refcode = client.get("/get-item-data/12345").json["item_data"]["refcode"]
+
+    response = client.get(f"/items/{refcode}", query_string={"redirect-to-ui": "TRUE"})
+    assert response.status_code == 307
+    assert response.location == f"https://datalab.example/app/items/{refcode}"
+
+    response = client.get(f"/items/{refcode}", query_string={"redirect-to-ui": '"false"'})
+    assert response.status_code == 200
+
+
+@pytest.mark.dependency(depends=["test_new_sample"])
 def test_new_sample_collision(client, default_sample_dict):
     # Try to do the same thing again, expecting an ID collision
     response = client.post("/new-sample/", json=default_sample_dict)
