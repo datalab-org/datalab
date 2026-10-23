@@ -61,7 +61,7 @@
     "cytoscape-euler": "^1.2.4",
     "cytoscape-fcose": "^2.2.0",
     "date-fns": "^2.29.3",
-    "dompurify": "^3.4.16",
+    "dompurify": "^3.4.17",
     "katex": "^0.18.9",
     "primeicons": "^7.0.0",
     "primevue": "4.5.5",
