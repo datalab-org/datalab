@@ -84,6 +84,9 @@ _SKIP_FIELDS: set[str] = {
     # Items only store tag references (`{type, immutable_id}`); names are resolved on read,
     # so none of the tag's fields can be matched in the database.
     "tags",
+    # A user's role is stored in the `roles` collection; the field of the user document is
+    # not kept up to date, so searching it would give wrong results.
+    "role",
 }
 
 _FIELD_UI: dict[str, dict] = {

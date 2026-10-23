@@ -219,6 +219,12 @@ def test_users_and_groups_are_admin_only(client, admin_client):
     ]
 
 
+def test_users_cannot_be_searched_by_role(admin_client):
+    """Roles live in the `roles` collection, not in the user documents that are searched."""
+    fields = admin_client.get("/query/users/schema").json["fields"]
+    assert "role" not in {field["id"] for field in fields}
+
+
 def test_user_search_returns_only_ids(admin_client):
     response = _search(admin_client, "users")
     assert response.status_code == 200
