@@ -87,7 +87,18 @@ Beyond data blocks, a deployment can register **custom item types**: new top-lev
 
 A custom item type is a subclass either of an existing item model (to extend it) or of the base `Item` model (for a wholly new type).
 At a minimum, it **must** declare its own `type` literal, which must not collide with a built-in type.
-Custom types are namespaced with a leading underscore, reserving the un-prefixed namespace for built-in types; a type that does not already have one has it added at registration (so `my_samples` is served as `_my_samples`):
+Its identifier must have the form `<namespace>:<type-name>`, for example `battery:electrode` and `battery_lab:coin-cell`.
+Both parts must use lowercase letters and numbers, with hyphens or underscores allowed between words.
+Exactly one colon separates the namespace from the type name.
+The complete value is the canonical type identifier. It must be used wherever the type is referenced, including Python models,
+REST payloads and URLs, database documents, relationships, constituents, schemas and the web UI.
+The namespace and type name are only components of the naming convention; they are not stored or queried separately.
+
+Existing core identifiers such as `samples` and `cells` remain bare and are exempt from this
+custom-type rule. All built-in item types use bare identifiers. Choose a stable namespace owned by
+the plugin or domain, because changing a type identifier changes stored data and API references.
+Each model declares its complete identifier; a package may reuse one namespace for all of its
+models or publish models under different namespaces.
 
 ```python
 from typing import Literal
@@ -98,7 +109,7 @@ from pydatalab.models.samples import Sample
 
 
 class MySample(Sample):
-    type: Literal["my_samples"] = "my_samples"
+    type: Literal["example:samples"] = "example:samples"
 
     drying_time: float | None = Field(
         None,
@@ -118,8 +129,11 @@ There are two ways to register a custom item type, both of which run at server s
     ```toml
     # pyproject.toml of the plugin package
     [project.entry-points."pydatalab.item_types"]
-    my_samples = "my_plugin.models:MySample"
+    example-samples = "my_plugin.models:MySample"
     ```
+
+   The entry-point key is a packaging-safe discovery name. The model's `type` literal is the
+   canonical item type identifier.
 
 2. **From the server config**, by listing dotted import paths
    (`package.module:ClassName`) in `CUSTOM_ITEM_MODELS` — convenient for models
@@ -206,7 +220,7 @@ class Solution(Sample):
             "datalab_ui_color": "#3a7ca5",
         },
     )
-    type: Literal["solutions"] = "solutions"
+    type: Literal["chemistry:solutions"] = "chemistry:solutions"
 
     # Fields linking to a built-in `starting_materials` or another `samples` item:
     solute: EntryReference | None = Field(
@@ -292,6 +306,13 @@ not changed:
 uv run invoke dev.collect-plugin-panels
 ```
 
+The generated panel registry uses the model's exact type identifier. Because colon-separated names
+are not JavaScript identifiers, these keys are quoted, for example:
+
+```js
+"chemistry:mixed-solutions": () => import("./my_plugin/MixedSolutionPanel.vue"),
+```
+
 The panel receives two props, `item_id` and `itemType`, and reads/writes the item through the
 Vuex store — exactly like the built-in information components:
 
@@ -312,7 +333,7 @@ Reuse datalab's building blocks rather than rebuilding them, imported via the `@
 alias: `ItemSelect` (item search), `FormattedItemName` (the type-coloured item badge + link),
 `TooltipIcon`, and so on. The separate
 [`datalab-item-plugin-example-custom-vue`](https://github.com/Matgenix/datalab-item-plugin-example-custom-vue)
-repository provides a complete `MixedSolutionPanel.vue`: it references `solutions` items from the
+repository provides a complete `MixedSolutionPanel.vue`: it references solution items from the
 companion schema-only example, pulls their concentrations via `getItemData`, and computes the
 resulting mixture live — none of which the core panel can do on its own.
 
@@ -326,8 +347,8 @@ resulting mixture live — none of which the core panel can do on its own.
 
 A plugin can ship Vue components by placing a `webapp/` folder containing an `index.js` manifest
 inside its Python package. The manifest declares components for two extension points: `blocks`,
-keyed by blocktype, and `itemPanels`, keyed by item type (as with the panel convention above,
-with a leading underscore, e.g. `_mixed_solutions`):
+keyed by blocktype, and `itemPanels`, keyed by the complete canonical item type identifier, e.g.
+`example:mixed-solutions`:
 
 ```js
 // my_plugin/webapp/index.js
