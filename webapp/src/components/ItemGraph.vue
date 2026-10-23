@@ -77,14 +77,16 @@
         @option:deselected="readdItemToGraph"
       />
 
-      <label for="ignore-collections">Ignore connections to collections:</label>
-      <CollectionSelect
-        id="ignore-collections"
-        v-model="ignoreCollections"
-        multiple
-        @option:selected="removeItemFromGraph"
-        @option:deselected="readdItemToGraph"
-      />
+      <template v-if="!hideCollections">
+        <label for="ignore-collections">Ignore connections to collections:</label>
+        <CollectionSelect
+          id="ignore-collections"
+          v-model="ignoreCollections"
+          multiple
+          @option:selected="removeItemFromGraph"
+          @option:deselected="readdItemToGraph"
+        />
+      </template>
 
       <div class="form-group form-check mt-3">
         <input
@@ -120,7 +122,7 @@
 <script>
 import ItemSelect from "@/components/ItemSelect.vue";
 import CollectionSelect from "@/components/CollectionSelect.vue";
-import { itemTypes } from "@/resources.js";
+import { itemTypes, HIDE_COLLECTIONS } from "@/resources.js";
 import cytoscape from "cytoscape";
 import cola from "cytoscape-cola";
 import elk from "cytoscape-elk";
@@ -215,6 +217,7 @@ export default {
       ignoreItems: [],
       removedNodeData: {},
       ignoreCollections: [],
+      hideCollections: HIDE_COLLECTIONS,
       labelStartingMaterialsByName: true,
       labelItemsByName: false,
       showBlocks: this.defaultShowBlocks,
