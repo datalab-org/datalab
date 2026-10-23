@@ -1,6 +1,6 @@
 FROM ghcr.io/astral-sh/uv:latest AS uv_image
 
-FROM python:3.11-slim-trixie AS build
+FROM python:3.11.17-slim-trixie AS build
 ARG TARGETARCH
 SHELL ["/bin/bash", "--login", "-c"]
 
