@@ -12,7 +12,9 @@ RUN mkdir /plugin-packages \
     && find . -mindepth 2 -maxdepth 2 -name package.json -exec cp --parents {} /plugin-packages/ \;
 
 # Single source for the Node image used by all Node-based targets
-FROM node:22.23-trixie-slim AS node_base
+FROM node:22.23.4-trixie-slim AS node_base
+# Refresh the system CA store on top of the base image, for all Node-based targets
+RUN apt update && apt install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 
 FROM node_base AS base
 SHELL ["/bin/bash", "--login", "-c"]

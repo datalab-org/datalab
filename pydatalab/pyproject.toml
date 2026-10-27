@@ -56,7 +56,7 @@ server = [
     "Flask-Compress ~= 1.15",
     "APScheduler ~= 3.10",
     "Werkzeug ~= 3.0",
-    "pillow>=11,<13",
+    "pillow ~= 13.0",
     "pyjwt ~= 2.9",
     "invoke>=2.2,<4.0",
 ]
@@ -135,7 +135,9 @@ exclude-newer = "1 week"
 navani = false
 datalab-org-galvani = false
 matador-db = false
-certifi = false
+certifi = "2026-10-23T00:00:00Z"
+pillow = "2026-10-23T00:00:00Z"
+virtualenv = "2026-10-23T00:00:00Z"
 
 [tool.pytest.ini_options]
 # registered here as well as by pytest-memray, so that the mark still

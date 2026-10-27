@@ -1,6 +1,6 @@
 FROM ghcr.io/astral-sh/uv:latest AS uv_image
 
-FROM python:3.11-slim-trixie AS build
+FROM python:3.11.17-slim-trixie AS build
 ARG TARGETARCH
 SHELL ["/bin/bash", "--login", "-c"]
 
@@ -8,7 +8,17 @@ SHELL ["/bin/bash", "--login", "-c"]
 ENV GIT_LFS_SKIP_SMUDGE=1
 
 # Install system dependencies
-RUN apt update && apt install -y git gnupg curl tree mdbtools && apt clean
+RUN apt update && \
+    apt install -y \
+        git \
+        gnupg \
+        curl \
+        tree \
+        mdbtools \
+        ca-certificates \
+        netbase \
+        tzdata \
+    && apt clean && rm -rf /var/lib/apt/lists/*
 
 # Install MongoDB tools in the official way
 WORKDIR /opt
