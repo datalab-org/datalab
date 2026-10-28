@@ -12,6 +12,17 @@ def test_default_settings():
     assert Path(config.FILE_DIRECTORY).name == "files"
 
 
+def test_block_type_allow_list_settings():
+    from pydatalab.config import ServerConfig
+
+    assert ServerConfig().BLOCK_TYPE_ALLOW_LIST is None
+    assert ServerConfig(BLOCK_TYPE_ALLOW_LIST=[]).BLOCK_TYPE_ALLOW_LIST == []
+    assert ServerConfig(BLOCK_TYPE_ALLOW_LIST=["comment", "xrd"]).BLOCK_TYPE_ALLOW_LIST == [
+        "comment",
+        "xrd",
+    ]
+
+
 def test_update_settings():
     from pydatalab.config import ServerConfig
 

@@ -13,7 +13,7 @@ from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
 from werkzeug.exceptions import BadRequest, Conflict, Forbidden, InternalServerError, NotFound
 
-from pydatalab.apps import BLOCK_TYPES
+from pydatalab.apps import BLOCK_TYPES, is_block_type_available
 from pydatalab.blocks import store as block_store
 from pydatalab.config import CONFIG
 from pydatalab.feature_flags import FEATURE_FLAGS
@@ -706,6 +706,21 @@ def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
     return sample_dict
 
 
+def _check_new_block_types(blocks_obj: dict, existing_block_ids: set[str] | None = None) -> None:
+    """Reject new blocks that are disabled by the deployment configuration."""
+    if CONFIG.BLOCK_TYPE_ALLOW_LIST is None:
+        return
+
+    existing_block_ids = existing_block_ids or set()
+    for block_id, block_data in blocks_obj.items():
+        if block_id in existing_block_ids:
+            continue
+
+        block_type = block_data.get("blocktype")
+        if not is_block_type_available(block_type):
+            raise Forbidden(f"Block type {block_type!r} is not available in this deployment.")
+
+
 def _create_sample(
     sample_dict: dict,
     copy_from_item_id: str | None = None,
@@ -738,6 +753,7 @@ def _create_sample(
     model = ITEM_MODELS[type_]
 
     new_sample = sample_dict.copy()
+    _check_new_block_types(new_sample.get("blocks_obj") or {})
 
     if type_ in INVENTORY_TYPES:
         # starting_materials and equipment are open to all in the deployment (or to the
@@ -1852,6 +1868,7 @@ def save_item():
 
     if "blocks_obj" in updated_data:
         incoming_blocks = updated_data["blocks_obj"] or {}
+        _check_new_block_types(incoming_blocks, set(stored_blocks_obj))
         # Server-authoritative fields (`metadata`, `computed`, ...) never come back
         # from the web, so they have to be restored from the stored payload; for a
         # referenced block that payload lives in the `blocks` collection, not in
