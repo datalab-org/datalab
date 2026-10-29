@@ -1,18 +1,19 @@
 ---
-title: Documentation
+title: Home
 hide:
+  - navigation
   - toc
 ---
 
-# *datalab* documentation
+<div align="center" class="home-logo" markdown>
+![datalab logo](assets/logo.svg#only-light){ width="200" }
+![datalab logo](assets/logo-dark.svg#only-dark){ width="200" }
+</div>
 
---8<-- "README.md:intro"
+# *datalab* { .home-title }
 
-If you have never seen *datalab* before, the quickest introduction is to
-[try the public demo instance](https://demo.datalab-org.io);
-for background on the project itself, see [About *datalab*](about.md).
-
-## Getting started
+[about](about.md) &nbsp;·&nbsp; [help](about.md#getting-help)
+{ .home-links }
 
 <div class="grid cards home-cards" markdown>
 
@@ -24,15 +25,13 @@ for background on the project itself, see [About *datalab*](about.md).
     attaching data, and getting your data back out again.
 
 
-    [:material-book-open-variant: &nbsp; User guide](https://guide.datalab-org.io)
+    [:material-rocket-launch-outline: &nbsp; demo](https://demo.datalab-org.io)
 
-    [:simple-doi: &nbsp; White paper](https://doi.org/10.26434/chemrxiv.15001945/v1)
+    [:material-book-open-variant: &nbsp; guide](https://guide.datalab-org.io)
 
-    [:material-file-tree: &nbsp; Data model](schemas/items.md)
+    [:material-file-tree: &nbsp; data-model](schemas/items.md)
 
-    [:material-cube-outline: &nbsp; Data blocks](blocks/reference/base.md)
-
-    [:simple-python: &nbsp; Python API](https://github.com/datalab-org/datalab-api)
+    [:simple-python: &nbsp; python-api](https://github.com/datalab-org/datalab-api)
 
 -   :material-code-braces:{ .lg .middle } __For developers__
 
@@ -41,15 +40,13 @@ for background on the project itself, see [About *datalab*](about.md).
     Extending *datalab* with your own blocks and plugins, or contributing to the
     core server and web app.
 
-    [:material-account-multiple: &nbsp; Contributing Guide](CONTRIBUTING.md)
+    [:material-account-multiple: &nbsp; contributing](CONTRIBUTING.md)
 
-    [:material-console: &nbsp; Development setup](INSTALL.md)
+    [:material-console: &nbsp; dev-setup](INSTALL.md)
 
-    [:material-puzzle-outline: &nbsp; Writing plugins](plugins.md)
+    [:material-puzzle-outline: &nbsp; plugins](plugins.md)
 
-    [:material-api: &nbsp; Writing data blocks](blocks/index.md)
-
-    [:material-map-marker-path: &nbsp; Roadmap](roadmap.md)
+    [:material-api: &nbsp; data-blocks](blocks/index.md)
 
 -   :material-server-network:{ .lg .middle } __For deployments__
 
@@ -57,20 +54,12 @@ for background on the project itself, see [About *datalab*](about.md).
 
     Deploying and administering an instance for your group or others.
 
-    [:material-server: &nbsp; Deployment guide](deployment.md)
+    [:material-server: &nbsp; deployment](deployment.md)
 
-    [:material-cog-outline: &nbsp; Server configuration](config.md)
+    [:material-cog-outline: &nbsp; config](config.md)
 
-    [:simple-ansible: &nbsp; Ansible & Terraform Automations](https://github.com/datalab-org/datalab-ansible-terraform)
+    [:simple-ansible: &nbsp; ansible-terraform](https://github.com/datalab-org/datalab-ansible-terraform)
 
-    [:material-security: &nbsp; Security Policy](SECURITY.md)
-
-    [:material-history: &nbsp; Changelog](CHANGELOG.md)
+    [:material-history: &nbsp; changelog](CHANGELOG.md)
 
 </div>
-
-## Getting help
-
-- Join the [public *datalab* Slack workspace](https://join.slack.com/t/datalab-world/shared_invite/zt-2h58ev3pc-VV496~5je~QoT2TgFIwn4g) to ask questions and hear about releases.
-- Report bugs and request features on [GitHub](https://github.com/datalab-org/datalab/issues).
-- Managed deployments and consultancy are available from [*datalab industries ltd.*](https://datalab.industries) — [hello@datalab.industries](mailto:hello@datalab.industries).

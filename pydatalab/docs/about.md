@@ -6,10 +6,6 @@ title: About datalab
 
 --8<-- "README.md:intro"
 
-The main aim of *datalab* is to capture the significant amounts of long-tail experimental
-data and metadata produced in a typical lab, and to enable storage, filtering and future
-data re-use by both humans and machines.
-
 ## Features
 
 --8<-- "README.md:features"
@@ -41,15 +37,18 @@ classDef subgraphStyle fill:#f9f9f9,fill-opacity:0.1,stroke:#ccc,stroke-width:1p
 
     subgraph ClientInterfaces [Client interfaces]
         direction TB
-        BrowserApp[_datalab_<br>Browser app]
-        PythonAPI[_datalab_<br>Python API]
+        BrowserApp["`*datalab*
+Browser app`"]
+        PythonAPI["`*datalab*
+Python API`"]
     end
     class BrowserApp,PythonAPI clientInterface;
     class ClientInterfaces subgraphStyle;
 
     subgraph Backend
         direction TB
-        RESTAPI[_datalab_<br>REST API]
+        RESTAPI["`*datalab*
+REST API`"]
         MongoDB[MongoDB Database]
         DataLake[Data Lake]
     end
@@ -59,8 +58,8 @@ classDef subgraphStyle fill:#f9f9f9,fill-opacity:0.1,stroke:#ccc,stroke-width:1p
     User      <-- "User data I/O" --> UmbrellaDesc;
     Machine   <-- "Machine data I/O" --> UmbrellaDesc;
 
-    UmbrellaDesc <-- "_via_ GUI" --> BrowserApp;
-    UmbrellaDesc <-- "_via_ scripts" --> PythonAPI;
+    UmbrellaDesc <-- "`*via* GUI`" --> BrowserApp;
+    UmbrellaDesc <-- "`*via* scripts`" --> PythonAPI;
 
     BrowserApp  <-- "HTTP (Data exchange)" --> RESTAPI;
     PythonAPI   <-- "API calls (Data exchange)" --> RESTAPI;
@@ -84,11 +83,17 @@ classDef subgraphStyle fill:#f9f9f9,fill-opacity:0.1,stroke:#ccc,stroke-width:1p
 
 </center>
 
-The main aim of *datalab* is to provide a platform for capturing the significant amounts of long-tail experimental data and metadata produced in a typical lab, and enable storage, filtering and future data re-use by humans and machines. *datalab* is targeted (broadly) at materials chemistry labs but with customisability and extensability in mind.
+The main aim of *datalab* is to provide a platform for capturing the significant amounts of long-tail experimental data and metadata produced in a typical lab, and enable storage, filtering and future data re-use by humans and machines.
 
 The platform provides researchers with a way to record sample- and cell-specific metadata, attach and sync raw data from instruments, and perform analysis and visualisation of many characterisation techniques in the browser (XRD, NMR, electrochemical cycling, TEM, TGA, Mass Spec, Raman).
 
 Importantly, *datalab* stores a network of interconnected research objects in the lab, such that individual pieces of data are stored with the context needed to make them scientifically useful.
+
+## Getting help
+
+- Join the [public *datalab* Slack workspace](https://join.slack.com/t/datalab-world/shared_invite/zt-2h58ev3pc-VV496~5je~QoT2TgFIwn4g) to ask questions and hear about releases.
+- Report bugs and request features on [GitHub](https://github.com/datalab-org/datalab/issues).
+- Managed deployments and consultancy are available from [*datalab industries ltd.*](https://datalab.industries) — [hello@datalab.industries](mailto:hello@datalab.industries).
 
 ## Citation
 

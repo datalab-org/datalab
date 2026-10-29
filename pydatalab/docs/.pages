@@ -1,5 +1,6 @@
 nav:
     - index.md
+    - About: about.md
     - User guide: https://guide.datalab-org.io
     - Reference:
         - Data models: schemas
@@ -14,5 +15,4 @@ nav:
         - deployment.md
         - config.md
         - SECURITY.md
-    - About: about.md
     - Changelog: CHANGELOG.md

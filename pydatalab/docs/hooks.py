@@ -10,6 +10,8 @@ into collapsible blocks as the page is rendered.
 
 import re
 
+from markdown.extensions.toc import slugify
+
 # GitHub's callout syntax has no notion of a title: `> [!WARNING]` must sit alone
 # on its line, and anything after it makes the whole block degrade to a plain
 # blockquote — on GitHub as well as under the `github-callouts` extension. Both
@@ -52,6 +54,27 @@ COMPARE_LINK = re.compile(
 # Any Material admonition type works here: `info`, `abstract`, `example`, `quote`,
 # `tip`, `question`… It only sets the colour and icon of the collapsed box.
 ADMONITION = "abstract"
+# Extra class on those boxes, so they can be styled more quietly than a real
+# admonition: there is one per release, and they are not what the page is about.
+CHANGES_CLASS = "changelog-changes"
+
+# `## v0.7.12 (October 2026)`, as every release heading in the changelog is written.
+RELEASE_HEADING = re.compile(r"^##\s+(?P<version>v\S+)\s+\((?P<date>[^)]+)\)\s*$")
+
+# Releases older than this are left out of the changelog's table of contents, and
+# collected behind a single "Older releases" entry instead. They stay on the page.
+CONTENTS_CUTOFF = (0, 7, 0)
+OLDER_RELEASES_HEADING = "Older releases"
+OLDER_RELEASES_ANCHOR = "older-releases"
+
+# Material only makes the header logo a link. With the logo hidden, reuse its URL
+# (which is relative to the current page) to make the site name go home instead.
+HEADER_LOGO_LINK = re.compile(r'<a href="(?P<href>[^"]*)"[^>]*class="md-header__button md-logo"')
+HEADER_SITE_NAME = re.compile(
+    r'(?P<open><div class="md-header__topic">\s*)'
+    r'<span class="md-ellipsis">\s*(?P<name>.*?)\s*</span>',
+    re.DOTALL,
+)
 
 
 def _titled_callouts(markdown: str) -> str:
@@ -130,6 +153,24 @@ def _release_tags(match: re.Match) -> str:
     )
 
 
+def _release_heading(match: re.Match) -> str:
+    """Render a release's date as a small label beside its version.
+
+    The anchor is pinned to the one the heading would otherwise generate, so that
+    existing links to a release keep working. The table of contents is only for
+    jumping to a release, so it gets the version alone.
+    """
+    version, date = match["version"], match["date"]
+    anchor = slugify(f"{version} ({date})", "-")
+    attributes = f'{{ #{anchor} data-toc-label="{version}" }}'
+    return f'## {version} <span class="changelog-date">{date}</span> {attributes}'
+
+
+def _is_older_release(version: str) -> bool:
+    """Whether a version like `v0.6.7` falls before the contents cutoff."""
+    return tuple(int(part) for part in re.findall(r"\d+", version)[:3]) < CONTENTS_CUTOFF
+
+
 def _contributor_bubbles(entries: list[str]) -> list[str]:
     """Render "new contributor" lines as a row of linked avatars.
 
@@ -176,9 +217,15 @@ def on_page_markdown(markdown: str, page, config, files) -> str | None:
     lines = markdown.splitlines()
     out: list[str] = []
     index = 0
+    older_releases_started = False
 
     while index < len(lines):
         line = lines[index]
+        release = RELEASE_HEADING.match(line)
+        if release and not older_releases_started and _is_older_release(release["version"]):
+            out.extend([f"## {OLDER_RELEASES_HEADING} {{ #{OLDER_RELEASES_ANCHOR} }}", ""])
+            older_releases_started = True
+
         if CONTRIBUTORS_HEADING.match(line):
             index += 1
             entries: list[str] = []
@@ -193,7 +240,10 @@ def on_page_markdown(markdown: str, page, config, files) -> str | None:
 
         if not CHANGES_HEADING.match(line):
             compare = COMPARE_LINK.match(line)
-            out.append(_release_tags(compare) if compare else line)
+            if compare:
+                out.append(_release_tags(compare))
+            else:
+                out.append(RELEASE_HEADING.sub(_release_heading, line))
             index += 1
             continue
 
@@ -209,10 +259,39 @@ def on_page_markdown(markdown: str, page, config, files) -> str | None:
         while body and not body[-1].strip():
             body.pop()
 
-        out.append(f'??? {ADMONITION} "What\'s Changed"')
+        out.append(f'??? {ADMONITION} {CHANGES_CLASS} "What\'s Changed"')
         out.append("")
         # `pymdownx.details` takes its content as an indented block.
         out.extend(f"    {entry}" if entry.strip() else "" for entry in body)
         out.append("")
 
     return "\n".join(out)
+
+
+def on_page_context(context: dict, page, config, nav) -> dict:
+    """Cut the changelog's table of contents off after "Older releases"."""
+    if page.file.src_uri != "CHANGELOG.md" or not page.toc.items:
+        return context
+
+    releases = page.toc.items[0].children
+    for position, entry in enumerate(releases):
+        if entry.id == OLDER_RELEASES_ANCHOR:
+            del releases[position + 1 :]
+            break
+
+    return context
+
+
+def on_post_page(output: str, page, config) -> str:
+    """Link the site name in the header to the home page."""
+    logo = HEADER_LOGO_LINK.search(output)
+    if logo is None:
+        return output
+
+    return HEADER_SITE_NAME.sub(
+        lambda match: (
+            f'{match["open"]}<a class="md-ellipsis" href="{logo["href"]}">{match["name"]}</a>'
+        ),
+        output,
+        count=1,
+    )
