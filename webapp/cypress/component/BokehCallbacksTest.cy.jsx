@@ -1,0 +1,282 @@
+// This file was edited with the assistance of an AI model and requires human review from the contributor.
+import BokehPlot from "@/components/BokehPlot.vue";
+import * as Bokeh from "@bokeh/bokehjs/build/js/lib/main";
+import { DoubleTap } from "@bokeh/bokehjs/build/js/lib/core/bokeh_events";
+
+// Behavioural tests for the `CustomJS` callbacks that the server embeds in its Bokeh plots.
+//
+// The fixtures in `cypress/fixtures/bokeh/` are the `json_item()` output of the real block
+// plotting functions, regenerated with `uv run invoke dev.generate-bokeh-fixtures` (from
+// `pydatalab/`). Each test drives a widget through the DOM, as a user would, then asserts on
+// the resulting state of the Bokeh models, the captured download or the dispatched
+// `block-event`, so the tests do not depend on how BokehJS renders its widgets internally
+// (e.g., the shadow DOM introduced in Bokeh 3). Any `console.error` fails the test, as
+// BokehJS reports most callback failures only to the console.
+
+const shadow = { includeShadowDom: true };
+
+function allModels(doc) {
+  // `all_models` is only public from Bokeh 3
+  return doc.all_models ? [...doc.all_models] : [...doc._all_models.values()];
+}
+
+function modelsOfType(doc, type) {
+  return allModels(doc).filter((model) => model.type === type);
+}
+
+function figure(doc) {
+  // The Python `figure` is a plain `Plot` in BokehJS 2.x, and its own `Figure` model from 3.x
+  return allModels(doc).find((model) => model.type === "Figure" || model.type === "Plot");
+}
+
+// Assertions only ever see plain values: chai cannot format Bokeh models in its messages
+function glyphFields(doc, dimension) {
+  return modelsOfType(doc, "GlyphRenderer").map((renderer) => renderer.glyph[dimension].field);
+}
+
+function mountFixture(name) {
+  // Re-parse in the application window's realm; see BokehPlotTest.cy.jsx
+  return cy.fixture(`bokeh/${name}.json`).then((data) =>
+    cy.window().then((win) => {
+      const plotData = win.JSON.parse(JSON.stringify(data));
+      cy.mount(BokehPlot, { props: { bokehPlotData: plotData } });
+      cy.get("canvas", shadow).should("exist");
+      // The newest document holding this fixture's root is the one just mounted
+      return cy
+        .wrap(null)
+        .should(() => {
+          expect(Bokeh.documents.some((doc) => doc.get_model_by_id(plotData.root_id))).to.be.true;
+        })
+        .then(() => [...Bokeh.documents].reverse().find((d) => d.get_model_by_id(plotData.root_id)))
+        .then((doc) =>
+          // Interacting before every view is built can race BokehJS's own layout code
+          cy
+            .wrap(null)
+            .should(() => expect(doc.is_idle, "Bokeh document idle").to.be.true)
+            .then(() => doc),
+        );
+    }),
+  );
+}
+
+function widgetByLabel(label, element) {
+  return cy.contains("label", label, shadow).parent().find(element);
+}
+
+function stubDownloads() {
+  // The export callbacks create and click a temporary `<a download>` link
+  cy.window().then((win) => {
+    cy.stub(win.HTMLAnchorElement.prototype, "click").as("download");
+  });
+}
+
+function lastDownload() {
+  return cy.get("@download").then((stub) => {
+    expect(stub).to.have.been.called;
+    const link = stub.lastCall.thisValue;
+    return { filename: link.getAttribute("download"), content: decodeURI(link.href) };
+  });
+}
+
+// Wraps `it` so that each test also fails on any `console.error`. This is checked within the
+// test rather than in an `afterEach` hook, as a failing hook would skip all remaining tests.
+function bokehIt(title, fn) {
+  it(title, function () {
+    cy.window().then((win) => {
+      cy.spy(win.console, "error").as("consoleError");
+    });
+    fn.call(this);
+    // Let BokehJS finish any repaint queued by the last interaction before the plot is
+    // unmounted: the repaint is throttled (a `setTimeout` of up to 1000/60 ms, then an
+    // animation frame) and is not cancelled when the view is removed, so it would otherwise
+    // fail against the removed view during the next test
+    cy.wait(50);
+    // BokehJS 2.4 can still run a repaint after its views are removed on unmount, which
+    // rejects in `PlotView._invalidate_layout`. This is harmless (the plot is gone) and is
+    // tolerated only here, during teardown; remove this exception after the Bokeh 3 upgrade.
+    cy.on("uncaught:exception", (err) => {
+      if (Bokeh.version.startsWith("2.") && err.stack?.includes("needs_layout")) return false;
+    });
+    cy.then(() => Cypress.vueWrapper.unmount());
+    cy.wait(50);
+    cy.window().then(
+      (win) =>
+        new Cypress.Promise((resolve) =>
+          win.requestAnimationFrame(() => win.requestAnimationFrame(resolve)),
+        ),
+    );
+    cy.get("@consoleError").then((spy) => {
+      const messages = spy.getCalls().map((call) => call.args.map(String).join(" "));
+      expect(messages, "console.error calls").to.deep.equal([]);
+    });
+  });
+}
+
+describe("Bokeh plot callbacks", () => {
+  it("uses fixtures generated by the bundled BokehJS version", () => {
+    for (const name of ["tabular", "xrd", "echem", "echem_dqdv"]) {
+      cy.fixture(`bokeh/${name}.json`).then((data) => {
+        expect(
+          data.version,
+          `${name}.json is stale: run \`uv run invoke dev.generate-bokeh-fixtures\``,
+        ).to.equal(Bokeh.version);
+      });
+    }
+  });
+
+  describe("tabular block", () => {
+    bokehIt("switches the plotted columns and axis labels from the axis selects", () => {
+      mountFixture("tabular").then((doc) => {
+        widgetByLabel("X axis:", "select").select("test2");
+        widgetByLabel("Y axis:", "select").select("test3");
+        cy.wrap(null).should(() => {
+          expect(glyphFields(doc, "x")).to.deep.equal(["test2"]);
+          expect(glyphFields(doc, "y")).to.deep.equal(["test3"]);
+          expect(figure(doc).below[0].axis_label).to.equal("test2");
+          expect(figure(doc).left[0].axis_label).to.equal("test3");
+        });
+      });
+    });
+
+    bokehIt("exports the data source as .csv", () => {
+      mountFixture("tabular");
+      stubDownloads();
+      cy.contains("button", "Export .csv", shadow).click();
+      lastDownload().should(({ filename, content }) => {
+        expect(filename).to.equal("data.csv");
+        expect(content).to.equal(
+          'data:text/csv;charset=utf-8,"index","test","test2","test3"\n0,1,2,3\n1,4,5,6\n',
+        );
+      });
+    });
+  });
+
+  describe("XRD block", () => {
+    bokehIt("dispatches a block event when the wavelength is changed", () => {
+      const blockEvents = [];
+      cy.document().then((document) => {
+        document.addEventListener("block-event", (event) => blockEvents.push(event.detail));
+      });
+      mountFixture("xrd");
+      widgetByLabel("Wavelength (Å)", "input").clear().type("1.0").trigger("change");
+      cy.wrap(blockEvents).should("deep.include", {
+        block_id: "xrd-fixture",
+        event_name: "set_wavelength",
+        wavelength: "1.0",
+      });
+    });
+
+    bokehIt("switches the x-axis of both the line and the points", () => {
+      mountFixture("xrd").then((doc) => {
+        widgetByLabel("X axis:", "select").select("Q (Å⁻¹)");
+        cy.wrap(null).should(() => {
+          expect(glyphFields(doc, "x")).to.deep.equal(["Q (Å⁻¹)", "Q (Å⁻¹)"]);
+          expect(figure(doc).below[0].axis_label).to.equal("Q (Å⁻¹)");
+        });
+      });
+    });
+
+    bokehIt("toggles the visibility of the points", () => {
+      mountFixture("xrd").then((doc) => {
+        const pointsVisible = () =>
+          modelsOfType(doc, "GlyphRenderer")
+            .filter((renderer) => renderer.glyph.type !== "Line")
+            .map((renderer) => renderer.visible);
+        cy.contains("button", "✓ Show points", shadow).click();
+        cy.contains("button", "✗ Show points", shadow).should("exist");
+        cy.wrap(null).should(() => expect(pointsVisible()).to.deep.equal([false]));
+        cy.contains("button", "✗ Show points", shadow).click();
+        cy.contains("button", "✓ Show points", shadow).should("exist");
+        cy.wrap(null).should(() => expect(pointsVisible()).to.deep.equal([true]));
+      });
+    });
+
+    bokehIt("exports a TOPAS-compatible .xy file", () => {
+      mountFixture("xrd");
+      stubDownloads();
+      cy.contains("button", "Export as", shadow).click();
+      cy.contains(".xy (TOPAS-compatible)", shadow).click();
+      lastDownload().should(({ filename, content }) => {
+        expect(filename).to.equal("unknown.xy");
+        const lines = content.replace("data:text/plain;charset=utf-8,", "").trimEnd().split("\n");
+        expect(lines[0]).to.equal(
+          "' Generated by datalab from file unknown, wavelength 1.5406 Å for sample fixture",
+        );
+        expect(lines).to.have.length(600);
+        for (const line of lines.slice(1)) {
+          expect(line).to.match(/^-?\d+\.\d{5}\t-?\d+\.\d{3}$/);
+        }
+      });
+    });
+
+    bokehIt("exports the data source as .csv from the dropdown", () => {
+      mountFixture("xrd");
+      stubDownloads();
+      cy.contains("button", "Export as", shadow).click();
+      cy.contains(/^\.csv$/, shadow).click();
+      lastDownload().should(({ filename, content }) => {
+        expect(filename).to.equal("data.csv");
+        const lines = content.replace("data:text/csv;charset=utf-8,", "").trimEnd().split("\n");
+        expect(lines[0]).to.contain('"2θ (°)"');
+        expect(lines).to.have.length(600);
+      });
+    });
+
+    bokehIt("resets the view on double tap", () => {
+      mountFixture("xrd").then((doc) => {
+        const range = figure(doc).x_range;
+        const [start, end] = [range.start, range.end];
+        range.setv({ start: start + 1, end: end - 1 });
+        // The trailing modifiers argument is required from Bokeh 3 and ignored before
+        figure(doc).trigger_event(
+          new DoubleTap(0, 0, 0, 0, { shift: false, ctrl: false, alt: false }),
+        );
+        cy.wrap(null).should(() => {
+          expect(range.start).to.be.closeTo(start, 1e-6);
+          expect(range.end).to.be.closeTo(end, 1e-6);
+        });
+      });
+    });
+  });
+
+  describe("echem block", () => {
+    bokehIt("switches the axes of every cycle from the axis selects", () => {
+      mountFixture("echem").then((doc) => {
+        widgetByLabel("X axis:", "select").select("time (s)");
+        widgetByLabel("Y axis:", "select").select("current (mA)");
+        cy.wrap(null).should(() => {
+          expect(glyphFields(doc, "x")).to.deep.equal(Array(14).fill("time (s)"));
+          expect(glyphFields(doc, "y")).to.deep.equal(Array(14).fill("current (mA)"));
+          expect(figure(doc).below[0].axis_label).to.equal("time (s)");
+          expect(figure(doc).left[0].axis_label).to.equal("current (mA)");
+        });
+      });
+    });
+
+    bokehIt("exports the dQ/dV data as .csv, keeping integer columns as integers", () => {
+      mountFixture("echem_dqdv");
+      stubDownloads();
+      cy.contains("button", "Download .csv", shadow).click();
+      lastDownload().should(({ filename, content }) => {
+        expect(filename).to.equal("data.csv");
+        const lines = content.replace("data:text/csv;charset=utf-8,", "").trimEnd().split("\n");
+        const header = lines[0].split(",");
+        expect(header).to.deep.equal([
+          '"capacity (mAh)"',
+          '"dQ/dV (mA/V)"',
+          '"full cycle"',
+          '"half cycle"',
+          '"index"',
+          '"voltage (V)"',
+        ]);
+        expect(lines).to.have.length(1415);
+        for (const line of lines.slice(1)) {
+          const row = line.split(",");
+          expect(row[2]).to.match(/^\d+$/);
+          expect(row[3]).to.match(/^\d+$/);
+          expect(row[4]).to.match(/^\d+$/);
+        }
+      });
+    });
+  });
+});
