@@ -1,37 +1,132 @@
 @import url("https://cdnjs.cloudflare.com/ajax/libs/Iosevka/6.0.1/iosevka/iosevka.min.css");
+@import url("https://cdnjs.cloudflare.com/ajax/libs/Iosevka/6.0.1/iosevka-aile/iosevka-aile.min.css");
 
-/* This file was edited with the assistance of an AI model and requires human review from the contributor. */
+/* Body text is set by `theme.font` in mkdocs.yml, but Material can only load fonts
+   from Google, so both Iosevka families come from the imports above: Iosevka for
+   code (also via `theme.font`) and Iosevka Aile for headings and navigation. */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4,
+.md-header__title,
+.md-nav,
+.md-typeset .grid.cards > ul > li > p:first-child,
+.md-typeset .grid.cards > ul > li > p:first-child strong {
+    font-family: "Iosevka Aile Web", var(--md-text-font-family);
+}
 
-/* Custom primary colour (`primary: custom` in mkdocs.yml), mirroring the
-   structure of Material's built-in amber palette but in a paler gold. */
+/* The docs palette is a muted version of the three logo colours (orange #c9552b,
+   green #1d9e75, purple #7f77dd), so the logo itself stays the most vivid thing
+   on the page in light mode. Custom primary colour (`primary: custom` in mkdocs.yml): orange. */
 :root {
-    --md-primary-fg-color: #f7e7b4;
-    --md-primary-fg-color--light: #faefcd;
-    --md-primary-fg-color--dark: #ecd78f;
+    --md-primary-fg-color: #d4a08c;
+    --md-primary-fg-color--light: #dfb5a5;
+    --md-primary-fg-color--dark: #c28a73;
     --md-primary-bg-color: #000000de;
     --md-primary-bg-color--light: #0000008a;
 }
 
-/* The pale primary is unreadable as link text on a white background, so keep
-   the darker gold that the amber palette used for links in light mode. */
+/* Links use the muted green rather than the primary, with separate shades for
+   light and dark mode so that each stays readable as text. */
 [data-md-color-primary=custom]:not([data-md-color-scheme=slate]) {
-    --md-typeset-a-color: #d19d00;
+    --md-typeset-a-color: #3d7564;
+    --md-accent-fg-color: #2f5c4e;
+}
+
+/* Muted colours look washed out on the slate background, so dark mode uses the
+   full logo colours, with solid black header text for contrast on the orange. */
+[data-md-color-scheme=slate] {
+    --md-primary-fg-color: #c9552b;
+    --md-primary-fg-color--light: #d66f49;
+    --md-primary-fg-color--dark: #a8441f;
+    --md-primary-bg-color: #000;
+    --md-typeset-a-color: #1d9e75;
+    --md-accent-fg-color: #3cc39a;
+}
+
+/* Text-only header: the logo appears on the landing page instead. Material falls
+   back to its own icon when `theme.logo` is unset, so that has to be hidden too. */
+.md-header__button.md-logo,
+.md-nav__button.md-logo {
+    display: none;
+}
+
+/* Echo the black-bordered card of datalab-org.io: a hard rule under the header
+   rather than Material's soft drop shadow. */
+.md-header,
+.md-header--shadow {
+    box-shadow: none;
+    border-bottom: 3px solid #000;
+}
+
+/* Material tints the search box with translucent black, which turns the
+   header colour muddy; use a white box with the same black outline instead. */
+@media screen and (min-width: 60em) {
+    .md-search__form,
+    .md-search__form:hover {
+        background-color: #fff;
+        box-shadow: inset 0 0 0 2px #000;
+    }
+    .md-search__input::placeholder,
+    .md-search__icon {
+        color: var(--md-primary-bg-color--light);
+    }
 }
 
 .md-grid {
     max-width: 60rem;
 }
 
-/* The landing page keeps the left-hand nav but drops the table of contents, so
-   give it a slightly wider grid than the 60rem used for prose pages: enough room
-   for the three audience cards to sit side-by-side next to the nav. */
-body:has(.home-cards) .md-grid {
-    max-width: 68rem;
+/* Desktop sidebar: label it "Contents" rather than repeating the site name that
+   is already in the header. The mobile drawer keeps the name as its banner. */
+@media screen and (min-width: 76.25em) {
+    .md-nav--primary > .md-nav__title {
+        font-size: 0;
+    }
+
+    .md-nav--primary > .md-nav__title::before {
+        content: "Contents";
+        font-size: 0.7rem;
+    }
 }
 
-/* Hold those three cards in one row on wider screens. Material's default
-   `auto-fit` would otherwise drop to two columns and orphan the third. */
-@media screen and (min-width: 68.25em) {
+/* The logo's long purple spike leaves its ring and "dl" left of the image's centre
+   (5.77 against 9 in viewBox units, out of 100), so shift it to centre the ring. */
+.md-typeset .home-logo img {
+    transform: translateX(3.2%);
+}
+
+/* The name under the logo on the landing page, styled like the title on
+   datalab-org.io. */
+.md-typeset h1.home-title {
+    margin: 0 auto 0.25em;
+    color: var(--md-default-fg-color);
+    font-weight: 700;
+    text-align: center;
+}
+
+/* The invisible permalink after the heading still takes up width, which would
+   pull the centred title to the left. */
+.md-typeset h1.home-title .headerlink {
+    display: none;
+}
+
+/* The landing page drops the sidebars, so the cards can use that space;
+   everything else on it keeps the prose width of a normal page (nav and table of
+   contents both showing), centred over the cards. */
+body:has(.home-cards) .md-content__inner > :not(.home-cards) {
+    max-width: 33.4rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Three cards in one row where they fit, otherwise one per row. Material's
+   default `auto-fit` would drop to two columns and orphan the third. */
+.md-typeset .home-cards {
+    grid-template-columns: 1fr;
+}
+
+@media screen and (min-width: 60em) {
     .md-typeset .home-cards {
         grid-template-columns: repeat(3, 1fr);
     }
@@ -48,8 +143,77 @@ body:has(.home-cards) .md-grid {
     flex-direction: column;
 }
 
+:root {
+    --dl-card-shadow: rgba(120, 116, 175, 0.5);
+}
+
+/* The full logo purple, a little stronger to stand out against the slate. */
+[data-md-color-scheme=slate] {
+    --dl-card-shadow: rgba(127, 119, 221, 0.6);
+}
+
+/* Room between the cards for the shadows to sit in. */
+.md-typeset .grid.cards {
+    grid-gap: 1.2rem;
+}
+
+/* Bold, square outlines and the block shadow of the card on
+   datalab-org.io (scaled down from its 32px to suit several smaller cards),
+   lifting further on hover in place of Material's soft shadow. The outline
+   follows the text colour so it stays visible in dark mode. */
+.md-typeset .grid.cards > ul > li,
+.md-typeset .grid > .card {
+    border: 3px solid var(--md-default-fg-color);
+    border-radius: 0;
+    box-shadow: 8px 8px 0 0 var(--dl-card-shadow);
+    transition: box-shadow 125ms, transform 125ms;
+}
+
+.md-typeset .grid.cards > ul > li:hover,
+.md-typeset .grid > .card:hover {
+    border-color: var(--md-default-fg-color);
+    box-shadow: 12px 12px 0 0 var(--dl-card-shadow);
+    transform: translate(-4px, -4px);
+}
+
+.md-typeset .grid.cards > ul > li > hr {
+    border-bottom: 2px solid var(--md-default-fg-color--lighter);
+}
+
+/* Admonitions keep their per-type colour but get the same heavier, square
+   outline so they read as part of the same family. */
+.md-typeset .admonition,
+.md-typeset details {
+    border-width: 2px;
+    border-radius: 0;
+}
+
 .md-typeset .grid.cards.home-cards > ul > li > hr + p {
     flex: 1 0 auto;
+}
+
+/* Card links are styled as short lowercase commands, in the code font. */
+.md-typeset .home-cards li > p > a {
+    font-family: var(--md-code-font-family);
+}
+
+/* The landing page has no sidebar, so these keep the pages that aren't in the
+   cards reachable from it. */
+.md-typeset .home-links {
+    margin-top: 0;
+    margin-bottom: 2em;
+    font-family: var(--md-code-font-family);
+    /* Equal outer columns put the separator dead centre, whatever the link lengths. */
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+}
+
+.md-typeset .home-links a:first-child {
+    justify-self: end;
+}
+
+.md-typeset .home-links a:last-child {
+    justify-self: start;
 }
 
 /* Icon-led links inside the cards: keep the icon and label on one line. */
@@ -93,11 +257,9 @@ body:has(.home-cards) .md-grid {
     text-transform: uppercase;
 }
 
-.md-typeset .contributors-label + .contributors {
-    margin-top: 0;
-}
-
-.md-typeset .contributors {
+/* The `ul` and `:not([hidden])` are needed to out-specify Material's own list
+   rules, which would otherwise stack and indent the chips. */
+.md-typeset ul.contributors:not([hidden]) {
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;
@@ -106,7 +268,11 @@ body:has(.home-cards) .md-grid {
     list-style: none;
 }
 
-.md-typeset .contributors li {
+.md-typeset .contributors-label + ul.contributors:not([hidden]) {
+    margin-top: 0;
+}
+
+.md-typeset ul.contributors:not([hidden]) > li {
     margin: 0;
 }
 
@@ -136,12 +302,40 @@ body:has(.home-cards) .md-grid {
     background: var(--md-default-fg-color--lightest);
 }
 
+/* A release's date beside its version, split out of the heading by `docs/hooks.py`. */
+.md-typeset .changelog-date {
+    margin-left: 0.5em;
+    color: var(--md-default-fg-color--light);
+    font-size: 0.6em;
+    white-space: nowrap;
+}
+
+/* The collapsed "What's Changed" list under each release, marked by `docs/hooks.py`.
+   There is one per release, so keep it quieter than a real admonition. */
+.md-typeset details.changelog-changes {
+    border: 1px solid var(--md-default-fg-color--lightest);
+    box-shadow: none;
+}
+
+.md-typeset details.changelog-changes > summary {
+    background-color: transparent;
+    color: var(--md-default-fg-color--light);
+    font-size: 0.85em;
+    font-weight: 400;
+}
+
+.md-typeset details.changelog-changes > summary::before,
+.md-typeset details.changelog-changes > summary::after {
+    background-color: var(--md-default-fg-color--lighter);
+}
+
 /* Release tags at the foot of each changelog entry, rewritten from GitHub's bare
    compare URL by `docs/hooks.py`. Styled as chips so the two versions read as
    labels rather than as more link text in a page already dense with links. */
 .md-typeset .changelog-tag {
     display: inline-block;
     padding: 0.05em 0.6em;
+    font-family: var(--md-code-font-family);
     border: 1px solid var(--md-default-fg-color--lighter);
     border-radius: 1em;
     color: var(--md-default-fg-color--light);
@@ -156,6 +350,7 @@ body:has(.home-cards) .md-grid {
 
 .md-typeset .changelog-compare {
     margin-left: 0.4em;
+    font-family: var(--md-code-font-family);
     color: var(--md-default-fg-color--light);
     font-size: 0.85em;
 }

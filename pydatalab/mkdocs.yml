@@ -8,6 +8,7 @@ site_url: !ENV [READTHEDOCS_CANONICAL_URL, "https://docs.datalab-org.io"]
 
 theme:
   name: material
+  favicon: assets/logo.svg
   icon:
     repo: fontawesome/brands/github
   language: en
@@ -18,7 +19,7 @@ theme:
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
-      primary: amber
+      primary: custom
       accent: brown
 
     # Palette toggle for dark mode
@@ -27,11 +28,11 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
-      primary: amber
+      primary: custom
       accent: brown
 
   font:
-    text: Figtree
+    text: Geist
     code: Iosevka Web
     features:
       - content.code.copy
