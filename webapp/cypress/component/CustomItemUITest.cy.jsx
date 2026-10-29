@@ -2,15 +2,21 @@ import { createStore } from "vuex";
 
 import CreateItemModal from "@/components/CreateItemModal.vue";
 import CustomFieldsPanel from "@/components/custom/CustomFieldsPanel.vue";
-import { itemTypes, registerDynamicItemType } from "@/resources.js";
+import { itemTypes, prettifyType, registerDynamicItemType } from "@/resources.js";
 
-const DIRECT_TYPE = "_component_test_direct_item";
-const EQUIPMENT_TYPE = "_component_test_equipment_item";
+const DIRECT_TYPE = "component-test:direct-item";
+const EQUIPMENT_TYPE = "component-test:equipment-item";
 
 describe("Custom item UI", () => {
   afterEach(() => {
     delete itemTypes[DIRECT_TYPE];
     delete itemTypes[EQUIPMENT_TYPE];
+  });
+
+  it("prettifies custom and core type names", () => {
+    expect(prettifyType("battery:coin-cell")).to.equal("Battery Coin Cell");
+    expect(prettifyType("battery_lab:coin_cell-v2")).to.equal("Battery Lab Coin Cell V2");
+    expect(prettifyType("starting_materials")).to.equal("Starting Materials");
   });
 
   it("offers every dynamic type from Samples but not Inventory", () => {
