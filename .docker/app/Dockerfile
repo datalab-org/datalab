@@ -16,7 +16,9 @@ FROM node:22.23.4-trixie-slim AS node_base
 # Refresh the system CA store on top of the base image, for all Node-based targets
 RUN apt update && apt install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 
-FROM node_base AS base
+# deps target: core webapp dependencies only. Does not depend on the API image,
+# so it can build in parallel with it and stays cached across plugin changes.
+FROM node_base AS deps
 SHELL ["/bin/bash", "--login", "-c"]
 
 WORKDIR /app
@@ -26,18 +28,22 @@ EXPOSE 8081
 RUN apt update && apt install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 
 COPY webapp/package.json webapp/yarn.lock ./
-COPY --from=plugin-panels /plugin-packages ./src/plugins
 
 # Using a custom node_modules location to avoid mounting it outside of docker.
+RUN --mount=type=cache,target=/root/.cache/yarn \
+    yarn install --frozen-lockfile --modules-folder /node_modules
+
+FROM deps AS base
+COPY --from=plugin-panels /plugin-packages ./src/plugins
+
 # Plugin dependencies are not in the committed yarn.lock, so when plugins declare
-# any, install with --pure-lockfile (core pins are kept; the lockfile is not
-# written). Plugin-specific versions that conflict with the webapp's are nested
-# in src/plugins/<package>/node_modules rather than in /node_modules.
+# any, install them on top of the core deps with --pure-lockfile (core pins are
+# kept; the lockfile is not written). Plugin-specific versions that conflict with
+# the webapp's are nested in src/plugins/<package>/node_modules rather than in
+# /node_modules.
 RUN --mount=type=cache,target=/root/.cache/yarn \
     if compgen -G "src/plugins/*/package.json" > /dev/null; then \
         yarn install --pure-lockfile --modules-folder /node_modules; \
-    else \
-        yarn install --frozen-lockfile --modules-folder /node_modules; \
     fi
 
 # dev target: deps installed, source mounted at runtime — no production build.
