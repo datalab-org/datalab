@@ -1,3 +1,4 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 import datetime
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -729,3 +730,38 @@ def test_microsoft_login_bad_api_response(database, app):
 
     assert result is False
     assert database.users.find_one({"identities.identity_type": "microsoft"}) is None
+
+
+@pytest.mark.parametrize(
+    "referer,expected_location",
+    [
+        ("https://datalab.example/?token=abc", "https://datalab.example/"),
+        (
+            "https://datalab.example/items?foo=bar&token=abc",
+            "https://datalab.example/items?foo=bar",
+        ),
+        ("https://datalab.example/", "https://datalab.example/"),
+        ("javascript:alert(1)", "/"),
+        (None, "/"),
+    ],
+)
+def test_magic_link_redirect_without_app_url_strips_token(
+    unauthenticated_client, app, monkeypatch, referer, expected_location
+):
+    """Without `APP_URL`, the magic-link login redirects back to the referer, which
+    must not include the token, otherwise the UI redirects back to the API in a loop
+    (see #2067)."""
+    from pydatalab import config
+
+    monkeypatch.setattr(config.CONFIG, "APP_URL", None)
+    monkeypatch.setattr(config.CONFIG, "ROOT_PATH", "/")
+
+    email = f"redirect-loop-{ObjectId()}@datalab-org.io"
+    with app.app_context():
+        token = _generate_and_store_token(email, intent="register")
+
+    headers = {"Referer": referer} if referer else {}
+    with app.extensions["mail"].record_messages():
+        response = unauthenticated_client.get(f"/login/email?token={token}", headers=headers)
+    assert response.status_code == 307
+    assert response.location == expected_location
