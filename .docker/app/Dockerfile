@@ -77,6 +77,7 @@ COPY --from=plugin-panels /webapp/src/plugins ./src/plugins
 ENV NODE_ENV=production
 ARG VUE_APP_API_URL=magic-api-url
 ARG VUE_APP_LOGO_URL=magic-logo-url
+ARG VUE_APP_LOGO_WIDTH=magic-logo-width
 ARG VUE_APP_HOMEPAGE_URL=magic-homepage-url
 ARG VUE_APP_EDITABLE_INVENTORY=magic-setting
 ARG VUE_APP_WEBSITE_TITLE=magic-title
