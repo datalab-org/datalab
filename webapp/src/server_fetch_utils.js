@@ -1,3 +1,4 @@
+// This file was edited with the assistance of an AI model and requires human review from the contributor.
 // utility functions to deal with fetch server calls
 // all code using fetch should be collected into this file
 
@@ -389,6 +390,12 @@ export async function getInfo() {
 export function getSampleList() {
   return fetch_get(`${API_URL}/samples/`)
     .then(function (response_json) {
+      // Only replace the list if it has changed, so that re-fetching on returning to the
+      // sample table does not force the whole table to be rebuilt for identical data.
+      const current = store.state.sample_list;
+      if (current && JSON.stringify(current) === JSON.stringify(response_json.samples)) {
+        return;
+      }
       store.commit("setSampleList", response_json.samples);
     })
     .catch((error) => {
