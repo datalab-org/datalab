@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 
-__all__ = ("FEATURE_FLAGS", "check_feature_flags", "FeatureFlags")
+__all__ = ("FEATURE_FLAGS", "check_feature_flags", "FeatureFlags", "NotificationFeatures")
 
 
 class AuthMechanisms(BaseModel):
@@ -24,10 +24,15 @@ class AIIntegrations(BaseModel):
     anthropic: bool = False
 
 
+class NotificationFeatures(BaseModel):
+    enabled: bool = False
+
+
 class FeatureFlags(BaseModel):
     auth_mechanisms: AuthMechanisms = AuthMechanisms()
     ai_integrations: AIIntegrations = AIIntegrations()
     email_notifications: bool = False
+    notifications: NotificationFeatures = NotificationFeatures()
     tags: bool = False
     ungrouped_inventory: Literal["none", "warn", "error"] = "none"
 
@@ -62,6 +67,7 @@ def check_feature_flags(app):
 
     """
 
+    FEATURE_FLAGS.notifications = NotificationFeatures(enabled=CONFIG.ENABLE_NOTIFICATIONS)
     FEATURE_FLAGS.tags = CONFIG.ENABLE_TAGS
     FEATURE_FLAGS.ungrouped_inventory = CONFIG.UNGROUPED_INVENTORY
 
