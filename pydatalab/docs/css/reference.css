@@ -1,5 +1,23 @@
 @import url("https://cdnjs.cloudflare.com/ajax/libs/Iosevka/6.0.1/iosevka/iosevka.min.css");
 
+/* This file was edited with the assistance of an AI model and requires human review from the contributor. */
+
+/* Custom primary colour (`primary: custom` in mkdocs.yml), mirroring the
+   structure of Material's built-in amber palette but in a paler gold. */
+:root {
+    --md-primary-fg-color: #f7e7b4;
+    --md-primary-fg-color--light: #faefcd;
+    --md-primary-fg-color--dark: #ecd78f;
+    --md-primary-bg-color: #000000de;
+    --md-primary-bg-color--light: #0000008a;
+}
+
+/* The pale primary is unreadable as link text on a white background, so keep
+   the darker gold that the amber palette used for links in light mode. */
+[data-md-color-primary=custom]:not([data-md-color-scheme=slate]) {
+    --md-typeset-a-color: #d19d00;
+}
+
 .md-grid {
     max-width: 60rem;
 }
