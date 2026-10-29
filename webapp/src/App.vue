@@ -1,5 +1,11 @@
 <template>
-  <router-view />
+  <!-- Keep the sample table alive so that navigating back to it from an item page is instant,
+       rather than rebuilding the table for the full sample list. -->
+  <router-view v-slot="{ Component }">
+    <keep-alive include="Samples">
+      <component :is="Component" />
+    </keep-alive>
+  </router-view>
   <DialogContainer />
 </template>
 

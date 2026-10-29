@@ -128,7 +128,9 @@ export default {
       getInfo();
     }
   },
-  mounted() {
+  // The Samples view is kept alive (see App.vue), so re-fetch whenever it is shown again,
+  // not just on first mount; `activated` also fires on the initial mount.
+  activated() {
     this.getSamples();
   },
   methods: {
