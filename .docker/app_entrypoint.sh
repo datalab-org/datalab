@@ -1,7 +1,8 @@
 #!/bin/sh
 
 # Patch the built app to use the specified environment variables
-# at runtime, then serve the app
+# at runtime. Run by the nginx image's entrypoint (from `/docker-entrypoint.d/`)
+# before nginx starts; a non-zero exit stops the container from starting.
 #
 # See https://stackoverflow.com/questions/53010064/pass-environment-variable-into-a-vue-app-at-runtime for inspiration.
 #
@@ -73,5 +74,3 @@ for file in $ROOT_DIR/js/app.*.js* $ROOT_DIR/*html; do
     done
 
 echo "Done!"
-
-serve -s ${ROOT_DIR} -p 8081

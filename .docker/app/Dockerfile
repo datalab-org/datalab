@@ -90,16 +90,15 @@ ENV VUE_APP_GIT_VERSION=${VUE_APP_GIT_VERSION}
 
 RUN /node_modules/.bin/vue-cli-service build
 
-FROM node_base AS production
+# production target: serves the compiled bundle with nginx, so no Node runtime
+# or node_modules are needed in the final image. The entrypoint script patches
+# the bundle with the runtime `VUE_APP_*` settings before nginx starts.
+FROM nginx:1.31.8-alpine AS production
 
-ENV PATH=$PATH:/node_modules/.bin
-COPY ./.docker/app_entrypoint.sh /app/
+EXPOSE 8081
 
-COPY webapp/package.json webapp/yarn.lock ./
-
+COPY ./.docker/app/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --chmod=755 ./.docker/app_entrypoint.sh /docker-entrypoint.d/40-datalab-app-config.sh
 COPY --from=build /app/dist /app/dist
-RUN --mount=type=cache,target=/root/.cache/yarn yarn install --frozen-lockfile --modules-folder /node_modules --production
 
-CMD [ "/bin/bash", "-c", "/app/app_entrypoint.sh" ]
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD node -e "fetch('http://localhost:8081').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD wget -q --spider http://127.0.0.1:8081/ || exit 1
