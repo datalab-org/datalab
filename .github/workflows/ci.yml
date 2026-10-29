@@ -171,6 +171,7 @@ jobs:
         run: |
           echo "PYDATALAB_TESTING=true" >> .env
           echo "PYDATALAB_ROOT_PATH='/api'" >> .env
+          echo "VUE_APP_API_URL=http://localhost:5001/api" >> .env
           echo "PYDATALAB_TESTING=true" >> pydatalab/.env
           echo "PYDATALAB_ROOT_PATH='/api'" >> pydatalab/.env
 
@@ -180,7 +181,9 @@ jobs:
           files: docker-compose.yml
           load: true
           source: .
-          targets: "api"
+          targets: "api,app"
+          # The app uses a separate cache scope from the e2e app build, as plugin
+          # panels change the build (comments can't go inside the `set` block)
           set: |
             api.cache-from=type=gha,scope=${{ github.ref_name }}-build-api
             api.cache-from=type=gha,scope=main-build-api
@@ -188,11 +191,17 @@ jobs:
             api.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0+ci
             api.args.WEB_CONCURRENCY=1
             api.tags=datalab-api:latest
+            app.cache-from=type=gha,scope=${{ github.ref_name }}-build-app-plugins
+            app.cache-from=type=gha,scope=main-build-app-plugins
+            app.cache-from=type=gha,scope=main-build-app
+            app.cache-to=type=gha,scope=${{ github.ref_name }}-build-app-plugins,mode=max
+            app.args.VUE_APP_GIT_VERSION=0.0.0+ci
+            app.tags=datalab-app:latest
 
       - name: Start services
         run: |
           # Launch production container profiles and wait for them to come up
-          if ! docker compose up api --force-recreate -d --wait; then
+          if ! docker compose up api app --force-recreate -d --wait; then
             echo "=== Docker compose startup failed ==="
             echo "=== Container logs: ==="
             docker compose logs database api app
@@ -203,8 +212,12 @@ jobs:
 
       - name: Test that plugin is loaded
         run: |
-          # Test that plugin block is listed in info endpoint
-          curl -s http://localhost:5000/api/info/blocks | jq '.data | any(.id == "example")'
+          # Test that plugin blocks are listed in info endpoint (`-e` to fail on `false`)
+          curl -s http://localhost:5001/api/info/blocks | jq -e '.data | any(.id == "example")'
+          curl -s http://localhost:5001/api/info/blocks | jq -e '.data | any(.id == "chat")'
+          # Test that the whinchat panel was compiled into the app bundle; `markdown-it` is
+          # only a dependency of the panel, so this also checks plugin JS deps were installed
+          docker compose exec -T app sh -c 'grep -q "markdown-it" /app/dist/js/*.js'
 
   docker-dev:
     name: Test dev Docker builds
