@@ -1,3 +1,4 @@
+// This file was edited with the assistance of an AI model and requires human review from the contributor.
 const { ProvidePlugin, NormalModuleReplacementPlugin } = require("webpack");
 const fs = require("fs");
 const path = require("path");
@@ -51,7 +52,7 @@ module.exports = {
     config.plugin("html").tap((args) => {
       args[0].title = process.env.VUE_APP_WEBSITE_TITLE || "datalab";
       args[0].meta = {
-        x_datalab_api_url: process.env.VUE_APP_API_URL,
+        x_datalab_api_url: process.env.VUE_APP_API_URL ?? "http://localhost:5001",
       };
       return args;
     });

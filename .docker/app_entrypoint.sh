@@ -1,10 +1,12 @@
 #!/bin/sh
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 
-# Patch the built app to use the specified environment variables
-# at runtime. Run by the nginx image's entrypoint (from `/docker-entrypoint.d/`)
+# Write the runtime configuration of the built app from the specified environment
+# variables. Run by the nginx image's entrypoint (from `/docker-entrypoint.d/`)
 # before nginx starts; a non-zero exit stops the container from starting.
 #
-# See https://stackoverflow.com/questions/53010064/pass-environment-variable-into-a-vue-app-at-runtime for inspiration.
+# Everything written here is served publicly, so only the settings listed below are
+# passed through to the app; secrets must never be added to this list.
 #
 set -e
 ROOT_DIR=/app/dist
@@ -19,58 +21,39 @@ if [ -z "$VUE_APP_API_URL" ]; then
     exit 1
 fi
 
-# If the VUE_APP_GIT_VERSION has not been overridden, set it to the default
-# from package.json; the real `.git` version, if available, should still
-# take precedence.
-if [ -z "$VUE_APP_GIT_VERSION" ]; then
-    VUE_APP_GIT_VERSION="0.0.0-git"
-fi
+# Unset or empty settings are omitted, so that the defaults in the webapp apply.
+jq -nr '[
+    "API_URL",
+    "GIT_VERSION",
+    "LOGO_URL",
+    "LOGO_WIDTH",
+    "HOMEPAGE_URL",
+    "EDITABLE_INVENTORY",
+    "WEBSITE_TITLE",
+    "QR_CODE_RESOLVER_URL",
+    "AUTOMATICALLY_GENERATE_ID_DEFAULT",
+    "UPPY_MAX_TOTAL_FILE_SIZE",
+    "UPPY_MAX_NUMBER_OF_FILES"
+] | map({key: ., value: (env["VUE_APP_" + .] // "")} | select(.value != ""))
+  | from_entries
+  | "window.__DATALAB_CONFIG__ = \(tojson);"' > "$ROOT_DIR/config.js"
 
-# If VUE_APP_WEBSITE_TITLE is unset, default to "datalab" so the sed
-# substitution below doesn't blank out the title in the built app.
-if [ -z "$VUE_APP_WEBSITE_TITLE" ]; then
-    VUE_APP_WEBSITE_TITLE="datalab"
-fi
+echo "Wrote $ROOT_DIR/config.js:"
+cat "$ROOT_DIR/config.js"
 
-# If VUE_APP_LOGO_WIDTH is unset, use the same default as the webapp,
-# as the placeholder in the built app would otherwise be blanked out.
-if [ -z "$VUE_APP_LOGO_WIDTH" ]; then
-    VUE_APP_LOGO_WIDTH="100"
-fi
-
-# Replace a placeholder in the current file, escaping characters that sed
-# would otherwise interpret in the replacement (e.g., `&` in URL query strings).
-replace() {
-    escaped=$(printf '%s' "$2" | sed -e 's/[\\&|]/\\&/g')
-    sed -i "s|$1|${escaped}|g" "$file"
+# Escape characters that sed would otherwise interpret in the replacement
+# (e.g., `&` in URL query strings).
+escape() {
+    printf '%s' "$1" | sed -e 's/[\\&#]/\\&/g'
 }
 
-echo "Replacing env vars in Javascript files"
-echo "Settings:"
-echo ""
-echo "  APP_VERSION: ${VUE_APP_GIT_VERSION}"
-echo "  API_URL: ${VUE_APP_API_URL}"
-echo "  LOGO_URL: ${VUE_APP_LOGO_URL}"
-echo "  LOGO_WIDTH: ${VUE_APP_LOGO_WIDTH}"
-echo "  HOMEPAGE_URL: ${VUE_APP_HOMEPAGE_URL}"
-echo "  EDITABLE_INVENTORY: ${VUE_APP_EDITABLE_INVENTORY}"
-echo "  WEBSITE_TITLE: ${VUE_APP_WEBSITE_TITLE}"
-echo "  QR_CODE_RESOLVER_URL: ${VUE_APP_QR_CODE_RESOLVER_URL}"
-echo "  AUTOMATICALLY_GENERATE_ID_DEFAULT: ${VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT}"
-echo ""
-echo "Patching..."
-
-for file in $ROOT_DIR/js/app.*.js* $ROOT_DIR/*html; do
-    echo "$file"
-    replace "0.0.0-git" "${VUE_APP_GIT_VERSION}"
-    replace "magic-api-url" "${VUE_APP_API_URL}"
-    replace "magic-logo-url" "${VUE_APP_LOGO_URL}"
-    replace "magic-logo-width" "${VUE_APP_LOGO_WIDTH}"
-    replace "magic-homepage-url" "${VUE_APP_HOMEPAGE_URL}"
-    replace "magic-setting" "${VUE_APP_EDITABLE_INVENTORY}"
-    replace "magic-title" "${VUE_APP_WEBSITE_TITLE}"
-    replace "magic-qr-code-resolver-url" "${VUE_APP_QR_CODE_RESOLVER_URL}"
-    replace "magic-generate-id-setting" "${VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT}"
-    done
+# The API URL is also advertised in the HTML, where it is read by API clients
+# such as datalab-api, and the title is shown before the app has loaded.
+api_url=$(escape "$VUE_APP_API_URL")
+sed -i -E "s#(<meta name=\"?x_datalab_api_url\"? content=)(\"[^\"]*\"|[^ >]*)#\1\"${api_url}\"#" "$ROOT_DIR/index.html"
+if [ -n "$VUE_APP_WEBSITE_TITLE" ]; then
+    title=$(escape "$VUE_APP_WEBSITE_TITLE")
+    sed -i -E "s#<title>[^<]*</title>#<title>${title}</title>#" "$ROOT_DIR/index.html"
+fi
 
 echo "Done!"
