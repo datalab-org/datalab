@@ -10,11 +10,19 @@ import CollectionPage from "../views/CollectionPage.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
 import Admin from "@/views/Admin.vue";
 import Login from "../views/Login.vue";
+import { resolveDefaultRouteName } from "@/navigation.js";
 import { API_URL, WEBSITE_TITLE } from "@/resources.js";
 import { getInfo } from "@/server_fetch_utils.js";
 import store from "@/store/index.js";
 
 const routes = [
+  {
+    path: "/",
+    name: "home",
+    // The navigation guard always redirects this route to the configured landing view,
+    // so this component is required by the route definition but is never rendered here.
+    component: Samples,
+  },
   {
     path: "/about",
     name: "About",
@@ -26,7 +34,6 @@ const routes = [
   {
     path: "/samples",
     name: "samples",
-    alias: "/",
     component: Samples,
   },
   {
@@ -38,7 +45,6 @@ const routes = [
   {
     path: "/equipment",
     name: "equipment",
-    alias: "/",
     component: Equipment,
   },
   {
@@ -99,7 +105,6 @@ const routes = [
   {
     path: "/admin",
     name: "admin",
-    alias: "/",
     component: Admin,
   },
 ];
@@ -124,6 +129,12 @@ router.beforeEach(async (to, from, next) => {
 
   if (!user && to.name !== "login" && !hasItemAccessToken) {
     next({ name: "login", query: { next: to.fullPath } });
+    return;
+  }
+
+  if (to.name === "home") {
+    const serverInfo = store.state.serverInfo ?? (await getInfo());
+    next({ name: resolveDefaultRouteName(serverInfo) });
     return;
   }
 

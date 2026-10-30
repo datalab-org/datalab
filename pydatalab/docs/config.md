@@ -131,11 +131,63 @@ Currently, there are two mechanisms for accessing remote files:
 
 ## Customisation and branding
 
-Deployments can customise the look and feel of their *datalab* instance by providing files under a `public/custom/` directory in the web app.
+Deployments can customise the main navigation through the server configuration and customise the look and feel of their *datalab* instance by providing files under a `public/custom/` directory in the web app.
 This directory can be a symlink to a folder in your deployment repository, or mounted as a volume in Docker.
 It should be made available at `webapp/public/custom/` relative to the *datalab* source tree.
 
 The following customisations are supported:
+
+### Main navigation
+
+The [`NAVIGATION`][pydatalab.config.ServerConfig.NAVIGATION] setting controls which links appear in the main navigation, their order, labels, optional icons, and the landing view used for `/`.
+Each entry has a required `view` ID and optional `label`, `icon`, and `default` values.
+The server configuration is the source of this default and is returned to the web app by the `/info` endpoint.
+For example, the following configuration renames Inventory to Starting Materials, moves About to the end, and omits Collections:
+
+```json
+{
+  "NAVIGATION": [
+    {"view": "samples"},
+    {
+      "view": "starting-materials",
+      "label": "Starting Materials",
+      "icon": "vials",
+      "default": true
+    },
+    {"view": "equipment"},
+    {"view": "item-graph", "label": "Graph View", "icon": "project-diagram"},
+    {"view": "about"}
+  ]
+}
+```
+
+The same value can be supplied as JSON in the server's `.env` file or process environment:
+
+```dotenv
+PYDATALAB_NAVIGATION='[{"view":"samples"},{"view":"starting-materials","label":"Starting Materials","default":true},{"view":"about"}]'
+```
+
+The built-in views are:
+
+| View ID | Default label | Route |
+|---|---|---|
+| `about` | About | `/about` |
+| `samples` | Samples | `/samples` |
+| `collections` | Collections | `/collections` |
+| `starting-materials` | Inventory | `/starting-materials` |
+| `equipment` | Equipment | `/equipment` |
+| `item-graph` | Graph View | `/item-graph` |
+
+Entries are shown in the configured order, and omitted entries are only hidden from the navigation: their routes remain available unless the corresponding feature is disabled separately.
+Set `default` to `true` on the entry that should open when a user visits `/`; only one entry can be marked as the default.
+If no entry is explicitly marked as the default, the first entry is used.
+The built-in navigation marks Samples as the default to preserve the existing landing page.
+The navigation must contain at least one entry, and duplicate view IDs, multiple defaults, and malformed entries are rejected during server configuration.
+View IDs unknown to the installed web app are ignored by it.
+
+The `icon` value must name a Font Awesome solid icon already registered by the web app, such as `vials` or `project-diagram`.
+Unknown icons are omitted without hiding the link.
+The default configuration preserves the current six links and the Graph View icon; within a custom configuration, an omitted `icon` means that entry has no icon.
 
 ### CSS overrides (`public/custom/override.css`)
 
@@ -250,6 +302,12 @@ public/custom/
       show_source: false
 
 ::: pydatalab.config.RemoteFilesystem
+    options:
+      heading_level: 2
+      show_root_heading: true
+      show_source: false
+
+::: pydatalab.config.NavigationEntry
     options:
       heading_level: 2
       show_root_heading: true
