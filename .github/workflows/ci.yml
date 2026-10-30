@@ -1,3 +1,4 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 name: CI tests
 on:
   pull_request:
@@ -218,6 +219,12 @@ jobs:
           # Test that the whinchat panel was compiled into the app bundle; `markdown-it` is
           # only a dependency of the panel, so this also checks plugin JS deps were installed
           docker compose exec -T app sh -c 'grep -q "markdown-it" /app/dist/js/*.js'
+
+      - name: Test that runtime settings are applied to the app
+        run: |
+          curl -s http://localhost:8081/config.js | grep -F 'http://localhost:5001/api'
+          # API clients discover the API URL from this tag in the HTML
+          curl -s http://localhost:8081/ | grep -F 'x_datalab_api_url' | grep -F 'http://localhost:5001/api'
 
   docker-dev:
     name: Test dev Docker builds

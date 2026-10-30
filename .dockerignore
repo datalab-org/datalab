@@ -1,8 +1,13 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
 **/node_modules
 **/cypress
 **/.venv
 **/build
 **/files
+
+# The production image takes its settings at runtime; a local `.env` should not
+# end up compiled into the bundle.
+webapp/.env*
 
 # Plugin panels are generated from the installed Python environment during the
 # frontend image build. Never let stale host-generated output enter that build.
