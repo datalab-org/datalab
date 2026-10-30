@@ -38,6 +38,24 @@ describe("Custom item UI", () => {
     expect(itemTypes[DIRECT_TYPE].itemInformationComponent.name).to.equal("ItemInformation");
   });
 
+  it("omits item types disabled by the deployment", () => {
+    registerDynamicItemType(DIRECT_TYPE, {
+      title: "Direct item",
+      base_type: "items",
+      available: false,
+      block_type_allow_list: [],
+    });
+
+    const types = CreateItemModal.computed.effectiveAllowedTypes.call({
+      allowedTypes: ["samples", "cells"],
+      $store: { state: { schemas: { [DIRECT_TYPE]: {} } } },
+    });
+
+    expect(types).to.deep.equal(["samples", "cells"]);
+    expect(itemTypes[DIRECT_TYPE].available).to.equal(false);
+    expect(itemTypes[DIRECT_TYPE].blockTypeAllowList).to.deep.equal([]);
+  });
+
   it("renders only fields added beyond the advertised Item base", () => {
     registerDynamicItemType(DIRECT_TYPE, {
       title: "Direct item",

@@ -62,6 +62,7 @@
           menu-testid="add-block-dropdown"
           :suggested-block-types="suggestedBlockTypes"
           :all-block-types="allBlockTypes"
+          :block-type-allow-list="itemTypeEntry?.blockTypeAllowList ?? null"
           @select="newBlock"
         />
         <ExportDropdown
@@ -152,6 +153,7 @@
           menu-testid="add-block-dropdown-bottom"
           :suggested-block-types="suggestedBlockTypes"
           :all-block-types="allBlockTypes"
+          :block-type-allow-list="itemTypeEntry?.blockTypeAllowList ?? null"
           @select="newBlock"
         />
       </div>
