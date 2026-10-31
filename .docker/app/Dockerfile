@@ -78,17 +78,10 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD node -
 FROM base AS build
 COPY webapp ./
 COPY --from=plugin-panels /webapp/src/plugins ./src/plugins
-# These get replaced by the entrypoint script for production builds.
-# Set the real values in `.env` files or an external docker-compose.
+# Deployment settings are not baked into the build: the entrypoint script writes
+# them to `config.js` when the container starts, from `.env` files or an external
+# docker-compose.
 ENV NODE_ENV=production
-ARG VUE_APP_API_URL=magic-api-url
-ARG VUE_APP_LOGO_URL=magic-logo-url
-ARG VUE_APP_LOGO_WIDTH=magic-logo-width
-ARG VUE_APP_HOMEPAGE_URL=magic-homepage-url
-ARG VUE_APP_EDITABLE_INVENTORY=magic-setting
-ARG VUE_APP_WEBSITE_TITLE=magic-title
-ARG VUE_APP_QR_CODE_RESOLVER_URL=magic-qr-code-resolver-url
-ARG VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT=magic-generate-id-setting
 # Version source for scripts/get-version.js. Provided as a build arg so the
 # build layer doesn't depend on `.git` (which would invalidate cache every commit).
 ARG VUE_APP_GIT_VERSION=0.0.0-git
@@ -97,14 +90,17 @@ ENV VUE_APP_GIT_VERSION=${VUE_APP_GIT_VERSION}
 RUN /node_modules/.bin/vue-cli-service build
 
 # production target: serves the compiled bundle with nginx, so no Node runtime
-# or node_modules are needed in the final image. The entrypoint script patches
-# the bundle with the runtime `VUE_APP_*` settings before nginx starts.
+# or node_modules are needed in the final image. The entrypoint script writes
+# the runtime `VUE_APP_*` settings to `config.js` before nginx starts.
 FROM nginx:1.31.8-alpine AS production
 
 EXPOSE 8081
 
+RUN apk add --no-cache jq
+
 COPY ./.docker/app/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --chmod=755 ./.docker/app_entrypoint.sh /docker-entrypoint.d/40-datalab-app-config.sh
+COPY ./webapp/src/config.schema.json /app/config.schema.json
 COPY --from=build /app/dist /app/dist
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD wget -q --spider http://127.0.0.1:8081/ || exit 1
