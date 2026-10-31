@@ -1,3 +1,4 @@
+<!-- This file was edited with the assistance of an AI model and requires human review from the contributor. -->
 <template>
   <!-- The table sets up its columns (and their filters) once, when created, so wait for the
        server info that decides whether the tags column is shown. -->
@@ -128,7 +129,9 @@ export default {
       getInfo();
     }
   },
-  mounted() {
+  // The Samples view is kept alive (see App.vue), so re-fetch whenever it is shown again,
+  // not just on first mount; `activated` also fires on the initial mount.
+  activated() {
     this.getSamples();
   },
   methods: {
