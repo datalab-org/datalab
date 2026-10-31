@@ -137,6 +137,10 @@ Deployments can customise the look and feel of their *datalab* instance by provi
 This directory can be a symlink to a folder in your deployment repository, or mounted as a volume in Docker.
 It should be made available at `webapp/public/custom/` relative to the *datalab* source tree.
 
+When building the production Docker image, static files in this directory are only added to the final image, so changing them does not rebuild the app; they can also be mounted at `/app/dist/custom` in the running container.
+Custom components (`public/custom/components/`) are compiled into the app, so changing them does require a rebuild.
+Only `components/` is available when they are compiled, so custom components must use absolute URLs for other files in `public/custom/` (e.g., `/custom/logos/mylogo.png`), rather than relative imports (e.g., `../logos/mylogo.png`), which will fail the build.
+
 The following customisations are supported:
 
 ### CSS overrides (`public/custom/override.css`)
