@@ -12,6 +12,9 @@ ROOT_DIR=/app/dist
 
 SCHEMA=/app/config.schema.json
 
+# Default to the version the image was built with
+export VUE_APP_GIT_VERSION="${VUE_APP_GIT_VERSION:-$DATALAB_IMAGE_VERSION}"
+
 # Refuse to start with settings that do not match the schema; empty values count as unset.
 errors=$(jq -r '
     .required as $required
