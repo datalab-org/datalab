@@ -18,7 +18,9 @@ These can be provided as either:
     - an `.env` file in the directory from which `pydatalab` is launched (NB: here, the `FLASK_` prefix is not required, but any options present in the pydatalab config must still have the `PYDATALAB_` prefix).
 3. Web app configuration, such as the URL of the relevant *datalab* API and branding (logo URLs, external homepage links).
     - These are typically provided as a `.env` file in the directory from which the webapp is built/served.
-    - The main options include (a full list can be found in the `docker-compose.yml` file):
+    - In the production Docker image they are instead read from the container's environment each time it starts, so changing them only requires recreating the container, not rebuilding the image. They are written to a `config.js` that is served publicly, so must never contain secrets.
+    - All settings are described in `webapp/src/config.schema.json`. The production container refuses to start if a value does not match this schema, and logs a warning for unknown `VUE_APP_*` variables. Elsewhere, invalid values are reported in the browser console.
+    - The main options include (a full list can be found in `webapp/src/config.schema.json`):
         - `VUE_APP_API_URL`: the URL of the *datalab* API, which is used by the web app to communicate with the server.
         - `VUE_APP_LOGO_URL`: the URL of an image to use as the logo header in the web app.
         - `VUE_APP_HOMEPAGE_URL`: a URL to provide as a link from the web app header, and as a button on the dedicated login page.

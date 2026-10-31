@@ -219,6 +219,18 @@ jobs:
           # only a dependency of the panel, so this also checks plugin JS deps were installed
           docker compose exec -T app sh -c 'grep -q "markdown-it" /app/dist/js/*.js'
 
+      - name: Test that runtime settings are applied to the app
+        run: |
+          curl -s http://localhost:8081/config.js | grep -F 'http://localhost:5001/api'
+          # API clients discover the API URL from this tag in the HTML
+          curl -s http://localhost:8081/ | grep -F 'x_datalab_api_url' | grep -F 'http://localhost:5001/api'
+          # The container should refuse to start with invalid settings
+          set +e
+          timeout 30 docker run --rm -e VUE_APP_API_URL=http://localhost:5001/api -e VUE_APP_LOGO_WIDTH=100px datalab-app:latest
+          status=$?
+          set -e
+          test "$status" -eq 1
+
   docker-dev:
     name: Test dev Docker builds
     runs-on: ubuntu-latest
