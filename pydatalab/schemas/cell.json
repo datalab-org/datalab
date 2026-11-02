@@ -1,15 +1,5 @@
 {
   "$defs": {
-    "AccountStatus": {
-      "description": "A string enum representing the account status.",
-      "enum": [
-        "active",
-        "unverified",
-        "deactivated"
-      ],
-      "title": "AccountStatus",
-      "type": "string"
-    },
     "CellComponent": {
       "properties": {
         "item": {
@@ -437,7 +427,7 @@
           "anyOf": [
             {
               "items": {
-                "$ref": "#/$defs/Person"
+                "$ref": "#/$defs/PersonReference"
               },
               "type": "array"
             },
@@ -463,7 +453,7 @@
           "anyOf": [
             {
               "items": {
-                "$ref": "#/$defs/Group"
+                "$ref": "#/$defs/GroupReference"
               },
               "type": "array"
             },
@@ -734,8 +724,8 @@
       "title": "FileChecksums",
       "type": "object"
     },
-    "Group": {
-      "description": "A model that describes a group of users, for the sake\nof applying group permissions.\n\nEach `Person` can point to multiple groups.\n\nRelationships between groups can be described via the `relationships`\nfield inherited from `Entry`.",
+    "GroupReference": {
+      "description": "A reference to a group, containing only the information needed to display it\nalongside the entries it has access to.",
       "properties": {
         "type": {
           "const": "groups",
@@ -755,31 +745,9 @@
             }
           ],
           "default": null,
-          "description": "The immutable database ID of the entry.",
+          "description": "The immutable database ID of the group.",
           "format": "uuid",
           "title": "Immutable ID"
-        },
-        "last_modified": {
-          "anyOf": [
-            {
-              "format": "datetime",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The timestamp at which the entry was last modified.",
-          "title": "Last Modified"
-        },
-        "relationships": {
-          "description": "A list of related entries and their types.",
-          "items": {
-            "$ref": "#/$defs/TypedRelationship"
-          },
-          "title": "Relationships",
-          "type": "array"
         },
         "group_id": {
           "anyOf": [
@@ -797,15 +765,6 @@
           "description": "A short, locally-unique ID for the group.",
           "title": "Group Id"
         },
-        "members": {
-          "description": "A list of people that belong to this group; stored on the user objects.",
-          "items": {
-            "additionalProperties": true,
-            "type": "object"
-          },
-          "title": "Members",
-          "type": "array"
-        },
         "display_name": {
           "anyOf": [
             {
@@ -818,99 +777,12 @@
             }
           ],
           "default": null,
-          "description": "The chosen display name for the group",
-          "title": "Display Name"
-        },
-        "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "A description of the group",
-          "title": "Description"
-        },
-        "managers": {
-          "description": "A list of user IDs that can manage this group; stored in db as list of IDs.",
-          "items": {
-            "anyOf": [
-              {
-                "format": "objectid",
-                "type": "string"
-              },
-              {
-                "additionalProperties": true,
-                "type": "object"
-              }
-            ]
-          },
-          "title": "Managers",
-          "type": "array"
-        }
-      },
-      "title": "Group",
-      "type": "object"
-    },
-    "Identity": {
-      "description": "A model for identities that can be provided by external systems\nand associated with a given user.",
-      "properties": {
-        "identity_type": {
-          "$ref": "#/$defs/IdentityType",
-          "description": "The type or provider of the identity."
-        },
-        "identifier": {
-          "description": "The identifier for the identity, e.g., an email address, an ORCID, a GitHub user ID.",
-          "title": "Identifier",
-          "type": "string"
-        },
-        "name": {
-          "description": "The name associated with the identity to be exposed in free-text searches over people, e.g., an institutional username, a GitHub username.",
-          "title": "Name",
-          "type": "string"
-        },
-        "verified": {
-          "default": false,
-          "description": "Whether the identity has been verified (by some means, e.g., OAuth2 or email)",
-          "title": "Verified",
-          "type": "boolean"
-        },
-        "display_name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The user's display name associated with the identity, also to be exposed in free text searches.",
+          "description": "The chosen display name for the group.",
           "title": "Display Name"
         }
       },
-      "required": [
-        "identity_type",
-        "identifier",
-        "name"
-      ],
-      "title": "Identity",
+      "title": "GroupReference",
       "type": "object"
-    },
-    "IdentityType": {
-      "description": "A string enum representing the supported verifiable identity types.",
-      "enum": [
-        "email",
-        "orcid",
-        "github",
-        "google",
-        "microsoft"
-      ],
-      "title": "IdentityType",
-      "type": "string"
     },
     "InlineSubstance": {
       "properties": {
@@ -937,8 +809,8 @@
       "title": "InlineSubstance",
       "type": "object"
     },
-    "Person": {
-      "description": "A model that describes an individual and their digital identities.",
+    "PersonReference": {
+      "description": "A reference to a person, containing only the non-sensitive information needed\nto display them, e.g., as the creator of an entry.\n\nAny other fields provided (e.g., identities or contact details) are discarded.",
       "properties": {
         "type": {
           "const": "people",
@@ -958,39 +830,9 @@
             }
           ],
           "default": null,
-          "description": "The immutable database ID of the entry.",
+          "description": "The immutable database ID of the person.",
           "format": "uuid",
           "title": "Immutable ID"
-        },
-        "last_modified": {
-          "anyOf": [
-            {
-              "format": "datetime",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The timestamp at which the entry was last modified.",
-          "title": "Last Modified"
-        },
-        "relationships": {
-          "description": "A list of related entries and their types.",
-          "items": {
-            "$ref": "#/$defs/TypedRelationship"
-          },
-          "title": "Relationships",
-          "type": "array"
-        },
-        "identities": {
-          "description": "A list of identities attached to this person, e.g., email addresses, OAuth accounts.",
-          "items": {
-            "$ref": "#/$defs/Identity"
-          },
-          "title": "Identities",
-          "type": "array"
         },
         "display_name": {
           "anyOf": [
@@ -1004,22 +846,8 @@
             }
           ],
           "default": null,
-          "description": "The user-chosen display name.",
+          "description": "The person's chosen display name.",
           "title": "Display Name"
-        },
-        "contact_email": {
-          "anyOf": [
-            {
-              "format": "email",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "In the case of multiple *verified* email identities, this email will be used as the primary contact.",
-          "title": "Contact Email"
         },
         "gravatar_hash": {
           "anyOf": [
@@ -1033,51 +861,9 @@
           "default": null,
           "description": "MD5 hash used by the frontend to fetch a Gravatar avatar without exposing the raw email.",
           "title": "Gravatar Hash"
-        },
-        "managers": {
-          "anyOf": [
-            {
-              "items": {
-                "format": "objectid",
-                "type": "string"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "A list of user IDs that can manage this person's items.",
-          "title": "Managers"
-        },
-        "role": {
-          "$ref": "#/$defs/UserRole",
-          "default": "user",
-          "description": "The role assigned to this person."
-        },
-        "groups": {
-          "anyOf": [
-            {
-              "items": {
-                "$ref": "#/$defs/Group"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "A list of groups that this person belongs to.",
-          "title": "Groups"
-        },
-        "account_status": {
-          "$ref": "#/$defs/AccountStatus",
-          "default": "unverified",
-          "description": "The status of the user's account."
         }
       },
-      "title": "Person",
+      "title": "PersonReference",
       "type": "object"
     },
     "RelationshipType": {
@@ -1178,15 +964,6 @@
       ],
       "title": "TypedRelationship",
       "type": "object"
-    },
-    "UserRole": {
-      "enum": [
-        "user",
-        "admin",
-        "manager"
-      ],
-      "title": "UserRole",
-      "type": "string"
     }
   },
   "description": "A model for representing electrochemical cells.\n\nA cell is an electrochemical device assembled from other items, recording its\ncomponents and the format it was built in.",
@@ -1303,7 +1080,7 @@
       "anyOf": [
         {
           "items": {
-            "$ref": "#/$defs/Person"
+            "$ref": "#/$defs/PersonReference"
           },
           "type": "array"
         },
@@ -1329,7 +1106,7 @@
       "anyOf": [
         {
           "items": {
-            "$ref": "#/$defs/Group"
+            "$ref": "#/$defs/GroupReference"
           },
           "type": "array"
         },

@@ -52,10 +52,28 @@ def _is_export_path_safe(file_path: str, task_id: str) -> bool:
         return False
 
 
+def _check_export_dir() -> None:
+    """Ensure the export directory exists and is writable, raising if not.
+
+    Called at startup so that a misconfigured export location fails loudly,
+    rather than only surfacing later as a failed export task for the user.
+    """
+    export_dir = _export_dir()
+    try:
+        export_dir.mkdir(exist_ok=True, parents=True)
+    except OSError as exc:
+        raise RuntimeError(f"Unable to create `.eln` export directory {export_dir}: {exc}")
+
+    if not os.access(export_dir, os.W_OK | os.X_OK):
+        raise RuntimeError(f"`.eln` export directory {export_dir} is not writable.")
+
+
 @EXPORT.record_once
 def _register_app(state):
     global _app
     _app = state.app
+
+    _check_export_dir()
 
     task_scheduler.add_periodic_job(
         func=_cleanup_old_exports,

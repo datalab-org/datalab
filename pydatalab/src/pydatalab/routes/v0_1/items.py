@@ -3,6 +3,7 @@ import datetime
 import json
 import secrets
 from hashlib import sha512
+from typing import get_args, get_origin
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -25,8 +26,10 @@ from pydatalab.models import (
     flagged_summary_fields,
 )
 from pydatalab.models.items import Item
+from pydatalab.models.people import AccountStatus
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import (
+    Constituent,
     InlineSubstance,
     construct_location_hierarchy,
     generate_unique_refcode,
@@ -505,6 +508,21 @@ def collections_lookup() -> dict:
     }
 
 
+def _collection_identity_query(collection: dict) -> dict | None:
+    """Build a query that identifies a collection by its ID only.
+
+    Collection references sent by the client may carry other fields (e.g., `title`
+    or a defaulted `relationships`) that do not necessarily match the stored
+    document, so these must not be used as query filters.
+
+    """
+    if collection.get("immutable_id"):
+        return {"_id": ObjectId(collection["immutable_id"])}
+    if collection.get("collection_id"):
+        return {"collection_id": collection["collection_id"]}
+    return None
+
+
 def _check_collections(sample_dict: dict) -> list[dict[str, str]]:
     """Loop through the provided collection metadata for the sample and
     return the list of references to store (i.e., just the `immutable_id`
@@ -521,10 +539,9 @@ def _check_collections(sample_dict: dict) -> list[dict[str, str]]:
     """
     if sample_dict.get("collections", []):
         for ind, c in enumerate(sample_dict.get("collections", [])):
-            query = {}
-            query.update(c)
-            if "immutable_id" in c:
-                query["_id"] = ObjectId(query.pop("immutable_id"))
+            query = _collection_identity_query(c)
+            if query is None:
+                raise ValueError(f"Collection reference must have an ID: {c}")
             result = flask_mongo.db.collections.find_one({**query, **get_default_permissions()})
             if not result:
                 raise ValueError(f"No collection found matching request: {c}")
@@ -546,10 +563,9 @@ def _scrub_collections_for_save(sample_dict: dict) -> list[dict[str, str]]:
 
     if sample_dict.get("collections", []):
         for c in sample_dict.get("collections", []):
-            query = {}
-            query.update(c)
-            if "immutable_id" in c:
-                query["_id"] = ObjectId(query.pop("immutable_id"))
+            query = _collection_identity_query(c)
+            if query is None:
+                continue
 
             result = flask_mongo.db.collections.find_one({**query, **get_default_permissions()})
 
@@ -620,6 +636,24 @@ def search_items():
     return jsonify({"status": "success", "items": list(cursor)}), 200
 
 
+def _copyable_constituent_fields(item_type: str) -> tuple[str, ...]:
+    """Return the names of the fields of the item model that are lists of `Constituent`s
+    (or subclasses thereof, e.g., `CellComponent`).
+
+    """
+    fields: tuple[str, ...] = ()
+    for name, info in ITEM_MODELS[item_type].model_fields.items():
+        args = get_args(info.annotation)
+        if (
+            get_origin(info.annotation) is list
+            and args
+            and isinstance(args[0], type)
+            and issubclass(args[0], Constituent)
+        ):
+            fields += (name,)
+    return fields
+
+
 def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
     copied_doc = flask_mongo.db.items.find_one(
         {"item_id": copy_from_item_id, **get_default_permissions(user_only=False)}
@@ -647,47 +681,40 @@ def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
     copied_doc.pop("blocks", None)
     copied_doc.pop("file_ObjectIds", None)
 
-    # any provided constituents will be added to the synthesis information table in
+    requested_type = sample_dict.get("type")
+    if requested_type and requested_type != copied_doc["type"]:
+        raise BadRequest(
+            f"Request to copy item with id {copy_from_item_id} of type {copied_doc['type']!r} "
+            f"into a new item of different type {requested_type!r} is not supported."
+        )
+
+    # any provided constituents will be added to the relevant constituent tables in
     # addition to the constituents copied from the copy_from_item_id, avoiding duplicates
-    if copied_doc["type"] == "samples":
-        existing_consituent_ids = [
-            constituent["item"].get("item_id", None)
-            for constituent in copied_doc["synthesis_constituents"]
-        ]
-        copied_doc["synthesis_constituents"] += [
+    # (matched by either item_id or refcode).
+    for component in _copyable_constituent_fields(copied_doc["type"]):
+        if not isinstance(copied_doc.get(component), list):
+            continue
+        existing_constituent_ids = {
+            identifier
+            for constituent in copied_doc[component]
+            for identifier in (
+                constituent["item"].get("item_id"),
+                constituent["item"].get("refcode"),
+            )
+            if identifier
+        }
+        copied_doc[component] += [
             constituent
-            for constituent in sample_dict.get("synthesis_constituents", [])
-            if constituent["item"].get("item_id") is None
-            or constituent["item"].get("item_id") not in existing_consituent_ids
+            for constituent in sample_dict.get(component, [])
+            if not {constituent["item"].get("item_id"), constituent["item"].get("refcode")}
+            & existing_constituent_ids
         ]
 
-        original_collections = sample_dict.get("collections", [])
-        sample_dict = copied_doc
+    original_collections = sample_dict.get("collections", [])
+    sample_dict = copied_doc
 
-        if original_collections:
-            sample_dict["collections"] = original_collections
-
-    elif copied_doc["type"] == "cells":
-        for component in (
-            "positive_electrode",
-            "negative_electrode",
-            "electrolyte",
-        ):
-            existing_consituent_ids = [
-                constituent["item"].get("item_id", None) for constituent in copied_doc[component]
-            ]
-            copied_doc[component] += [
-                constituent
-                for constituent in sample_dict.get(component, [])
-                if constituent["item"].get("item_id", None) is None
-                or constituent["item"].get("item_id") not in existing_consituent_ids
-            ]
-
-        original_collections = sample_dict.get("collections", [])
-        sample_dict = copied_doc
-
-        if original_collections:
-            sample_dict["collections"] = original_collections
+    if original_collections:
+        sample_dict["collections"] = original_collections
 
     return sample_dict
 
@@ -981,9 +1008,20 @@ def _process_item_permissions(
         )
 
     # Validate all creator IDs are present in the database
+    # Deleted users cannot be newly added as creators, but any already present are kept
     if creator_ids:
         found_creator_ids = [
-            d for d in flask_mongo.db.users.find({"_id": {"$in": creator_ids}}, {"_id": 1})
+            d
+            for d in flask_mongo.db.users.find(
+                {
+                    "_id": {"$in": creator_ids},
+                    "$or": [
+                        {"account_status": {"$ne": AccountStatus.DELETED}},
+                        {"_id": {"$in": current_creator_ids}},
+                    ],
+                },
+                {"_id": 1},
+            )
         ]
         if len(found_creator_ids) != len(creator_ids):
             raise BadRequest("One or more creator IDs not found in the database.")
