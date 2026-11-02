@@ -131,20 +131,18 @@ def warn_for_unknown_block_types() -> None:
                 ", ".join(unknown_block_types),
             )
 
-    from pydatalab.models import get_item_type_allow_list
-
-    item_type_allow_list = get_item_type_allow_list()
+    item_type_allow_list = CONFIG.ITEM_TYPE_ALLOW_LIST
     if item_type_allow_list is None:
         return
 
-    for item_type, block_type_allow_list in item_type_allow_list.items():
-        if block_type_allow_list is None:
+    for entry in item_type_allow_list:
+        if entry.block_type_allow_list is None:
             continue
-        unknown_block_types = sorted(set(block_type_allow_list) - BLOCK_TYPES.keys())
+        unknown_block_types = sorted(set(entry.block_type_allow_list) - BLOCK_TYPES.keys())
         if unknown_block_types:
             LOGGER.warning(
                 "Ignoring unknown block types for item type %r in ITEM_TYPE_ALLOW_LIST: %s",
-                item_type,
+                entry.type,
                 ", ".join(unknown_block_types),
             )
 

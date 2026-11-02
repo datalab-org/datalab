@@ -103,17 +103,14 @@ refresh_item_models()
 BUILTIN_ITEM_TYPES = frozenset(ITEM_MODELS)
 
 
-def get_item_type_allow_list() -> dict[str, list[str] | None] | None:
-    """Return the normalized deployment item-type allowlist."""
-    from pydatalab.config import CONFIG, normalize_item_type_allow_list
-
-    return normalize_item_type_allow_list(CONFIG.ITEM_TYPE_ALLOW_LIST)
-
-
 def is_item_type_available(item_type: str) -> bool:
     """Whether a registered item type is available for creating new items."""
-    allow_list = get_item_type_allow_list()
-    return item_type in ITEM_MODELS and (allow_list is None or item_type in allow_list)
+    from pydatalab.config import CONFIG
+
+    allow_list = CONFIG.ITEM_TYPE_ALLOW_LIST
+    return item_type in ITEM_MODELS and (
+        allow_list is None or any(entry.type == item_type for entry in allow_list)
+    )
 
 
 def get_item_block_type_allow_list(item_type: str) -> list[str] | None:
@@ -125,21 +122,27 @@ def get_item_block_type_allow_list(item_type: str) -> list[str] | None:
     if item_type not in ITEM_MODELS:
         return []
 
-    allow_list = get_item_type_allow_list()
+    from pydatalab.config import CONFIG
+
+    allow_list = CONFIG.ITEM_TYPE_ALLOW_LIST
     if allow_list is None:
         return None
-    return allow_list.get(item_type, [])
+    for entry in allow_list:
+        if entry.type == item_type:
+            return entry.block_type_allow_list
+    return []
 
 
 def warn_for_unknown_item_types() -> None:
     """Warn about configured item types that were not registered at startup."""
+    from pydatalab.config import CONFIG
     from pydatalab.logger import LOGGER
 
-    allow_list = get_item_type_allow_list()
+    allow_list = CONFIG.ITEM_TYPE_ALLOW_LIST
     if allow_list is None:
         return
 
-    unknown_item_types = sorted(allow_list.keys() - ITEM_MODELS.keys())
+    unknown_item_types = sorted({entry.type for entry in allow_list} - ITEM_MODELS.keys())
     if unknown_item_types:
         LOGGER.warning(
             "Ignoring unknown item types in ITEM_TYPE_ALLOW_LIST: %s",
@@ -300,7 +303,6 @@ __all__ = (
     "ITEM_SCHEMAS",
     "BUILTIN_ITEM_TYPES",
     "get_item_block_type_allow_list",
-    "get_item_type_allow_list",
     "is_item_type_available",
     "warn_for_unknown_item_types",
     "register_item_model",

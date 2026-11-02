@@ -713,7 +713,11 @@ def _check_new_block_types(
     item_type: str,
     existing_block_ids: set[str] | None = None,
 ) -> None:
-    """Reject new blocks that are unavailable for the target item type."""
+    """Reject unavailable new blocks for the target item type.
+
+    Existing blocks are skipped so blocks made unavailable after creation remain
+    editable.
+    """
     if CONFIG.BLOCK_TYPE_ALLOW_LIST is None and get_item_block_type_allow_list(item_type) is None:
         return
 

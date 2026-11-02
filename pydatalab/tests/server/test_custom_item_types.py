@@ -217,7 +217,7 @@ def test_item_type_allow_list_controls_info_and_creation(client, custom_item_mod
         CONFIG,
         "ITEM_TYPE_ALLOW_LIST",
         [
-            "samples",
+            ItemTypeAllowListEntry(type="samples", block_type_allow_list=None),
             ItemTypeAllowListEntry(
                 type="_my_samples",
                 block_type_allow_list=["comment"],
@@ -278,12 +278,19 @@ def test_existing_item_remains_editable_when_type_is_restricted(
 
 
 def test_unknown_item_types_warn_and_are_ignored(monkeypatch):
-    from pydatalab.config import CONFIG
+    from pydatalab.config import CONFIG, ItemTypeAllowListEntry
     from pydatalab.logger import LOGGER
     from pydatalab.models import warn_for_unknown_item_types
 
     warning_messages = []
-    monkeypatch.setattr(CONFIG, "ITEM_TYPE_ALLOW_LIST", ["samples", "missing-plugin-item"])
+    monkeypatch.setattr(
+        CONFIG,
+        "ITEM_TYPE_ALLOW_LIST",
+        [
+            ItemTypeAllowListEntry(type="samples", block_type_allow_list=None),
+            ItemTypeAllowListEntry(type="missing-plugin-item", block_type_allow_list=None),
+        ],
+    )
     monkeypatch.setattr(
         LOGGER,
         "warning",

@@ -124,28 +124,9 @@ class ItemTypeAllowListEntry(BaseModel):
     """An item type and the block types that may be added to it."""
 
     type: str
-    block_type_allow_list: list[str]
+    block_type_allow_list: list[str] | None
 
     model_config = ConfigDict(extra="forbid")
-
-
-def normalize_item_type_allow_list(
-    allow_list: list[str | ItemTypeAllowListEntry] | None,
-) -> dict[str, list[str] | None] | None:
-    """Normalize the mixed item-type allowlist into a mapping.
-
-    String entries have no additional block restriction, while object entries
-    carry an explicit block-type allowlist.
-    """
-    if allow_list is None:
-        return None
-
-    return {
-        entry if isinstance(entry, str) else entry.type: (
-            None if isinstance(entry, str) else entry.block_type_allow_list
-        )
-        for entry in allow_list
-    }
 
 
 class SMTPSettings(BaseModel):
@@ -314,9 +295,9 @@ its importance when deploying a datalab instance.""",
         description="A list of block type slugs that users may add. Setting the value to `None` allows every installed block type, while an empty list prevents adding any new blocks.",
     )
 
-    ITEM_TYPE_ALLOW_LIST: list[str | ItemTypeAllowListEntry] | None = Field(
+    ITEM_TYPE_ALLOW_LIST: list[ItemTypeAllowListEntry] | None = Field(
         None,
-        description="A list of item types that users may create. A string entry permits every globally available block type, while an object entry with `type` and `block_type_allow_list` restricts which blocks may be added to that item type. Setting the value to `None` permits every registered item type, while an empty list prevents adding any new items or blocks.",
+        description="A list of item types users may create. A string permits all globally available blocks; an object requires `type` and `block_type_allow_list`, where `None` also permits all. A top-level `None` permits all registered item types; an empty list permits none.",
     )
 
     CUSTOM_ITEM_MODELS: list[str] = Field(
@@ -368,14 +349,30 @@ its importance when deploying a datalab instance.""",
             )
         return self
 
-    @field_validator("ITEM_TYPE_ALLOW_LIST")
+    @field_validator("ITEM_TYPE_ALLOW_LIST", mode="before")
     @classmethod
     def validate_item_type_allow_list(cls, value):
-        """Reject duplicate item types whose block policy would be ambiguous."""
+        """Normalize string entries into typed entries."""
         if value is None:
             return value
 
-        item_types = [entry if isinstance(entry, str) else entry.type for entry in value]
+        normalized_entries = []
+        for entry in value:
+            if isinstance(entry, str):
+                entry = ItemTypeAllowListEntry(type=entry, block_type_allow_list=None)
+            elif isinstance(entry, dict) and "block_type_allow_list" not in entry:
+                raise ValueError("object entries require block_type_allow_list")
+            normalized_entries.append(entry)
+        return normalized_entries
+
+    @field_validator("ITEM_TYPE_ALLOW_LIST")
+    @classmethod
+    def validate_unique_item_types(cls, value):
+        """Reject duplicate entries with ambiguous block policies."""
+        if value is None:
+            return value
+
+        item_types = [entry.type for entry in value]
         duplicates = sorted(
             item_type for item_type, count in Counter(item_types).items() if count > 1
         )

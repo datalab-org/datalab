@@ -24,13 +24,10 @@ def test_block_type_allow_list_settings():
 
 
 def test_item_type_allow_list_settings(monkeypatch):
-    from pydatalab.config import ServerConfig, normalize_item_type_allow_list
+    from pydatalab.config import ItemTypeAllowListEntry, ServerConfig
 
     assert ServerConfig().ITEM_TYPE_ALLOW_LIST is None
-    assert (
-        normalize_item_type_allow_list(ServerConfig(ITEM_TYPE_ALLOW_LIST=[]).ITEM_TYPE_ALLOW_LIST)
-        == {}
-    )
+    assert ServerConfig(ITEM_TYPE_ALLOW_LIST=[]).ITEM_TYPE_ALLOW_LIST == []
 
     config = ServerConfig(
         ITEM_TYPE_ALLOW_LIST=[
@@ -39,20 +36,27 @@ def test_item_type_allow_list_settings(monkeypatch):
             {"type": "equipment", "block_type_allow_list": []},
         ]
     )
-    assert normalize_item_type_allow_list(config.ITEM_TYPE_ALLOW_LIST) == {
-        "samples": None,
-        "cells": ["comment", "cycle"],
-        "equipment": [],
-    }
+    assert config.ITEM_TYPE_ALLOW_LIST == [
+        ItemTypeAllowListEntry(type="samples", block_type_allow_list=None),
+        ItemTypeAllowListEntry(type="cells", block_type_allow_list=["comment", "cycle"]),
+        ItemTypeAllowListEntry(type="equipment", block_type_allow_list=[]),
+    ]
 
     monkeypatch.setenv(
         "PYDATALAB_ITEM_TYPE_ALLOW_LIST",
         '["samples", {"type": "cells", "block_type_allow_list": ["comment"]}]',
     )
-    assert normalize_item_type_allow_list(ServerConfig().ITEM_TYPE_ALLOW_LIST) == {
-        "samples": None,
-        "cells": ["comment"],
-    }
+    assert ServerConfig().ITEM_TYPE_ALLOW_LIST == [
+        ItemTypeAllowListEntry(type="samples", block_type_allow_list=None),
+        ItemTypeAllowListEntry(type="cells", block_type_allow_list=["comment"]),
+    ]
+
+    assert ServerConfig(
+        ITEM_TYPE_ALLOW_LIST=[{"type": "samples", "block_type_allow_list": None}]
+    ).ITEM_TYPE_ALLOW_LIST == [ItemTypeAllowListEntry(type="samples", block_type_allow_list=None)]
+
+    with pytest.raises(ValueError, match="require block_type_allow_list"):
+        ServerConfig(ITEM_TYPE_ALLOW_LIST=[{"type": "samples"}])
 
 
 def test_item_type_allow_list_rejects_duplicate_types():
