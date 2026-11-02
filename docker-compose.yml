@@ -12,6 +12,7 @@ services:
       - VUE_APP_GIT_VERSION
       - VUE_APP_API_URL
       - VUE_APP_LOGO_URL
+      - VUE_APP_LOGO_WIDTH
       - VUE_APP_HOMEPAGE_URL
       - VUE_APP_EDITABLE_INVENTORY
       - VUE_APP_WEBSITE_TITLE
@@ -55,6 +56,8 @@ services:
     build:
       context: .
       dockerfile: .docker/mongo/Dockerfile
+      args:
+        - MONGO_IMAGE_TAG=${MONGO_IMAGE_TAG:-8-noble}
     volumes:
       - /data/logs:/var/logs/mongod
       - /data/db:/data/db
@@ -73,6 +76,8 @@ services:
     build:
       context: .
       dockerfile: .docker/mongo/Dockerfile
+      args:
+        - MONGO_IMAGE_TAG=${MONGO_IMAGE_TAG:-8-noble}
     volumes:
       - datalab-dev-dbdata:/data/db
     ports:

@@ -18,7 +18,9 @@ These can be provided as either:
     - an `.env` file in the directory from which `pydatalab` is launched (NB: here, the `FLASK_` prefix is not required, but any options present in the pydatalab config must still have the `PYDATALAB_` prefix).
 3. Web app configuration, such as the URL of the relevant *datalab* API and branding (logo URLs, external homepage links).
     - These are typically provided as a `.env` file in the directory from which the webapp is built/served.
-    - The main options include (a full list can be found in the `docker-compose.yml` file):
+    - In the production Docker image they are instead read from the container's environment each time it starts, so changing them only requires recreating the container, not rebuilding the image. They are written to a `config.js` that is served publicly, so must never contain secrets.
+    - All settings are described in `webapp/src/config.schema.json`. The production container refuses to start if a value does not match this schema, and logs a warning for unknown `VUE_APP_*` variables. Elsewhere, invalid values are reported in the browser console.
+    - The main options include (a full list can be found in `webapp/src/config.schema.json`):
         - `VUE_APP_API_URL`: the URL of the *datalab* API, which is used by the web app to communicate with the server.
         - `VUE_APP_LOGO_URL`: the URL of an image to use as the logo header in the web app.
         - `VUE_APP_HOMEPAGE_URL`: a URL to provide as a link from the web app header, and as a button on the dedicated login page.
@@ -207,6 +209,10 @@ Currently, there are two mechanisms for accessing remote files:
 Deployments can customise the look and feel of their *datalab* instance by providing files under a `public/custom/` directory in the web app.
 This directory can be a symlink to a folder in your deployment repository, or mounted as a volume in Docker.
 It should be made available at `webapp/public/custom/` relative to the *datalab* source tree.
+
+When building the production Docker image, static files in this directory are only added to the final image, so changing them does not rebuild the app; they can also be mounted at `/app/dist/custom` in the running container.
+Custom components (`public/custom/components/`) are compiled into the app, so changing them does require a rebuild.
+Only `components/` is available when they are compiled, so custom components must use absolute URLs for other files in `public/custom/` (e.g., `/custom/logos/mylogo.png`), rather than relative imports (e.g., `../logos/mylogo.png`), which will fail the build.
 
 The following customisations are supported:
 
