@@ -17,10 +17,11 @@ from pydatalab.mongo import flask_mongo, get_database
 
 PUBLIC_USER_ID = ObjectId(24 * "0")
 
-INVENTORY_TYPES = ("equipment", "starting_materials")
+INVENTORY_TYPES = {"equipment", "starting_materials"}
 """Inventory-like item types that are shared across the deployment rather than owned by creators.
 These items are readable and editable by all users, unless they have been restricted to specific
 groups, in which case only members of those groups can access them.
+Custom types declaring `datalab_behave_as` an inventory type are added at registration.
 """
 
 

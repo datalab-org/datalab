@@ -100,7 +100,7 @@
       </div>
     </div>
 
-    <div class="row">
+    <div v-if="!hiddenFields.includes('substance_information')" class="row">
       <div class="col">
         <SubstanceInformation class="mt-3" :item_id="item_id" :is-editable="isEditable" />
       </div>
@@ -115,7 +115,11 @@
       :information-sections="tableOfContentsSections"
     />
 
-    <SynthesisInformation class="mt-3" :item_id="item_id" />
+    <SynthesisInformation
+      v-if="!hiddenFields.includes('synthesis_information')"
+      class="mt-3"
+      :item_id="item_id"
+    />
   </div>
 </template>
 
@@ -160,19 +164,25 @@ export default {
   },
   props: {
     item_id: { type: String, required: true },
+    hiddenFields: { type: Array, default: () => [] },
   },
   data() {
     return {
       filteredSuppliers: [],
-      tableOfContentsSections: [
+    };
+  },
+  computed: {
+    tableOfContentsSections() {
+      const ALL_SECTIONS = [
         { title: "Starting Material Information", targetID: "starting-material-information" },
         { title: "Table of Contents", targetID: "table-of-contents" },
         { title: "Substance Information", targetID: "substance-information" },
         { title: "Synthesis Information", targetID: "synthesis-information" },
-      ],
-    };
-  },
-  computed: {
+      ];
+      return ALL_SECTIONS.filter(
+        (section) => !this.hiddenFields.includes(section.targetID.replace(/-/g, "_")),
+      );
+    },
     item() {
       return this.$store.state.all_item_data[this.item_id];
     },

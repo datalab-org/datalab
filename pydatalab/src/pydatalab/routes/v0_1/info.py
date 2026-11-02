@@ -282,6 +282,7 @@ def _type_attributes(item_type: str, schema: dict) -> dict:
         "base_fields": list(base_model.model_fields) if base_model is not None else [],
         "hidden_fields": extra.datalab_ui_hidden_fields or [],
         "ui_color": extra.datalab_ui_color,
+        "behave_as": extra.datalab_behave_as,
     }
 
 

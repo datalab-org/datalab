@@ -43,6 +43,25 @@
       "default": null,
       "description": "Title of the default custom-fields card.",
       "title": "Datalab Section Title"
+    },
+    "datalab_behave_as": {
+      "anyOf": [
+        {
+          "enum": [
+            "samples",
+            "cells",
+            "starting_materials",
+            "equipment"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Built-in type (which the model must inherit from) whose listing pages, item pickers\nand sharing permissions this item type follows. Without it, a custom type is listed\nwith samples and owned by its creators.",
+      "title": "Datalab Behave As"
     }
   },
   "title": "DatalabModelExtra",

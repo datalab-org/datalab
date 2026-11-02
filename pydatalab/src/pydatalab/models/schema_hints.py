@@ -9,6 +9,8 @@ Call sites keep writing plain dicts. The field names here match the literal keys
 and the attribute docstrings become the descriptions in the generated schema.
 """
 
+from typing import Literal
+
 from pydantic import ConfigDict, ValidationError
 
 from pydatalab.models.units import DatalabQuantity
@@ -58,6 +60,11 @@ class DatalabModelExtra(BaseModel):
 
     datalab_section_title: str | None = None
     """Title of the default custom-fields card."""
+
+    datalab_behave_as: Literal["samples", "cells", "starting_materials", "equipment"] | None = None
+    """Built-in type (which the model must inherit from) whose listing pages, item pickers
+    and sharing permissions this item type follows. Without it, a custom type is listed
+    with samples and owned by its creators."""
 
 
 def _datalab_hint_keys(extra: dict) -> dict:
