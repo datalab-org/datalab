@@ -36,25 +36,27 @@
               <div
                 v-else
                 v-on-click-outside="() => (isLoginDropdownVisible = false)"
-                class="dropdown d-inline-block"
+                class="d-inline-block"
               >
-                <button
-                  id="loginDropdown"
-                  class="btn btn-default dropdown-toggle"
-                  type="button"
-                  aria-haspopup="true"
-                  :aria-expanded="isLoginDropdownVisible"
-                  @click="isLoginDropdownVisible = !isLoginDropdownVisible"
-                >
-                  <font-awesome-icon icon="sign-in-alt" />&nbsp;Login/Register
-                </button>
-                <div
-                  v-show="isLoginDropdownVisible"
-                  class="dropdown-menu"
-                  style="display: block"
-                  aria-labelledby="loginDropdown"
-                >
-                  <LoginDropdown :next="nextPath" :remember="rememberMe" />
+                <div class="dropdown">
+                  <button
+                    id="loginDropdown"
+                    class="btn btn-default dropdown-toggle"
+                    type="button"
+                    aria-haspopup="true"
+                    :aria-expanded="isLoginDropdownVisible"
+                    @click="isLoginDropdownVisible = !isLoginDropdownVisible"
+                  >
+                    <font-awesome-icon icon="sign-in-alt" />&nbsp;Login/Register
+                  </button>
+                  <div
+                    v-show="isLoginDropdownVisible"
+                    class="dropdown-menu"
+                    style="display: block"
+                    aria-labelledby="loginDropdown"
+                  >
+                    <LoginDropdown :next="nextPath" :remember="rememberMe" />
+                  </div>
                 </div>
                 <div class="form-check mt-3">
                   <input

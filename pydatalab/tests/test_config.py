@@ -119,3 +119,18 @@ def test_key_strength_checker():
         assert _check_key_strength("ab" * 16)
 
     assert _check_key_strength("abcdefghijklmnopqrstuvwxyz") is None
+
+
+def test_bad_export_dir_fails_startup(tmp_path, monkeypatch, secret_key):
+    """App startup should fail if the `.eln` export directory cannot be created."""
+    from pydatalab.main import create_app
+    from pydatalab.routes.v0_1 import export
+
+    # A path nested under a regular file can never be created as a directory
+    not_a_dir = tmp_path / "not-a-dir"
+    not_a_dir.write_text("")
+    monkeypatch.setattr(export, "_export_dir", lambda: not_a_dir / "eln-exports")
+
+    # Reset the secret key, as previous tests may have left a weak one in the global config
+    with pytest.raises(RuntimeError, match="export directory"):
+        create_app({"SECRET_KEY": secret_key})
