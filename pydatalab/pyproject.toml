@@ -72,7 +72,7 @@ apps = [
     "pybaselines ~= 1.1",
     "renishawwire >= 0.1.16",
     # TGA
-    "python-dateutil ~= 2.9",
+    "python-dateutil>=2.9,<4.0",
     # XRD
     "matador-db ~= 0.12",
 ]
