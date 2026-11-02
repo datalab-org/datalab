@@ -3,6 +3,7 @@ import datetime
 import json
 import secrets
 from hashlib import sha512
+from typing import get_args, get_origin
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -24,12 +25,11 @@ from pydatalab.models import (
     ItemVersion,
     flagged_summary_fields,
 )
-from pydatalab.models.cells import Cell
 from pydatalab.models.items import Item
 from pydatalab.models.people import AccountStatus
 from pydatalab.models.relationships import RelationshipType
-from pydatalab.models.traits import HasSynthesisInfo
 from pydatalab.models.utils import (
+    Constituent,
     InlineSubstance,
     construct_location_hierarchy,
     generate_unique_refcode,
@@ -637,12 +637,20 @@ def search_items():
 
 
 def _copyable_constituent_fields(item_type: str) -> tuple[str, ...]:
-    model = ITEM_MODELS[item_type]
+    """Return the names of the fields of the item model that are lists of `Constituent`s
+    (or subclasses thereof, e.g., `CellComponent`).
+
+    """
     fields: tuple[str, ...] = ()
-    if issubclass(model, HasSynthesisInfo):
-        fields += ("synthesis_constituents",)
-    if issubclass(model, Cell):
-        fields += ("positive_electrode", "negative_electrode", "electrolyte")
+    for name, info in ITEM_MODELS[item_type].model_fields.items():
+        args = get_args(info.annotation)
+        if (
+            get_origin(info.annotation) is list
+            and args
+            and isinstance(args[0], type)
+            and issubclass(args[0], Constituent)
+        ):
+            fields += (name,)
     return fields
 
 
@@ -681,18 +689,25 @@ def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
         )
 
     # any provided constituents will be added to the relevant constituent tables in
-    # addition to the constituents copied from the copy_from_item_id, avoiding duplicates.
+    # addition to the constituents copied from the copy_from_item_id, avoiding duplicates
+    # (matched by either item_id or refcode).
     for component in _copyable_constituent_fields(copied_doc["type"]):
         if not isinstance(copied_doc.get(component), list):
             continue
-        existing_constituent_ids = [
-            constituent["item"].get("item_id", None) for constituent in copied_doc[component]
-        ]
+        existing_constituent_ids = {
+            identifier
+            for constituent in copied_doc[component]
+            for identifier in (
+                constituent["item"].get("item_id"),
+                constituent["item"].get("refcode"),
+            )
+            if identifier
+        }
         copied_doc[component] += [
             constituent
             for constituent in sample_dict.get(component, [])
-            if constituent["item"].get("item_id", None) is None
-            or constituent["item"].get("item_id") not in existing_constituent_ids
+            if not {constituent["item"].get("item_id"), constituent["item"].get("refcode")}
+            & existing_constituent_ids
         ]
 
     original_collections = sample_dict.get("collections", [])
