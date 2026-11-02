@@ -256,10 +256,16 @@ def test_block_type_allow_list_controls_availability(
     admin_client, default_sample_dict, monkeypatch
 ):
     """Built-in and plugin block types use the same deployment allowlist."""
+    from pydatalab.blocks.base import DataBlock
     from pydatalab.config import CONFIG
 
-    plugin_block_type = "insitu-nmr"
-    assert plugin_block_type in BLOCK_TYPES
+    class PluginBlock(DataBlock):
+        name = "Test plugin block"
+        blocktype = "test-plugin-block"
+        description = "A test-only plugin block."
+
+    plugin_block_type = PluginBlock.blocktype
+    monkeypatch.setitem(BLOCK_TYPES, plugin_block_type, PluginBlock)
     monkeypatch.setattr(
         CONFIG,
         "BLOCK_TYPE_ALLOW_LIST",
