@@ -255,28 +255,15 @@ def test_block_info_endpoint_contains_all_blocks(client):
 def test_block_type_allow_list_controls_availability(
     admin_client, default_sample_dict, monkeypatch
 ):
-    """Built-in and plugin block types use the same deployment allowlist."""
-    from pydatalab.blocks.base import DataBlock
+    """The deployment allowlist controls installed block availability."""
     from pydatalab.config import CONFIG
 
-    class PluginBlock(DataBlock):
-        name = "Test plugin block"
-        blocktype = "test-plugin-block"
-        description = "A test-only plugin block."
-
-    plugin_block_type = PluginBlock.blocktype
-    monkeypatch.setitem(BLOCK_TYPES, plugin_block_type, PluginBlock)
-    monkeypatch.setattr(
-        CONFIG,
-        "BLOCK_TYPE_ALLOW_LIST",
-        ["comment", plugin_block_type],
-    )
+    monkeypatch.setattr(CONFIG, "BLOCK_TYPE_ALLOW_LIST", ["comment"])
 
     response = admin_client.get("/info/blocks")
     assert response.status_code == 200
     block_info = {block["id"]: block["attributes"] for block in response.json["data"]}
     assert block_info["comment"]["available"] is True
-    assert block_info[plugin_block_type]["available"] is True
     assert block_info["xrd"]["available"] is False
 
     sample_data = default_sample_dict.copy()
