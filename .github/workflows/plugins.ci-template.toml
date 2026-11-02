@@ -1,4 +1,6 @@
-dependencies = ["datalab-app-plugin-template"]
+dependencies = ["datalab-app-plugin-template", "whinchat"]
 
 [tool.uv.sources]
 datalab-app-plugin-template = { path = "pydatalab/plugins/datalab-app-plugin-template" }
+# A real plugin with a webapp panel and its own JS dependencies
+whinchat = { git = "https://github.com/datalab-org/whinchat", rev = "v0.1.1" }

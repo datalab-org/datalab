@@ -33,13 +33,6 @@ def load_app_blocks():
         _check_error(e)
 
     try:
-        from pydatalab.apps.chat import ChatBlock
-
-        app_blocks.append(ChatBlock)
-    except ImportError as e:
-        _check_error(e)
-
-    try:
         from pydatalab.apps.cv import CVBlock
 
         app_blocks.append(CVBlock)

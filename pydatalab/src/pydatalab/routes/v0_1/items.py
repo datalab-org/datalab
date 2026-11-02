@@ -506,6 +506,21 @@ def collections_lookup() -> dict:
     }
 
 
+def _collection_identity_query(collection: dict) -> dict | None:
+    """Build a query that identifies a collection by its ID only.
+
+    Collection references sent by the client may carry other fields (e.g., `title`
+    or a defaulted `relationships`) that do not necessarily match the stored
+    document, so these must not be used as query filters.
+
+    """
+    if collection.get("immutable_id"):
+        return {"_id": ObjectId(collection["immutable_id"])}
+    if collection.get("collection_id"):
+        return {"collection_id": collection["collection_id"]}
+    return None
+
+
 def _check_collections(sample_dict: dict) -> list[dict[str, str]]:
     """Loop through the provided collection metadata for the sample and
     return the list of references to store (i.e., just the `immutable_id`
@@ -522,10 +537,9 @@ def _check_collections(sample_dict: dict) -> list[dict[str, str]]:
     """
     if sample_dict.get("collections", []):
         for ind, c in enumerate(sample_dict.get("collections", [])):
-            query = {}
-            query.update(c)
-            if "immutable_id" in c:
-                query["_id"] = ObjectId(query.pop("immutable_id"))
+            query = _collection_identity_query(c)
+            if query is None:
+                raise ValueError(f"Collection reference must have an ID: {c}")
             result = flask_mongo.db.collections.find_one({**query, **get_default_permissions()})
             if not result:
                 raise ValueError(f"No collection found matching request: {c}")
@@ -547,10 +561,9 @@ def _scrub_collections_for_save(sample_dict: dict) -> list[dict[str, str]]:
 
     if sample_dict.get("collections", []):
         for c in sample_dict.get("collections", []):
-            query = {}
-            query.update(c)
-            if "immutable_id" in c:
-                query["_id"] = ObjectId(query.pop("immutable_id"))
+            query = _collection_identity_query(c)
+            if query is None:
+                continue
 
             result = flask_mongo.db.collections.find_one({**query, **get_default_permissions()})
 
