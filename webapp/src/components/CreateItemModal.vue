@@ -138,6 +138,7 @@ import {
   SAMPLE_TABLE_TYPES,
   INVENTORY_TYPES,
   AUTOMATICALLY_GENERATE_ID_DEFAULT,
+  withCreatableDynamicTypes,
 } from "@/resources.js";
 import CollectionSelect from "@/components/CollectionSelect.vue";
 export default {
@@ -179,15 +180,7 @@ export default {
       return itemTypes;
     },
     effectiveAllowedTypes() {
-      // Custom/plugin item types all live in the Samples page for now. Keep them
-      // out of the Inventory modal even when they inherit from StartingMaterial.
-      const isSamplesContext = this.allowedTypes.some((type) => SAMPLE_TABLE_TYPES.includes(type));
-      const dynamic = isSamplesContext
-        ? Object.keys(this.$store.state.schemas || {}).filter(
-            (type) => itemTypes[type]?.isDynamic && itemTypes[type]?.isCreateable,
-          )
-        : [];
-      return [...new Set([...this.allowedTypes, ...dynamic])];
+      return withCreatableDynamicTypes(this.allowedTypes, this.$store.state.schemas);
     },
     isInventoryType() {
       return INVENTORY_TYPES.includes(this.item_type);

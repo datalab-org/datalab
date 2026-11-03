@@ -31,7 +31,7 @@
                     class="form-control"
                     required
                   >
-                    <option v-for="type in allowedTypes" :key="type" :value="type">
+                    <option v-for="type in effectiveAllowedTypes" :key="type" :value="type">
                       {{ itemTypes[type].display }}
                     </option>
                   </select>
@@ -80,7 +80,7 @@
                       <th>Name</th>
                       <th style="width: calc(15%)">Date</th>
                       <th style="width: calc(22%)">Copy from</th>
-                      <th style="width: calc(22%)">Components</th>
+                      <th v-if="hasComponents" style="width: calc(22%)">Components</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -132,11 +132,12 @@
                         <ItemSelect
                           v-model="itemTemplate.copyFrom"
                           :formatted-item-name-max-length="8"
+                          :types-to-query="[item_type]"
                           @update:model-value="applyCopyFromTemplate"
                         />
                       </td>
-                      <td>
-                        <div v-if="item_type == 'samples'">
+                      <td v-if="hasComponents">
+                        <div v-if="hasSynthesisConstituents">
                           <ItemSelect
                             v-model="itemTemplate.components"
                             multiple
@@ -145,7 +146,7 @@
                             @update:model-value="applyComponentsTemplate"
                           />
                         </div>
-                        <div v-if="item_type == 'cells'">
+                        <div v-if="isCellType">
                           <ItemSelect
                             v-model="itemTemplate.positiveElectrode"
                             multiple
@@ -204,7 +205,7 @@
                     <th style="width: calc(25%)">Name</th>
                     <th style="width: calc(15%)">Date</th>
                     <th style="width: calc(22%)">Copy from</th>
-                    <th style="width: calc(22%) - 2rem">Components</th>
+                    <th v-if="hasComponents" style="width: calc(22%) - 2rem">Components</th>
                     <th style="width: 2rem"></th>
                   </tr>
                 </thead>
@@ -236,10 +237,14 @@
                         />
                       </td>
                       <td>
-                        <ItemSelect v-model="item.copyFrom" :formatted-item-name-max-length="8" />
+                        <ItemSelect
+                          v-model="item.copyFrom"
+                          :formatted-item-name-max-length="8"
+                          :types-to-query="[item_type]"
+                        />
                       </td>
-                      <td>
-                        <div v-if="item_type == 'samples'">
+                      <td v-if="hasComponents">
+                        <div v-if="hasSynthesisConstituents">
                           <ItemSelect
                             v-model="item.components"
                             multiple
@@ -247,7 +252,7 @@
                             taggable
                           />
                         </div>
-                        <div v-if="item_type == 'cells'">
+                        <div v-if="isCellType">
                           <ItemSelect
                             v-model="item.positiveElectrode"
                             multiple
@@ -343,7 +348,12 @@ import { DialogService } from "@/services/DialogService.js";
 import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewSamples } from "@/server_fetch_utils.js";
 import { validateEntryID } from "@/field_utils.js";
-import { itemTypes, SAMPLE_TABLE_TYPES, AUTOMATICALLY_GENERATE_ID_DEFAULT } from "@/resources.js";
+import {
+  itemTypes,
+  SAMPLE_TABLE_TYPES,
+  AUTOMATICALLY_GENERATE_ID_DEFAULT,
+  withCreatableDynamicTypes,
+} from "@/resources.js";
 export default {
   name: "BatchCreateItemModal",
   components: {
@@ -421,6 +431,24 @@ export default {
     itemTypes() {
       return itemTypes;
     },
+    effectiveAllowedTypes() {
+      return withCreatableDynamicTypes(this.allowedTypes, this.$store.state.schemas);
+    },
+    // Which constituent columns to offer is decided from the type's base type rather
+    // than its name, so that custom types inheriting from Sample or Cell get them too.
+    hasSynthesisConstituents() {
+      const type = itemTypes[this.item_type];
+      return (
+        (this.item_type == "samples" || type?.baseType == "samples") &&
+        !(type?.hiddenFields || []).includes("synthesis_information")
+      );
+    },
+    isCellType() {
+      return this.item_type == "cells" || itemTypes[this.item_type]?.baseType == "cells";
+    },
+    hasComponents() {
+      return this.hasSynthesisConstituents || this.isCellType;
+    },
     takenSampleIds() {
       return this.$store.state.sample_list
         ? this.$store.state.sample_list.map((x) => x.item_id)
@@ -450,6 +478,13 @@ export default {
   },
 
   watch: {
+    item_type() {
+      // Copy-from sources are restricted to the selected type, so clear any stale choice
+      this.itemTemplate.copyFrom = null;
+      this.items.forEach((item) => {
+        item.copyFrom = null;
+      });
+    },
     nSamples(newValue, oldValue) {
       if (newValue > 100) {
         this.batchSizeError = "Maximum 100 items can be created at once";
@@ -546,39 +581,26 @@ export default {
     async submitForm() {
       console.log("batch item create form submit triggered");
 
-      let newSampleDatas;
+      const toConstituents = (items) =>
+        items ? items.map((x) => ({ item: x, quantity: null })) : [];
 
-      if (this.item_type == "samples") {
-        newSampleDatas = this.items.map((item) => {
-          return {
-            item_id: item.item_id,
-            date: item.date,
-            name: item.name,
-            type: "samples",
-            synthesis_constituents: item.components
-              ? item.components.map((x) => ({ item: x, quantity: null }))
-              : [],
-          };
-        });
-      } else {
-        newSampleDatas = this.items.map((item) => {
-          return {
-            item_id: item.item_id,
-            date: item.date,
-            name: item.name,
-            type: "cells",
-            positive_electrode: item.positiveElectrode
-              ? item.positiveElectrode.map((x) => ({ item: x, quantity: null }))
-              : [],
-            electrolyte: item.electrolyte
-              ? item.electrolyte.map((x) => ({ item: x, quantity: null }))
-              : [],
-            negative_electrode: item.negativeElectrode
-              ? item.negativeElectrode.map((x) => ({ item: x, quantity: null }))
-              : [],
-          };
-        });
-      }
+      const newSampleDatas = this.items.map((item) => {
+        const data = {
+          item_id: item.item_id,
+          date: item.date,
+          name: item.name,
+          type: this.item_type,
+        };
+        if (this.hasSynthesisConstituents) {
+          data.synthesis_constituents = toConstituents(item.components);
+        }
+        if (this.isCellType) {
+          data.positive_electrode = toConstituents(item.positiveElectrode);
+          data.electrolyte = toConstituents(item.electrolyte);
+          data.negative_electrode = toConstituents(item.negativeElectrode);
+        }
+        return data;
+      });
 
       const copyFromItemIds = this.items.map((item) => item.copyFrom?.item_id);
 
