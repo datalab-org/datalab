@@ -1,41 +1,47 @@
 import AddBlockDropdown from "@/components/AddBlockDropdown.vue";
 
-const blockInfo = (id, name, available) => ({
+const blockInfo = (id, name) => ({
   id,
   attributes: {
     name,
     description: `${name} description`,
     version: "1.0.0",
     accepted_file_extensions: [],
-    available,
   },
 });
 
 describe("AddBlockDropdown", () => {
-  it("only displays available block types", () => {
+  it("displays the block types it is given", () => {
     cy.mount(AddBlockDropdown, {
       props: {
         triggerTestid: "add-block-trigger",
-        allBlockTypes: [
-          blockInfo("comment", "Comment", true),
-          blockInfo("xrd", "Powder XRD", false),
-        ],
+        allBlockTypes: [blockInfo("comment", "Comment")],
       },
     });
 
     cy.get('[data-testid="add-block-trigger"]').click();
     cy.contains("Comment").should("exist");
-    cy.contains("Powder XRD").should("not.exist");
   });
 
-  it("hides the control when no block types are available", () => {
+  it("disables the control with an explanatory tooltip", () => {
     cy.mount(AddBlockDropdown, {
       props: {
+        variant: "button",
         triggerTestid: "add-block-trigger",
-        allBlockTypes: [blockInfo("xrd", "Powder XRD", false)],
+        menuTestid: "add-block-menu",
+        allBlockTypes: [],
+        disabled: true,
       },
     });
 
-    cy.get('[data-testid="add-block-trigger"]').should("not.exist");
+    cy.get('[data-testid="add-block-trigger"]').should("be.disabled");
+    cy.get('[data-testid="add-block-trigger"]')
+      .parent()
+      .should(
+        "have.attr",
+        "title",
+        "No block types are available for this item type on this deployment",
+      );
+    cy.get('[data-testid="add-block-menu"]').should("not.have.class", "show");
   });
 });
