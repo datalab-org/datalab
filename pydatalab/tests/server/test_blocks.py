@@ -986,10 +986,25 @@ def test_large_fake_xrd_data_block_serialization(
         },
     )
 
+    assert response.status_code == 200, f"Failed to create XRD block: {response.json}"
+
+    gc.collect()
+
+    response = admin_client.post(
+        "/add-data-block/",
+        json={
+            "block_type": "tabular",
+            "item_id": sample_id,
+            "index": 0,
+        },
+    )
+    assert response.status_code == 200, f"Failed to create tabular block: {response.json}"
     block_id = response.json["new_block_obj"]["block_id"]
 
     gc.collect()
 
+    # `/add-data-block/` does not attach files, so attach the file via an update
+    # of the same (tabular) block, which triggers the plot serialization
     response = admin_client.post(
         "/update-block/",
         json={
@@ -1001,7 +1016,6 @@ def test_large_fake_xrd_data_block_serialization(
             },
         },
     )
-
     assert response.status_code == 200, f"Failed to update tabular block: {response.json}"
     assert response.json["new_block_data"]["bokeh_plot_data"]
 
