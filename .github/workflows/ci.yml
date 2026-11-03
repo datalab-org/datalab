@@ -6,6 +6,10 @@ on:
     branches:
       - main
 
+# No job needs to write with the `GITHUB_TOKEN` (caches and artifacts use their own tokens)
+permissions:
+  contents: read
+
 env:
   FORCE_COLOR: true
   NODE_VERSION: "22.23"
@@ -135,7 +139,7 @@ jobs:
         run: yarn build
 
   plugins:
-    name: Test plugin builds
+    name: Test production containers and plugin builds
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -145,6 +149,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
+        with:
+          # Removing the builder (and its GBs of build cache) takes ~25 s, which is
+          # pointless on a runner that is thrown away after the job
+          cleanup: false
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
@@ -313,6 +321,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
+        with:
+          # Removing the builder (and its GBs of build cache) takes ~25 s, which is
+          # pointless on a runner that is thrown away after the job
+          cleanup: false
 
       - name: Validate Docker Compose configuration
         run: docker compose config --quiet
@@ -600,6 +612,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
+        with:
+          # Removing the builder (and its GBs of build cache) takes ~25 s, which is
+          # pointless on a runner that is thrown away after the job
+          cleanup: false
 
       - name: Set some environment variables for CI containers pre-build
         run: |
