@@ -3,6 +3,7 @@ import { createStore } from "vuex";
 // import { set } from 'vue'
 
 import { getCurrentUser } from "@/server_fetch_utils.js";
+import { isSection } from "@/utils/displayOrderSections.js";
 
 export default createStore({
   state: {
@@ -374,6 +375,44 @@ export default createStore({
       if (index > -1) {
         files.splice(index, 1);
       }
+    },
+    addSection(state, payload) {
+      // requires the following fields in payload:
+      // item_id, section; optionally insert_index (defaults to the end)
+      const display_order = state.all_item_data[payload.item_id].display_order;
+      if (payload.insert_index == null) {
+        display_order.push(payload.section);
+      } else {
+        display_order.splice(payload.insert_index, 0, payload.section);
+      }
+      state.saved_status_items[payload.item_id] = false;
+    },
+    updateSection(state, payload) {
+      // requires the following fields in payload:
+      // item_id, section_id, section_data
+      const display_order = state.all_item_data[payload.item_id].display_order;
+      const section = display_order.find(
+        (entry) => isSection(entry) && entry.section_id === payload.section_id,
+      );
+      if (section) {
+        Object.assign(section, payload.section_data);
+      }
+      state.saved_status_items[payload.item_id] = false;
+    },
+    removeSection(state, payload) {
+      // requires the following fields in payload:
+      // item_id, section_id
+      // Removes only the section marker; the block IDs that were grouped
+      // under it stay in display_order, becoming ungrouped (or grouped under
+      // whichever section, if any, now precedes them instead).
+      const display_order = state.all_item_data[payload.item_id].display_order;
+      const index = display_order.findIndex(
+        (entry) => isSection(entry) && entry.section_id === payload.section_id,
+      );
+      if (index > -1) {
+        display_order.splice(index, 1);
+      }
+      state.saved_status_items[payload.item_id] = false;
     },
     swapBlockDisplayOrder(state, payload) {
       // requires the following fields in payload:

@@ -12,6 +12,7 @@ import {
 } from "@/resources.js";
 
 import { DialogService } from "@/services/DialogService";
+import { blockIdsOf } from "@/utils/displayOrderSections.js";
 
 let currentUserCache = null;
 let currentUserPromise = null;
@@ -1099,7 +1100,7 @@ export function saveItem(item_id) {
           item_data: { last_modified: response_json.last_modified },
         });
         store.commit("setItemSaved", { item_id: item_id, isSaved: true });
-        store.state.all_item_data[item_id].display_order.forEach((block_id) => {
+        blockIdsOf(store.state.all_item_data[item_id].display_order).forEach((block_id) => {
           store.commit("setBlockSaved", { block_id: block_id, isSaved: true });
         });
         // A location typed here is not in the cached suggestions until refetched,
