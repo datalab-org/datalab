@@ -199,7 +199,7 @@ def test_copy_custom_sample(client, custom_item_models):
         "/new-sample/",
         json={
             "new_sample_data": {
-                "type": "_my_samples",
+                "type": "example:samples",
                 "item_id": "custom-copy-source",
                 "name": "original",
                 "drying_time": 2.0,
@@ -216,7 +216,7 @@ def test_copy_custom_sample(client, custom_item_models):
         "/new-sample/",
         json={
             "new_sample_data": {
-                "type": "_my_samples",
+                "type": "example:samples",
                 "item_id": "custom-copy-target",
                 "name": "copy",
                 "synthesis_constituents": [
@@ -231,7 +231,7 @@ def test_copy_custom_sample(client, custom_item_models):
     response = client.get("/get-item-data/custom-copy-target")
     assert response.status_code == 200, response.json
     item_data = response.json["item_data"]
-    assert item_data["type"] == "_my_samples"
+    assert item_data["type"] == "example:samples"
     assert item_data["name"] == "copy"
     assert item_data["drying_time"] == 2.0
     assert item_data["custom_properties"] == {"batch": "C1", "purity": 0.9}
@@ -248,7 +248,7 @@ def test_copy_into_different_type_rejected(client, custom_item_models):
         "/new-sample/",
         json={
             "new_sample_data": {
-                "type": "_my_items",
+                "type": "example:items",
                 "item_id": "custom-item-copy-source",
                 "width": 1.0,
             }
