@@ -55,6 +55,21 @@ def _check_key_strength(s: str, min_entropy: float = 3.8) -> None:
         )
 
 
+def _check_block_type_allow_list() -> None:
+    """Warn about block types in `CONFIG.BLOCK_TYPE_ALLOW_LIST` that are not installed."""
+    if CONFIG.BLOCK_TYPE_ALLOW_LIST is None:
+        return
+
+    from pydatalab.apps import BLOCK_TYPES
+
+    unknown_block_types = sorted(set(CONFIG.BLOCK_TYPE_ALLOW_LIST) - BLOCK_TYPES.keys())
+    if unknown_block_types:
+        LOGGER.warning(
+            "Ignoring unknown block types in BLOCK_TYPE_ALLOW_LIST: %s",
+            ", ".join(unknown_block_types),
+        )
+
+
 def check_feature_flags(app):
     """Loop over various secrets and settings and populate the logs if
     missing or invalid, as well as setting the global `FEATURE_FLAGS`
@@ -64,6 +79,8 @@ def check_feature_flags(app):
 
     FEATURE_FLAGS.tags = CONFIG.ENABLE_TAGS
     FEATURE_FLAGS.ungrouped_inventory = CONFIG.UNGROUPED_INVENTORY
+
+    _check_block_type_allow_list()
 
     if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is None:
         LOGGER.warning(

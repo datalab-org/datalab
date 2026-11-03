@@ -327,8 +327,8 @@ def test_existing_block_remains_functional_when_restricted(
 
 
 def test_unknown_block_types_warn_and_are_ignored(monkeypatch):
-    from pydatalab.apps import warn_for_unknown_block_types
     from pydatalab.config import CONFIG
+    from pydatalab.feature_flags import _check_block_type_allow_list
     from pydatalab.logger import LOGGER
 
     warning_messages = []
@@ -339,7 +339,7 @@ def test_unknown_block_types_warn_and_are_ignored(monkeypatch):
         lambda message, *args: warning_messages.append(message % args),
     )
 
-    warn_for_unknown_block_types()
+    _check_block_type_allow_list()
 
     assert warning_messages == [
         "Ignoring unknown block types in BLOCK_TYPE_ALLOW_LIST: missing-plugin-block"
