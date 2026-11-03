@@ -1,6 +1,8 @@
 module.exports = function override(api) {
   var env = api.cache(() => process.env.NODE_ENV);
   var isProd = api.cache(() => env === "production");
+  // Instrument the app for code coverage of the Cypress e2e tests (see `.nycrc.json`)
+  var coverage = api.cache(() => process.env.DATALAB_E2E_COVERAGE === "true");
   let config = {};
 
   if (isProd) {
@@ -15,6 +17,9 @@ module.exports = function override(api) {
       "@babel/plugin-transform-export-namespace-from",
       "@babel/plugin-transform-class-static-block",
     ];
+  }
+  if (coverage) {
+    config["plugins"].push("istanbul");
   }
   config["presets"] = ["@vue/cli-plugin-babel/preset"];
   return config;
