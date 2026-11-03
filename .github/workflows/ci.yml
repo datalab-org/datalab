@@ -191,7 +191,8 @@ jobs:
           source: .
           targets: "api,app"
           # Each image variant has its own cache scope, as they would otherwise overwrite each
-          # other's cache index. Only `main` writes the cache.
+          # other's cache index. Only `main` writes the cache, as PRs changing the lockfiles
+          # would each add GBs of layers to the shared 10 GB limit; PRs still reuse `main`'s.
           set: |
             api.cache-from=type=gha,scope=build-api-plugins
             ${{ github.ref == 'refs/heads/main' && 'api.cache-to=type=gha,scope=build-api-plugins,mode=max' || '' }}
@@ -408,11 +409,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       # Caching the installed dependencies (and the Cypress binary) rather than the yarn
-      # download cache skips the ~40 s install entirely. The webpack cache is kept separately
-      # below, as this cache is only saved when the key changes.
+      # download cache skips the ~40 s install entirely. Like the webpack cache below, this is
+      # only saved on `main`, so PRs changing `yarn.lock` don't fill the shared 10 GB cache.
       - name: Restore web app dependencies
         id: node-modules
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: |
             webapp/node_modules
@@ -424,6 +425,18 @@ jobs:
         if: steps.node-modules.outputs.cache-hit != 'true'
         working-directory: ./webapp
         run: yarn install --frozen-lockfile
+
+      - name: Save web app dependencies
+        if: >-
+          steps.node-modules.outputs.cache-hit != 'true' && github.ref == 'refs/heads/main'
+          && matrix.browser-backend == 'electron' && matrix.shard == 1
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            webapp/node_modules
+            !webapp/node_modules/.cache
+            ~/.cache/Cypress
+          key: ${{ steps.node-modules.outputs.cache-primary-key }}
 
       - name: Restore webpack cache
         uses: actions/cache/restore@v6
@@ -518,10 +531,10 @@ jobs:
         if: failure()
         run: tail -n 100 "$RUNNER_TEMP/app.log"
 
-      # One job saves the webpack cache for the next run (restored by prefix, so the closest
-      # earlier run is used); the dev server writes it shortly after its first compile
+      # One job on `main` saves the webpack cache (restored by prefix, so PRs use the latest
+      # from `main`); the dev server writes it shortly after its first compile
       - name: Save webpack cache
-        if: matrix.browser-backend == 'electron' && matrix.shard == 1
+        if: github.ref == 'refs/heads/main' && matrix.browser-backend == 'electron' && matrix.shard == 1
         uses: actions/cache/save@v6
         with:
           path: webapp/node_modules/.cache/webpack
