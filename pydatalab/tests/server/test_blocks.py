@@ -986,23 +986,20 @@ def test_large_fake_xrd_data_block_serialization(
         },
     )
 
-    block_id = response.json["new_block_obj"]["block_id"]
+    assert response.status_code == 200, f"Failed to create XRD block: {response.json}"
 
     gc.collect()
 
     response = admin_client.post(
-        "/update-block/",
+        "/add-data-block/",
         json={
-            "block_data": {
-                "blocktype": "tabular",
-                "item_id": sample_id,
-                "file_id": file_id,
-                "block_id": block_id,
-            },
+            "block_type": "tabular",
+            "item_id": sample_id,
+            "file_ids": [file_id],
+            "index": 0,
         },
     )
-
-    assert response.status_code == 200, f"Failed to update tabular block: {response.json}"
-    assert response.json["new_block_data"]["bokeh_plot_data"]
+    assert response.status_code == 200, f"Failed to create tabular block: {response.json}"
+    assert response.json["new_block_obj"]["bokeh_plot_data"]
 
     gc.collect()
