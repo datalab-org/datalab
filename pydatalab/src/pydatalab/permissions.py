@@ -1,7 +1,7 @@
 import datetime
 from functools import wraps
 from hashlib import sha512
-from typing import Any
+from typing import Any, Literal
 
 from bson import ObjectId
 from flask import g, request
@@ -215,6 +215,35 @@ def check_access_token(refcode: str, token: str | None = None) -> bool:
 
     except Exception:
         return False
+
+
+def get_selective_permissions_filter(
+    permissions_type: Literal["mine", "shared_with_me", "shared_with_my_groups", "all"] = "mine",
+):
+
+    mine_only = {"creator_ids.0": [current_user.person.immutable_id]}
+    if permissions_type in "mine":
+        return mine_only
+
+    shared_with_me = {"creator_ids": {"$in": [current_user.person.immutable_id]}}
+
+    if permissions_type == "shared_with_me":
+        return shared_with_me
+
+    user_group_ids = []
+    if current_user.person.groups:
+        user_group_ids = [group.immutable_id for group in current_user.person.groups]
+
+    if user_group_ids:
+        shared_with_my_groups = {"group_ids": {"$in": user_group_ids}}
+
+    if permissions_type == "shared_with_my_groups":
+        return shared_with_my_groups
+
+    if permissions_type == "all":
+        return {**shared_with_my_groups, **shared_with_me}
+
+    raise NotImplementedError(f"{permissions_type=} not implemented.")
 
 
 def _get_base_permissions(

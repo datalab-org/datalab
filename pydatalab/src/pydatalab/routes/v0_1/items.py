@@ -56,6 +56,7 @@ from pydatalab.permissions import (
     can_assign_groups,
     check_access_token,
     get_default_permissions,
+    get_selective_permissions_filter,
 )
 from pydatalab.tags import (
     authorize_added_tags,
@@ -87,8 +88,41 @@ def get_items(
     filter: str | None = None,
     sort: tuple[str, int] | None = None,
     permissions: Literal["mine", "shared_with_me", "shared_with_my_groups", "all"] = "mine",
+    page_limit: int | None = None,
+    page_offset: int | None = None,
     page_cursor: str | None = None,
 ):
+    match = {}
+    if item_types:
+        if set(item_types).issubset(ITEM_MODELS):
+            raise BadRequest(f"Unknown types present in {item_types}")
+
+        match["type"] = {"$in": item_types}
+
+    perm_filter = get_selective_permissions_filter(permissions)
+    match.update(perm_filter)
+
+    if filter:
+        optimade_match = _construct_optimade_query(filter, item_types)
+        match.update(optimade_match)
+
+    project: dict = {
+        "_id": 0,
+        "type": 1,
+        "last_modified": LAST_MODIFIED_PROJECTION,
+        "creators": {
+            "display_name": 1,
+            "gravatar_hash": 1,
+        },
+        "groups": {
+            "display_name": 1,
+            "group_id": 1,
+        },
+    }
+
+    for field in flagged_summary_fields(item_types if item_types is not None else ITEM_MODELS):
+        project.setdefault(field, 1)
+
     # parse arguments
     # handle permissions
     # get types (cached)
