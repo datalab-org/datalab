@@ -1,12 +1,12 @@
 const { ProvidePlugin, NormalModuleReplacementPlugin } = require("webpack");
 const fs = require("fs");
 const path = require("path");
+const { properties: SETTINGS } = require("./src/config.schema.json");
 
 const customAboutPath = path.resolve(__dirname, "public/custom/components/CustomAbout.vue");
 const customLoginInfoPath = path.resolve(__dirname, "public/custom/components/CustomLoginInfo.vue");
 
 module.exports = {
-  transpileDependencies: ["mermaid"],
   configureWebpack: (config) => {
     config.resolve.symlinks = false;
 
@@ -50,9 +50,9 @@ module.exports = {
   },
   chainWebpack: (config) => {
     config.plugin("html").tap((args) => {
-      args[0].title = process.env.VUE_APP_WEBSITE_TITLE || "datalab";
+      args[0].title = process.env.VUE_APP_WEBSITE_TITLE || SETTINGS.WEBSITE_TITLE.default;
       args[0].meta = {
-        x_datalab_api_url: process.env.VUE_APP_API_URL,
+        x_datalab_api_url: process.env.VUE_APP_API_URL || SETTINGS.API_URL.default,
       };
       return args;
     });

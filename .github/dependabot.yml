@@ -34,8 +34,8 @@ updates:
   ignore:
     - dependency-name: "bokeh"
       versions: [ ">=3" ]
-    - dependency-name: "langchain"
-      versions: [ ">=0.3" ]
+    - dependency-name: "pyarrow"
+      versions: [ ">=26" ]
 # Updates GH actions versions as often as needed
 - package-ecosystem: github-actions
   directory: "/"
@@ -98,3 +98,12 @@ updates:
   labels:
   - dependency_updates
   - build
+  groups:
+    docker-base-images:
+      applies-to: version-updates
+      patterns: ["*"]
+  # Base images are pinned to exact patch versions so Dependabot proposes patch bumps;
+  # minor/major bumps (e.g., Python 3.11 -> 3.15) are done by hand
+  ignore:
+    - dependency-name: "*"
+      update-types: ["version-update:semver-major", "version-update:semver-minor"]

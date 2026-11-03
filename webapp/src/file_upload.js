@@ -11,7 +11,7 @@ import { DialogService } from "@/services/DialogService";
 import store from "@/store/index.js";
 import { construct_headers, getApiConfig } from "@/server_fetch_utils.js";
 
-import { API_URL, UPPY_MAX_NUMBER_OF_FILES, UPPY_MAX_TOTAL_FILE_SIZE } from "@/resources.js";
+import { API_URL } from "@/resources.js";
 // file-upload loaded
 
 export default async function setupUppy(item_id, trigger_selector, reactive_file_list) {
@@ -19,14 +19,13 @@ export default async function setupUppy(item_id, trigger_selector, reactive_file
     ? store.state.apiConfig
     : await getApiConfig();
 
-  const maxFileSize = apiConfig.maxUploadBytes || UPPY_MAX_TOTAL_FILE_SIZE;
+  // No size limit is applied in the UI if the API does not report one
+  const maxFileSize = apiConfig.maxUploadBytes;
 
   var uppy = new Uppy({
     restrictions: {
-      // Somewhat arbitrary restrictions that prevent numbers that would break the server in one go -- the API should also refuse files when 'full'
+      // Each file is sent as its own request, so the API's limit applies per file
       maxFileSize: maxFileSize,
-      maxTotalFileSize: UPPY_MAX_TOTAL_FILE_SIZE, // Set this UI restriction arbitrarily high at 100 GB for now --- this is the point at which I would be unsure if the upload could even complete
-      maxNumberOfFiles: UPPY_MAX_NUMBER_OF_FILES, // Similarly, a max of 10000 files in one upload as a single "File" entry feels reasonable, once we move to uploading folders etc.
     },
   });
 
@@ -79,11 +78,6 @@ export default async function setupUppy(item_id, trigger_selector, reactive_file
         message: `The file "${
           file?.name || "Unknown"
         }" (${fileSizeGB} GB) exceeds the maximum allowed size of ${maxSizeGB} GB. Please contact your datalab administrator if you need to upload larger files.`,
-      });
-    } else if (error.message.includes("maxNumberOfFiles")) {
-      DialogService.error({
-        title: "Too Many Files",
-        message: `You can only upload up to ${UPPY_MAX_NUMBER_OF_FILES} files at once.`,
       });
     } else {
       DialogService.error({
