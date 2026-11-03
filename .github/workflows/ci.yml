@@ -460,7 +460,7 @@ jobs:
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           # Create the e2e test users and mint their login tokens inside the API container
-          DATALAB_E2E_SEED_COMMAND: docker compose -f ../docker-compose.yml exec -T api uv run invoke dev.seed-e2e-users
+          DATALAB_E2E_SEED_COMMAND: docker compose -f ../docker-compose.yml exec -T api uv run --no-sync invoke dev.seed-e2e-users
 
   component:
     # Cypress component tests don't need the datalab stack — they exercise Vue

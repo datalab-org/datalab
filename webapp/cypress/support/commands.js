@@ -418,7 +418,6 @@ Cypress.Commands.add("loginViaTestMagicLink", (email = "test-user@datalab.test")
         );
       }
     });
-    cy.visit("/");
   });
 });
 
