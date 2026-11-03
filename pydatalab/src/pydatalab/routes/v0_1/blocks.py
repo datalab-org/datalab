@@ -8,9 +8,9 @@ import gridfs
 from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_user
 from pymongo import ReturnDocument
-from werkzeug.exceptions import BadRequest, NotFound, NotImplemented
+from werkzeug.exceptions import BadRequest, Forbidden, NotFound, NotImplemented
 
-from pydatalab.apps import BLOCK_TYPES
+from pydatalab.apps import BLOCK_TYPES, is_block_type_available
 from pydatalab.blocks import store
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
@@ -246,6 +246,8 @@ def add_data_block():
         raise NotImplemented(  # noqa
             f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
         )
+    if not is_block_type_available(block_type):
+        raise Forbidden(f"Block type {block_type!r} is not available in this deployment.")
 
     block = BLOCK_TYPES[block_type](item_id=item_id)
 
@@ -380,9 +382,15 @@ def update_block():
 
     # `blocks_obj` holds a reference for separated blocks, so the stored payload
     # has to be resolved before it can restore server-authoritative fields.
-    block = BLOCK_TYPES[block_type].from_web(
-        block_data, stored_data=store.load_blocks_obj(item).get(block_data["block_id"])
-    )
+    stored_data = store.load_blocks_obj(item).get(block_data["block_id"])
+    stored_type = (stored_data or {}).get("blocktype")
+    if stored_type is not None and stored_type != block_type:
+        raise BadRequest(
+            f"Cannot change the type of existing block {block_data['block_id']!r} "
+            f"from {stored_type!r} to {block_type!r}."
+        )
+
+    block = BLOCK_TYPES[block_type].from_web(block_data, stored_data=stored_data)
 
     from pydatalab.config import CONFIG
 
