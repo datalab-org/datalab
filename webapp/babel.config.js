@@ -6,7 +6,8 @@ module.exports = function override(api) {
   if (isProd) {
     config["plugins"] = [
       "@babel/plugin-transform-export-namespace-from",
-      "transform-remove-console",
+      // Keep errors, e.g., so that invalid deployment settings are reported in production
+      ["transform-remove-console", { exclude: ["error"] }],
       "@babel/plugin-transform-class-static-block",
     ];
   } else {

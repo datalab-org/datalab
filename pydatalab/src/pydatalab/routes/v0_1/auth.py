@@ -9,7 +9,7 @@ import os
 import re
 import secrets
 from hashlib import sha512
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import jwt
 from bson import ObjectId
@@ -62,6 +62,30 @@ def _is_safe_oauth_next_path(next_path: str | None) -> bool:
 
     parsed_path = urlsplit(next_path)
     return not parsed_path.scheme and not parsed_path.netloc
+
+
+def _redirect_to_referer() -> Response:
+    """Redirect back to the referring UI page when no `APP_URL` is configured.
+
+    Any magic-link `token` is removed from the referer's query string, as the UI
+    would otherwise immediately send the browser straight back to the API, causing
+    a redirect loop (when the UI and API share an origin, browsers send the full
+    URL, including the token, as the referer).
+
+    """
+    referer = request.headers.get("Referer")
+    if referer:
+        parsed = urlsplit(referer)
+        if parsed.scheme in ("http", "https") and parsed.netloc:
+            query = urlencode(
+                [
+                    (key, value)
+                    for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+                    if key != "token"
+                ]
+            )
+            return redirect(urlunsplit(parsed._replace(query=query)), 307)
+    return redirect(CONFIG.ROOT_PATH or "/", 307)
 
 
 def make_github_blueprint(
@@ -941,8 +965,7 @@ def email_logged_in():
 
     if CONFIG.APP_URL:
         return redirect(CONFIG.APP_URL, 307)
-    referer = request.headers.get("Referer", CONFIG.ROOT_PATH or "/")
-    return redirect(referer, 307)
+    return _redirect_to_referer()
 
 
 @oauth_authorized.connect_via(OAUTH[IdentityType.GITHUB])
@@ -1129,8 +1152,7 @@ def redirect_to_ui(blueprint, token):  # pylint: disable=unused-argument
         if _is_safe_oauth_next_path(next_path):
             redirect_url = f"{CONFIG.APP_URL.rstrip('/')}{next_path}"
         return redirect(redirect_url, 307)
-    referer = request.headers.get("Referer", CONFIG.ROOT_PATH or "/")
-    return redirect(referer, 307)
+    return _redirect_to_referer()
 
 
 @oauth_before_login.connect
