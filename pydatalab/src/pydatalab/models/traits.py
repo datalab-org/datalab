@@ -9,6 +9,7 @@ from pydatalab.models.utils import (
     EntryReference,
     InlineSubstance,
     PyObjectId,
+    iter_item_references,
 )
 
 if TYPE_CHECKING:
@@ -168,7 +169,7 @@ class HasSynthesisInfo(BaseModel):
     @model_validator(mode="after")
     def add_missing_synthesis_relationships(self):
         """Add any missing sample synthesis constituents to parent relationships"""
-        from pydatalab.models import constituent_item_types
+        from pydatalab.models import constituent_item_types, custom_item_fields
         from pydatalab.models.relationships import RelationshipType, TypedRelationship
 
         constituents_set = set()
@@ -217,6 +218,16 @@ class HasSynthesisInfo(BaseModel):
 
                 # Accumulate all constituent IDs in a set to filter those that have been deleted
                 constituents_set.update(i for i in (refcode, item_id) if i)
+
+        # Keep parents referenced by a custom field, which are managed by
+        # `Item.add_missing_reference_relationships`.
+        custom_fields = custom_item_fields(self.type)
+        constituents_set.update(
+            identifier
+            for reference in iter_item_references([getattr(self, f) for f in custom_fields])
+            for identifier in (reference.refcode, reference.item_id)
+            if identifier
+        )
 
         # Finally, filter out any parent relationships with item that were removed
         # from the synthesis constituents. The set of constituent-capable types is
