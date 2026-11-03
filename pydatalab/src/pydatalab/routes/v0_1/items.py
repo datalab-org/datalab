@@ -706,18 +706,37 @@ def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
     return sample_dict
 
 
-def _check_new_block_types(blocks_obj: dict, existing_block_ids: set[str] | None = None) -> None:
-    """Reject new blocks that are disabled by the deployment configuration."""
-    if CONFIG.BLOCK_TYPE_ALLOW_LIST is None:
-        return
+def _check_incoming_block_types(blocks_obj: dict, stored_payloads: dict | None = None) -> None:
+    """Validate the block types of an incoming `blocks_obj` against the stored blocks
+    and the deployment's `BLOCK_TYPE_ALLOW_LIST`.
 
-    existing_block_ids = existing_block_ids or set()
+    - Every block must be a dict with a string `blocktype` (400 otherwise).
+    - Existing blocks (those in `stored_payloads`) may not change their `blocktype` (400).
+    - New blocks of an installed type must be allowed by the deployment (403). New blocks of
+      an uninstalled type are let through, to be stored as `notsupported` blocks, matching the
+      behaviour without an allow list.
+
+    """
+    if not isinstance(blocks_obj, dict):
+        raise BadRequest("`blocks_obj` must be a mapping of block IDs to block data.")
+
+    stored_payloads = stored_payloads or {}
     for block_id, block_data in blocks_obj.items():
-        if block_id in existing_block_ids:
+        if not isinstance(block_data, dict) or not isinstance(block_data.get("blocktype"), str):
+            raise BadRequest(f"Block {block_id!r} must be an object with a string 'blocktype'.")
+
+        block_type = block_data["blocktype"]
+        stored_block = stored_payloads.get(block_id)
+        if stored_block is not None:
+            stored_type = stored_block.get("blocktype")
+            if stored_type is not None and stored_type != block_type:
+                raise BadRequest(
+                    f"Cannot change the type of existing block {block_id!r} "
+                    f"from {stored_type!r} to {block_type!r}."
+                )
             continue
 
-        block_type = block_data.get("blocktype")
-        if not is_block_type_available(block_type):
+        if block_type in BLOCK_TYPES and not is_block_type_available(block_type):
             raise Forbidden(f"Block type {block_type!r} is not available in this deployment.")
 
 
@@ -753,7 +772,7 @@ def _create_sample(
     model = ITEM_MODELS[type_]
 
     new_sample = sample_dict.copy()
-    _check_new_block_types(new_sample.get("blocks_obj") or {})
+    _check_incoming_block_types(new_sample.get("blocks_obj") or {})
 
     if type_ in INVENTORY_TYPES:
         # starting_materials and equipment are open to all in the deployment (or to the
@@ -1868,12 +1887,12 @@ def save_item():
 
     if "blocks_obj" in updated_data:
         incoming_blocks = updated_data["blocks_obj"] or {}
-        _check_new_block_types(incoming_blocks, set(stored_blocks_obj))
         # Server-authoritative fields (`metadata`, `computed`, ...) never come back
         # from the web, so they have to be restored from the stored payload; for a
         # referenced block that payload lives in the `blocks` collection, not in
         # the item's `blocks_obj` entry.
         stored_payloads = block_store.load_blocks_obj(item) if stored_blocks_obj else {}
+        _check_incoming_block_types(incoming_blocks, stored_payloads)
         for block_id, block_data in incoming_blocks.items():
             blocktype = block_data["blocktype"]
             block = BLOCK_TYPES.get(blocktype, BLOCK_TYPES["notsupported"]).from_web(
