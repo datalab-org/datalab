@@ -15,6 +15,8 @@
 
 // Import commands.js using ES2015 syntax:
 import "./commands";
+// Collects coverage when the `coverage` env setting is enabled (see `cypress.config.js`)
+import "@cypress/code-coverage/support";
 
 // Type instantly rather than at the default 10 ms per keystroke; the tests type ~2000
 // characters in total, so the delay adds up without exercising anything extra
