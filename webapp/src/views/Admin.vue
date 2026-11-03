@@ -23,10 +23,18 @@ export default {
   },
   data() {
     return {
-      items: ["Users", "Groups", "Access Tokens"],
       selectedItem: "Users",
       user: null,
     };
+  },
+  computed: {
+    items() {
+      const items = ["Users", "Groups", "Access Tokens"];
+      if (this.$store.state.serverInfo?.features?.notifications?.enabled) {
+        items.push("Notifications");
+      }
+      return items;
+    },
   },
   created() {
     this.getUser();
