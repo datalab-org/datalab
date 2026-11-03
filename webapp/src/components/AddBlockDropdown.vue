@@ -1,10 +1,11 @@
 <template>
-  <div ref="root" :class="rootClass">
+  <div ref="root" :class="rootClass" :title="disabled ? disabledTitle : null">
     <button
       v-if="variant === 'button'"
       :id="triggerId"
       type="button"
       class="btn btn-primary dropdown-toggle"
+      :disabled="disabled"
       :data-testid="triggerTestid"
       aria-haspopup="true"
       :aria-expanded="isOpen"
@@ -16,8 +17,10 @@
       v-else
       :id="triggerId"
       class="nav-link dropdown-toggle"
+      :class="{ disabled }"
       role="button"
-      title="Add a block"
+      :title="disabled ? null : 'Add a block'"
+      :aria-disabled="disabled"
       :data-testid="triggerTestid"
       aria-haspopup="true"
       :aria-expanded="isOpen"
@@ -102,6 +105,16 @@ export default {
       type: String,
       default: "block",
     },
+    // disables the trigger, e.g. when the deployment allows no block types; the
+    // explanatory tooltip sits on the wrapper because disabled triggers ignore pointer events
+    disabled: {
+      type: Boolean,
+      default: false,
+    },
+    disabledTitle: {
+      type: String,
+      default: "No block types are available for this item type on this deployment",
+    },
   },
   emits: ["select"],
   data() {
@@ -126,6 +139,9 @@ export default {
   },
   methods: {
     toggle() {
+      if (this.disabled) {
+        return;
+      }
       this.isOpen = !this.isOpen;
     },
     close() {
