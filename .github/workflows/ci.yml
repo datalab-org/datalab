@@ -388,6 +388,47 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        env:
+          FORCE_COLOR: 0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # Caching the installed dependencies (and the Cypress binary) rather than the yarn
+      # download cache skips the ~40 s install entirely. The webpack cache is kept separately
+      # below, as this cache is only saved when the key changes.
+      - name: Restore web app dependencies
+        id: node-modules
+        uses: actions/cache@v6
+        with:
+          path: |
+            webapp/node_modules
+            !webapp/node_modules/.cache
+            ~/.cache/Cypress
+          key: e2e-node-modules-${{ runner.os }}-node${{ env.NODE_VERSION }}-${{ hashFiles('webapp/yarn.lock', 'webapp/package.json') }}
+
+      - name: Install web app
+        if: steps.node-modules.outputs.cache-hit != 'true'
+        working-directory: ./webapp
+        run: yarn install --frozen-lockfile
+
+      - name: Restore webpack cache
+        uses: actions/cache/restore@v6
+        with:
+          path: webapp/node_modules/.cache/webpack
+          key: e2e-webpack-${{ runner.os }}-${{ github.sha }}
+          restore-keys: e2e-webpack-${{ runner.os }}-
+
+      # Started first, so that the other steps run while webpack compiles the app
+      - name: Start web app
+        working-directory: ./webapp
+        env:
+          # `.env.test_e2e` sets `production`, which also minifies the app (~30 s)
+          NODE_ENV: development
+          DATALAB_WEBPACK_CACHE: "true"
+        run: nohup yarn serve --mode test_e2e > "$RUNNER_TEMP/app.log" 2>&1 &
+
       - name: Set up minimum Python
         uses: actions/setup-python@v7
         with:
@@ -398,15 +439,6 @@ jobs:
         with:
           working-directory: "./pydatalab"
           enable-cache: true
-
-      - name: Set up Node
-        uses: actions/setup-node@v7
-        env:
-          FORCE_COLOR: 0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "yarn"
-          cache-dependency-path: ./webapp/yarn.lock
 
       - name: Install API
         working-directory: ./pydatalab
@@ -419,7 +451,7 @@ jobs:
 
       - name: Start API
         working-directory: ./pydatalab
-        # Logged to a file rather than the test output; errors are shown below on failure
+        # Logged to a file rather than the test output; errors are shown below
         run: nohup uv run invoke dev.serve --testing --no-reload > "$RUNNER_TEMP/api.log" 2>&1 &
 
       # Chrome 155 (runner image 20261012) makes the e2e tests very flaky with Cypress 13,
@@ -454,8 +486,8 @@ jobs:
         uses: cypress-io/github-action@v7
         with:
           working-directory: ./webapp
+          install: false
           spec: ${{ steps.specs.outputs.specs }}
-          start: yarn serve --mode test_e2e
           wait-on: "http://localhost:8080, http://localhost:5001/healthcheck/is_ready"
           wait-on-timeout: 300
           record: ${{ github.repository == 'datalab-org/datalab' }}
@@ -469,6 +501,19 @@ jobs:
         # Only the errors (with any tracebacks that follow them), as the full log is long;
         # shown on passing runs too, as unhandled errors do not always fail a test
         run: grep -E -A 30 "ERROR|CRIT|Traceback" "$RUNNER_TEMP/api.log" || echo "No API errors logged"
+
+      - name: Show web app log
+        if: failure()
+        run: tail -n 100 "$RUNNER_TEMP/app.log"
+
+      # One job saves the webpack cache for the next run (restored by prefix, so the closest
+      # earlier run is used); the dev server writes it shortly after its first compile
+      - name: Save webpack cache
+        if: matrix.browser-backend == 'electron' && matrix.shard == 1
+        uses: actions/cache/save@v6
+        with:
+          path: webapp/node_modules/.cache/webpack
+          key: e2e-webpack-${{ runner.os }}-${{ github.sha }}
 
       # The raw coverage of this shard, merged with the others in `e2e-coverage`
       - name: Upload e2e coverage data
