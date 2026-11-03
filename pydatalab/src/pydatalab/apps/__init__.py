@@ -111,22 +111,6 @@ def is_block_type_available(block_type: str) -> bool:
     )
 
 
-def warn_for_unknown_block_types() -> None:
-    """Warn about configured block types that were not registered at startup."""
-    from pydatalab.config import CONFIG
-    from pydatalab.logger import LOGGER
-
-    if CONFIG.BLOCK_TYPE_ALLOW_LIST is None:
-        return
-
-    unknown_block_types = sorted(set(CONFIG.BLOCK_TYPE_ALLOW_LIST) - BLOCK_TYPES.keys())
-    if unknown_block_types:
-        LOGGER.warning(
-            "Ignoring unknown block types in BLOCK_TYPE_ALLOW_LIST: %s",
-            ", ".join(unknown_block_types),
-        )
-
-
 def load_block_plugins():
     """Search through any registered entrypoints at 'pydatalab.apps.plugins'
     and load them as DataBlock subclasses.
