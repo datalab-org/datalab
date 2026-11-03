@@ -26,5 +26,8 @@ class Equipment(Item):
     contact: str | None = None
     """Contact information for equipment (e.g., email address or phone number)."""
 
-    status: EquipmentStatus = Field(default=EquipmentStatus.WORKING)
+    status: EquipmentStatus = Field(
+        default=EquipmentStatus.WORKING,
+        json_schema_extra={"datalab_include_field_in_summary": True},
+    )
     """The status of the equipment, indicating its current state."""

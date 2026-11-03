@@ -16,5 +16,8 @@ class Sample(Item, HasSynthesisInfo, HasSubstanceInfo):
 
     type: Literal["samples"] = "samples"
 
-    status: SampleStatus = Field(default=SampleStatus.ACTIVE)
+    status: SampleStatus = Field(
+        default=SampleStatus.ACTIVE,
+        json_schema_extra={"datalab_include_field_in_summary": True},
+    )
     """The status of the sample, indicating its current state."""

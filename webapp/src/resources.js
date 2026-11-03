@@ -2,6 +2,8 @@
 
 import { defineAsyncComponent, reactive } from "vue";
 
+import { CONFIG } from "@/config.js";
+
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import MediaBlock from "@/components/datablocks/MediaBlock";
 import CycleBlock from "@/components/datablocks/CycleBlock";
@@ -21,47 +23,30 @@ import SampleCreateModalAddon from "@/components/itemCreateModalAddons/SampleCre
 import CellCreateModalAddon from "@/components/itemCreateModalAddons/CellCreateModalAddon";
 import StartingMaterialCreateModalAddon from "./components/itemCreateModalAddons/StartingMaterialCreateModalAddon.vue";
 
-// Look for values set in .env file. Use defaults if `null` is not explicitly handled elsewhere in the code.
-export const API_URL =
-  process.env.VUE_APP_API_URL != null ? process.env.VUE_APP_API_URL : "http://localhost:5001";
+export const API_URL = CONFIG.API_URL;
 
-export const QR_CODE_RESOLVER_URL = process.env.VUE_APP_QR_CODE_RESOLVER_URL;
+export const QR_CODE_RESOLVER_URL = CONFIG.QR_CODE_RESOLVER_URL;
 
 export const FEDERATION_QR_CODE_RESOLVER_URL = "https://purl.datalab-org.io";
 
-export const LOGO_URL = process.env.VUE_APP_LOGO_URL;
-export const LOGO_WIDTH = process.env.VUE_APP_LOGO_WIDTH || "100";
-export const HOMEPAGE_URL = process.env.VUE_APP_HOMEPAGE_URL;
-export const APP_VERSION = process.env.VUE_APP_GIT_VERSION;
+export const LOGO_URL = CONFIG.LOGO_URL;
+export const LOGO_WIDTH = CONFIG.LOGO_WIDTH;
+export const HOMEPAGE_URL = CONFIG.HOMEPAGE_URL;
+export const APP_VERSION = CONFIG.GIT_VERSION;
 
-export const WEBSITE_TITLE = process.env.VUE_APP_WEBSITE_TITLE || "datalab";
+export const WEBSITE_TITLE = CONFIG.WEBSITE_TITLE;
 
 export const GRAVATAR_STYLE = "identicon";
 
-// determine whether inventory should be readonly (except blocks). Note: environment
-// variables can only be strings, not bools.
-const editable_inventory = process.env.VUE_APP_EDITABLE_INVENTORY || "false";
-export const EDITABLE_INVENTORY = editable_inventory.toLowerCase() == "true";
+// determine whether inventory should be readonly (except blocks).
+export const EDITABLE_INVENTORY = CONFIG.EDITABLE_INVENTORY;
 
-const hide_collections = process.env.VUE_APP_HIDE_COLLECTIONS || "false";
-export const HIDE_COLLECTIONS = hide_collections.toLowerCase() == "true";
+export const HIDE_COLLECTIONS = CONFIG.HIDE_COLLECTIONS;
 
-const automatically_generate_id_default =
-  process.env.VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT || "false";
-export const AUTOMATICALLY_GENERATE_ID_DEFAULT =
-  automatically_generate_id_default.toLowerCase() == "true";
+export const AUTOMATICALLY_GENERATE_ID_DEFAULT = CONFIG.AUTOMATICALLY_GENERATE_ID_DEFAULT;
 
 // Eventually this should be pulled from the schema
 export const DATETIME_FIELDS = new Set(["date"]);
-
-export const UPPY_MAX_TOTAL_FILE_SIZE =
-  Number(process.env.VUE_APP_UPPY_MAX_TOTAL_FILE_SIZE) != null
-    ? process.env.VUE_APP_UPPY_MAX_TOTAL_FILE_SIZE
-    : 102400000000;
-export const UPPY_MAX_NUMBER_OF_FILES =
-  Number(process.env.VUE_APP_UPPY_MAX_NUMBER_OF_FILES) != null
-    ? process.env.VUE_APP_UPPY_MAX_NUMBER_OF_FILES
-    : 10000;
 
 export const debounceTime = 250; // time after user stops typing before request is sent
 

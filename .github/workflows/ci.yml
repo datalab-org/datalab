@@ -8,8 +8,11 @@ on:
 
 env:
   FORCE_COLOR: true
-  UV_VERSION: "0.11.8"
-  NODE_VERSION: "22.22"
+  NODE_VERSION: "22.23"
+  # Recent MongoDB 8.x releases exit on startup on the runner's kernel (7.0.0-azure), see
+  # https://jira.mongodb.org/browse/SERVER-125742; 8.0.20 is the last 8.0 release without
+  # this check. Also update the pytest `mongo` service image below.
+  MONGO_IMAGE_TAG: "8.0.20-noble"
   MIN_PYTHON_VERSION: "3.11"
 
 concurrency:
@@ -32,7 +35,6 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
         with:
-          version: ${{ env.UV_VERSION }}
           enable-cache: true
 
       - name: Install dependencies
@@ -50,7 +52,8 @@ jobs:
 
     services:
       mongo:
-        image: mongo:8
+        # Should match `env.MONGO_IMAGE_TAG` (`env` is not available in `services`)
+        image: mongo:8.0.20-noble
         ports:
           - 27017:27017
 
@@ -80,7 +83,6 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
         with:
-          version: ${{ env.UV_VERSION }}
           working-directory: "./pydatalab"
           enable-cache: true
 
@@ -120,6 +122,14 @@ jobs:
         working-directory: ./webapp
         run: yarn install --frozen-lockfile
 
+      # yarn v1's `--frozen-lockfile` does not fail on stale entries in `yarn.lock`
+      # (yarnpkg/yarn#5840), so re-run a normal install and fail if it prunes anything
+      - name: Check yarn.lock has no stale entries
+        working-directory: ./webapp
+        run: |
+          yarn install --ignore-scripts --prefer-offline
+          git diff --exit-code yarn.lock
+
       - name: Build web app
         working-directory: ./webapp
         run: yarn build
@@ -139,7 +149,6 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
         with:
-          version: ${{ env.UV_VERSION }}
           enable-cache: false
           working-directory: "./pydatalab"
 
@@ -162,6 +171,7 @@ jobs:
         run: |
           echo "PYDATALAB_TESTING=true" >> .env
           echo "PYDATALAB_ROOT_PATH='/api'" >> .env
+          echo "VUE_APP_API_URL=http://localhost:5001/api" >> .env
           echo "PYDATALAB_TESTING=true" >> pydatalab/.env
           echo "PYDATALAB_ROOT_PATH='/api'" >> pydatalab/.env
 
@@ -171,7 +181,9 @@ jobs:
           files: docker-compose.yml
           load: true
           source: .
-          targets: "api"
+          targets: "api,app"
+          # The app uses a separate cache scope from the e2e app build, as plugin
+          # panels change the build (comments can't go inside the `set` block)
           set: |
             api.cache-from=type=gha,scope=${{ github.ref_name }}-build-api
             api.cache-from=type=gha,scope=main-build-api
@@ -179,11 +191,17 @@ jobs:
             api.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0+ci
             api.args.WEB_CONCURRENCY=1
             api.tags=datalab-api:latest
+            app.cache-from=type=gha,scope=${{ github.ref_name }}-build-app-plugins
+            app.cache-from=type=gha,scope=main-build-app-plugins
+            app.cache-from=type=gha,scope=main-build-app
+            app.cache-to=type=gha,scope=${{ github.ref_name }}-build-app-plugins,mode=max
+            app.args.VUE_APP_GIT_VERSION=0.0.0+ci
+            app.tags=datalab-app:latest
 
       - name: Start services
         run: |
           # Launch production container profiles and wait for them to come up
-          if ! docker compose up api --force-recreate -d --wait; then
+          if ! docker compose up api app --force-recreate -d --wait; then
             echo "=== Docker compose startup failed ==="
             echo "=== Container logs: ==="
             docker compose logs database api app
@@ -194,8 +212,100 @@ jobs:
 
       - name: Test that plugin is loaded
         run: |
-          # Test that plugin block is listed in info endpoint
-          curl -s http://localhost:5000/api/info/blocks | jq '.data | any(.id == "example")'
+          # Test that plugin blocks are listed in info endpoint (`-e` to fail on `false`)
+          curl -s http://localhost:5001/api/info/blocks | jq -e '.data | any(.id == "example")'
+          curl -s http://localhost:5001/api/info/blocks | jq -e '.data | any(.id == "chat")'
+          # Test that the whinchat panel was compiled into the app bundle; `markdown-it` is
+          # only a dependency of the panel, so this also checks plugin JS deps were installed
+          docker compose exec -T app sh -c 'grep -q "markdown-it" /app/dist/js/*.js'
+
+      - name: Add static custom files
+        run: |
+          mkdir -p webapp/public/custom/logos
+          echo '<svg xmlns="http://www.w3.org/2000/svg"></svg>' > webapp/public/custom/logos/ci-logo.svg
+          echo '/* ci-override */' > webapp/public/custom/override.css
+
+      - name: Rebuild the app image with static custom files
+        run: |
+          set -o pipefail
+          # These settings must match the build above for its layers to be reused
+          docker buildx bake --file docker-compose.yml --progress=plain --load \
+            --set api.cache-from=type=gha,scope=${{ github.ref_name }}-build-api \
+            --set api.cache-from=type=gha,scope=main-build-api \
+            --set api.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0+ci \
+            --set api.args.WEB_CONCURRENCY=1 \
+            --set app.cache-from=type=gha,scope=${{ github.ref_name }}-build-app-plugins \
+            --set app.cache-from=type=gha,scope=main-build-app-plugins \
+            --set app.cache-from=type=gha,scope=main-build-app \
+            --set app.args.VUE_APP_GIT_VERSION=0.0.0+ci \
+            --set app.tags=datalab-app:latest \
+            app 2>&1 | tee custom-files-build.log
+
+      - name: Test that static custom files do not recompile the app
+        run: |
+          # Build steps are logged as `#<id> [<stage>] RUN ...`, followed by `#<id> CACHED` if reused
+          echo "Build steps that were not reused from the cache:"
+          awk '
+            /^#[0-9]+ \[app [^ ]+ +[0-9]+\/[0-9]+\]/ {
+              id = $1; title = $0; sub(/^#[0-9]+ /, "", title); titles[id] = title; order[++n] = id
+            }
+            /^#[0-9]+ (CACHED|DONE)/ { status[$1] = $2 }
+            END {
+              for (i = 1; i <= n; i++)
+                if (status[order[i]] == "DONE" && titles[order[i]] !~ /\] FROM /) print "  " titles[order[i]]
+            }
+          ' custom-files-build.log
+
+          step="$(grep -m1 -E '^#[0-9]+ \[.*\] RUN .*vue-cli-service build' custom-files-build.log | cut -d' ' -f1)"
+          if [ -z "$step" ]; then
+            echo "::error::Could not find the vue-cli-service build step in the build log; has the Dockerfile changed?"
+            exit 1
+          fi
+          if ! grep -qx "$step CACHED" custom-files-build.log; then
+            echo "::error::Adding static custom files recompiled the app; see the steps listed above for the first COPY that was not reused"
+            exit 1
+          fi
+
+      - name: Start the app with static custom files
+        run: |
+          if ! docker compose up app --no-build --force-recreate -d --wait; then
+            echo "::error::The app container did not become healthy"
+            docker compose logs app
+            docker compose ps app
+            exit 1
+          fi
+
+      - name: Test that static custom files are served
+        run: |
+          set -x -o pipefail
+          curl -fsS http://localhost:8081/custom/logos/ci-logo.svg | grep -F '<svg'
+          curl -fsS -o /dev/null -w '%{content_type}' http://localhost:8081/custom/logos/ci-logo.svg | grep -F 'image/svg+xml'
+          curl -fsS http://localhost:8081/custom/override.css | grep -F 'ci-override'
+
+      - name: Test that runtime settings are applied to the app
+        run: |
+          set -x -o pipefail
+          curl -fsS http://localhost:8081/config.js | grep -F 'http://localhost:5001/api'
+          # The version comes from the image, as it is not set when the container starts
+          curl -fsS http://localhost:8081/config.js | grep -F '0.0.0+ci'
+          # API clients discover the API URL from this tag in the HTML
+          curl -fsS http://localhost:8081/ | grep -F 'x_datalab_api_url' | grep -F 'http://localhost:5001/api'
+
+      - name: Test that the container refuses to start with invalid settings
+        run: |
+          set +e
+          output="$(timeout 30 docker run --rm -e VUE_APP_API_URL=http://localhost:5001/api -e VUE_APP_LOGO_WIDTH=100px datalab-app:latest 2>&1)"
+          status=$?
+          set -e
+          echo "$output"
+          if [ "$status" -ne 1 ]; then
+            echo "::error::Expected the container to exit with status 1, but got $status (124 means it kept running)"
+            exit 1
+          fi
+          if ! echo "$output" | grep -qF 'VUE_APP_LOGO_WIDTH'; then
+            echo "::error::The container exited, but did not report the invalid VUE_APP_LOGO_WIDTH"
+            exit 1
+          fi
 
   docker-dev:
     name: Test dev Docker builds
@@ -330,13 +440,22 @@ jobs:
             exit 1
           fi
 
+      # Chrome 155 (runner image 20261012) makes the e2e tests very flaky with Cypress 13,
+      # so pin the previous major version until Cypress can be upgraded
+      - name: Install pinned Chrome
+        if: matrix.browser-backend == 'chrome'
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          chrome-version: "154"
+
       - name: Run end-to-end tests
         uses: cypress-io/github-action@v7
         with:
           config: baseUrl=http://localhost:8081
           working-directory: ./webapp
           record: ${{ github.repository == 'datalab-org/datalab' }}
-          browser: ${{ matrix.browser-backend }}
+          browser: ${{ matrix.browser-backend == 'chrome' && steps.setup-chrome.outputs.chrome-path || matrix.browser-backend }}
           group: "End-to-end tests (${{ matrix.browser-backend }})"
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}

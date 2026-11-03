@@ -26,7 +26,17 @@ class XRDBlock(DataBlock):
     blocktype = "xrd"
     name = "Powder XRD"
     description = "Visualize XRD patterns and perform simple baseline corrections."
-    accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye", ".rasx", ".cif", ".raw", ".brml")
+    accepted_file_extensions = (
+        ".xrdml",
+        ".xy",
+        ".dat",
+        ".xye",
+        ".rasx",
+        ".cif",
+        ".raw",
+        ".brml",
+        ".asc",
+    )
     multi_file = True
 
     defaults = {"wavelength": 1.54060}

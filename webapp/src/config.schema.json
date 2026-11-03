@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "datalab web app settings",
+  "description": "The deployment settings of the web app, provided as `VUE_APP_<name>` environment variables, and read from this file by both the web app and the production container on startup. Everything here is sent to every visitor's browser, including before login: settings must not contain secrets, and can only change what the UI shows, as access control belongs in the API. Values are always strings, as they come from environment variables, and an empty value is treated as unset.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["API_URL"],
+  "properties": {
+    "API_URL": {
+      "type": "string",
+      "description": "The URL of the datalab API, as an http(s) URL. Required by the production container.",
+      "pattern": "^https?://\\S+$",
+      "default": "http://localhost:5001",
+      "examples": ["https://api.datalab.example.org"]
+    },
+    "AUTOMATICALLY_GENERATE_ID_DEFAULT": {
+      "type": "string",
+      "description": "Whether new entries automatically generate an ID by default. Only `true` (in any case) enables this.",
+      "default": "false",
+      "examples": ["true"]
+    },
+    "EDITABLE_INVENTORY": {
+      "type": "string",
+      "description": "Whether the UI offers inventory editing to non-admin users. Only `true` (in any case) enables this.",
+      "default": "false",
+      "examples": ["true"]
+    },
+    "GIT_VERSION": {
+      "type": "string",
+      "description": "The version to display, overriding the version set when the app was built.",
+      "examples": ["v1.2.3"]
+    },
+    "HOMEPAGE_URL": {
+      "type": "string",
+      "description": "A URL to link to from the web app header and login page, which should include `https://` to link to another site.",
+      "examples": ["https://www.example.org"]
+    },
+    "HIDE_COLLECTIONS": {
+      "type": "string",
+      "description": "Whether collection pages and controls are hidden in the web app. Only `true` (in any case) enables this. This does not disable collection API routes or alter stored collection data.",
+      "default": "false",
+      "examples": ["true"]
+    },
+    "LOGO_URL": {
+      "type": "string",
+      "description": "The URL of the logo image, or a path relative to the `public/` directory.",
+      "examples": ["https://www.example.org/logo.png", "/custom/logos/mylogo.png"]
+    },
+    "LOGO_WIDTH": {
+      "type": "string",
+      "description": "The width of the logo in the header in pixels, as a positive number.",
+      "pattern": "^(?=.*[1-9])[0-9]+(\\.[0-9]+)?$",
+      "default": "100",
+      "examples": ["150"]
+    },
+    "QR_CODE_RESOLVER_URL": {
+      "type": "string",
+      "description": "The URL of a service that resolves QR codes to datalab entries.",
+      "examples": ["https://purl.datalab-org.io"]
+    },
+    "WEBSITE_TITLE": {
+      "type": "string",
+      "description": "The title of the web app, shown in the browser tab and on the login page.",
+      "default": "datalab",
+      "examples": ["My lab datalab"]
+    }
+  }
+}
