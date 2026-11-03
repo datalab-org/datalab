@@ -62,6 +62,7 @@
           menu-testid="add-block-dropdown"
           :suggested-block-types="suggestedBlockTypes"
           :all-block-types="allBlockTypes"
+          :disabled="noBlockTypesAvailable"
           @select="newBlock"
         />
         <ExportDropdown
@@ -152,6 +153,7 @@
           menu-testid="add-block-dropdown-bottom"
           :suggested-block-types="suggestedBlockTypes"
           :all-block-types="allBlockTypes"
+          :disabled="noBlockTypesAvailable"
           @select="newBlock"
         />
       </div>
@@ -331,11 +333,7 @@ export default {
         return [];
       }
 
-      return this.blocksInfos.filter((blockInfo) => {
-        if (blockInfo.id === "notsupported") {
-          return false;
-        }
-
+      return this.availableBlockInfos.filter((blockInfo) => {
         const acceptedExtensions = blockInfo.attributes?.accepted_file_extensions;
         if (!acceptedExtensions || acceptedExtensions.length === 0) {
           return false;
@@ -348,12 +346,22 @@ export default {
         );
       });
     },
+    // Block types that may be added to this item: excludes the `notsupported` placeholder
+    // and any type disallowed by the deployment (`available: false`; older servers omit it)
+    availableBlockInfos() {
+      return this.blocksInfos.filter(
+        (blockInfo) => blockInfo.id !== "notsupported" && blockInfo.attributes?.available !== false,
+      );
+    },
     allBlockTypes() {
       if (!this.blockInfoLoaded) {
         return [];
       }
 
-      return this.blocksInfos.filter((blockInfo) => blockInfo.id !== "notsupported");
+      return this.availableBlockInfos;
+    },
+    noBlockTypesAvailable() {
+      return this.blockInfoLoaded && this.allBlockTypes.length === 0;
     },
   },
   watch: {
