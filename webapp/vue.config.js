@@ -10,6 +10,19 @@ module.exports = {
   configureWebpack: (config) => {
     config.resolve.symlinks = false;
 
+    // Opt-in persistent cache of the compiled modules (in `node_modules/.cache/webpack`), used
+    // to speed up the dev server in the CI e2e tests. Webpack cannot see settings that change
+    // the babel output, so these are part of the cache version.
+    if (process.env.DATALAB_WEBPACK_CACHE === "true") {
+      config.cache = {
+        type: "filesystem",
+        version: [process.env.NODE_ENV, process.env.DATALAB_E2E_COVERAGE].join("-"),
+        buildDependencies: {
+          config: [__filename, path.resolve(__dirname, "babel.config.js")],
+        },
+      };
+    }
+
     config.resolve.fallback = {
       stream: false,
       process: require.resolve("process/browser"),
