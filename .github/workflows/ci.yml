@@ -361,13 +361,15 @@ jobs:
   e2e:
     # Runs against the dev servers, as when developing locally. The production images are
     # tested by the `plugins` job, and the suite runs against them on `main` in `e2e-production`.
-    name: e2e tests
+    # The specs are split across shards (see "Select specs for this shard"), as the tests
+    # take ~8 min in total, while starting the servers and Cypress takes ~3 min per job
+    name: e2e tests (${{ matrix.browser-backend }}, ${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: 3
       matrix:
         browser-backend: ["electron", "chrome"] # , "firefox"]  # Temporarily disable Firefox until migration to Cypress v14 (https://github.com/datalab-org/datalab/issues/1289)
+        shard: [1, 2, 3]
 
     services:
       mongo:
@@ -415,6 +417,11 @@ jobs:
           echo "PYDATALAB_ENABLE_TAGS=true" >> .env
           echo "PYDATALAB_APP_URL=http://localhost:8080" >> .env
 
+      - name: Start API
+        working-directory: ./pydatalab
+        # Logged to a file rather than the test output; errors are shown below on failure
+        run: nohup uv run invoke dev.serve --testing --no-reload > "$RUNNER_TEMP/api.log" 2>&1 &
+
       # Chrome 155 (runner image 20261012) makes the e2e tests very flaky with Cypress 13,
       # so pin the previous major version until Cypress can be upgraded
       - name: Install pinned Chrome
@@ -424,28 +431,104 @@ jobs:
         with:
           chrome-version: "154"
 
+      - name: Select specs for this shard
+        id: specs
+        working-directory: ./webapp
+        run: |
+          # Balanced by their run times (~2.5 min each); new specs must be added to a shard
+          declare -A SHARDS=(
+            [1]="batchSampleFeature shareItem loginRedirect"
+            [2]="sampleTablePage authenticatedSampleTests collectionPage startingMaterial"
+            [3]="editPage equipment navbarResponsive tagsManagement"
+          )
+          for f in cypress/e2e/*.cy.js; do
+            if ! echo " ${SHARDS[*]} " | grep -qF " $(basename "$f" .cy.js) "; then
+              echo "::error::$f is not in any e2e shard; add it to SHARDS in ci.yml"
+              exit 1
+            fi
+          done
+          specs=$(printf "cypress/e2e/%s.cy.js," ${SHARDS[${{ matrix.shard }}]})
+          echo "specs=${specs%,}" >> "$GITHUB_OUTPUT"
+
       - name: Run end-to-end tests
         uses: cypress-io/github-action@v7
         with:
           working-directory: ./webapp
-          start: >-
-            yarn serve --mode test_e2e,
-            uv run --directory ../pydatalab invoke dev.serve --testing --no-reload
+          spec: ${{ steps.specs.outputs.specs }}
+          start: yarn serve --mode test_e2e
           wait-on: "http://localhost:8080, http://localhost:5001/healthcheck/is_ready"
           wait-on-timeout: 300
           record: ${{ github.repository == 'datalab-org/datalab' }}
           browser: ${{ matrix.browser-backend == 'chrome' && steps.setup-chrome.outputs.chrome-path || matrix.browser-backend }}
-          group: "End-to-end tests (${{ matrix.browser-backend }})"
+          group: "End-to-end tests (${{ matrix.browser-backend }}, ${{ matrix.shard }}/3)"
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
 
-      - name: Upload e2e coverage report
+      - name: Show API errors
+        if: always()
+        # Only the errors (with any tracebacks that follow them), as the full log is long;
+        # shown on passing runs too, as unhandled errors do not always fail a test
+        run: grep -E -A 30 "ERROR|CRIT|Traceback" "$RUNNER_TEMP/api.log" || echo "No API errors logged"
+
+      # The raw coverage of this shard, merged with the others in `e2e-coverage`
+      - name: Upload e2e coverage data
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: e2e-coverage-${{ matrix.browser-backend }}
-          path: webapp/coverage/e2e/
+          name: e2e-coverage-${{ matrix.browser-backend }}-${{ matrix.shard }}
+          path: webapp/.nyc_output/out.json
           if-no-files-found: warn
+
+  e2e-result:
+    # Reports the result of the shards under the names that are required checks on `main`
+    name: e2e tests (${{ matrix.browser-backend }})
+    needs: [e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        browser-backend: ["electron", "chrome"]
+    steps:
+      - name: Check that all shards passed
+        # `needs` only gives the result of the whole matrix, which covers both browsers
+        run: |
+          echo "e2e shards: ${{ needs.e2e.result }}"
+          [ "${{ needs.e2e.result }}" = "success" ]
+
+  e2e-coverage:
+    name: e2e coverage report
+    needs: [e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download the coverage of each shard
+        uses: actions/download-artifact@v8
+        with:
+          pattern: e2e-coverage-*
+          path: coverage-shards
+
+      - name: Merge the coverage of all shards and browsers
+        working-directory: ./webapp
+        run: |
+          mkdir -p .nyc_output
+          for d in ../coverage-shards/*/; do
+            cp "$d/out.json" ".nyc_output/$(basename "$d").json"
+          done
+          # Reports as configured in `.nycrc.json`
+          npx --yes nyc@15.1.0 report
+
+      - name: Upload e2e coverage report
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-coverage-report
+          path: webapp/coverage/e2e/
 
   e2e-production:
     # The e2e suite against the production images, which can catch problems that only
