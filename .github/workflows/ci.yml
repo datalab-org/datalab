@@ -182,19 +182,16 @@ jobs:
           load: true
           source: .
           targets: "api,app"
-          # The app uses a separate cache scope from the e2e app build, as plugin
-          # panels change the build (comments can't go inside the `set` block)
+          # Each image variant has its own cache scope, as they would otherwise overwrite each
+          # other's cache index. Only `main` writes the cache.
           set: |
-            api.cache-from=type=gha,scope=${{ github.ref_name }}-build-api
-            api.cache-from=type=gha,scope=main-build-api
-            api.cache-to=type=gha,scope=${{ github.ref_name }}-build-api,mode=max
+            api.cache-from=type=gha,scope=build-api-plugins
+            ${{ github.ref == 'refs/heads/main' && 'api.cache-to=type=gha,scope=build-api-plugins,mode=max' || '' }}
             api.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0+ci
             api.args.WEB_CONCURRENCY=1
             api.tags=datalab-api:latest
-            app.cache-from=type=gha,scope=${{ github.ref_name }}-build-app-plugins
-            app.cache-from=type=gha,scope=main-build-app-plugins
-            app.cache-from=type=gha,scope=main-build-app
-            app.cache-to=type=gha,scope=${{ github.ref_name }}-build-app-plugins,mode=max
+            app.cache-from=type=gha,scope=build-app-plugins
+            ${{ github.ref == 'refs/heads/main' && 'app.cache-to=type=gha,scope=build-app-plugins,mode=max' || '' }}
             app.args.VUE_APP_GIT_VERSION=0.0.0+ci
             app.tags=datalab-app:latest
 
@@ -230,13 +227,10 @@ jobs:
           set -o pipefail
           # These settings must match the build above for its layers to be reused
           docker buildx bake --file docker-compose.yml --progress=plain --load \
-            --set api.cache-from=type=gha,scope=${{ github.ref_name }}-build-api \
-            --set api.cache-from=type=gha,scope=main-build-api \
+            --set api.cache-from=type=gha,scope=build-api-plugins \
             --set api.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0+ci \
             --set api.args.WEB_CONCURRENCY=1 \
-            --set app.cache-from=type=gha,scope=${{ github.ref_name }}-build-app-plugins \
-            --set app.cache-from=type=gha,scope=main-build-app-plugins \
-            --set app.cache-from=type=gha,scope=main-build-app \
+            --set app.cache-from=type=gha,scope=build-app-plugins \
             --set app.args.VUE_APP_GIT_VERSION=0.0.0+ci \
             --set app.tags=datalab-app:latest \
             app 2>&1 | tee custom-files-build.log
@@ -330,14 +324,14 @@ jobs:
           load: true
           source: .
           targets: "app-dev,api-dev,database-dev"
+          # Only `main` writes the cache, see the `plugins` job
           set: |
-            app-dev.cache-from=type=gha,scope=${{ github.ref_name }}-build-app-dev
-            app-dev.cache-from=type=gha,scope=main-build-app-dev
-            app-dev.cache-to=type=gha,scope=${{ github.ref_name }}-build-app-dev,mode=max
-            api-dev.cache-from=type=gha,scope=${{ github.ref_name }}-build-api
-            api-dev.cache-from=type=gha,scope=main-build-api
-            database-dev.cache-from=type=gha,scope=${{ github.ref_name }}-build-database
-            database-dev.cache-from=type=gha,scope=main-build-database
+            app-dev.cache-from=type=gha,scope=build-app-dev
+            ${{ github.ref == 'refs/heads/main' && 'app-dev.cache-to=type=gha,scope=build-app-dev,mode=max' || '' }}
+            api-dev.cache-from=type=gha,scope=build-api-dev
+            ${{ github.ref == 'refs/heads/main' && 'api-dev.cache-to=type=gha,scope=build-api-dev,mode=max' || '' }}
+            database-dev.cache-from=type=gha,scope=build-database-dev
+            ${{ github.ref == 'refs/heads/main' && 'database-dev.cache-to=type=gha,scope=build-database-dev,mode=max' || '' }}
             api-dev.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0+ci
             app-dev.tags=datalab-app-dev:latest
             api-dev.tags=datalab-api-dev:latest
@@ -365,6 +359,8 @@ jobs:
         run: docker compose --profile dev down --volumes
 
   e2e:
+    # Runs against the dev servers, as when developing locally. The production images are
+    # tested by the `plugins` job, and the suite runs against them on `main` in `e2e-production`.
     name: e2e tests
     runs-on: ubuntu-latest
     strategy:
@@ -372,6 +368,92 @@ jobs:
       max-parallel: 3
       matrix:
         browser-backend: ["electron", "chrome"] # , "firefox"]  # Temporarily disable Firefox until migration to Cypress v14 (https://github.com/datalab-org/datalab/issues/1289)
+
+    services:
+      mongo:
+        # Should match `env.MONGO_IMAGE_TAG` (`env` is not available in `services`)
+        image: mongo:8.0.20-noble
+        ports:
+          - 27017:27017
+
+    env:
+      # Instrument the app and collect its coverage (see `webapp/babel.config.js`)
+      DATALAB_E2E_COVERAGE: "true"
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up minimum Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.MIN_PYTHON_VERSION }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          working-directory: "./pydatalab"
+          enable-cache: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        env:
+          FORCE_COLOR: 0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "yarn"
+          cache-dependency-path: ./webapp/yarn.lock
+
+      - name: Install API
+        working-directory: ./pydatalab
+        run: |
+          uv sync --locked --all-extras --dev
+          # Enable the tags feature (the frontend flag is in `.env.test_e2e`), and point
+          # login redirects at the dev server
+          echo "PYDATALAB_ENABLE_TAGS=true" >> .env
+          echo "PYDATALAB_APP_URL=http://localhost:8080" >> .env
+
+      # Chrome 155 (runner image 20261012) makes the e2e tests very flaky with Cypress 13,
+      # so pin the previous major version until Cypress can be upgraded
+      - name: Install pinned Chrome
+        if: matrix.browser-backend == 'chrome'
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          chrome-version: "154"
+
+      - name: Run end-to-end tests
+        uses: cypress-io/github-action@v7
+        with:
+          working-directory: ./webapp
+          start: >-
+            yarn serve --mode test_e2e,
+            uv run --directory ../pydatalab invoke dev.serve --testing --no-reload
+          wait-on: "http://localhost:8080, http://localhost:5001/healthcheck/is_ready"
+          wait-on-timeout: 300
+          record: ${{ github.repository == 'datalab-org/datalab' }}
+          browser: ${{ matrix.browser-backend == 'chrome' && steps.setup-chrome.outputs.chrome-path || matrix.browser-backend }}
+          group: "End-to-end tests (${{ matrix.browser-backend }})"
+        env:
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+
+      - name: Upload e2e coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-coverage-${{ matrix.browser-backend }}
+          path: webapp/coverage/e2e/
+          if-no-files-found: warn
+
+  e2e-production:
+    # The e2e suite against the production images, which can catch problems that only
+    # appear in the production build or server setup. Only on `main`, as building the
+    # images adds ~3 min, so these are caught after merging rather than in the PR.
+    name: e2e tests (production images)
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v7
@@ -412,15 +494,12 @@ jobs:
           source: .
           targets: "app,api,database"
           set: |
-            app.cache-from=type=gha,scope=${{ github.ref_name }}-build-app
-            app.cache-from=type=gha,scope=main-build-app
-            api.cache-from=type=gha,scope=${{ github.ref_name }}-build-api
-            api.cache-from=type=gha,scope=main-build-api
-            database.cache-from=type=gha,scope=${{ github.ref_name }}-build-database
-            database.cache-from=type=gha,scope=main-build-database
-            api.cache-to=type=gha,scope=${{ github.ref_name }}-build-api,mode=max
-            app.cache-to=type=gha,scope=${{ github.ref_name }}-build-app,mode=max
-            database.cache-to=type=gha,scope=${{ github.ref_name }}-build-database,mode=max
+            app.cache-from=type=gha,scope=build-app
+            api.cache-from=type=gha,scope=build-api
+            database.cache-from=type=gha,scope=build-database
+            app.cache-to=type=gha,scope=build-app,mode=max
+            api.cache-to=type=gha,scope=build-api,mode=max
+            database.cache-to=type=gha,scope=build-database,mode=max
             api.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0+ci
             api.args.WEB_CONCURRENCY=1
             app.args.VUE_APP_GIT_VERSION=0.0.0+ci
@@ -440,23 +519,13 @@ jobs:
             exit 1
           fi
 
-      # Chrome 155 (runner image 20261012) makes the e2e tests very flaky with Cypress 13,
-      # so pin the previous major version until Cypress can be upgraded
-      - name: Install pinned Chrome
-        if: matrix.browser-backend == 'chrome'
-        id: setup-chrome
-        uses: browser-actions/setup-chrome@v2
-        with:
-          chrome-version: "154"
-
       - name: Run end-to-end tests
         uses: cypress-io/github-action@v7
         with:
           config: baseUrl=http://localhost:8081
           working-directory: ./webapp
           record: ${{ github.repository == 'datalab-org/datalab' }}
-          browser: ${{ matrix.browser-backend == 'chrome' && steps.setup-chrome.outputs.chrome-path || matrix.browser-backend }}
-          group: "End-to-end tests (${{ matrix.browser-backend }})"
+          group: "End-to-end tests (production images)"
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           # Create the e2e test users and mint their login tokens inside the API container
