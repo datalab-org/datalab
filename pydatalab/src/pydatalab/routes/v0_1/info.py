@@ -26,7 +26,7 @@ from pydatalab.deployment_stats import (
 )
 from pydatalab.feature_flags import FEATURE_FLAGS, FeatureFlags
 from pydatalab.logger import LOGGER
-from pydatalab.models import BUILTIN_ITEM_TYPES, ITEM_MODELS, ITEM_SCHEMAS, Item, Person
+from pydatalab.models import ITEM_MODELS, ITEM_SCHEMAS, Person, get_base_item_model
 from pydatalab.models.schema_hints import DatalabModelExtra
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only
@@ -231,31 +231,6 @@ def list_block_types():
     )
 
 
-def _get_base_item_model(item_type: str) -> tuple[str | None, type[Item] | None]:
-    """Return the UI base type/model for a custom item type.
-
-    ``items`` is a virtual UI base for models derived directly from :class:`Item`;
-    it is deliberately not added to ``ITEM_MODELS`` because ``Item`` itself is not
-    a registered, creatable resource type. For subclasses of a concrete built-in,
-    the most-derived matching built-in base is returned.
-    """
-    model = ITEM_MODELS.get(item_type)
-    if model is None or item_type in BUILTIN_ITEM_TYPES:
-        return None, None
-
-    best_type = "items"
-    best_model: type[Item] = Item
-    for builtin_type, builtin_model in ITEM_MODELS.items():
-        if builtin_type not in BUILTIN_ITEM_TYPES:
-            continue
-        if issubclass(model, builtin_model):
-            # Prefer the most specific (most-derived) built-in base.
-            if issubclass(builtin_model, best_model):
-                best_type = builtin_type
-                best_model = builtin_model
-    return best_type, best_model
-
-
 def _get_model_schema_extra(item_type: str) -> dict:
     """Return the `json_schema_extra` dict declared on the model's config, if any."""
     model = ITEM_MODELS.get(item_type)
@@ -273,7 +248,7 @@ def _type_attributes(item_type: str, schema: dict) -> dict:
     extra = DatalabModelExtra(
         **{k: v for k, v in _get_model_schema_extra(item_type).items() if k.startswith("datalab_")}
     )
-    base_type, base_model = _get_base_item_model(item_type)
+    base_type, base_model = get_base_item_model(item_type)
     return {
         "version": __version__,
         "api_version": __api_version__,

@@ -23,7 +23,9 @@ from pydatalab.models import (
     BUILTIN_ITEM_TYPES,
     ITEM_MODELS,
     ItemVersion,
+    custom_item_fields,
     flagged_summary_fields,
+    get_base_item_model,
 )
 from pydatalab.models.items import Item
 from pydatalab.models.people import AccountStatus
@@ -239,6 +241,47 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
     return samples
 
 
+def _lookup_item_reference(ref: dict, stored: dict, read_permissions: dict) -> dict | None:
+    """Look up the item matching `ref` (a refcode or item_id query) and project the
+    fields to inline in a reference to it, or return `None` if it does not exist."""
+    deref = flask_mongo.db.items.find_one(
+        {**ref, **read_permissions},
+        projection={
+            "name": 1,
+            "item_id": 1,
+            "refcode": 1,
+            "chemform": 1,
+            "type": 1,
+            "_id": 0,
+        },
+    )
+    if not deref:
+        # If the source item exists but is inaccessible, only refresh its identifiers
+        # and keep the rest of the originally stored data (e.g., name, chemform)
+        identifiers = flask_mongo.db.items.find_one(
+            ref, projection={"item_id": 1, "refcode": 1, "type": 1, "_id": 0}
+        )
+        if identifiers:
+            deref = {**stored, **identifiers}
+    return deref
+
+
+def _lookup_nested_item_references(value, read_permissions: dict):
+    """Return a copy of `value` with every item reference found at any depth (a dict
+    with an item `type` and a `refcode` or `item_id`) resolved by `_lookup_item_reference`."""
+    if isinstance(value, list):
+        return [_lookup_nested_item_references(v, read_permissions) for v in value]
+    if not isinstance(value, dict):
+        return value
+    if value.get("type") in ITEM_MODELS and (value.get("refcode") or value.get("item_id")):
+        ref = (
+            {"refcode": value["refcode"]} if value.get("refcode") else {"item_id": value["item_id"]}
+        )
+        deref = _lookup_item_reference(ref, value, read_permissions)
+        return {**value, **deref} if deref else value
+    return {k: _lookup_nested_item_references(v, read_permissions) for k, v in value.items()}
+
+
 def entry_reference_lookup(item_doc: dict) -> dict:
     """Looks up any field that contains an entry reference and resolves it to the item data."""
 
@@ -256,14 +299,18 @@ def entry_reference_lookup(item_doc: dict) -> dict:
         "starting_materials": ["synthesis_constituents"],
     }
 
-    item_type = item_doc.get("type", None)
-    if item_type not in reference_fields:
+    # Custom types also look up the reference fields of their built-in base, plus any
+    # reference found in the fields they add.
+    item_type = item_doc.get("type") or ""
+    base_type = get_base_item_model(item_type)[0] or item_type
+    custom_fields = custom_item_fields(item_type)
+    if base_type not in reference_fields and not custom_fields:
         return item_doc
 
     # Otherwise, we need to loop do the relevant lookup
     dereferenced_fields: dict[str, list] = {}
     read_permissions = get_default_permissions(user_only=False)
-    for field in reference_fields[item_type]:
+    for field in reference_fields.get(base_type, []):
         preferred_refs: list[dict | None] = []
         dereferenced_fields[field] = []
 
@@ -292,25 +339,9 @@ def entry_reference_lookup(item_doc: dict) -> dict:
         for ind, ref in enumerate(preferred_refs):
             deref = None
             if ref:
-                deref = flask_mongo.db.items.find_one(
-                    {**ref, **read_permissions},
-                    projection={
-                        "name": 1,
-                        "item_id": 1,
-                        "refcode": 1,
-                        "chemform": 1,
-                        "type": 1,
-                        "_id": 0,
-                    },
+                deref = _lookup_item_reference(
+                    ref, item_doc[field][ind].get("item", {}), read_permissions
                 )
-                if not deref:
-                    # If the source item exists but is inaccessible, only refresh its identifiers
-                    # and keep the rest of the originally stored data (e.g., name, chemform)
-                    identifiers = flask_mongo.db.items.find_one(
-                        ref, projection={"item_id": 1, "refcode": 1, "type": 1, "_id": 0}
-                    )
-                    if identifiers:
-                        deref = {**item_doc[field][ind].get("item", {}), **identifiers}
 
             # If the source item has been deleted or is inlined, use the original subitem data
             if not deref:
@@ -322,6 +353,12 @@ def entry_reference_lookup(item_doc: dict) -> dict:
                     **item_doc[field][ind],
                     "item": deref,
                 }
+            )
+
+    for field in custom_fields:
+        if field in item_doc:
+            dereferenced_fields[field] = _lookup_nested_item_references(
+                item_doc[field], read_permissions
             )
 
     item_doc.update(dereferenced_fields)

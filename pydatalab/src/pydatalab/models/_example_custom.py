@@ -24,7 +24,7 @@ from pydantic import Field
 
 from pydatalab.models.items import Item
 from pydatalab.models.samples import Sample
-from pydatalab.models.utils import BaseModel
+from pydatalab.models.utils import BaseModel, Constituent, EntryReference
 
 
 class CustomProperties(BaseModel):
@@ -52,6 +52,11 @@ class MySample(Sample):
     custom_properties: CustomProperties | None = None
     """An example extra nested field."""
 
+    precursor: EntryReference | None = Field(
+        None, json_schema_extra={"datalab_ref_types": ["samples", "starting_materials"]}
+    )
+    """An example reference to another item, stored as a parent relationship."""
+
 
 class MyItem(Item):
     """An example wholly custom item type (not sample-derived) with custom
@@ -64,3 +69,11 @@ class MyItem(Item):
 
     height: float | None = None
     """An example custom dimension (mm)."""
+
+    source: EntryReference | None = Field(
+        None, json_schema_extra={"datalab_ref_types": ["samples", "starting_materials"]}
+    )
+    """An example reference to another item, stored as a parent relationship."""
+
+    components: list[Constituent] = Field(default_factory=list)
+    """An example list of nested references to other items."""

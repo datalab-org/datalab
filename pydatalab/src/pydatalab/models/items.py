@@ -1,6 +1,6 @@
 import abc
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from pydatalab.models.blocks import HasBlocks
 from pydatalab.models.entries import Entry
@@ -16,6 +16,7 @@ from pydatalab.models.utils import (
     HumanReadableIdentifier,
     IsoformatDateTime,
     Refcode,
+    iter_item_references,
 )
 
 
@@ -84,3 +85,73 @@ class Item(
                 raise ValueError(f"refcode missing prefix or ID {id=}, {prefix=} from {v=}")
 
         return v
+
+    @model_validator(mode="after")
+    def add_missing_reference_relationships(self):
+        """Add a parent relationship for every item referenced in a custom field (see
+        `custom_item_fields`), and remove parent relationships to items that are no
+        longer referenced. Built-in types are left untouched."""
+        from pydatalab.models import custom_item_fields
+        from pydatalab.models.relationships import RelationshipType, TypedRelationship
+
+        fields = custom_item_fields(self.type)
+        if not fields:
+            return self
+
+        references = list(iter_item_references([getattr(self, field) for field in fields]))
+
+        # Index by refcode *and* item_id so a stored relationship carrying an
+        # item_id still matches a refcode-enriched reference (and vice-versa).
+        existing_parent_relationships = {
+            identifier: relationship
+            for relationship in self.relationships
+            if relationship.relation == RelationshipType.PARENT
+            for identifier in (relationship.refcode, relationship.item_id)
+            if identifier
+        }
+
+        for reference in references:
+            refcode = reference.refcode
+            item_id = reference.item_id
+            if not (refcode or item_id):
+                continue
+
+            relationship = existing_parent_relationships.get(
+                refcode
+            ) or existing_parent_relationships.get(item_id)
+            if relationship is None:
+                relationship = TypedRelationship(
+                    relation=RelationshipType.PARENT,
+                    refcode=refcode,
+                    item_id=item_id,
+                    type=reference.type,
+                    description="Is referenced by",
+                )
+                self.relationships.append(relationship)
+            else:
+                relationship.refcode = relationship.refcode or refcode
+                relationship.item_id = relationship.item_id or item_id
+
+            for identifier in (relationship.refcode, relationship.item_id):
+                if identifier:
+                    existing_parent_relationships[identifier] = relationship
+
+        # Parents of synthesis constituents are managed by `HasSynthesisInfo`
+        references.extend(iter_item_references(getattr(self, "synthesis_constituents", [])))
+        referenced = {
+            identifier
+            for reference in references
+            for identifier in (reference.refcode, reference.item_id)
+            if identifier
+        }
+        self.relationships = [
+            rel
+            for rel in self.relationships
+            if not (
+                rel.relation == RelationshipType.PARENT
+                and rel.refcode not in referenced
+                and rel.item_id not in referenced
+            )
+        ]
+
+        return self

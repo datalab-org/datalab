@@ -1,7 +1,7 @@
 import datetime
 import random
 import string
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from enum import Enum
 from functools import partial
 from typing import Annotated, Any, TypeAlias, get_args
@@ -426,6 +426,25 @@ class Constituent(BaseModel):
                 return InlineSubstance(name=name or str(v), chemform=chemform)
 
         return v
+
+
+def iter_item_references(value: Any) -> Iterator[EntryReference]:
+    """Recursively yield every `EntryReference` to a registered item type found in
+    `value` (a model, list or dict), at any depth, e.g. including `Constituent.item`."""
+    from pydatalab.models import ITEM_MODELS
+
+    if isinstance(value, EntryReference):
+        if value.type in ITEM_MODELS:
+            yield value
+    elif isinstance(value, PydanticBaseModel):
+        for name in type(value).model_fields:
+            yield from iter_item_references(getattr(value, name))
+    elif isinstance(value, list):
+        for v in value:
+            yield from iter_item_references(v)
+    elif isinstance(value, dict):
+        for v in value.values():
+            yield from iter_item_references(v)
 
 
 def construct_location_hierarchy(flat_locations: set[str]) -> dict[str, dict]:
