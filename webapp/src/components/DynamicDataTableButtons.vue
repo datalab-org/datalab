@@ -29,38 +29,48 @@
         "
       >
         <template v-if="dataType === 'samples'">
-          <button
-            v-if="canCreateSingleItem"
-            data-testid="add-item-button"
-            class="btn btn-default btn-action"
-            :disabled="!isLoggedIn || adminSuperUserMode"
+          <span
+            class="btn-action-wrapper"
             :title="
-              !isLoggedIn
-                ? 'Log in to add items'
-                : adminSuperUserMode
-                  ? 'Disabled in super-user mode'
-                  : ''
+              !canCreateSingleItem
+                ? 'No item types are available for single-item creation on this deployment'
+                : !isLoggedIn
+                  ? 'Log in to add items'
+                  : adminSuperUserMode
+                    ? 'Disabled in super-user mode'
+                    : null
             "
-            @click="$emit('open-create-item-modal')"
           >
-            Add an item
-          </button>
-          <button
-            v-if="canBatchCreateItems"
-            data-testid="batch-item-button"
-            class="btn btn-default btn-action"
-            :disabled="!isLoggedIn || adminSuperUserMode"
+            <button
+              data-testid="add-item-button"
+              class="btn btn-default btn-action"
+              :disabled="!isLoggedIn || adminSuperUserMode || !canCreateSingleItem"
+              @click="$emit('open-create-item-modal')"
+            >
+              Add an item
+            </button>
+          </span>
+          <span
+            class="btn-action-wrapper"
             :title="
-              !isLoggedIn
-                ? 'Log in to add items'
-                : adminSuperUserMode
-                  ? 'Disabled in super-user mode'
-                  : ''
+              !canBatchCreateItems
+                ? 'No item types are available for batch creation on this deployment'
+                : !isLoggedIn
+                  ? 'Log in to add items'
+                  : adminSuperUserMode
+                    ? 'Disabled in super-user mode'
+                    : null
             "
-            @click="$emit('open-batch-create-item-modal')"
           >
-            Add batch of items
-          </button>
+            <button
+              data-testid="batch-item-button"
+              class="btn btn-default btn-action"
+              :disabled="!isLoggedIn || adminSuperUserMode || !canBatchCreateItems"
+              @click="$emit('open-batch-create-item-modal')"
+            >
+              Add batch of items
+            </button>
+          </span>
           <button
             data-testid="scan-qr-button"
             class="btn btn-default btn-action"
@@ -79,22 +89,42 @@
         >
           Create new collection
         </button>
-        <button
-          v-if="dataType === 'startingMaterials' && editableInventory && canCreateStartingMaterial"
-          data-testid="add-starting-material-button"
-          class="btn btn-default btn-action"
-          @click="$emit('open-create-item-modal')"
+        <span
+          v-if="dataType === 'startingMaterials' && editableInventory"
+          class="btn-action-wrapper"
+          :title="
+            canCreateStartingMaterial
+              ? null
+              : 'The starting material item type is not available on this deployment'
+          "
         >
-          Add a starting material
-        </button>
-        <button
-          v-if="dataType === 'equipment' && canCreateEquipment"
-          data-testid="add-equipment-button"
-          class="btn btn-default btn-action"
-          @click="$emit('open-create-equipment-modal')"
+          <button
+            data-testid="add-starting-material-button"
+            class="btn btn-default btn-action"
+            :disabled="!canCreateStartingMaterial"
+            @click="$emit('open-create-item-modal')"
+          >
+            Add a starting material
+          </button>
+        </span>
+        <span
+          v-if="dataType === 'equipment'"
+          class="btn-action-wrapper"
+          :title="
+            canCreateEquipment
+              ? null
+              : 'The equipment item type is not available on this deployment'
+          "
         >
-          Add equipment
-        </button>
+          <button
+            data-testid="add-equipment-button"
+            class="btn btn-default btn-action"
+            :disabled="!canCreateEquipment"
+            @click="$emit('open-create-equipment-modal')"
+          >
+            Add equipment
+          </button>
+        </span>
         <button
           v-if="dataType === 'tags' && isLoggedIn"
           data-testid="add-tag-button"
@@ -481,11 +511,8 @@ export default {
   computed: {
     hasActionButtons() {
       return (
-        ["samples", "collections"].includes(this.dataType) ||
-        (this.dataType === "equipment" && this.canCreateEquipment) ||
-        (this.dataType === "startingMaterials" &&
-          this.editableInventory &&
-          this.canCreateStartingMaterial) ||
+        ["samples", "collections", "equipment"].includes(this.dataType) ||
+        (this.dataType === "startingMaterials" && this.editableInventory) ||
         (this.dataType === "tags" && this.isLoggedIn)
       );
     },
@@ -1094,6 +1121,11 @@ export default {
   flex: 1;
   text-align: center;
   white-space: nowrap;
+}
+
+.btn-action-wrapper {
+  display: flex;
+  flex: 1;
 }
 
 .table-tools {
