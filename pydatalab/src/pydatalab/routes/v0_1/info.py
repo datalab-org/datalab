@@ -16,7 +16,7 @@ from pydantic import (
 )
 
 from pydatalab import __version__
-from pydatalab.apps import BLOCK_TYPES
+from pydatalab.apps import BLOCK_TYPES, is_block_type_available
 from pydatalab.config import CONFIG
 from pydatalab.deployment_stats import (
     STATS_REFRESH_INTERVAL,
@@ -221,6 +221,7 @@ def list_block_types():
                         "version": getattr(block, "version", __version__),
                         "accepted_file_extensions": getattr(block, "accepted_file_extensions", []),
                         "multi_file": getattr(block, "multi_file", False),
+                        "available": is_block_type_available(block_type),
                     },
                 )
                 for block_type, block in BLOCK_TYPES.items()
