@@ -178,6 +178,9 @@ def load_block_plugins():
 
 
 load_block_plugins()
+# Run once the registry is complete, so this applies wherever blocks are loaded
+# (app, workers, CLI) without changing the startup order of `create_app`
+warn_for_unknown_block_types()
 
 
 def load_item_plugins():

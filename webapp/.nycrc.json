@@ -1,0 +1,8 @@
+{
+  "all": false,
+  "include": ["src/**"],
+  "extension": [".js", ".vue"],
+  "reporter": ["lcov", "text-summary", "json-summary"],
+  "report-dir": "coverage/e2e",
+  "temp-dir": ".nyc_output"
+}

@@ -388,9 +388,15 @@ def update_block():
 
     # `blocks_obj` holds a reference for separated blocks, so the stored payload
     # has to be resolved before it can restore server-authoritative fields.
-    block = BLOCK_TYPES[block_type].from_web(
-        block_data, stored_data=store.load_blocks_obj(item).get(block_data["block_id"])
-    )
+    stored_data = store.load_blocks_obj(item).get(block_data["block_id"])
+    stored_type = (stored_data or {}).get("blocktype")
+    if stored_type is not None and stored_type != block_type:
+        raise BadRequest(
+            f"Cannot change the type of existing block {block_data['block_id']!r} "
+            f"from {stored_type!r} to {block_type!r}."
+        )
+
+    block = BLOCK_TYPES[block_type].from_web(block_data, stored_data=stored_data)
 
     from pydatalab.config import CONFIG
 

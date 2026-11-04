@@ -1,10 +1,11 @@
 <template>
-  <div v-if="hasAvailableBlockTypes" ref="root" :class="rootClass">
+  <div ref="root" :class="rootClass" :title="disabled ? disabledTitle : null">
     <button
       v-if="variant === 'button'"
       :id="triggerId"
       type="button"
       class="btn btn-primary dropdown-toggle"
+      :disabled="disabled"
       :data-testid="triggerTestid"
       aria-haspopup="true"
       :aria-expanded="isOpen"
@@ -16,8 +17,10 @@
       v-else
       :id="triggerId"
       class="nav-link dropdown-toggle"
+      :class="{ disabled }"
       role="button"
-      title="Add a block"
+      :title="disabled ? null : 'Add a block'"
+      :aria-disabled="disabled"
       :data-testid="triggerTestid"
       aria-haspopup="true"
       :aria-expanded="isOpen"
@@ -31,23 +34,23 @@
       :data-testid="menuTestid"
       :aria-labelledby="triggerId"
     >
-      <h6 v-if="availableSuggestedBlockTypes.length > 0" class="dropdown-header">
+      <h6 v-if="suggestedBlockTypes.length > 0" class="dropdown-header">
         Suggested based on your files
       </h6>
       <span
-        v-for="blockInfo in availableSuggestedBlockTypes"
+        v-for="blockInfo in suggestedBlockTypes"
         :key="keyPrefix + '-suggested-' + blockInfo.id"
         @click="onSelect(blockInfo.id)"
       >
         <BlockTooltip :block-info="blockInfo.attributes" />
       </span>
       <div
-        v-if="availableSuggestedBlockTypes.length > 0 && availableBlockTypes.length > 0"
+        v-if="suggestedBlockTypes.length > 0 && allBlockTypes.length > 0"
         class="dropdown-divider"
       ></div>
-      <h6 v-if="availableBlockTypes.length > 0" class="dropdown-header">All block types</h6>
+      <h6 v-if="allBlockTypes.length > 0" class="dropdown-header">All block types</h6>
       <span
-        v-for="blockInfo in availableBlockTypes"
+        v-for="blockInfo in allBlockTypes"
         :key="keyPrefix + '-all-' + blockInfo.id"
         @click="onSelect(blockInfo.id)"
       >
@@ -73,10 +76,6 @@ export default {
     allBlockTypes: {
       type: Array,
       default: () => [],
-    },
-    blockTypeAllowList: {
-      type: Array,
-      default: null,
     },
     // "navlink" renders a navbar nav-link trigger; "button" renders a btn-primary trigger
     variant: {
@@ -106,6 +105,16 @@ export default {
       type: String,
       default: "block",
     },
+    // disables the trigger, e.g. when the deployment allows no block types; the
+    // explanatory tooltip sits on the wrapper because disabled triggers ignore pointer events
+    disabled: {
+      type: Boolean,
+      default: false,
+    },
+    disabledTitle: {
+      type: String,
+      default: "No block types are available for this item type on this deployment",
+    },
   },
   emits: ["select"],
   data() {
@@ -114,15 +123,6 @@ export default {
     };
   },
   computed: {
-    availableSuggestedBlockTypes() {
-      return this.suggestedBlockTypes.filter(this.isBlockAvailable);
-    },
-    availableBlockTypes() {
-      return this.allBlockTypes.filter(this.isBlockAvailable);
-    },
-    hasAvailableBlockTypes() {
-      return this.availableSuggestedBlockTypes.length > 0 || this.availableBlockTypes.length > 0;
-    },
     rootClass() {
       const base = this.variant === "button" ? ["d-inline-block"] : ["nav-item"];
       base.push(this.direction === "up" ? "dropup" : "dropdown");
@@ -138,13 +138,10 @@ export default {
     document.removeEventListener("keydown", this.handleEscape);
   },
   methods: {
-    isBlockAvailable(blockInfo) {
-      return (
-        blockInfo.attributes?.available !== false &&
-        (this.blockTypeAllowList === null || this.blockTypeAllowList.includes(blockInfo.id))
-      );
-    },
     toggle() {
+      if (this.disabled) {
+        return;
+      }
       this.isOpen = !this.isOpen;
     },
     close() {
