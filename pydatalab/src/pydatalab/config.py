@@ -360,8 +360,6 @@ its importance when deploying a datalab instance.""",
         for entry in value:
             if isinstance(entry, str):
                 entry = ItemTypeAllowListEntry(type=entry, block_type_allow_list=None)
-            elif isinstance(entry, dict) and "block_type_allow_list" not in entry:
-                raise ValueError("object entries require block_type_allow_list")
             normalized_entries.append(entry)
         return normalized_entries
 

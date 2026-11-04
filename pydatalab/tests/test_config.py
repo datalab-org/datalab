@@ -34,12 +34,14 @@ def test_item_type_allow_list_settings(monkeypatch):
             "samples",
             {"type": "cells", "block_type_allow_list": ["comment", "cycle"]},
             {"type": "equipment", "block_type_allow_list": []},
+            {"type": "starting_materials", "block_type_allow_list": None},
         ]
     )
     assert config.ITEM_TYPE_ALLOW_LIST == [
         ItemTypeAllowListEntry(type="samples", block_type_allow_list=None),
         ItemTypeAllowListEntry(type="cells", block_type_allow_list=["comment", "cycle"]),
         ItemTypeAllowListEntry(type="equipment", block_type_allow_list=[]),
+        ItemTypeAllowListEntry(type="starting_materials", block_type_allow_list=None),
     ]
 
     monkeypatch.setenv(
@@ -51,11 +53,7 @@ def test_item_type_allow_list_settings(monkeypatch):
         ItemTypeAllowListEntry(type="cells", block_type_allow_list=["comment"]),
     ]
 
-    assert ServerConfig(
-        ITEM_TYPE_ALLOW_LIST=[{"type": "samples", "block_type_allow_list": None}]
-    ).ITEM_TYPE_ALLOW_LIST == [ItemTypeAllowListEntry(type="samples", block_type_allow_list=None)]
-
-    with pytest.raises(ValueError, match="require block_type_allow_list"):
+    with pytest.raises(ValueError, match="Field required"):
         ServerConfig(ITEM_TYPE_ALLOW_LIST=[{"type": "samples"}])
 
 
