@@ -114,8 +114,8 @@ def is_block_type_available(block_type: str, item_type: str | None = None) -> bo
 
     from pydatalab.models import get_item_block_type_allow_list
 
-    item_allow_list = get_item_block_type_allow_list(item_type)
-    return item_allow_list is None or block_type in item_allow_list
+    item_block_type_allow_list = get_item_block_type_allow_list(item_type)
+    return item_block_type_allow_list is None or block_type in item_block_type_allow_list
 
 
 def warn_for_unknown_block_types() -> None:
