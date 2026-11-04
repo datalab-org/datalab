@@ -14,7 +14,7 @@ from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
 from werkzeug.exceptions import BadRequest, Conflict, Forbidden, InternalServerError, NotFound
 
-from pydatalab.apps import BLOCK_TYPES
+from pydatalab.apps import BLOCK_TYPES, is_block_type_available
 from pydatalab.blocks import store as block_store
 from pydatalab.config import CONFIG
 from pydatalab.feature_flags import FEATURE_FLAGS
@@ -565,6 +565,40 @@ def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
     return sample_dict
 
 
+def _check_incoming_block_types(blocks_obj: dict, stored_payloads: dict | None = None) -> None:
+    """Validate the block types of an incoming `blocks_obj` against the stored blocks
+    and the deployment's `BLOCK_TYPE_ALLOW_LIST`.
+
+    - Every block must be a dict with a string `blocktype` (400 otherwise).
+    - Existing blocks (those in `stored_payloads`) may not change their `blocktype` (400).
+    - New blocks of an installed type must be allowed by the deployment (403). New blocks of
+      an uninstalled type are let through, to be stored as `notsupported` blocks, matching the
+      behaviour without an allow list.
+
+    """
+    if not isinstance(blocks_obj, dict):
+        raise BadRequest("`blocks_obj` must be a mapping of block IDs to block data.")
+
+    stored_payloads = stored_payloads or {}
+    for block_id, block_data in blocks_obj.items():
+        if not isinstance(block_data, dict) or not isinstance(block_data.get("blocktype"), str):
+            raise BadRequest(f"Block {block_id!r} must be an object with a string 'blocktype'.")
+
+        block_type = block_data["blocktype"]
+        stored_block = stored_payloads.get(block_id)
+        if stored_block is not None:
+            stored_type = stored_block.get("blocktype")
+            if stored_type is not None and stored_type != block_type:
+                raise BadRequest(
+                    f"Cannot change the type of existing block {block_id!r} "
+                    f"from {stored_type!r} to {block_type!r}."
+                )
+            continue
+
+        if block_type in BLOCK_TYPES and not is_block_type_available(block_type):
+            raise Forbidden(f"Block type {block_type!r} is not available in this deployment.")
+
+
 def _create_sample(
     sample_dict: dict,
     copy_from_item_id: str | None = None,
@@ -597,6 +631,7 @@ def _create_sample(
     model = ITEM_MODELS[type_]
 
     new_sample = sample_dict.copy()
+    _check_incoming_block_types(new_sample.get("blocks_obj") or {})
 
     if type_ in INVENTORY_TYPES:
         # starting_materials and equipment are open to all in the deployment (or to the
@@ -1626,11 +1661,14 @@ def delete_version(refcode, version_id):
 
 @ITEMS.route("/items/<refcode>/save-version/", methods=["POST"])
 def save_version(refcode):
-    """Manually save the current state of an item as a version snapshot with an incremental version number."""
+    """Manually save the current state of an item as a version snapshot with an incremental version number.
+
+    Requires write access to the item.
+    """
     response, status_code = save_version_snapshot(
         refcode,
         action=None,  # let the function determine the appropriate action (e.g. AGENT_SAVE vs MANUAL_SAVE) based on user-agent
-        permission_filter=get_default_permissions(user_only=False),
+        permission_filter=get_default_permissions(user_only=True),
     )
     if status_code == 200 and "version" in response:
         if len(refcode.split(":")) != 2:
@@ -1716,6 +1754,7 @@ def save_item():
         # referenced block that payload lives in the `blocks` collection, not in
         # the item's `blocks_obj` entry.
         stored_payloads = block_store.load_blocks_obj(item) if stored_blocks_obj else {}
+        _check_incoming_block_types(incoming_blocks, stored_payloads)
         for block_id, block_data in incoming_blocks.items():
             blocktype = block_data["blocktype"]
             block = BLOCK_TYPES.get(blocktype, BLOCK_TYPES["notsupported"]).from_web(
