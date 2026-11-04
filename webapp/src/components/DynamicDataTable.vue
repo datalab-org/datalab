@@ -54,8 +54,7 @@
           @open-create-collection-modal="createCollectionModalIsOpen = true"
           @open-create-equipment-modal="createEquipmentModalIsOpen = true"
           @open-create-tag-modal="$emit('open-create-tag-modal')"
-          @open-add-to-collection-modal="addToCollectionModalIsOpen = true"
-          @open-batch-share-modal="batchShareModalIsOpen = true"
+          @action-request="onActionRequest"
           @delete-selected-items="deleteSelectedItems"
           @remove-selected-items-from-collection="removeSelectedItemsFromCollection"
           @reset-table="handleResetTable"
@@ -135,6 +134,22 @@
           />
         </template>
       </Column>
+
+      <Column class="actions-column" :class="{ 'filter-active': hasActiveFilters }">
+        <template #header>
+          <DataTableHeaderActions
+            :has-active-filters="hasActiveFilters"
+            @clear-filters="clearFilters"
+          />
+        </template>
+        <template v-if="rowActions.length" #body="slotProps">
+          <DataTableRowActions
+            :row="slotProps.data"
+            :actions="rowActions"
+            @action-request="onActionRequest"
+          />
+        </template>
+      </Column>
     </DataTable>
   </div>
   <CreateItemModal
@@ -145,15 +160,10 @@
   <QRScannerModal v-model="qrScannerModalIsOpen" />
   <CreateCollectionModal v-model="createCollectionModalIsOpen" />
   <CreateEquipmentModal v-model="createEquipmentModalIsOpen" />
-  <AddToCollectionModal
-    v-model="addToCollectionModalIsOpen"
-    :items-selected="itemsSelected"
-    @items-updated="handleItemsUpdated"
-  />
-  <BatchShareModal
-    v-model="batchShareModalIsOpen"
-    :items-selected="itemsSelected"
-    @items-updated="handleItemsUpdated"
+  <ItemActionsHandler
+    ref="itemActionsHandler"
+    :data-type="dataType"
+    @completed="onActionCompleted"
   />
 </template>
 
@@ -164,10 +174,12 @@ import BatchCreateItemModal from "@/components/BatchCreateItemModal";
 import QRScannerModal from "@/components/QRScannerModal";
 import CreateCollectionModal from "@/components/CreateCollectionModal";
 import CreateEquipmentModal from "@/components/CreateEquipmentModal";
-import AddToCollectionModal from "@/components/AddToCollectionModal";
-import BatchShareModal from "@/components/BatchShareModal";
+import DataTableHeaderActions from "@/components/DataTableHeaderActions";
+import DataTableRowActions from "@/components/DataTableRowActions";
+import ItemActionsHandler from "@/components/ItemActionsHandler";
 
 import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY } from "@/resources.js";
+import { DELETE_ACTION, rowActionsFor } from "@/utils/itemActions.js";
 
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
@@ -181,8 +193,9 @@ export default {
     QRScannerModal,
     CreateCollectionModal,
     CreateEquipmentModal,
-    AddToCollectionModal,
-    BatchShareModal,
+    DataTableHeaderActions,
+    DataTableRowActions,
+    ItemActionsHandler,
     DataTable,
     Column,
   },
@@ -245,8 +258,6 @@ export default {
       qrScannerModalIsOpen: false,
       createCollectionModalIsOpen: false,
       createEquipmentModalIsOpen: false,
-      addToCollectionModalIsOpen: false,
-      batchShareModalIsOpen: false,
       isSampleFetchError: false,
       itemsSelected: [],
       allSelected: false,
@@ -304,6 +315,14 @@ export default {
     availableColumns() {
       return this.columns.map((col) => ({ ...col }));
     },
+    hasActiveFilters() {
+      return Object.keys(this.filters).some(
+        (field) => field !== "global" && this.isFilterActive(field),
+      );
+    },
+    rowActions() {
+      return this.showButtons ? rowActionsFor(this.dataType) : [];
+    },
   },
   created() {
     this.$store.commit("setPage", { type: this.dataType, page: 0 });
@@ -337,29 +356,18 @@ export default {
       return itemDate >= startDate && itemDate <= endDate;
     });
 
-    const filters = { global: { value: null } };
     for (const col of this.columns) {
-      if (!col.filter) continue;
+      if (typeof col.filter?.match !== "function") continue;
 
-      let matchModeName;
-      if (typeof col.filter.match === "function") {
-        matchModeName = `${this.dataType}_${col.field}`;
-        const matchFn = col.filter.match;
-        FilterService.register(matchModeName, (value, filterValue) => {
-          const operator = this.filters[col.field]?.operator;
-          return matchFn(value, filterValue, operator);
-        });
-        this.registeredMatchModes.push(matchModeName);
-      } else {
-        matchModeName = col.filter.matchMode || FilterMatchMode.CONTAINS;
-      }
-
-      filters[col.field] = {
-        operator: col.filter.operator || FilterOperator.AND,
-        constraints: [{ value: null, matchMode: matchModeName }],
-      };
+      const matchModeName = this.matchModeName(col);
+      const matchFn = col.filter.match;
+      FilterService.register(matchModeName, (value, filterValue) => {
+        const operator = this.filters[col.field]?.operator;
+        return matchFn(value, filterValue, operator);
+      });
+      this.registeredMatchModes.push(matchModeName);
     }
-    this.filters = filters;
+    this.filters = this.defaultFilters();
   },
   unmounted() {
     // These matchers close over this instance, so drop them rather than leaving them
@@ -370,6 +378,22 @@ export default {
     this.registeredMatchModes = [];
   },
   methods: {
+    matchModeName(column) {
+      return typeof column.filter.match === "function"
+        ? `${this.dataType}_${column.field}`
+        : column.filter.matchMode || FilterMatchMode.CONTAINS;
+    },
+    defaultFilters() {
+      const filters = { global: { value: null } };
+      for (const col of this.columns) {
+        if (!col.filter) continue;
+        filters[col.field] = {
+          operator: col.filter.operator || FilterOperator.AND,
+          constraints: [{ value: null, matchMode: this.matchModeName(col) }],
+        };
+      }
+      return filters;
+    },
     resolveBodyEvents(column) {
       const listeners = Object.fromEntries(
         (column.body?.events || []).map((event) => [
@@ -551,6 +575,18 @@ export default {
     handleItemsUpdated() {
       this.itemsSelected = [];
     },
+    onActionRequest(request) {
+      this.$refs.itemActionsHandler.handle(request);
+    },
+    onActionCompleted({ action, items, source }) {
+      if (source === "batch") {
+        this.itemsSelected = [];
+      } else if (action === DELETE_ACTION.key) {
+        // A row action only touched that row: keep the rest of the user's selection.
+        const deleted = new Set(items);
+        this.itemsSelected = this.itemsSelected.filter((item) => !deleted.has(item));
+      }
+    },
     updateRows(rows) {
       this.$store.commit("setRows", { type: this.dataType, rows });
     },
@@ -647,6 +683,9 @@ export default {
     },
     updateFilters(newFilters) {
       this.filters = { ...newFilters };
+    },
+    clearFilters() {
+      this.filters = { ...this.defaultFilters(), global: this.filters.global };
     },
     handleResetTable() {
       localStorage.removeItem(`datatable-state-${this.dataType}`);

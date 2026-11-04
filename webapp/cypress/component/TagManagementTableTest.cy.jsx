@@ -52,7 +52,7 @@ function mountTable(role) {
 describe("TagManagementTable Component Tests", () => {
   it("renders the expected columns (including Scope)", () => {
     mountTable("admin");
-    const headers = ["", "Tag", "Description", "Scope", "Actions"];
+    const headers = ["", "Tag", "Description", "Scope", "Actions", ""]; // last: clear filters
     cy.get(".p-datatable-column-header-content").should("have.length", headers.length);
     cy.get(".p-datatable-column-header-content").each((header, index) => {
       cy.wrap(header).should("contain.text", headers[index]);
