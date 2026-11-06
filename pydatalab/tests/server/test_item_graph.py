@@ -145,6 +145,10 @@ def test_single_starting_material(admin_client, client):
     assert len(collection_graph["nodes"]) == 1
     assert len(collection_graph["edges"]) == 0
 
+    default_graph = client.get("/item-graph/great-grandchild").json
+    numeric_true_graph = client.get("/item-graph/great-grandchild?hide_collections=1").json
+    assert numeric_true_graph == default_graph
+
     graph = client.get("/item-graph/great-grandchild?hide_collections=false").json
     assert len(graph["nodes"]) == 2
     assert len(graph["edges"]) == 1
