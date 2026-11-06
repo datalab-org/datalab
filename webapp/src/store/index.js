@@ -1,3 +1,4 @@
+// This file was edited with the assistance of an AI model and requires human review from the contributor.
 import { createStore } from "vuex";
 // import { createLogger } from "vuex";
 // import { set } from 'vue'
@@ -94,8 +95,10 @@ export default createStore({
       state.serverInfo = serverInfo;
     },
     setSampleList(state, sampleSummaries) {
-      // sampleSummaries is an array of json objects summarizing the available samples
-      state.sample_list = sampleSummaries || [];
+      // sampleSummaries is an array of json objects summarizing the available samples.
+      // Frozen so Vue does not make the (potentially very long) list deeply reactive; the
+      // list is only ever replaced wholesale, never mutated in place.
+      state.sample_list = Object.freeze(sampleSummaries || []);
     },
     setStartingMaterialList(state, startingMaterialSummaries) {
       // startingMaterialSummaries is an array of json objects summarizing the available starting materials
@@ -144,19 +147,11 @@ export default createStore({
     },
     appendToSampleList(state, sampleSummary) {
       // sampleSummary is a json object summarizing the new sample
-      if (state.sample_list === null) {
-        state.sample_list = [sampleSummary];
-      } else {
-        state.sample_list.push(sampleSummary);
-      }
+      state.sample_list = Object.freeze([...(state.sample_list || []), sampleSummary]);
     },
     prependToSampleList(state, sampleSummary) {
       // sampleSummary is a json object summarizing the new sample
-      if (state.sample_list === null) {
-        state.sample_list = [sampleSummary];
-      } else {
-        state.sample_list.unshift(sampleSummary);
-      }
+      state.sample_list = Object.freeze([sampleSummary, ...(state.sample_list || [])]);
     },
     prependToStartingMaterialList(state, itemSummary) {
       // sampleSummary is a json object summarizing the new sample
@@ -187,7 +182,7 @@ export default createStore({
 
       const index = state.sample_list.map((e) => e.item_id).indexOf(item_id);
       if (index > -1) {
-        state.sample_list.splice(index, 1);
+        state.sample_list = Object.freeze(state.sample_list.filter((_, i) => i !== index));
       } else {
         console.warn(`deleteFromSampleList couldn't find the item with id ${item_id}`);
       }
