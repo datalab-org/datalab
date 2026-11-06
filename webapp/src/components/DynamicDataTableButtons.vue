@@ -173,6 +173,14 @@
                 Add to collection
               </a>
               <a
+                v-if="canBatchTag"
+                data-testid="add-tags-button"
+                class="dropdown-item"
+                @click="handleBatchTag"
+              >
+                <font-awesome-icon icon="tags" class="mr-2" />Add tags
+              </a>
+              <a
                 v-if="dataType === 'collectionItems'"
                 data-testid="remove-from-collection-dropdown"
                 class="dropdown-item"
@@ -451,6 +459,7 @@ export default {
     "open-create-equipment-modal",
     "open-create-tag-modal",
     "open-add-to-collection-modal",
+    "open-batch-tag-modal",
     "open-batch-share-modal",
     "delete-selected-items",
     "update:filters",
@@ -488,6 +497,13 @@ export default {
     },
     isLoggedIn() {
       return this.$store.state.currentUserID !== null;
+    },
+    canBatchTag() {
+      return (
+        this.isLoggedIn &&
+        (this.$store.state.serverInfo?.features?.tags ?? false) &&
+        ["samples", "startingMaterials", "equipment"].includes(this.dataType)
+      );
     },
   },
   watch: {
@@ -593,6 +609,10 @@ export default {
     },
     handleAddToCollection() {
       this.$emit("open-add-to-collection-modal");
+      this.isSelectedDropdownVisible = false;
+    },
+    handleBatchTag() {
+      this.$emit("open-batch-tag-modal");
       this.isSelectedDropdownVisible = false;
     },
     columnLabel(option) {

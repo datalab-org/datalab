@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from werkzeug.exceptions import BadRequest, Conflict, Forbidden, NotFound, Unauthorized
 
 from pydatalab.feature_flags import FEATURE_FLAGS
-from pydatalab.logger import logged_route
+from pydatalab.logger import LOGGER, logged_route
 from pydatalab.models.tags import Tag, TagAccessScope
 from pydatalab.models.utils import UserRole
 from pydatalab.mongo import (
@@ -18,8 +18,9 @@ from pydatalab.mongo import (
     flask_mongo,
     insert_pydantic_model_fork_safe,
 )
-from pydatalab.permissions import active_users_or_get_only
-from pydatalab.tags import get_usable_tags_filter
+from pydatalab.permissions import active_users_or_get_only, get_default_permissions
+from pydatalab.tags import authorize_added_tags, get_usable_tags_filter, tag_immutable_ids
+from pydatalab.versioning import save_version_snapshot
 
 TAGS = Blueprint("tags", __name__)
 
@@ -181,6 +182,110 @@ def search_tags():
     ]
 
     return jsonify({"status": "success", "data": data}), 200
+
+
+@TAGS.route("/items/batch/tags", methods=["PATCH"])
+def add_tags_to_items():
+    """Add one or more tags to every editable item in a batch."""
+    request_json = request.get_json(silent=True) or {}
+    refcodes = request_json.get("refcodes")
+    tag_ids = request_json.get("tag_ids")
+
+    if not isinstance(refcodes, list) or not refcodes:
+        raise BadRequest("A non-empty 'refcodes' list is required.")
+    if not isinstance(tag_ids, list) or not tag_ids:
+        raise BadRequest("A non-empty 'tag_ids' list is required.")
+    if not all(isinstance(refcode, str) and refcode for refcode in refcodes):
+        raise BadRequest("Every refcode must be a non-empty string.")
+    if not all(isinstance(tag_id, str) and tag_id for tag_id in tag_ids):
+        raise BadRequest("Every tag ID must be a non-empty string.")
+
+    refcodes = list(dict.fromkeys(refcodes))
+    tag_ids = list(dict.fromkeys(tag_ids))
+
+    object_ids = []
+    for tag_id in tag_ids:
+        object_id = _parse_object_id(tag_id)
+        if object_id is None:
+            raise BadRequest(f"Invalid tag ID {tag_id!r}.")
+        object_ids.append(object_id)
+
+    tag_references = [{"type": "tags", "immutable_id": object_id} for object_id in object_ids]
+    # Validate the whole tag selection before changing any item.
+    authorize_added_tags(tag_references, set())
+
+    permission_filter = get_default_permissions(user_only=True)
+    editable_items = list(
+        flask_mongo.db.items.find(
+            {"refcode": {"$in": refcodes}, **permission_filter},
+            {"refcode": 1, "tags": 1},
+        )
+    )
+
+    if not editable_items:
+        raise NotFound("No matching editable items found.")
+
+    items_by_refcode = {item["refcode"]: item for item in editable_items}
+    failed_refcodes = [refcode for refcode in refcodes if refcode not in items_by_refcode]
+    updated_count = 0
+    unchanged_count = 0
+
+    for refcode in refcodes:
+        item = items_by_refcode.get(refcode)
+        if item is None:
+            continue
+
+        existing_tag_ids = tag_immutable_ids(item.get("tags"))
+        references_to_add = [
+            reference
+            for reference in tag_references
+            if str(reference["immutable_id"]) not in existing_tag_ids
+        ]
+        if not references_to_add:
+            unchanged_count += 1
+            continue
+
+        result = flask_mongo.db.items.update_one(
+            {"_id": item["_id"], **get_default_permissions(user_only=True)},
+            {"$addToSet": {"tags": {"$each": references_to_add}}},
+        )
+        if result.matched_count != 1:
+            failed_refcodes.append(refcode)
+            continue
+        if result.modified_count == 0:
+            unchanged_count += 1
+            continue
+
+        updated_count += 1
+        version_response, version_status = save_version_snapshot(refcode)
+        if version_status != 200:
+            LOGGER.error(
+                "Failed to save version for item %s after adding tags: %s",
+                refcode,
+                version_response,
+            )
+        elif "version" in version_response:
+            last_modified = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
+            flask_mongo.db.items.update_one(
+                {"_id": item["_id"]},
+                {
+                    "$set": {
+                        "version": version_response["version"],
+                        "last_modified": last_modified,
+                    }
+                },
+            )
+
+    status = "partial-success" if failed_refcodes else "success"
+    return (
+        jsonify(
+            status=status,
+            updated_count=updated_count,
+            unchanged_count=unchanged_count,
+            failed_refcodes=failed_refcodes,
+        ),
+        207 if failed_refcodes else 200,
+    )
 
 
 @TAGS.route("/tags/<tag_id>", methods=["PATCH"])
