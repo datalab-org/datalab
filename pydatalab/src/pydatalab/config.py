@@ -19,6 +19,7 @@ from pydantic import (
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from pydatalab.models import Person
+from pydatalab.models.people import IdentityType
 from pydatalab.models.utils import RandomAlphabeticalRefcodeFactory, RefCodeFactory
 
 __all__ = (
@@ -249,6 +250,11 @@ class ServerConfig(BaseSettings):
     EMAIL_AUTH_SMTP_SETTINGS: SMTPSettings | None = Field(
         None,
         description="A dictionary containing SMTP settings for sending emails for account registration.",
+    )
+
+    LOGIN_ONLY_AUTH_METHODS: list[IdentityType] = Field(
+        [],
+        description='A list of authentication methods (from `email`, `github`, `orcid`, `google`, `microsoft`) that can only be used to log in to existing accounts, or to connect to an account that is already logged in, but not to register new accounts. For example, setting `["github", "orcid"]` requires users to first register via another method (e.g., email, to obtain a canonical institutional address) before connecting their GitHub or ORCID accounts.',
     )
 
     DISABLE_MAGIC_LINK_AUTH: bool = Field(
