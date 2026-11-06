@@ -1,3 +1,5 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
+
 """Central helpers for the `blocks` and `block_versions` collections.
 
 This module is the single chokepoint for reading and writing separated block
@@ -31,7 +33,8 @@ from pymongo import ReturnDocument
 from werkzeug.exceptions import BadRequest, NotFound
 
 from pydatalab.logger import LOGGER
-from pydatalab.models.blocks import Block
+from pydatalab.models.blocks import Block, BlockMetadata
+from pydatalab.models.utils import IsoformatDateTime
 from pydatalab.models.versions import BlockVersion, BlockVersionCounter, VersionAction
 from pydatalab.mongo import flask_mongo
 
@@ -44,6 +47,7 @@ __all__ = (
     "blocks_preview_projection",
     "authorize_and_get_blocks_data",
     "load_blocks_obj",
+    "get_block_provenance",
     "resolve_snapshot_blocks_obj",
     "create_block_document",
     "update_block_document",
@@ -64,6 +68,56 @@ def _current_user_id() -> ObjectId | None:
     if current_user and current_user.is_authenticated:
         return current_user.person.immutable_id
     return None
+
+
+def _block_timestamp(data: dict, immutable_id: ObjectId) -> datetime.datetime:
+    """The time to order a block by: its measurement time, if the block payload
+    records one, otherwise the creation time encoded in its immutable ID."""
+    metadata = data.get("metadata")
+    if isinstance(metadata, BlockMetadata):
+        measured_at = metadata.measured_at
+    elif isinstance(metadata, dict):
+        try:
+            measured_at = IsoformatDateTime.validate(metadata.get("measured_at"))
+        except (TypeError, ValueError):
+            LOGGER.warning(
+                "Ignoring unparseable `metadata.measured_at` on block %s: %r",
+                immutable_id,
+                metadata.get("measured_at"),
+            )
+            measured_at = None
+    else:
+        measured_at = None
+    return measured_at or immutable_id.generation_time
+
+
+def _block_provenance(block_docs: list[dict]) -> dict[ObjectId, dict]:
+    """The read-only `created_at` and `creators` of each `blocks` document,
+    keyed by immutable ID, with creators resolved in a single batched query."""
+    creator_ids = {cid for doc in block_docs for cid in doc.get("creator_ids") or []}
+    people: dict[ObjectId, dict] = {}
+    if creator_ids:
+        people = {
+            person["_id"]: person
+            for person in flask_mongo.db.users.find(
+                {"_id": {"$in": list(creator_ids)}},
+                {"_id": 1, "display_name": 1, "gravatar_hash": 1},
+            )
+        }
+    return {
+        doc["_id"]: {
+            "created_at": doc["_id"].generation_time,
+            "creators": [people[cid] for cid in doc.get("creator_ids") or [] if cid in people],
+        }
+        for doc in block_docs
+    }
+
+
+def get_block_provenance(immutable_id: ObjectId) -> dict:
+    """The read-only `created_at` and `creators` fields for a single `blocks`
+    document, e.g., to return with a newly created block."""
+    doc = flask_mongo.db.blocks.find_one({"_id": immutable_id}, {"creator_ids": 1})
+    return _block_provenance([doc]).get(immutable_id, {}) if doc else {}
 
 
 def get_next_block_version_number(immutable_id: ObjectId) -> int:
@@ -268,12 +322,15 @@ def load_blocks_obj(parent_doc: dict) -> dict[str, Any]:
         resolved_docs = {
             doc["_id"]: doc
             for doc in flask_mongo.db.blocks.find(
-                {"_id": {"$in": list(referenced.values())}}, {"data": 1}
+                {"_id": {"$in": list(referenced.values())}}, {"data": 1, "creator_ids": 1}
             )
         }
+    provenance = _block_provenance(list(resolved_docs.values()))
 
+    # The read-only provenance fields are merged into the payload for display;
+    # `DataBlock.to_db()` strips them again so they never reach `data`.
     resolved_payloads = {
-        block_id: resolved_docs[immutable_id]["data"]
+        block_id: {**resolved_docs[immutable_id]["data"], **provenance[immutable_id]}
         for block_id, immutable_id in referenced.items()
         if resolved_docs.get(immutable_id) and resolved_docs[immutable_id].get("data")
     }
@@ -331,16 +388,23 @@ def create_block_document(block: "DataBlock") -> ObjectId:
     depends on the item.
     """
     creator_id = _current_user_id()
+    # Generated up front so that the creation time it encodes can seed `timestamp`
+    immutable_id = ObjectId()
+    data = block.to_db()
     block_doc = Block(
         block_id=block.block_id,
         blocktype=block.blocktype,
-        data=block.to_db(),
+        data=data,
         creator_ids=[creator_id] if creator_id else [],
         last_modified=_now_isoformat(),
+        timestamp=_block_timestamp(data, immutable_id),
     )
 
     result = flask_mongo.db.blocks.insert_one(
-        block_doc.model_dump(exclude={"immutable_id", "creators", "groups"})
+        {
+            "_id": immutable_id,
+            **block_doc.model_dump(exclude={"immutable_id", "creators", "groups"}),
+        }
     )
     if not result.acknowledged:
         raise RuntimeError(f"Failed to insert new block document for block {block.block_id!r}.")
@@ -356,7 +420,13 @@ def update_block_document(immutable_id: ObjectId, data: dict) -> None:
     """
     result = flask_mongo.db.blocks.update_one(
         {"_id": immutable_id},
-        {"$set": {"data": data, "last_modified": _now_isoformat()}},
+        {
+            "$set": {
+                "data": data,
+                "last_modified": _now_isoformat(),
+                "timestamp": _block_timestamp(data, immutable_id),
+            }
+        },
     )
     if result.matched_count != 1:
         raise BadRequest(f"Failed to save block: no block document found for {immutable_id}.")
@@ -474,11 +544,20 @@ def restore_block_version(
         version=next_version,
         last_modified=_now_isoformat(),
         creator_ids=[user_id] if user_id else [],
+        timestamp=_block_timestamp(data, immutable_id),
     )
     envelope = block_doc.model_dump(exclude={"immutable_id", "creators", "groups"})
     set_fields = {
         field: envelope.pop(field)
-        for field in ("data", "version", "last_modified", "block_id", "blocktype", "type")
+        for field in (
+            "data",
+            "version",
+            "last_modified",
+            "timestamp",
+            "block_id",
+            "blocktype",
+            "type",
+        )
     }
 
     flask_mongo.db.blocks.update_one(

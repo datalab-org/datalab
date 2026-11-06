@@ -1,10 +1,28 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
+
 from typing import Any, Literal
 
 from pydantic import ConfigDict, Field
 
 from pydatalab.models.entries import Entry
+from pydatalab.models.people import PersonReference
 from pydatalab.models.traits import HasOwner, HasRevisionControl
-from pydatalab.models.utils import BaseModel, PyObjectId
+from pydatalab.models.utils import BaseModel, IsoformatDateTime, PyObjectId
+
+
+class BlockMetadata(BaseModel):
+    """The base model for the structured (scientific) metadata of a block.
+
+    Fields common to every block live here; block types should subclass this
+    model to describe their own metadata (e.g., `NMRMetadata`). Extra fields are
+    allowed so that blocks storing unstructured metadata dictionaries remain valid.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    measured_at: IsoformatDateTime | None = None
+    """When the measurement (or experiment) described by the block took place,
+    typically as read from the block's data file."""
 
 
 class DataBlockResponse(BaseModel):
@@ -71,11 +89,25 @@ class DataBlockResponse(BaseModel):
         default=None, json_schema_extra={"datalab_exclude_from_load": True}
     )
 
-    metadata: dict | None = Field(
+    metadata: BlockMetadata | None = Field(
         default=None, json_schema_extra={"datalab_exclude_from_load": True}
     )
     """Any structured metadata associated with the block, for example,
     experimental acquisition parameters."""
+
+    created_at: IsoformatDateTime | None = Field(
+        default=None,
+        json_schema_extra={"datalab_exclude_from_db": True, "datalab_exclude_from_load": True},
+    )
+    """When the block was created, taken from its `blocks` document. Read-only and
+    unavailable for legacy blocks embedded in their item."""
+
+    creators: list[PersonReference] | None = Field(
+        default=None,
+        json_schema_extra={"datalab_exclude_from_db": True, "datalab_exclude_from_load": True},
+    )
+    """Who created the block, taken from its `blocks` document. Read-only and
+    unavailable for legacy blocks embedded in their item."""
 
 
 # Here to avoid circular import
@@ -108,6 +140,10 @@ class Block(Entry, HasOwner, HasRevisionControl):
 
     data: dict[str, Any] = Field(default_factory=dict)
     """The block payload, exactly as produced by `DataBlock.to_db()`."""
+
+    timestamp: IsoformatDateTime | None = None
+    """The time to order the block by: its measurement time (`data.metadata.measured_at`)
+    if known, otherwise its creation time. Denormalised from the payload on every write."""
 
     version: int = 0
     """The latest committed version number of this block in `block_versions`.

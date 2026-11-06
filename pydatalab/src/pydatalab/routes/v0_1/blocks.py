@@ -1,3 +1,5 @@
+# This file was edited with the assistance of an AI model and requires human review from the contributor.
+
 import contextlib
 import json
 import traceback
@@ -299,6 +301,9 @@ def add_data_block():
     display_order_result = flask_mongo.db.items.find_one(
         {"item_id": item_id, **get_default_permissions(user_only=True)}, {"display_order": 1}
     )
+
+    # Return the server-side provenance (`created_at`, `creators`) with the new block
+    block.data.update(store.get_block_provenance(block_immutable_id))
 
     return jsonify(
         status="success",
