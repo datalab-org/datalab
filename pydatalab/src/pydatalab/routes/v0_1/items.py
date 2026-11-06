@@ -578,8 +578,9 @@ def _check_incoming_block_types(
     - Existing blocks (those in `stored_payloads`) may not change their `blocktype` (400).
     - Existing blocks otherwise remain editable if their type becomes unavailable.
     - New blocks of an installed type must be allowed globally and for the item type (403).
-      New blocks of an uninstalled type are let through, to be stored as `notsupported`
-      blocks, matching the behaviour without an allow list.
+    - New blocks of an uninstalled type are only let through, to be stored as `notsupported`
+      blocks, when neither `BLOCK_TYPE_ALLOW_LIST` nor `ITEM_TYPE_ALLOW_LIST` is set (403
+      otherwise).
 
     """
     if not isinstance(blocks_obj, dict):
@@ -601,7 +602,15 @@ def _check_incoming_block_types(
                 )
             continue
 
-        if block_type in BLOCK_TYPES and not is_block_type_available(block_type, item_type):
+        if block_type not in BLOCK_TYPES:
+            if CONFIG.BLOCK_TYPE_ALLOW_LIST is not None or CONFIG.ITEM_TYPE_ALLOW_LIST is not None:
+                raise Forbidden(
+                    f"Block type {block_type!r} is not installed and cannot be added "
+                    "while block or item type allow lists are configured."
+                )
+            continue
+
+        if not is_block_type_available(block_type, item_type):
             raise Forbidden(
                 f"Block type {block_type!r} is not available in this deployment "
                 f"for item type {item_type!r}."

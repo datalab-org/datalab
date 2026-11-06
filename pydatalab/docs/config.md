@@ -69,7 +69,8 @@ startup, which allows temporarily missing plugins without preventing the deploym
 
 Changing the allowlist does not remove or disable blocks that are already stored. Existing blocks
 remain viewable, editable, and deletable; the setting only controls which types may be added after
-the restriction is applied.
+the restriction is applied. While either this setting or `ITEM_TYPE_ALLOW_LIST` is configured, new
+blocks of a type that is not installed are also rejected, rather than stored as unsupported blocks.
 
 Deployments can also restrict which item types users may create, and optionally narrow the blocks
 that may be added to each item type, with

@@ -327,6 +327,54 @@ def test_existing_block_remains_functional_when_restricted(
     assert stored_block["freeform_comment"] == "Updated after restriction"
 
 
+def test_uninstalled_block_types_rejected_when_allow_lists_set(
+    admin_client, default_sample_dict, monkeypatch
+):
+    from pydatalab.config import CONFIG, ItemTypeAllowListEntry
+
+    monkeypatch.setattr(CONFIG, "BLOCK_TYPE_ALLOW_LIST", None)
+    monkeypatch.setattr(CONFIG, "ITEM_TYPE_ALLOW_LIST", None)
+
+    item_id = "test_uninstalled_block_allow_lists"
+    sample_data = default_sample_dict.copy()
+    sample_data["item_id"] = item_id
+    response = admin_client.post("/new-sample/", json=sample_data)
+    assert response.status_code == 201, response.json
+
+    def save_with_uninstalled_block(block_id):
+        item_data = admin_client.get(f"/get-item-data/{item_id}").json["item_data"]
+        item_data["blocks_obj"][block_id] = {
+            "block_id": block_id,
+            "blocktype": "missing-plugin-block",
+            "item_id": item_id,
+        }
+        item_data["display_order"].append(block_id)
+        return admin_client.post("/save-item/", json={"item_id": item_id, "data": item_data})
+
+    # Without any allow list, unknown blocks are still stored as `notsupported`
+    response = save_with_uninstalled_block("unknown-block-no-allow-list")
+    assert response.status_code == 200, response.json
+
+    monkeypatch.setattr(CONFIG, "BLOCK_TYPE_ALLOW_LIST", ["comment"])
+    response = save_with_uninstalled_block("unknown-block-block-allow-list")
+    assert response.status_code == 403
+
+    monkeypatch.setattr(CONFIG, "BLOCK_TYPE_ALLOW_LIST", None)
+    monkeypatch.setattr(
+        CONFIG,
+        "ITEM_TYPE_ALLOW_LIST",
+        [ItemTypeAllowListEntry(type="samples", block_type_allow_list=None)],
+    )
+    response = save_with_uninstalled_block("unknown-block-item-allow-list")
+    assert response.status_code == 403
+
+    # The block accepted before the restriction remains saveable
+    item_data = admin_client.get(f"/get-item-data/{item_id}").json["item_data"]
+    assert "unknown-block-no-allow-list" in item_data["blocks_obj"]
+    response = admin_client.post("/save-item/", json={"item_id": item_id, "data": item_data})
+    assert response.status_code == 200, response.json
+
+
 def test_unknown_block_types_warn_and_are_ignored(monkeypatch):
     from pydatalab.apps import warn_for_unknown_block_types
     from pydatalab.config import CONFIG
