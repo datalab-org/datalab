@@ -254,7 +254,7 @@ class ServerConfig(BaseSettings):
 
     LOGIN_ONLY_AUTH_METHODS: list[IdentityType] = Field(
         [],
-        description='A list of authentication methods (from `email`, `github`, `orcid`, `google`, `microsoft`) that can only be used to log in to existing accounts, or to connect to an account that is already logged in, but not to register new accounts. For example, setting `["github", "orcid"]` requires users to first register via another method (e.g., email, to obtain a canonical institutional address) before connecting their GitHub or ORCID accounts.',
+        description='A list of authentication methods (from `email`, `github`, `orcid`, `google`, `microsoft`) that can only be used to log in to existing accounts, or to connect to an account that is already logged in, but not to register new accounts. For example, setting `["email", "github", "google", "microsoft"]` requires users to first register with their ORCID before connecting any other accounts.',
     )
 
     DISABLE_MAGIC_LINK_AUTH: bool = Field(
