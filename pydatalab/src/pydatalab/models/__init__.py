@@ -108,6 +108,53 @@ refresh_item_models()
 BUILTIN_ITEM_TYPES = frozenset(ITEM_MODELS)
 
 
+def is_item_type_available(item_type: str) -> bool:
+    """Whether a registered item type is available for creating new items."""
+    from pydatalab.config import CONFIG
+
+    allow_list = CONFIG.ITEM_TYPE_ALLOW_LIST
+    return item_type in ITEM_MODELS and (
+        allow_list is None or any(entry.type == item_type for entry in allow_list)
+    )
+
+
+def get_item_block_type_allow_list(item_type: str) -> list[str] | None:
+    """Return the configured block allowlist for an item type.
+
+    ``None`` means that no item-specific restriction applies. An empty list is
+    returned for unregistered or omitted item types, preventing new blocks.
+    """
+    if item_type not in ITEM_MODELS:
+        return []
+
+    from pydatalab.config import CONFIG
+
+    allow_list = CONFIG.ITEM_TYPE_ALLOW_LIST
+    if allow_list is None:
+        return None
+    for entry in allow_list:
+        if entry.type == item_type:
+            return entry.block_type_allow_list
+    return []
+
+
+def warn_for_unknown_item_types() -> None:
+    """Warn about configured item types that were not registered at startup."""
+    from pydatalab.config import CONFIG
+    from pydatalab.logger import LOGGER
+
+    allow_list = CONFIG.ITEM_TYPE_ALLOW_LIST
+    if allow_list is None:
+        return
+
+    unknown_item_types = sorted({entry.type for entry in allow_list} - ITEM_MODELS.keys())
+    if unknown_item_types:
+        LOGGER.warning(
+            "Ignoring unknown item types in ITEM_TYPE_ALLOW_LIST: %s",
+            ", ".join(unknown_item_types),
+        )
+
+
 def register_item_model(model: type[Item]) -> None:
     """Register a custom `Item` subclass into the global registries in place.
 
@@ -226,6 +273,9 @@ __all__ = (
     "ITEM_MODELS",
     "ITEM_SCHEMAS",
     "BUILTIN_ITEM_TYPES",
+    "get_item_block_type_allow_list",
+    "is_item_type_available",
+    "warn_for_unknown_item_types",
     "register_item_model",
     "refresh_item_models",
     "load_custom_item_models",

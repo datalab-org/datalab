@@ -4,6 +4,7 @@ import SampleTable from "@/components/SampleTable.vue";
 import UserBubble from "@/components/UserBubble.vue";
 import StyledTooltip from "@/components/StyledTooltip.vue";
 import DatalabPreset from "@/primevue-theme-preset.js";
+import { itemTypes, SAMPLE_TABLE_TYPES } from "@/resources.js";
 import { FilterOperator } from "@primevue/core/api";
 import PrimeVue from "primevue/config";
 import { createStore } from "vuex";
@@ -43,6 +44,19 @@ const selectMultiselectOption = (columnIndex, label, expectedSelected = true) =>
 describe("SampleTable Component Tests", () => {
   let store;
   let wrapper;
+  const originalAvailability = Object.fromEntries(
+    SAMPLE_TABLE_TYPES.map((type) => [type, itemTypes[type].available]),
+  );
+
+  afterEach(() => {
+    for (const [type, available] of Object.entries(originalAvailability)) {
+      if (available === undefined) {
+        delete itemTypes[type].available;
+      } else {
+        itemTypes[type].available = available;
+      }
+    }
+  });
 
   // Exercise datalab's matchers through the real DataTable without repeatedly driving PrimeVue's
   // nested filter overlays. The Type test below retains one end-to-end multiselect interaction.
@@ -197,6 +211,29 @@ describe("SampleTable Component Tests", () => {
     cy.get('[data-testid="add-to-collection-button"]').should("not.exist");
     cy.get('[data-testid="delete-selected-button"]').should("not.exist");
     cy.get('[data-testid="search-input"]').should("exist");
+  });
+
+  it("disables item creation controls when no supported item types are available", () => {
+    for (const type of SAMPLE_TABLE_TYPES) {
+      itemTypes[type].available = false;
+    }
+
+    cy.get('[data-testid="add-item-button"]').should("be.disabled");
+    cy.get('[data-testid="add-item-button"]')
+      .parent()
+      .should(
+        "have.attr",
+        "title",
+        "No item types are available for single-item creation on this deployment",
+      );
+    cy.get('[data-testid="batch-item-button"]').should("be.disabled");
+    cy.get('[data-testid="batch-item-button"]')
+      .parent()
+      .should(
+        "have.attr",
+        "title",
+        "No item types are available for batch creation on this deployment",
+      );
   });
 
   it("closes table settings outside but keeps them open when selecting columns", () => {

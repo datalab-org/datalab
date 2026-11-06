@@ -347,11 +347,16 @@ export default {
       });
     },
     // Block types that may be added to this item: excludes the `notsupported` placeholder
-    // and any type disallowed by the deployment (`available: false`; older servers omit it)
+    // and types disallowed globally or for this item type.
     availableBlockInfos() {
-      return this.blocksInfos.filter(
-        (blockInfo) => blockInfo.id !== "notsupported" && blockInfo.attributes?.available !== false,
-      );
+      const blockTypeAllowList = this.itemTypeEntry?.blockTypeAllowList ?? null;
+      return this.blocksInfos.filter((blockInfo) => {
+        return (
+          blockInfo.id !== "notsupported" &&
+          blockInfo.attributes?.available !== false &&
+          (blockTypeAllowList === null || blockTypeAllowList.includes(blockInfo.id))
+        );
+      });
     },
     allBlockTypes() {
       if (!this.blockInfoLoaded) {

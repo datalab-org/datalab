@@ -246,8 +246,27 @@ def add_data_block():
         raise NotImplemented(  # noqa
             f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
         )
-    if not is_block_type_available(block_type):
-        raise Forbidden(f"Block type {block_type!r} is not available in this deployment.")
+
+    # Check the item exists and the user has write access before creating the
+    # block document, to avoid orphaning it below.
+    item = flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=True)}, {"_id": 1, "type": 1}
+    )
+    if not item:
+        return (
+            jsonify(
+                status="error",
+                message=f"Update failed. {item_id=} is probably incorrect.",
+            ),
+            400,
+        )
+
+    item_type = item.get("type")
+    if not is_block_type_available(block_type, item_type):
+        raise Forbidden(
+            f"Block type {block_type!r} is not available in this deployment "
+            f"for item type {item_type!r}."
+        )
 
     block = BLOCK_TYPES[block_type](item_id=item_id)
 
@@ -258,19 +277,6 @@ def add_data_block():
         }
     else:
         display_order_update = block.block_id
-
-    # Check the item exists and the user has write access before creating the
-    # block document, to avoid orphaning it below.
-    if not flask_mongo.db.items.find_one(
-        {"item_id": item_id, **get_default_permissions(user_only=True)}, {"_id": 1}
-    ):
-        return (
-            jsonify(
-                status="error",
-                message=f"Update failed. {item_id=} is probably incorrect.",
-            ),
-            400,
-        )
 
     # New blocks are born as separate documents in the `blocks` collection;
     # the item only stores a reference to them. No version is committed until
