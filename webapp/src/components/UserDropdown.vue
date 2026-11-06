@@ -1,13 +1,8 @@
 <template>
-  <a
-    type="button"
-    class="dropdown-item btn login btn-link"
-    aria-label="Account settings"
-    @click="$emit('open-account-settings')"
-  >
-    <font-awesome-icon icon="cog" /> &nbsp;&nbsp;Account settings
+  <router-link to="/settings" class="dropdown-item btn login btn-link" aria-label="Settings">
+    <font-awesome-icon icon="cog" /> &nbsp;&nbsp;Settings
     <span v-if="isUnverified" class="notification-wrapper"><NotificationDot /></span>
-  </a>
+  </router-link>
   <div v-if="user.role === 'admin'" class="dropdown-item admin-row">
     <router-link to="/admin" class="btn login btn-link admin-link" aria-label="Administration">
       <font-awesome-icon icon="users-cog" /> &nbsp;Administration
@@ -49,10 +44,8 @@ export default {
     StyledTooltip,
   },
   props: {
-    modelValue: Boolean,
     user: { type: Object, required: true },
   },
-  emits: ["update:modelValue", "open-account-settings"],
   data() {
     return {
       apiUrl: API_URL,
