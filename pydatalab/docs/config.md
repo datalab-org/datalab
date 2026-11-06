@@ -110,7 +110,7 @@ cannot receive new blocks. Duplicate item type entries are invalid because their
 would be ambiguous.
 
 Item names and block slugs are exact and case-sensitive. Built-in and plugin-provided types use the same
-registries; custom item types must use their final registered names. Unknown types produce a startup warning and are ignored.
+registries; custom item types must use their complete `<namespace>:<type-name>` identifier. Unknown types produce a startup warning and are ignored.
 
 These settings only control creation. Existing restricted items and blocks remain viewable,
 editable, saveable, deletable, exportable, and restorable, so changing deployment policy does not
