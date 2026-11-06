@@ -1,3 +1,4 @@
+# Container images are published by container-images.yml
 name: Publish and release on PyPI
 on:
   release:
@@ -68,40 +69,3 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         packages-dir: "./pydatalab/dist"
-
-
-  publish-container-build:
-    name: "Build and publish container"
-    runs-on: ubuntu-latest
-    if: github.repository == 'datalab-org/datalab' && startsWith(github.ref, 'refs/tags/v')
-    needs: [publish-to-pypi]
-    permissions:
-      packages: write
-    environment:
-      name: docker-release
-      url: https://github.com/orgs/datalab-org/packages
-
-    steps:
-
-    - name: Checkout repository
-      uses: actions/checkout@v7
-      with:
-        submodules: true
-        fetch-depth: 0
-        fetch-tags: true
-        ref: ${{ github.event.release.tag_name }}
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v4
-
-    - name: Build Docker images
-      uses: docker/bake-action@v7
-      with:
-        files: docker-compose.yml
-        load: true
-        push: false
-        source: .
-        targets: 'app,api'
-        set: |
-          app.tags=ghcr.io/datalab-org/datalab-app:latest
-          api.tags=ghcr.io/datalab-org/datalab-server-api:latest
