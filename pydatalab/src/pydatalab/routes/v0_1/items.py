@@ -891,9 +891,7 @@ def _process_item_permissions(
     # Validate all creator IDs are present in the database
     # Deleted users cannot be newly added as creators, but any already present are kept
     if creator_ids:
-        found_creator_ids = [
-            d
-            for d in flask_mongo.db.users.find(
+        found_creator_ids = [*flask_mongo.db.users.find(
                 {
                     "_id": {"$in": creator_ids},
                     "$or": [
@@ -909,8 +907,7 @@ def _process_item_permissions(
 
     if group_ids:
         # Validate all group IDs are present in the database
-        found_group_ids = [
-            d for d in flask_mongo.db.groups.find({"_id": {"$in": group_ids}}, {"_id": 1})
+        found_group_ids = [*flask_mongo.db.groups.find({"_id": {"$in": group_ids}}, {"_id": 1})
         ]
         if len(found_group_ids) != len(group_ids):
             raise BadRequest("One or more group IDs not found in the database.")
