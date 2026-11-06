@@ -128,6 +128,9 @@ mechanisms:
 Each is configured differently.
 If left unconfigured, then the corresponding registration mechanism will not be available to the user.
 
+Any of these methods can be restricted to logging in to (or connecting to) existing accounts, without allowing new registrations, via [`LOGIN_ONLY_AUTH_METHODS`][pydatalab.config.ServerConfig.LOGIN_ONLY_AUTH_METHODS], e.g., `["email", "github", "google", "microsoft"]` to require users to register with their ORCID first.
+The domain and organisation allow lists described below only apply to new registrations; existing users can always log in.
+
 ### Email magic links
 
 To support sign-in via email magic-links, you must currently provide additional configuration for authorized SMTP server.
