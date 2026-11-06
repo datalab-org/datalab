@@ -64,8 +64,8 @@
             <input id="create-item-name" v-model="name" type="text" class="form-control" />
           </div>
         </div>
-        <!-- All item types can be added to a collection, so this is always available -->
-        <div class="form-row">
+        <!-- When collections are visible, any item type can be added to a collection. -->
+        <div v-if="!hideCollections" class="form-row">
           <div class="col-md-12 form-group">
             <label id="startInCollection">(Optional) Insert into collection:</label>
             <CollectionSelect
@@ -138,6 +138,7 @@ import {
   SAMPLE_TABLE_TYPES,
   INVENTORY_TYPES,
   AUTOMATICALLY_GENERATE_ID_DEFAULT,
+  HIDE_COLLECTIONS,
 } from "@/resources.js";
 import CollectionSelect from "@/components/CollectionSelect.vue";
 export default {
@@ -169,6 +170,7 @@ export default {
       selectedItemToCopy: null,
       startingConstituents: [],
       generateIDAutomatically: AUTOMATICALLY_GENERATE_ID_DEFAULT,
+      hideCollections: HIDE_COLLECTIONS,
       agesAgo: new Date("1970-01-01").toISOString().slice(0, -8), // a datetime for the unix epoch start
       shareWithGroups: [],
       additionalCreators: [],

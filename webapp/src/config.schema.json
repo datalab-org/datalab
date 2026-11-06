@@ -35,6 +35,12 @@
       "description": "A URL to link to from the web app header and login page, which should include `https://` to link to another site.",
       "examples": ["https://www.example.org"]
     },
+    "HIDE_COLLECTIONS": {
+      "type": "string",
+      "description": "Whether collection pages and controls are hidden in the web app. Only `true` (in any case) enables this. This does not disable collection API routes or alter stored collection data.",
+      "default": "false",
+      "examples": ["true"]
+    },
     "LOGO_URL": {
       "type": "string",
       "description": "The URL of the logo image, or a path relative to the `public/` directory.",
