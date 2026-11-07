@@ -400,6 +400,8 @@ import BulkAddToGroupModal from "@/components/BulkAddToGroupModal.vue";
 import BulkChangeManagersModal from "@/components/BulkChangeManagersModal.vue";
 import { itemTypes, SAMPLE_TABLE_TYPES } from "@/resources.js";
 
+const SEARCH_DEBOUNCE_MS = 200;
+
 import {
   deleteSample,
   deleteCollection,
@@ -547,8 +549,16 @@ export default {
       }
     },
     "localFilters.global.value"(newValue) {
-      this.$emit("update:filters", { ...this.filters, global: { value: newValue } });
+      // Debounce the search so the table is only re-filtered (and re-rendered) once typing
+      // pauses, rather than on every keystroke.
+      clearTimeout(this.searchDebounceTimer);
+      this.searchDebounceTimer = setTimeout(() => {
+        this.$emit("update:filters", { ...this.filters, global: { value: newValue } });
+      }, SEARCH_DEBOUNCE_MS);
     },
+  },
+  beforeUnmount() {
+    clearTimeout(this.searchDebounceTimer);
   },
   methods: {
     itemLabel(count) {
