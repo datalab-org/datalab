@@ -386,16 +386,20 @@ export async function getInfo() {
     });
 }
 
+// Commit a fetched item list only if it differs from the stored one, so that re-fetching on
+// returning to a (kept-alive) table does not force the whole table to be rebuilt for
+// identical data.
+function commitListIfChanged(mutation, current, incoming) {
+  if (current && JSON.stringify(current) === JSON.stringify(incoming)) {
+    return;
+  }
+  store.commit(mutation, incoming);
+}
+
 export function getSampleList() {
   return fetch_get(`${API_URL}/samples/`)
     .then(function (response_json) {
-      // Only replace the list if it has changed, so that re-fetching on returning to the
-      // sample table does not force the whole table to be rebuilt for identical data.
-      const current = store.state.sample_list;
-      if (current && JSON.stringify(current) === JSON.stringify(response_json.samples)) {
-        return;
-      }
-      store.commit("setSampleList", response_json.samples);
+      commitListIfChanged("setSampleList", store.state.sample_list, response_json.samples);
     })
     .catch((error) => {
       if (error === "UNAUTHORIZED") {
@@ -423,7 +427,7 @@ export function getCollectionSampleList(collection_id) {
 export function getCollectionList() {
   return fetch_get(`${API_URL}/collections`)
     .then(function (response_json) {
-      store.commit("setCollectionList", response_json.data);
+      commitListIfChanged("setCollectionList", store.state.collection_list, response_json.data);
     })
     .catch((error) => {
       if (error === "UNAUTHORIZED") {
@@ -542,7 +546,11 @@ export function removeUserFromGroup(groupId, userId) {
 export function getStartingMaterialList() {
   return fetch_get(`${API_URL}/starting-materials/`)
     .then(function (response_json) {
-      store.commit("setStartingMaterialList", response_json.items);
+      commitListIfChanged(
+        "setStartingMaterialList",
+        store.state.starting_material_list,
+        response_json.items,
+      );
     })
     .catch((error) => {
       if (error === "UNAUTHORIZED") {
@@ -556,7 +564,7 @@ export function getStartingMaterialList() {
 export function getEquipmentList() {
   return fetch_get(`${API_URL}/equipment/`)
     .then(function (response_json) {
-      store.commit("setEquipmentList", response_json.items);
+      commitListIfChanged("setEquipmentList", store.state.equipment_list, response_json.items);
     })
     .catch((error) => {
       if (error === "UNAUTHORIZED") {
