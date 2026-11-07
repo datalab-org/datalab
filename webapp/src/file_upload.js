@@ -14,7 +14,18 @@ import { construct_headers, getApiConfig } from "@/server_fetch_utils.js";
 import { API_URL } from "@/resources.js";
 // file-upload loaded
 
+/**
+ * Set up an Uppy upload dashboard that attaches uploaded files to an item.
+ *
+ * @param {string|function(): string} item_id - The item to upload to, or a function returning
+ *   it. Pass a function when the item can change while the dashboard exists, e.g., on the edit
+ *   page, which is reused (not remounted) when navigating between items, and which only knows
+ *   its `item_id` after loading when opened by refcode.
+ * @returns {Promise<Uppy>} The Uppy instance, which the caller should `destroy()` when done.
+ */
 export default async function setupUppy(item_id, trigger_selector, reactive_file_list) {
+  const getItemId = typeof item_id === "function" ? item_id : () => item_id;
+
   const apiConfig = store.state.apiConfig.maxUploadBytes
     ? store.state.apiConfig
     : await getApiConfig();
@@ -34,7 +45,7 @@ export default async function setupUppy(item_id, trigger_selector, reactive_file
     .use(Dashboard, {
       inline: false,
       trigger: trigger_selector,
-      close_after_finish: true,
+      closeAfterFinish: true,
     })
     .use(Webcam, { target: Dashboard })
     .use(XHRUpload, {
@@ -59,9 +70,21 @@ export default async function setupUppy(item_id, trigger_selector, reactive_file
       }
     }
 
+    // Resolve the item when the file is added, and record it on the file so that the upload
+    // (and its completion handler below) stay with that item even if the page moves on
+    const currentItemId = getItemId();
+    if (!currentItemId) {
+      DialogService.error({
+        title: "Upload Failed",
+        message: "The item has not finished loading yet; please try again in a moment.",
+      });
+      uppy.removeFile(file.id);
+      return;
+    }
+
     uppy.setFileMeta(file.id, {
       size: file.size,
-      item_id: item_id,
+      item_id: currentItemId,
       replace_file: matching_file_id,
     });
   });
@@ -113,7 +136,7 @@ export default async function setupUppy(item_id, trigger_selector, reactive_file
       var response_body = f.response.body;
       if (!response_body.is_update) {
         store.commit("addFileToSample", {
-          item_id: item_id,
+          item_id: f.meta.item_id,
           file_id: response_body.file_id,
           file_info: {
             ...response_body.file_information,
