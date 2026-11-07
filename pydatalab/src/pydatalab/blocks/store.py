@@ -1,5 +1,3 @@
-# This file was edited with the assistance of an AI model and requires human review from the contributor.
-
 """Central helpers for the `blocks` and `block_versions` collections.
 
 This module is the single chokepoint for reading and writing separated block

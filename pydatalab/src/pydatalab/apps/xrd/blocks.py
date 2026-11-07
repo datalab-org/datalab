@@ -81,6 +81,7 @@ class XRDBlock(DataBlock):
 
         theoretical = False
         peak_data: dict = {}
+        measured_at = None
 
         if ext == ".xrdml":
             df = parse_xrdml(location)
@@ -96,6 +97,7 @@ class XRDBlock(DataBlock):
         elif ext == ".raw":
             df, metadata = parse_bruker_raw(location)
             wavelength = metadata.get("wavelength", wavelength)
+            measured_at = metadata.get("measured_at")
 
         elif ext == ".brml":
             df = parse_bruker_brml(location)
@@ -147,6 +149,10 @@ class XRDBlock(DataBlock):
         if len(df) == 0:
             raise RuntimeError(f"No compatible data found in {location}")
 
+        # Parsers record the acquisition time (if any) on the dataframe; it is carried
+        # through to the returned dataframe as `attrs["measured_at"]`
+        measured_at = measured_at or df.attrs.get("measured_at")
+
         df = df.rename(columns={"twotheta": "2θ (°)"})
 
         # if no wavelength (or invalid wavelength) is passed, don't convert to Q and d
@@ -179,6 +185,8 @@ class XRDBlock(DataBlock):
 
         df = pd.concat([df, y_option_df], axis=1)
         df.index.name = location.split("/")[-1] + (" (theoretical)" if theoretical else "")
+        if measured_at:
+            df.attrs["measured_at"] = measured_at
 
         return df, y_options, peak_data
 
@@ -284,6 +292,7 @@ class XRDBlock(DataBlock):
 
         self.data["computed"] = {}
         self.data["computed"]["peak_data"] = peak_information
+        self.set_measured_at(*(df.attrs.get("measured_at") for df in pattern_dfs))
 
         if pattern_dfs:
             p = self._make_plots(pattern_dfs, y_options)

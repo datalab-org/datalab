@@ -13,6 +13,7 @@ STARTEND_REGEX = (
     r"<startPosition>(\d+\.\d+)</startPosition>\s+<endPosition>(\d+\.\d+)</endPosition>"
 )
 DATA_REGEX = r'<(intensities|counts) unit="counts">((-?\d+ )+-?\d+)</(intensities|counts)>'
+XRDML_START_TIME_REGEX = r"<startTimeStamp>([^<]+)</startTimeStamp>"
 
 
 class XrdmlParseError(Exception):
@@ -35,12 +36,15 @@ def parse_xrdml(filename: str) -> pd.DataFrame:
 
     angles = np.linspace(start, end, num=len(intensities))
 
-    return pd.DataFrame(
+    df = pd.DataFrame(
         {
             "twotheta": angles,
             "intensity": intensities,
         }
     )
+    if match := re.search(XRDML_START_TIME_REGEX, s):
+        df.attrs["measured_at"] = match.group(1)
+    return df
 
 
 def convertSinglePattern(
@@ -187,12 +191,22 @@ def parse_rasx_zip(filename: str) -> pd.DataFrame:
         xrd_data = pd.read_csv(data_file, sep="\t", header=None)
         xrd_data.columns = ["twotheta", "intensity", "imnotsure"]
 
-    return pd.DataFrame(
+        # The measurement start time lives in the matching (sic) "MesurementConditions" file
+        start_time = None
+        for conditions_file in data_file.parent.glob("Me*surementConditions*.xml"):
+            if match := re.search(r"<StartTime>([^<]+)</StartTime>", conditions_file.read_text()):
+                start_time = match.group(1)
+                break
+
+    df = pd.DataFrame(
         {
             "twotheta": xrd_data["twotheta"],
             "intensity": xrd_data["intensity"],
         }
     )
+    if start_time:
+        df.attrs["measured_at"] = start_time
+    return df
 
 
 def compute_cif_pxrd(filename: str, wavelength: float) -> tuple[pd.DataFrame, dict]:
@@ -601,6 +615,18 @@ def parse_bruker_raw(filename: str) -> tuple[pd.DataFrame, dict]:
         raise RuntimeError(f"Failed to read Bruker RAW file {filename}.")
 
     metadata = reader.meta
+
+    # The acquisition date and time are only kept in the reader's comments,
+    # as "Date=..." and "Time=..." (v3/v4), or "Date/Time=..." (v2)
+    # Bruker writes dates month-first, e.g., 07/11/2018 for 11th July 2018.
+    comments = {
+        key: value.strip(" \x00")
+        for key, value in (c.split("=", 1) for c in reader.comments if "=" in c)
+    }
+    date_time = comments.get("Date/Time") or " ".join(comments.get(k, "") for k in ("Date", "Time"))
+    if date_time.strip():
+        metadata["measured_at"] = date_time.strip()
+
     if reader.meta.get("usedWave") is not None:
         try:
             metadata["wavelength"] = float(reader.meta["usedWave"])
@@ -662,6 +688,8 @@ def parse_bruker_brml(filename: str) -> pd.DataFrame:
 
     eff_time = float(data_route.findtext(".//TimePerStepEffective", default="0"))
 
+    start_time = tree.findtext(".//TimeStampStarted")
+
     datums = data_route.findall("Datum")
     if not datums:
         raise ValueError("No Datum elements found in the BRML raw data file.")
@@ -679,4 +707,7 @@ def parse_bruker_brml(filename: str) -> pd.DataFrame:
             else float(parts[intensity_col])
         )
 
-    return pd.DataFrame({"twotheta": twotheta, "intensity": intensity})
+    df = pd.DataFrame({"twotheta": twotheta, "intensity": intensity})
+    if start_time:
+        df.attrs["measured_at"] = start_time
+    return df
