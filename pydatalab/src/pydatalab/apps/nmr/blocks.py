@@ -1,3 +1,4 @@
+import datetime
 import os
 import tempfile
 import warnings
@@ -129,6 +130,11 @@ class NMRBlock(DataBlock):
         metadata["probe_name"] = a_dic["acqus"]["PROBHD"]
         metadata["pulse_program_name"] = a_dic["acqus"]["PULPROG"]
         metadata["title"] = topspin_title
+        # Bruker stores the acquisition time as a Unix timestamp
+        if acquisition_epoch := a_dic["acqus"].get("DATE"):
+            metadata["measured_at"] = datetime.datetime.fromtimestamp(
+                acquisition_epoch, tz=datetime.timezone.utc
+            )
 
         self.data["metadata"] = NMRMetadata(**metadata).model_dump()
 

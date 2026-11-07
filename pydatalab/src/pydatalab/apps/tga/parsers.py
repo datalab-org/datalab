@@ -48,7 +48,8 @@ def parse_mt_mass_spec_ascii(path: Path) -> dict[str, pd.DataFrame | dict]:
 
         for key in header_keys[1:]:
             if "time" in key.lower():
-                header[key] = dateutil.parser.parse(header[key])  # type: ignore
+                # Mettler-Toledo exports write dates day-first, e.g., 28/11/2022
+                header[key] = dateutil.parser.parse(header[key], dayfirst=True)  # type: ignore
 
         reads = 0
         max_species_lines = 10

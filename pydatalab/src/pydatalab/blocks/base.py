@@ -1,3 +1,4 @@
+import datetime
 import functools
 import pprint
 import random
@@ -9,8 +10,42 @@ from typing import Any
 from pydatalab import __version__
 from pydatalab.logger import LOGGER
 from pydatalab.models.blocks import DataBlockResponse
+from pydatalab.models.utils import IsoformatDateTime
 
-__all__ = ("generate_random_id", "DataBlock", "generate_js_callback_single_float_parameter")
+__all__ = (
+    "generate_random_id",
+    "DataBlock",
+    "generate_js_callback_single_float_parameter",
+    "parse_measurement_time",
+)
+
+
+def parse_measurement_time(
+    value: str | datetime.datetime | None, dayfirst: bool = False
+) -> datetime.datetime | None:
+    """Leniently parse a date/time read from a data file, for use with
+    `DataBlock.set_measured_at`.
+
+    Instrument files rarely use ISO 8601, so anything `dateutil` understands is
+    accepted; `dayfirst` resolves ambiguous dates such as `07/11/2018` for formats
+    known to be written day-first. Times without a timezone are assumed to be UTC.
+    Unparseable values are logged and give `None` rather than failing the block.
+
+    """
+    if value is None or isinstance(value, datetime.datetime):
+        return IsoformatDateTime.validate(value)
+
+    value = str(value).strip().strip("\x00").strip()
+    if not value:
+        return None
+
+    import dateutil.parser
+
+    try:
+        return IsoformatDateTime.validate(dateutil.parser.parse(value, dayfirst=dayfirst))
+    except (ValueError, OverflowError) as exc:
+        LOGGER.warning("Could not parse measurement time %r: %s", value, exc)
+        return None
 
 
 def generate_js_callback_single_float_parameter(
@@ -185,6 +220,29 @@ class DataBlock:
             self.__class__.__name__,
             item_id,
         )
+
+    def set_measured_at(self, *times: datetime.datetime | str | None) -> None:
+        """Record when the block's measurement took place, as `metadata.measured_at`.
+
+        Blocks should call this whenever they parse their data file(s), passing the
+        acquisition time(s) found in them. For a block with several files, the
+        earliest time is used. If no times are available, any previously recorded
+        value is removed, so that it does not outlive the file it came from.
+
+        """
+        parsed = [t for t in (parse_measurement_time(t) for t in times) if t is not None]
+        metadata = self.data.get("metadata")
+        if not isinstance(metadata, dict):
+            metadata = metadata.model_dump() if metadata is not None else {}
+        else:
+            metadata = dict(metadata)
+
+        if parsed:
+            metadata["measured_at"] = min(parsed)
+        else:
+            metadata.pop("measured_at", None)
+
+        self.data["metadata"] = metadata or None
 
     def to_db(self) -> dict:
         """returns a dictionary with the data for this
