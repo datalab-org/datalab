@@ -994,14 +994,9 @@ describe("SampleTable Component Tests", () => {
 // to assert on in CI.
 describe("SampleTable with many messy rows", () => {
   const NUM_ROWS = 100;
-  // Budgets per rendered row, set ~20% above the measured values (71 elements and 6.3
-  // top-level elements teleported to <body>). Raise them deliberately if a change
-  // legitimately needs more.
-  // All DOM elements added, including anything teleported to <body>
+  // Budget of DOM elements added per rendered row, including anything teleported to <body>,
+  // set ~20% above the measured value. Raise it deliberately if a change legitimately needs more.
   const MAX_ELEMENTS_PER_ROW = 85;
-  // Top-level elements teleported to <body>, i.e., roughly one per tooltip/popover. This is
-  // tighter than the total, as a single extra tooltip per row adds only a couple of elements
-  const MAX_TELEPORTED_PER_ROW = 7;
 
   const FORMULAE = ["LiNi0.8Mn0.1Co0.1O2", "Na3V2(PO4)3", "CuSO4.5H2O", "LiFePO4", "Li2CO3"];
   const TAGS = Array.from({ length: 5 }, (_, i) => ({
@@ -1118,10 +1113,12 @@ describe("SampleTable with many messy rows", () => {
       const summary =
         `${NUM_ROWS} rows added ${added} elements (${perRow.toFixed(1)} per row, ` +
         `budget ${MAX_ELEMENTS_PER_ROW}); ${teleported} top-level elements teleported to ` +
-        `<body> (${teleportedPerRow.toFixed(1)} per row, budget ${MAX_TELEPORTED_PER_ROW})`;
+        `<body> (${teleportedPerRow.toFixed(1)} per row)`;
       cy.task("log", summary);
       expect(perRow, summary).to.be.at.most(MAX_ELEMENTS_PER_ROW);
-      expect(teleportedPerRow, summary).to.be.at.most(MAX_TELEPORTED_PER_ROW);
+      // Tooltips/popovers should only be rendered into <body> once they are first shown,
+      // so nothing should be teleported before any interaction
+      expect(teleported, summary).to.equal(0);
     });
   });
 

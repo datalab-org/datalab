@@ -144,7 +144,8 @@ describe("UserBubbleLogin", () => {
           cy.get("[data-testid='styled-tooltip'] p").contains(tooltipText);
         } else {
           cy.get(".notification-dot").should("not.exist");
-          cy.get("[data-testid='styled-tooltip']").should("not.have.attr", "data-show");
+          // The tooltip is only rendered once it has first been shown
+          cy.get("[data-testid='styled-tooltip']").should("not.exist");
         }
       });
 
