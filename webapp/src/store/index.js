@@ -153,6 +153,9 @@ export default createStore({
       // sampleSummary is a json object summarizing the new sample
       state.sample_list = Object.freeze([sampleSummary, ...(state.sample_list || [])]);
     },
+    prependManyToSampleList(state, sampleSummaries) {
+      state.sample_list = Object.freeze([...sampleSummaries, ...(state.sample_list || [])]);
+    },
     prependToStartingMaterialList(state, itemSummary) {
       // itemSummary is a json object summarizing the new starting material
       state.starting_material_list = Object.freeze([
