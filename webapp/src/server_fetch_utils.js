@@ -308,11 +308,14 @@ export function createNewSamples(
     new_sample_datas: newSampleDatas,
     generate_ids_automatically: generateIDsAutomatically,
   }).then(function (response_json) {
-    response_json.responses.forEach((response) => {
-      if (response.status == "success") {
-        store.commit("prependToSampleList", response.sample_list_entry);
-      }
-    });
+    // Prepend all new entries in one go (reversed to match the previous one-at-a-time order),
+    // rather than copying the whole frozen list once per new item
+    const created = response_json.responses
+      .filter((response) => response.status == "success")
+      .map((response) => response.sample_list_entry);
+    if (created.length) {
+      store.commit("prependManyToSampleList", created.reverse());
+    }
 
     return response_json.responses;
   });
