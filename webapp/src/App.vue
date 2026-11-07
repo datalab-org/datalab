@@ -1,8 +1,8 @@
 <template>
-  <!-- Keep the sample table alive so that navigating back to it from an item page is instant,
-       rather than rebuilding the table for the full sample list. -->
+  <!-- Keep the item tables alive so that navigating back to one from an item page is instant,
+       rather than rebuilding the table for the full list. -->
   <router-view v-slot="{ Component }">
-    <keep-alive include="Samples">
+    <keep-alive :include="['Samples', 'StartingMaterials', 'Collections', 'Equipment']">
       <component :is="Component" />
     </keep-alive>
   </router-view>
