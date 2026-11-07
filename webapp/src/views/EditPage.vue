@@ -410,8 +410,10 @@ export default {
     // this.loadCachedTree()
     // this.updateRemoteTree()
 
-    // setup the uppy instsance
-    setupUppy(this.item_id, "#uppy-trigger", {});
+    // Set up the uppy instance. The item is looked up per upload, as this page is reused
+    // (not remounted) when navigating between items, and when opened by refcode only knows
+    // its `item_id` once the item has loaded.
+    this.uppyPromise = setupUppy(() => this.item_id, "#uppy-trigger", {});
   },
   beforeUnmount() {
     document.removeEventListener("keydown", this._keyListener);
@@ -419,6 +421,8 @@ export default {
     // Normally removed by the `savedStatus` watcher, which may not fire when leaving
     // without saving, so remove it here too
     window.removeEventListener("beforeunload", this.leavePageWarningListener, true);
+    // Remove the upload dashboard (and its document listeners) from the page
+    this.uppyPromise?.then((uppy) => uppy.destroy());
   },
   methods: {
     async newBlock(blockType, index = null) {
@@ -517,6 +521,9 @@ export default {
       this.blockInfoLoaded = true;
     },
     reloadForRoute() {
+      // Clear the upload dashboard so that files queued for the previous item are not
+      // shown (or uploaded) on the new one
+      this.uppyPromise?.then((uppy) => uppy.cancelAll());
       this.item_id = this.$route.params?.id || null;
       this.refcode = this.$route.params?.refcode || null;
       this.itemDataLoaded = false;
