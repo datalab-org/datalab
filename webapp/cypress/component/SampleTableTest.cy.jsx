@@ -987,3 +987,150 @@ describe("SampleTable Component Tests", () => {
     cy.get(".p-datatable-tbody tr").should("have.length", 6);
   });
 });
+
+// A realistically "messy" table: many rows, each with several creators, groups, tags,
+// collections and blocks. Rendering cost should scale gently with the number of rows, so these
+// check per-row budgets (DOM size, global listeners) rather than timings, which are too noisy
+// to assert on in CI.
+describe("SampleTable with many messy rows", () => {
+  const NUM_ROWS = 100;
+  // Budgets per rendered row, set ~20% above the measured values (71 elements and 6.3
+  // top-level elements teleported to <body>). Raise them deliberately if a change
+  // legitimately needs more.
+  // All DOM elements added, including anything teleported to <body>
+  const MAX_ELEMENTS_PER_ROW = 85;
+  // Top-level elements teleported to <body>, i.e., roughly one per tooltip/popover. This is
+  // tighter than the total, as a single extra tooltip per row adds only a couple of elements
+  const MAX_TELEPORTED_PER_ROW = 7;
+
+  const FORMULAE = ["LiNi0.8Mn0.1Co0.1O2", "Na3V2(PO4)3", "CuSO4.5H2O", "LiFePO4", "Li2CO3"];
+  const TAGS = Array.from({ length: 5 }, (_, i) => ({
+    type: "tags",
+    immutable_id: `tag${i}`,
+    name: `tag-${i}`,
+    color: "#3366ff",
+    description: `A description of tag ${i}`,
+  }));
+  const CREATORS = Array.from({ length: 4 }, (_, i) => ({
+    display_name: `Messy Creator ${i}`,
+    immutable_id: `creator${i}`,
+  }));
+  const GROUPS = Array.from({ length: 3 }, (_, i) => ({
+    display_name: `Messy Group ${i}`,
+    group_id: `group${i}`,
+    immutable_id: `group${i}`,
+  }));
+  const BLOCKS = ["nmr", "xrd", "cycle", "raman"].map((blocktype) => ({
+    blocktype,
+    title: blocktype,
+  }));
+
+  const makeMessySamples = (n) =>
+    Array.from({ length: n }, (_, i) => {
+      const blocks = BLOCKS.slice(0, i % 5);
+      return {
+        item_id: `messy_${String(i).padStart(3, "0")}`,
+        type: i % 3 === 0 ? "cells" : "samples",
+        name: `Messy sample number ${i} with a reasonably long name`,
+        status: ["PLANNED", "ACTIVE", "FAILED", "CYCLED"][i % 4],
+        chemform: FORMULAE[i % FORMULAE.length],
+        date: new Date(Date.UTC(2023, 0, 1 + (i % 300))).toISOString(),
+        last_modified: new Date(Date.UTC(2024, 0, 1 + (i % 300))).toISOString(),
+        collections: Array.from({ length: i % 4 }, (_, j) => ({
+          collection_id: `collection${j}`,
+        })),
+        creators: CREATORS.slice(0, 1 + (i % CREATORS.length)),
+        groups: i % 5 === 0 ? GROUPS.slice(0, 1) : i % 7 === 0 ? GROUPS.slice(0, 2) : [],
+        nblocks: blocks.length,
+        nfiles: i % 3,
+        blocks,
+        tags: TAGS.slice(0, i % (TAGS.length + 1)),
+      };
+    });
+
+  let listenerSpies;
+  let elementsBefore;
+  let bodyChildrenBefore;
+
+  const countListeners = (spy, type) =>
+    spy.getCalls().filter((call) => call.args[0] === type).length;
+
+  beforeEach(() => {
+    localStorage.removeItem("datatable-state-samples");
+
+    const store = createStore({
+      state() {
+        return {
+          datatablePaginationSettings: { samples: { page: 0, rows: NUM_ROWS } },
+          serverInfo: { features: { tags: true } },
+          tag_list: TAGS,
+          blocksInfos: {},
+          sample_list: Object.freeze(makeMessySamples(NUM_ROWS)),
+        };
+      },
+      mutations: {
+        setPage(state, { type, page }) {
+          state.datatablePaginationSettings[type].page = page;
+        },
+        setRows(state, { type, rows }) {
+          state.datatablePaginationSettings[type].rows = rows;
+        },
+      },
+    });
+
+    cy.window().then((win) => {
+      elementsBefore = win.document.getElementsByTagName("*").length;
+      bodyChildrenBefore = win.document.body.children.length;
+      listenerSpies = {
+        document: cy.spy(win.document, "addEventListener"),
+        window: cy.spy(win, "addEventListener"),
+      };
+    });
+
+    cy.mount(SampleTable, {
+      global: {
+        plugins: [store, [PrimeVue, { theme: DatalabPreset }]],
+        config: { globalProperties: { $filters: { IsoDatetimeToDate } } },
+        components: { UserBubble, StyledTooltip },
+      },
+    });
+    cy.get(".p-datatable-tbody > tr").should("have.length", NUM_ROWS);
+  });
+
+  it("shows a tooltip when hovering a creator", () => {
+    cy.get(".p-datatable-tbody tr")
+      .first()
+      .find(".avatar")
+      .first()
+      .closest(".tooltip-anchor")
+      .trigger("mouseenter");
+    cy.get("[data-testid='styled-tooltip'][data-show]")
+      .should("have.length", 1)
+      .and("contain.text", "Messy Creator 0");
+  });
+
+  it("keeps the DOM size per row within budget", () => {
+    cy.window().then((win) => {
+      const added = win.document.getElementsByTagName("*").length - elementsBefore;
+      const teleported = win.document.body.children.length - bodyChildrenBefore;
+      const perRow = added / NUM_ROWS;
+      const teleportedPerRow = teleported / NUM_ROWS;
+      const summary =
+        `${NUM_ROWS} rows added ${added} elements (${perRow.toFixed(1)} per row, ` +
+        `budget ${MAX_ELEMENTS_PER_ROW}); ${teleported} top-level elements teleported to ` +
+        `<body> (${teleportedPerRow.toFixed(1)} per row, budget ${MAX_TELEPORTED_PER_ROW})`;
+      cy.task("log", summary);
+      expect(perRow, summary).to.be.at.most(MAX_ELEMENTS_PER_ROW);
+      expect(teleportedPerRow, summary).to.be.at.most(MAX_TELEPORTED_PER_ROW);
+    });
+  });
+
+  it("does not add global listeners per row on mount", () => {
+    // Every row has several tooltips (creators, tags, block/file counters, groups), so any
+    // per-tooltip document/window listener would scale with the number of rows
+    cy.then(() => {
+      expect(countListeners(listenerSpies.document, "mousedown")).to.be.lessThan(10);
+      expect(countListeners(listenerSpies.window, "scroll")).to.be.lessThan(10);
+    });
+  });
+});
