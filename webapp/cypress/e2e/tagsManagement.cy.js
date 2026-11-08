@@ -194,3 +194,79 @@ describe("Applying a tag to an item", () => {
     cy.contains(".badge", intTag).should("not.exist");
   });
 });
+
+describe("Batch applying tags to items", () => {
+  const firstTag = "e2e-batch-tag-one";
+  const secondTag = "e2e-batch-tag-two";
+  const firstSample = "e2e-batch-tag-sample-one";
+  const secondSample = "e2e-batch-tag-sample-two";
+
+  before(() => {
+    cy.loginViaTestMagicLink(adminEmail);
+    cy.deleteTagByNameViaAPI(firstTag);
+    cy.deleteTagByNameViaAPI(secondTag);
+    cy.createTagViaAPI({ name: firstTag, scope: "global" });
+    cy.createTagViaAPI({ name: secondTag, scope: "global" });
+  });
+
+  beforeEach(() => {
+    cy.loginViaTestMagicLink(userEmail);
+    cy.deleteSampleViaAPI(firstSample);
+    cy.deleteSampleViaAPI(secondSample);
+    cy.visit("/samples");
+    cy.createSample(firstSample, "First batch-tag sample");
+    cy.createSample(secondSample, "Second batch-tag sample");
+  });
+
+  after(() => {
+    cy.loginViaTestMagicLink(adminEmail);
+    cy.deleteSampleViaAPI(firstSample);
+    cy.deleteSampleViaAPI(secondSample);
+    cy.deleteTagByNameViaAPI(firstTag);
+    cy.deleteTagByNameViaAPI(secondTag);
+  });
+
+  it("adds multiple tags to multiple selected items", () => {
+    cy.intercept("GET", "**/search-tags*").as("searchTags");
+    cy.intercept("PATCH", "**/items/batch/tags").as("batchTags");
+
+    cy.selectItemCheckbox("sample", firstSample);
+    cy.selectItemCheckbox("sample", secondSample);
+    cy.get('[data-testid="selected-dropdown"]').click();
+    cy.get('[data-testid="add-tags-button"]').find('svg[data-icon="tags"]').should("exist");
+    cy.get('[data-testid="add-tags-button"]').should("contain.text", "Add tags").click();
+
+    cy.get('form[data-testid="batch-tag-form"]').within(() => {
+      cy.contains(firstSample).should("exist");
+      cy.contains(secondSample).should("exist");
+      cy.get('input[type="submit"]').should("be.disabled");
+
+      cy.get(".vs__search").type(firstTag);
+      cy.wait("@searchTags");
+      cy.contains(".vs__dropdown-option", firstTag).click();
+
+      cy.get(".vs__search").type(secondTag);
+      cy.wait("@searchTags");
+      cy.contains(".vs__dropdown-option", secondTag).click();
+      cy.get('input[type="submit"]').should("not.be.disabled").click();
+    });
+
+    cy.wait("@batchTags").then(({ request, response }) => {
+      expect(request.body.refcodes).to.have.length(2);
+      expect(request.body.tag_ids).to.have.length(2);
+      expect(response.statusCode).to.equal(200);
+      expect(response.body.updated_count).to.equal(2);
+    });
+
+    cy.get(".dialog-modal-content").should("contain.text", "2 item(s) updated");
+    cy.get('[data-testid="dialog-modal-confirm-button"]').click();
+    cy.get('[data-testid="selected-dropdown"]').should("not.exist");
+
+    for (const sample of [firstSample, secondSample]) {
+      cy.contains("tr", sample).within(() => {
+        cy.contains(".badge", firstTag).should("exist");
+        cy.contains(".badge", secondTag).should("exist");
+      });
+    }
+  });
+});
