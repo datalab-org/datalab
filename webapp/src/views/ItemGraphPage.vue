@@ -18,7 +18,7 @@
         </div>
       </div>
     </div>
-    <ItemGraph :graph-data="graphData" />
+    <ItemGraph v-model:show-collections="showCollections" :graph-data="graphData" />
   </div>
 </template>
 
@@ -36,17 +36,28 @@ export default {
     return {
       graphData: null,
       isLoading: true,
+      showCollections: false,
     };
   },
+  watch: {
+    showCollections() {
+      this.loadGraph();
+    },
+  },
   mounted() {
-    this.isLoading = true;
-    getItemGraph()
-      .then((graphData) => {
-        this.graphData = graphData;
-      })
-      .finally(() => {
-        this.isLoading = false;
-      });
+    this.loadGraph();
+  },
+  methods: {
+    loadGraph() {
+      this.isLoading = true;
+      getItemGraph({ show_collections: this.showCollections })
+        .then((graphData) => {
+          this.graphData = graphData;
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
+    },
   },
 };
 </script>
