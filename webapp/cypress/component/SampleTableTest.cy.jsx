@@ -321,20 +321,13 @@ describe("SampleTable Component Tests", () => {
     cy.then(() => {
       const dataTable = wrapper.findComponent(DynamicDataTable);
       dataTable.vm.hideCollections = true;
-      dataTable.vm.selectedColumns = dataTable.vm.availableColumns.filter((col) => !col.hidden);
       dataTable.vm.itemsSelected = [store.state.sample_list[0]];
 
       const buttons = dataTable.findComponent(DynamicDataTableButtons);
       buttons.vm.hideCollections = true;
-
-      expect(dataTable.vm.availableColumns.some((col) => col.field === "collections")).to.be.false;
-      return dataTable.vm.$nextTick().then(() => {
-        expect(buttons.props("availableColumns").some((col) => col.field === "collections")).to.be
-          .false;
-      });
+      return dataTable.vm.$nextTick();
     });
 
-    cy.get(".p-datatable-column-title").should("not.contain.text", "Collections");
     cy.get('[data-testid="add-to-collection-button"]').should("not.exist");
     cy.get('[data-testid="add-to-collection-form"]').should("not.exist");
     cy.contains("Create new collection").should("not.exist");

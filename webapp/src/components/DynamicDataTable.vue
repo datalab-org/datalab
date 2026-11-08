@@ -304,9 +304,7 @@ export default {
       );
     },
     availableColumns() {
-      return this.columns
-        .filter((col) => !this.hideCollections || col.field !== "collections")
-        .map((col) => ({ ...col }));
+      return this.columns.map((col) => ({ ...col }));
     },
   },
   created() {
