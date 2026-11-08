@@ -110,7 +110,7 @@
           label samples/cells by name</label
         >
       </div>
-      <div class="form-group form-check mt-3">
+      <div v-if="includeBlocks" class="form-group form-check mt-3">
         <input id="show-blocks" v-model="showBlocks" class="form-check-input" type="checkbox" />
         <label class="form-check-label" for="show-blocks"> show data blocks </label>
       </div>
@@ -314,7 +314,9 @@ export default {
     updateAndRunLayout() {
       this.stopLayout();
       this.layoutIsRunning = true;
-      this.layout = this.cy.layout(layoutOptions[this.graphStyle]);
+      // Lay out only what is shown: hidden elements (e.g. block nodes, when blocks are
+      // not shown) would otherwise still take part in the layout.
+      this.layout = this.cy.elements(":visible").layout(layoutOptions[this.graphStyle]);
       this.layout.run();
     },
     stopLayout() {
