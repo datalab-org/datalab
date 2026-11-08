@@ -114,6 +114,16 @@
         <input id="show-blocks" v-model="showBlocks" class="form-check-input" type="checkbox" />
         <label class="form-check-label" for="show-blocks"> show data blocks </label>
       </div>
+      <div v-if="showCollections !== null" class="form-group form-check mt-3">
+        <input
+          id="show-collections"
+          :checked="showCollections"
+          class="form-check-input"
+          type="checkbox"
+          @change="$emit('update:showCollections', $event.target.checked)"
+        />
+        <label class="form-check-label" for="show-collections"> show collections </label>
+      </div>
     </div>
   </div>
   <div id="cy" ref="cyContainer" v-bind="$attrs" :data-layout-running="layoutIsRunning" />
@@ -207,9 +217,17 @@ export default {
     // (unlike defaultShowBlocks, which only hides them)
     includeBlocks: {
       type: Boolean,
-      default: true,
+      default: false,
+    },
+    // Whether collections are shown as nodes linked to their items. The parent fetches
+    // the graph, so it handles the change (`v-model:show-collections`); when null, the
+    // option is not offered.
+    showCollections: {
+      type: Boolean,
+      default: null,
     },
   },
+  emits: ["update:showCollections"],
   data() {
     return {
       graphStyle: this.defaultGraphStyle,
@@ -395,7 +413,7 @@ export default {
         }
         element.style("border-width", element.data("special") == 1 ? 2 : 0);
         element.style("border-color", "grey");
-        (element.style("shape"), element.data("shape") == "triangle" ? "triangle" : "ellipse");
+        element.style("shape", element.data("shape") == "triangle" ? "triangle" : "ellipse");
       });
 
       // Toggle hide block nodes
