@@ -18,7 +18,11 @@
         </div>
       </div>
     </div>
-    <ItemGraph v-model:show-collections="showCollections" :graph-data="graphData" />
+    <ItemGraph
+      v-model:show-collections="showCollections"
+      :graph-data="graphData"
+      :default-show-labels="false"
+    />
   </div>
 </template>
 
