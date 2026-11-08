@@ -602,3 +602,20 @@ def test_refresh_item_models_ignores_custom_types(custom_item_models):
     assert "example:samples" in ITEM_SCHEMAS
     assert "example:items" in ITEM_MODELS
     assert "example:items" in ITEM_SCHEMAS
+
+
+def test_unconnected_custom_items_in_graph(client, custom_item_models):
+    """Custom items are kept in the full graph even when they are not connected to
+    anything, as samples are; unconnected starting materials are still left out."""
+    for data in (
+        {"type": "example:items", "item_id": "graph-lonely-custom"},
+        {"type": "starting_materials", "item_id": "graph-lonely-material"},
+    ):
+        response = client.post("/new-sample/", json={"new_sample_data": data})
+        assert response.status_code == 201, response.json
+
+    response = client.get("/item-graph")
+    assert response.status_code == 200, response.json
+    node_ids = {node["data"]["id"] for node in response.json["nodes"]}
+    assert "graph-lonely-custom" in node_ids
+    assert "graph-lonely-material" not in node_ids
