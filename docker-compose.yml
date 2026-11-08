@@ -131,7 +131,6 @@ services:
     environment:
       - NODE_ENV=development
       - VUE_APP_API_URL=${VUE_APP_API_URL:-http://localhost:5001}
-      - VUE_APP_HIDE_COLLECTIONS
       - CHOKIDAR_USEPOLLING=true
 
 networks:
