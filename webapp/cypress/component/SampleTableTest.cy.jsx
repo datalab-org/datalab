@@ -1,5 +1,6 @@
 import "bootstrap/dist/css/bootstrap.css";
 import DynamicDataTable from "@/components/DynamicDataTable.vue";
+import DynamicDataTableButtons from "@/components/DynamicDataTableButtons.vue";
 import SampleTable from "@/components/SampleTable.vue";
 import UserBubble from "@/components/UserBubble.vue";
 import StyledTooltip from "@/components/StyledTooltip.vue";
@@ -314,6 +315,22 @@ describe("SampleTable Component Tests", () => {
 
     cy.get('[data-testid="selection-summary"]').should("contain.text", "Number of items: 6");
     cy.get('[data-testid="selected-dropdown"]').should("not.exist");
+  });
+
+  it("hides collection table controls when configured", () => {
+    cy.then(() => {
+      const dataTable = wrapper.findComponent(DynamicDataTable);
+      dataTable.vm.hideCollections = true;
+      dataTable.vm.itemsSelected = [store.state.sample_list[0]];
+
+      const buttons = dataTable.findComponent(DynamicDataTableButtons);
+      buttons.vm.hideCollections = true;
+      return dataTable.vm.$nextTick();
+    });
+
+    cy.get('[data-testid="add-to-collection-button"]').should("not.exist");
+    cy.get('[data-testid="add-to-collection-form"]').should("not.exist");
+    cy.contains("Create new collection").should("not.exist");
   });
 
   it("renders the table with correct headers", () => {
