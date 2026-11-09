@@ -1,6 +1,25 @@
+import { h } from "vue";
+
 import Admin from "@/views/Admin.vue";
 import AdminDisplay from "@/components/AdminDisplay.vue";
 import { invalidateCurrentUserCache } from "@/server_fetch_utils.js";
+
+const EmptyComponent = { render: () => h("div") };
+const AdminUnderTest = {
+  ...Admin,
+  components: {
+    ...Admin.components,
+    Navbar: EmptyComponent,
+    AdminDisplay: { render: () => h("admin-display-stub") },
+  },
+};
+const AdminDisplayUnderTest = {
+  ...AdminDisplay,
+  components: {
+    ...AdminDisplay.components,
+    UserTable: EmptyComponent,
+  },
+};
 
 describe("Admin view", () => {
   function mountAdmin(role) {
@@ -14,14 +33,7 @@ describe("Admin view", () => {
       },
     }).as("getUser");
 
-    cy.mount(Admin, {
-      global: {
-        stubs: {
-          Navbar: true,
-          AdminDisplay: true,
-        },
-      },
-    });
+    cy.mount(AdminUnderTest);
     cy.wait("@getUser");
   }
 
@@ -51,9 +63,8 @@ describe("Admin view", () => {
 
   it("keeps administration content within a narrow viewport", () => {
     cy.viewport(375, 667);
-    cy.mount(AdminDisplay, {
+    cy.mount(AdminDisplayUnderTest, {
       props: { selectedItem: "Users" },
-      global: { stubs: { UserTable: true } },
     });
 
     cy.get(".admin-display").should(($display) => {

@@ -1,3 +1,4 @@
+import { h } from "vue";
 import { createRouter, createMemoryHistory, RouterView } from "vue-router";
 import { createStore } from "vuex";
 
@@ -8,6 +9,21 @@ import { routes as applicationRoutes } from "@/router/index.js";
 
 let mountedSettings;
 
+function createSettingsUnderTest(accountHasChanges) {
+  return {
+    ...Settings,
+    components: {
+      ...Settings.components,
+      Navbar: { render: () => h("div") },
+      AccountSettings: {
+        render: () => h("account-settings-stub"),
+        data: () => ({ hasChanges: accountHasChanges }),
+      },
+      TagManagementTable: { render: () => h("tag-management-table-stub") },
+    },
+  };
+}
+
 function mountSettings(path, { tagsEnabled = true, accountHasChanges } = {}) {
   const store = createStore({
     state: {
@@ -17,27 +33,18 @@ function mountSettings(path, { tagsEnabled = true, accountHasChanges } = {}) {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
-      { path: "/settings", name: "settings", component: Settings },
+      {
+        path: "/settings",
+        name: "settings",
+        component: createSettingsUnderTest(accountHasChanges),
+      },
       { path: "/samples", name: "samples", component: { template: "<div />" } },
     ],
   });
 
-  const accountSettingsStub =
-    accountHasChanges === undefined
-      ? true
-      : {
-          template: "<div />",
-          data: () => ({ hasChanges: accountHasChanges }),
-        };
-
   cy.mount(RouterView, {
     global: {
       plugins: [store, router],
-      stubs: {
-        Navbar: true,
-        AccountSettings: accountSettingsStub,
-        TagManagementTable: true,
-      },
     },
   }).then(({ wrapper }) => {
     mountedSettings = wrapper;
