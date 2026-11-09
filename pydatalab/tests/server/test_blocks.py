@@ -1,4 +1,5 @@
 import datetime
+import sys
 from pathlib import Path
 
 import pytest
@@ -249,6 +250,252 @@ def test_block_info_endpoint_contains_all_blocks(client):
     assert expected_block_types.issubset(returned_block_types), (
         f"Missing block types in /info/blocks: {expected_block_types - returned_block_types}"
     )
+
+
+def test_block_type_allow_list_controls_availability(
+    admin_client, default_sample_dict, monkeypatch
+):
+    """The deployment allowlist controls installed block availability."""
+    from pydatalab.config import CONFIG
+
+    monkeypatch.setattr(CONFIG, "BLOCK_TYPE_ALLOW_LIST", ["comment"])
+
+    response = admin_client.get("/info/blocks")
+    assert response.status_code == 200
+    block_info = {block["id"]: block["attributes"] for block in response.json["data"]}
+    assert block_info["comment"]["available"] is True
+    assert block_info["xrd"]["available"] is False
+
+    sample_data = default_sample_dict.copy()
+    sample_data["item_id"] = "test_block_type_allow_list"
+    response = admin_client.post("/new-sample/", json=sample_data)
+    assert response.status_code == 201
+
+    response = admin_client.post(
+        "/add-data-block/",
+        json={
+            "block_type": "xrd",
+            "item_id": sample_data["item_id"],
+            "index": 0,
+        },
+    )
+    assert response.status_code == 403
+    assert "not available in this deployment" in response.json["message"]
+
+    response = admin_client.post(
+        "/add-data-block/",
+        json={
+            "block_type": "comment",
+            "item_id": sample_data["item_id"],
+            "index": 0,
+        },
+    )
+    assert response.status_code == 200
+
+
+def test_existing_block_remains_functional_when_restricted(
+    admin_client, default_sample_dict, monkeypatch
+):
+    from pydatalab.config import CONFIG
+
+    monkeypatch.setattr(CONFIG, "BLOCK_TYPE_ALLOW_LIST", ["comment"])
+    sample_data = default_sample_dict.copy()
+    sample_data["item_id"] = "test_existing_restricted_block"
+    response = admin_client.post("/new-sample/", json=sample_data)
+    assert response.status_code == 201
+
+    response = admin_client.post(
+        "/add-data-block/",
+        json={
+            "block_type": "comment",
+            "item_id": sample_data["item_id"],
+            "index": 0,
+        },
+    )
+    assert response.status_code == 200
+    block_data = response.json["new_block_obj"]
+
+    monkeypatch.setattr(CONFIG, "BLOCK_TYPE_ALLOW_LIST", [])
+    block_data["freeform_comment"] = "Updated after restriction"
+    response = admin_client.post("/update-block/", json={"block_data": block_data})
+    assert response.status_code == 200
+
+    response = admin_client.get(f"/get-item-data/{sample_data['item_id']}")
+    assert response.status_code == 200
+    stored_block = response.json["item_data"]["blocks_obj"][block_data["block_id"]]
+    assert stored_block["freeform_comment"] == "Updated after restriction"
+
+
+def test_uninstalled_block_types_rejected_when_allow_lists_set(
+    admin_client, default_sample_dict, monkeypatch
+):
+    from pydatalab.config import CONFIG, ItemTypeAllowListEntry
+
+    monkeypatch.setattr(CONFIG, "BLOCK_TYPE_ALLOW_LIST", None)
+    monkeypatch.setattr(CONFIG, "ITEM_TYPE_ALLOW_LIST", None)
+
+    item_id = "test_uninstalled_block_allow_lists"
+    sample_data = default_sample_dict.copy()
+    sample_data["item_id"] = item_id
+    response = admin_client.post("/new-sample/", json=sample_data)
+    assert response.status_code == 201, response.json
+
+    def save_with_uninstalled_block(block_id):
+        item_data = admin_client.get(f"/get-item-data/{item_id}").json["item_data"]
+        item_data["blocks_obj"][block_id] = {
+            "block_id": block_id,
+            "blocktype": "missing-plugin-block",
+            "item_id": item_id,
+        }
+        item_data["display_order"].append(block_id)
+        return admin_client.post("/save-item/", json={"item_id": item_id, "data": item_data})
+
+    # Without any allow list, unknown blocks are still stored as `notsupported`
+    response = save_with_uninstalled_block("unknown-block-no-allow-list")
+    assert response.status_code == 200, response.json
+
+    monkeypatch.setattr(CONFIG, "BLOCK_TYPE_ALLOW_LIST", ["comment"])
+    response = save_with_uninstalled_block("unknown-block-block-allow-list")
+    assert response.status_code == 403
+
+    monkeypatch.setattr(CONFIG, "BLOCK_TYPE_ALLOW_LIST", None)
+    monkeypatch.setattr(
+        CONFIG,
+        "ITEM_TYPE_ALLOW_LIST",
+        [ItemTypeAllowListEntry(type="samples", block_type_allow_list=None)],
+    )
+    response = save_with_uninstalled_block("unknown-block-item-allow-list")
+    assert response.status_code == 403
+
+    # The block accepted before the restriction remains saveable
+    item_data = admin_client.get(f"/get-item-data/{item_id}").json["item_data"]
+    assert "unknown-block-no-allow-list" in item_data["blocks_obj"]
+    response = admin_client.post("/save-item/", json={"item_id": item_id, "data": item_data})
+    assert response.status_code == 200, response.json
+
+
+def test_unknown_block_types_warn_and_are_ignored(monkeypatch):
+    from pydatalab.apps import warn_for_unknown_block_types
+    from pydatalab.config import CONFIG
+    from pydatalab.logger import LOGGER
+
+    warning_messages = []
+    monkeypatch.setattr(CONFIG, "BLOCK_TYPE_ALLOW_LIST", ["comment", "missing-plugin-block"])
+    monkeypatch.setattr(
+        LOGGER,
+        "warning",
+        lambda message, *args: warning_messages.append(message % args),
+    )
+
+    warn_for_unknown_block_types()
+
+    assert warning_messages == [
+        "Ignoring unknown block types in BLOCK_TYPE_ALLOW_LIST: missing-plugin-block"
+    ]
+
+
+def test_item_type_block_allow_list_is_enforced_for_new_blocks(
+    admin_client, default_sample_dict, monkeypatch
+):
+    from pydatalab.config import CONFIG, ItemTypeAllowListEntry
+
+    monkeypatch.setattr(CONFIG, "BLOCK_TYPE_ALLOW_LIST", ["comment", "xrd"])
+    monkeypatch.setattr(
+        CONFIG,
+        "ITEM_TYPE_ALLOW_LIST",
+        [
+            ItemTypeAllowListEntry(
+                type="samples",
+                block_type_allow_list=["comment", "media"],
+            )
+        ],
+    )
+
+    initial_item_id = "item-block-allow-list-initial"
+    initial_xrd = BLOCK_TYPES["xrd"](item_id=initial_item_id)
+    initial_sample = default_sample_dict.copy()
+    initial_sample.update(
+        {
+            "item_id": initial_item_id,
+            "blocks_obj": {initial_xrd.block_id: initial_xrd.to_db()},
+            "display_order": [initial_xrd.block_id],
+        }
+    )
+    response = admin_client.post("/new-sample/", json=initial_sample)
+    assert response.status_code == 403
+
+    item_id = "item-block-allow-list-existing"
+    sample_data = default_sample_dict.copy()
+    sample_data["item_id"] = item_id
+    response = admin_client.post("/new-sample/", json=sample_data)
+    assert response.status_code == 201, response.json
+
+    response = admin_client.post(
+        "/add-data-block/",
+        json={"block_type": "media", "item_id": item_id, "index": 0},
+    )
+    assert response.status_code == 403
+
+    response = admin_client.post(
+        "/add-data-block/",
+        json={"block_type": "comment", "item_id": item_id, "index": 0},
+    )
+    assert response.status_code == 200, response.json
+    existing_block = response.json["new_block_obj"]
+
+    response = admin_client.get(f"/get-item-data/{item_id}")
+    assert response.status_code == 200
+    item_data = response.json["item_data"]
+    new_xrd = BLOCK_TYPES["xrd"](item_id=item_id)
+    item_data["blocks_obj"][new_xrd.block_id] = new_xrd.to_db()
+    item_data["display_order"].append(new_xrd.block_id)
+    response = admin_client.post(
+        "/save-item/",
+        json={"item_id": item_id, "data": item_data},
+    )
+    assert response.status_code == 403
+
+    monkeypatch.setattr(CONFIG, "ITEM_TYPE_ALLOW_LIST", [])
+    response = admin_client.post(
+        "/add-data-block/",
+        json={"block_type": "comment", "item_id": item_id, "index": 0},
+    )
+    assert response.status_code == 403
+
+    existing_block["freeform_comment"] = "Existing block still works"
+    response = admin_client.post("/update-block/", json={"block_data": existing_block})
+    assert response.status_code == 200, response.json
+
+
+def test_unknown_item_block_types_warn_and_are_ignored(monkeypatch):
+    from pydatalab.apps import warn_for_unknown_block_types
+    from pydatalab.config import CONFIG, ItemTypeAllowListEntry
+    from pydatalab.logger import LOGGER
+
+    warning_messages = []
+    monkeypatch.setattr(CONFIG, "BLOCK_TYPE_ALLOW_LIST", None)
+    monkeypatch.setattr(
+        CONFIG,
+        "ITEM_TYPE_ALLOW_LIST",
+        [
+            ItemTypeAllowListEntry(
+                type="samples",
+                block_type_allow_list=["comment", "missing-plugin-block"],
+            )
+        ],
+    )
+    monkeypatch.setattr(
+        LOGGER,
+        "warning",
+        lambda message, *args: warning_messages.append(message % args),
+    )
+
+    warn_for_unknown_block_types()
+
+    assert warning_messages == [
+        "Ignoring unknown block types for item type 'samples' in ITEM_TYPE_ALLOW_LIST: "
+        "missing-plugin-block"
+    ]
 
 
 def test_uvvis_block_lifecycle(admin_client, default_sample_dict, example_data_dir):
@@ -793,8 +1040,13 @@ def test_create_sample_with_example_files(
     assert "blocks_obj" in item_data
 
     if block_type == "xrd":
+        # Newly created blocks are stored as `{"immutable_id": ...}` references to
+        # the `blocks` collection, so follow the reference to check the stored payload.
         doc = database.items.find_one({"item_id": sample_id}, projection={"blocks_obj": 1})
-        assert doc["blocks_obj"][block_id]["computed"]["peak_data"] is not None
+        stored_entry = doc["blocks_obj"][block_id]
+        assert set(stored_entry) == {"immutable_id"}
+        block_doc = database.blocks.find_one({"_id": stored_entry["immutable_id"]})
+        assert block_doc["data"]["computed"]["peak_data"] is not None
 
 
 @pytest.fixture()
@@ -822,6 +1074,7 @@ def create_large_xye_file(tmpdir):
     yield fname
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="pytest-memray is unavailable on Windows")
 @pytest.mark.limit_memory("110MB")
 def test_large_fake_xrd_data_block_serialization(
     admin_client, default_sample_dict, tmpdir, create_large_xye_file
@@ -885,10 +1138,25 @@ def test_large_fake_xrd_data_block_serialization(
         },
     )
 
+    assert response.status_code == 200, f"Failed to create XRD block: {response.json}"
+
+    gc.collect()
+
+    response = admin_client.post(
+        "/add-data-block/",
+        json={
+            "block_type": "tabular",
+            "item_id": sample_id,
+            "index": 0,
+        },
+    )
+    assert response.status_code == 200, f"Failed to create tabular block: {response.json}"
     block_id = response.json["new_block_obj"]["block_id"]
 
     gc.collect()
 
+    # `/add-data-block/` does not attach files, so attach the file via an update
+    # of the same (tabular) block, which triggers the plot serialization
     response = admin_client.post(
         "/update-block/",
         json={
@@ -900,7 +1168,6 @@ def test_large_fake_xrd_data_block_serialization(
             },
         },
     )
-
     assert response.status_code == 200, f"Failed to update tabular block: {response.json}"
     assert response.json["new_block_data"]["bokeh_plot_data"]
 

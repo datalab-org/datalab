@@ -1,12 +1,13 @@
 // Resources for the application
+
+import { defineAsyncComponent, reactive } from "vue";
+
+import { CONFIG } from "@/config.js";
+
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import MediaBlock from "@/components/datablocks/MediaBlock";
-import XRDInsituBlock from "@/components/datablocks/XRDInsituBlock";
-import ChatBlock from "@/components/datablocks/ChatBlock";
 import CycleBlock from "@/components/datablocks/CycleBlock";
 import NMRBlock from "@/components/datablocks/NMRBlock";
-import NMRInsituBlock from "@/components/datablocks/NMRInsituBlock";
-import UVVisInsituBlock from "@/components/datablocks/UVVisInsituBlock.vue";
 import UVVisBlock from "@/components/datablocks/UVVisBlock";
 
 import SampleInformation from "@/components/SampleInformation";
@@ -14,47 +15,38 @@ import StartingMaterialInformation from "@/components/StartingMaterialInformatio
 import CellInformation from "@/components/CellInformation";
 import CollectionInformation from "@/components/CollectionInformation";
 import EquipmentInformation from "@/components/EquipmentInformation";
+import ItemInformation from "@/components/ItemInformation";
+
+import { PLUGIN_BLOCKS, PLUGIN_PANELS } from "./plugins/index.js";
 
 import SampleCreateModalAddon from "@/components/itemCreateModalAddons/SampleCreateModalAddon";
 import CellCreateModalAddon from "@/components/itemCreateModalAddons/CellCreateModalAddon";
 import StartingMaterialCreateModalAddon from "./components/itemCreateModalAddons/StartingMaterialCreateModalAddon.vue";
 
-// Look for values set in .env file. Use defaults if `null` is not explicitly handled elsewhere in the code.
-export const API_URL =
-  process.env.VUE_APP_API_URL != null ? process.env.VUE_APP_API_URL : "http://localhost:5001";
+export const API_URL = CONFIG.API_URL;
 
-export const QR_CODE_RESOLVER_URL = process.env.VUE_APP_QR_CODE_RESOLVER_URL;
+export const QR_CODE_RESOLVER_URL = CONFIG.QR_CODE_RESOLVER_URL;
 
 export const FEDERATION_QR_CODE_RESOLVER_URL = "https://purl.datalab-org.io";
 
-export const LOGO_URL = process.env.VUE_APP_LOGO_URL;
-export const LOGO_WIDTH = process.env.VUE_APP_LOGO_WIDTH || "100";
-export const HOMEPAGE_URL = process.env.VUE_APP_HOMEPAGE_URL;
-export const APP_VERSION = process.env.VUE_APP_GIT_VERSION;
+export const LOGO_URL = CONFIG.LOGO_URL;
+export const LOGO_WIDTH = CONFIG.LOGO_WIDTH;
+export const HOMEPAGE_URL = CONFIG.HOMEPAGE_URL;
+export const APP_VERSION = CONFIG.GIT_VERSION;
+
+export const WEBSITE_TITLE = CONFIG.WEBSITE_TITLE;
 
 export const GRAVATAR_STYLE = "identicon";
 
-// determine whether inventory should be readonly (except blocks). Note: environment
-// variables can only be strings, not bools.
-const editable_inventory = process.env.VUE_APP_EDITABLE_INVENTORY || "false";
-export const EDITABLE_INVENTORY = editable_inventory.toLowerCase() == "true";
+// determine whether inventory should be readonly (except blocks).
+export const EDITABLE_INVENTORY = CONFIG.EDITABLE_INVENTORY;
 
-const automatically_generate_id_default =
-  process.env.VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT || "false";
-export const AUTOMATICALLY_GENERATE_ID_DEFAULT =
-  automatically_generate_id_default.toLowerCase() == "true";
+export const HIDE_COLLECTIONS = CONFIG.HIDE_COLLECTIONS;
+
+export const AUTOMATICALLY_GENERATE_ID_DEFAULT = CONFIG.AUTOMATICALLY_GENERATE_ID_DEFAULT;
 
 // Eventually this should be pulled from the schema
 export const DATETIME_FIELDS = new Set(["date"]);
-
-export const UPPY_MAX_TOTAL_FILE_SIZE =
-  Number(process.env.VUE_APP_UPPY_MAX_TOTAL_FILE_SIZE) != null
-    ? process.env.VUE_APP_UPPY_MAX_TOTAL_FILE_SIZE
-    : 102400000000;
-export const UPPY_MAX_NUMBER_OF_FILES =
-  Number(process.env.VUE_APP_UPPY_MAX_NUMBER_OF_FILES) != null
-    ? process.env.VUE_APP_UPPY_MAX_NUMBER_OF_FILES
-    : 10000;
 
 export const debounceTime = 250; // time after user stops typing before request is sent
 
@@ -64,18 +56,23 @@ export const customBlockTypes = {
   media: { description: "Media", component: MediaBlock, name: "Media" },
   cycle: { description: "Electrochemistry", component: CycleBlock, name: "Electrochemistry" },
   nmr: { description: "Nuclear Magnetic Resonance Spectroscopy", component: NMRBlock, name: "NMR" },
-  chat: { description: "Virtual assistant", component: ChatBlock, name: "Virtual Assistant" },
   "uv-vis": { description: "UV-Vis", component: UVVisBlock, name: "UV-Vis" },
-  "insitu-nmr": { description: "NMR insitu", component: NMRInsituBlock, name: "NMR insitu" },
-  "insitu-uvvis": {
-    description: "UV-Vis insitu",
-    component: UVVisInsituBlock,
-    name: "UV-Vis insitu",
-  },
-  "insitu-xrd": { description: "XRD insitu", component: XRDInsituBlock, name: "XRD insitu" },
 };
 
-export const itemTypes = {
+// Blocks contributed by plugin manifests; built-in components take precedence.
+// Each component is wrapped once here so it is not remounted on every render.
+for (const [blocktype, loader] of Object.entries(PLUGIN_BLOCKS)) {
+  if (blocktype in customBlockTypes) {
+    console.warn(`Plugin block "${blocktype}" shadows a built-in block; ignoring.`);
+    continue;
+  }
+  customBlockTypes[blocktype] = { component: defineAsyncComponent(loader) };
+}
+
+// Reactive so that components re-render when dynamic (plugin) types are
+// registered after app startup — plain mutation would be cached forever by
+// computeds that read it before `loadItemSchemas()` finished.
+export const itemTypes = reactive({
   samples: {
     itemInformationComponent: SampleInformation,
     itemCreateModalAddon: SampleCreateModalAddon,
@@ -137,11 +134,109 @@ export const itemTypes = {
     labelColor: "#9C2007",
     display: "block",
   },
+});
+
+// Maps built-in backend type strings to their base information components.
+const BASE_TYPE_COMPONENTS = {
+  items: ItemInformation,
+  samples: SampleInformation,
+  cells: CellInformation,
+  starting_materials: StartingMaterialInformation,
+  equipment: EquipmentInformation,
 };
+
+export function prettifyType(type) {
+  return type
+    .replace(/[-_:]+/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
+}
+
+// Lighten a hex colour toward white to produce a pastel badge/tint background,
+// mirroring the hand-picked `lightColor` pastels of the built-in types. Used to give
+// custom (plugin) types a coloured badge derived from their `datalab_ui_color`.
+function lightTint(hex, amount = 0.82) {
+  const h = (hex || "").replace("#", "");
+  if (h.length !== 6) return "#e0e0e0";
+  const n = parseInt(h, 16);
+  if (Number.isNaN(n)) return "#e0e0e0";
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  const mix = (c) => Math.round(c + (255 - c) * amount);
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+}
+
+// Apply server-provided metadata to a built-in item type, or register a
+// custom/plugin type that is not hardcoded above, in the shared `itemTypes` registry.
+// - base_type: the built-in type string this model inherits from (e.g. "samples")
+// - hidden_fields: base-component fields the plugin wants to hide (from model_config)
+// - title: human-readable display name
+// - ui_color: accent color for navbar/labels (`datalab_ui_color` on model_config)
+export function registerDynamicItemType(
+  type,
+  {
+    title,
+    base_type,
+    hidden_fields,
+    ui_color,
+    available = true,
+    block_type_allow_list = null,
+  } = {},
+) {
+  if (!type) return;
+
+  const itemTypeAvailability = {
+    available: available !== false,
+    blockTypeAllowList: block_type_allow_list,
+  };
+  if (itemTypes[type]) {
+    Object.assign(itemTypes[type], itemTypeAvailability);
+    return;
+  }
+
+  const display = title || prettifyType(type);
+  const color = ui_color || "#4a4a4a";
+  itemTypes[type] = {
+    itemInformationComponent: BASE_TYPE_COMPONENTS[base_type] || null,
+    navbarColor: color,
+    navbarName: display,
+    lightColor: lightTint(color),
+    labelColor: color,
+    isCreateable: true,
+    display: display.toLowerCase(),
+    isDynamic: true,
+    baseType: base_type || null,
+    hiddenFields: hidden_fields || [],
+    customPanel: PLUGIN_PANELS[type] || null,
+    ...itemTypeAvailability,
+  };
+}
 
 export const SAMPLE_TABLE_TYPES = ["samples", "cells"];
 export const INVENTORY_TABLE_TYPES = ["starting_materials"];
 export const EQUIPMENT_TABLE_TYPES = ["equipment"];
+// Item types that are shared across the deployment, optionally restricted to groups
+export const INVENTORY_TYPES = [...INVENTORY_TABLE_TYPES, ...EQUIPMENT_TABLE_TYPES];
+
+// Curated palette of distinguishable preset colors offered for tag colors.
+export const TAG_COLOR_PALETTE = [
+  "#e74c3c",
+  "#e67e22",
+  "#f1c40f",
+  "#2ecc71",
+  "#1abc9c",
+  "#3498db",
+  "#9b59b6",
+  "#34495e",
+  "#95a5a6",
+  "#e84393",
+  "#00b894",
+  "#fdcb6e",
+];
+
+// The color assigned to a newly created tag.
+export const DEFAULT_TAG_COLOR = "#95a5a6";
 
 export const cellFormats = {
   coin: "coin",

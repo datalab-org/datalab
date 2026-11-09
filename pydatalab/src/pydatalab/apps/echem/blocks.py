@@ -504,7 +504,8 @@ class CycleBlock(DataBlock):
                 df = reduce_echem_cycle_sampling(df, num_samples=100)
                 LOGGER.debug("Reduced df size, df length: %d", len(df))
             df["filename"] = filename
-            cycle_summary_df["filename"] = filename
+            if cycle_summary_df is not None:
+                cycle_summary_df["filename"] = filename
             dfs[filename] = df
             cycle_summary_dfs[filename] = cycle_summary_df
 

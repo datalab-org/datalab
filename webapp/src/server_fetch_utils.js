@@ -7,6 +7,8 @@ import {
   SAMPLE_TABLE_TYPES,
   INVENTORY_TABLE_TYPES,
   EQUIPMENT_TABLE_TYPES,
+  registerDynamicItemType,
+  itemTypes,
 } from "@/resources.js";
 
 import { DialogService } from "@/services/DialogService";
@@ -288,7 +290,11 @@ export function createNewItem(
         getEquipmentList();
       }
     }
-    return "success";
+    // Custom/plugin types are surfaced in the samples table for now.
+    if (itemTypes[response_json.sample_list_entry.type]?.isDynamic) {
+      store.commit("prependToSampleList", response_json.sample_list_entry);
+    }
+    return response_json.sample_list_entry.item_id;
   });
 }
 
@@ -302,11 +308,14 @@ export function createNewSamples(
     new_sample_datas: newSampleDatas,
     generate_ids_automatically: generateIDsAutomatically,
   }).then(function (response_json) {
-    response_json.responses.forEach((response) => {
-      if (response.status == "success") {
-        store.commit("prependToSampleList", response.sample_list_entry);
-      }
-    });
+    // Prepend all new entries in one go (reversed to match the previous one-at-a-time order),
+    // rather than copying the whole frozen list once per new item
+    const created = response_json.responses
+      .filter((response) => response.status == "success")
+      .map((response) => response.sample_list_entry);
+    if (created.length) {
+      store.commit("prependManyToSampleList", created.reverse());
+    }
 
     return response_json.responses;
   });
@@ -337,18 +346,32 @@ export async function createNewCollection(
   });
 }
 
-export async function getStats() {
-  return fetch_get(`${API_URL}/info/stats`)
-    .then(function (response_json) {
-      return response_json.counts;
-    })
-    .catch((error) => {
-      if (error === "UNAUTHORIZED") {
-        return null;
-      } else {
+let statsHistoryPromise = null;
+
+export function getStatsHistory() {
+  // Fetched at most once per session, unless the server was still updating the stats
+  if (store.state.statsHistory) {
+    return Promise.resolve(store.state.statsHistory);
+  }
+  if (!statsHistoryPromise) {
+    statsHistoryPromise = fetch_get(`${API_URL}/info/stats/history`)
+      .then(function (response_json) {
+        if (response_json.data.updating) {
+          statsHistoryPromise = null;
+        } else {
+          store.commit("setStatsHistory", response_json.data);
+        }
+        return response_json.data;
+      })
+      .catch((error) => {
+        statsHistoryPromise = null;
+        if (error === "UNAUTHORIZED") {
+          return null;
+        }
         throw error;
-      }
-    });
+      });
+  }
+  return statsHistoryPromise;
 }
 
 export async function getInfo() {
@@ -366,10 +389,20 @@ export async function getInfo() {
     });
 }
 
+// Commit a fetched item list only if it differs from the stored one, so that re-fetching on
+// returning to a (kept-alive) table does not force the whole table to be rebuilt for
+// identical data.
+function commitListIfChanged(mutation, current, incoming) {
+  if (current && JSON.stringify(current) === JSON.stringify(incoming)) {
+    return;
+  }
+  store.commit(mutation, incoming);
+}
+
 export function getSampleList() {
   return fetch_get(`${API_URL}/samples/`)
     .then(function (response_json) {
-      store.commit("setSampleList", response_json.samples);
+      commitListIfChanged("setSampleList", store.state.sample_list, response_json.samples);
     })
     .catch((error) => {
       if (error === "UNAUTHORIZED") {
@@ -397,7 +430,7 @@ export function getCollectionSampleList(collection_id) {
 export function getCollectionList() {
   return fetch_get(`${API_URL}/collections`)
     .then(function (response_json) {
-      store.commit("setCollectionList", response_json.data);
+      commitListIfChanged("setCollectionList", store.state.collection_list, response_json.data);
     })
     .catch((error) => {
       if (error === "UNAUTHORIZED") {
@@ -516,7 +549,11 @@ export function removeUserFromGroup(groupId, userId) {
 export function getStartingMaterialList() {
   return fetch_get(`${API_URL}/starting-materials/`)
     .then(function (response_json) {
-      store.commit("setStartingMaterialList", response_json.items);
+      commitListIfChanged(
+        "setStartingMaterialList",
+        store.state.starting_material_list,
+        response_json.items,
+      );
     })
     .catch((error) => {
       if (error === "UNAUTHORIZED") {
@@ -530,11 +567,32 @@ export function getStartingMaterialList() {
 export function getEquipmentList() {
   return fetch_get(`${API_URL}/equipment/`)
     .then(function (response_json) {
-      store.commit("setEquipmentList", response_json.items);
+      commitListIfChanged("setEquipmentList", store.state.equipment_list, response_json.items);
     })
     .catch((error) => {
       if (error === "UNAUTHORIZED") {
         store.commit("setEquipmentList", []);
+      } else {
+        throw error;
+      }
+    });
+}
+
+export function getLocations({ force = false } = {}) {
+  // Locations are shared across every item type, so only fetch them once per
+  // session unless a caller explicitly asks for a refresh.
+  if (!force && store.state.locations_list !== null) {
+    return Promise.resolve();
+  }
+  return fetch_get(`${API_URL}/locations`)
+    .then(function (response_json) {
+      store.commit("setLocationsList", response_json.data);
+    })
+    .catch((error) => {
+      if (error === "UNAUTHORIZED") {
+        // Commit the empty shape rather than null: the guard above treats null
+        // as "not yet fetched", so nulling it here would refetch on every mount.
+        store.commit("setLocationsList", { flat_locations: [], nested_locations: {} });
       } else {
         throw error;
       }
@@ -561,10 +619,65 @@ export function searchCollections(query, nresults = 100) {
   });
 }
 
-export function searchGroups(query, nresults = 100) {
+export function createTag(data) {
+  // data: { name, description?, color?, scope? }. `scope` is "user" (user-defined,
+  // default) or "global" (admins only). The caller refreshes the list via
+  // getTags(). Rejects with the server message on error (e.g. 409 duplicate name).
+  return fetch_put(`${API_URL}/tags`, { data }).then(function (response_json) {
+    return response_json.data;
+  });
+}
+
+export function updateTag(tagId, data) {
+  // Update a tag's metadata (name/description/color). Rejects with the server message (e.g. 409).
+  return fetch_patch(`${API_URL}/tags/${tagId}`, { data });
+}
+
+export function deleteTag(tagId) {
+  return fetch_delete(`${API_URL}/tags/${tagId}`)
+    .then(function (response_json) {
+      if (response_json.status !== "success") {
+        throw new Error("Failed to delete tag: " + response_json.message);
+      }
+      store.commit("deleteFromTagList", tagId);
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Unable to delete tag",
+        message: `Failed to delete tag: ${error}`,
+      });
+      throw error;
+    });
+}
+
+export function getTags() {
+  return fetch_get(`${API_URL}/tags`)
+    .then(function (response_json) {
+      store.commit("setTagList", response_json.data);
+    })
+    .catch((error) => {
+      if (error === "UNAUTHORIZED") {
+        store.commit("setTagList", []);
+      } else {
+        throw error;
+      }
+    });
+}
+
+export function searchTags(query, nresults = 100) {
+  // construct a url with parameters:
+  var url = new URL(`${API_URL}/search-tags`);
+  var params = { query: query, nresults: nresults };
+  Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
+  return fetch_get(url).then(function (response_json) {
+    return response_json.data;
+  });
+}
+
+export function searchGroups(query, nresults = 100, memberOnly = false) {
   // construct a url with parameters:
   var url = new URL(`${API_URL}/search/groups`);
-  var params = { query: query, nresults: nresults };
+  var params = { query: query, nresults: nresults, member_only: memberOnly };
   Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
   return fetch_get(url).then(function (response_json) {
     return response_json.data;
@@ -626,10 +739,11 @@ export function invalidateCurrentUserCache() {
   store.commit("setAdminSuperUserMode", false);
 }
 
-export async function requestMagicLink(email_address) {
+export async function requestMagicLink(email_address, remember = false) {
   return fetch_post(`${API_URL}/login/magic-link`, {
     email: email_address,
     referrer: window.location.origin,
+    remember: remember,
   })
     .then((response_json) => {
       return response_json;
@@ -971,29 +1085,29 @@ export function updateCollectionPermissions(collection_id, creators = null, grou
 export function saveItem(item_id) {
   var item_data = store.state.all_item_data[item_id];
 
-  let blocks = [];
-  let keysToExclude = ["bokeh_plot_data", "computed", "metadata", "b64_encoded_image"];
+  // Strip large and server-authoritative data out of the blocks before saving, but make
+  // sure to preserve them in the store. The server ignores these keys on the way in
+  // (they are either recomputed or restored from the stored block state), so sending
+  // them only inflates the request.
+  const keysToExclude = [
+    "bokeh_plot_data",
+    "b64_encoded_image",
+    "computed",
+    "processed",
+    "metadata",
+  ];
 
-  // Strip large data from blocks before saving, but make
-  // sure to preserve them in the store
-  if (item_data.blocks_obj) {
-    for (const block_id in item_data.blocks_obj) {
-      blocks.push(
-        Object.fromEntries(
-          Object.entries(item_data.blocks_obj[block_id]).filter(
-            ([key]) => !keysToExclude.includes(key),
-          ),
-        ),
-      );
-    }
-  }
-
-  item_data.blocks = blocks;
+  const blocks_obj = Object.fromEntries(
+    Object.entries(item_data.blocks_obj || {}).map(([block_id, block]) => [
+      block_id,
+      Object.fromEntries(Object.entries(block).filter(([key]) => !keysToExclude.includes(key))),
+    ]),
+  );
 
   store.commit("setItemSaved", { item_id: item_id, isSaved: false });
   fetch_post(`${API_URL}/save-item/`, {
     item_id: item_id,
-    data: item_data,
+    data: { ...item_data, blocks_obj: blocks_obj },
   })
     .then(function (response_json) {
       if (response_json.status === "success") {
@@ -1005,6 +1119,11 @@ export function saveItem(item_id) {
         store.state.all_item_data[item_id].display_order.forEach((block_id) => {
           store.commit("setBlockSaved", { block_id: block_id, isSaved: true });
         });
+        // A location typed here is not in the cached suggestions until refetched,
+        // so refresh them (only) when this save introduced a new one.
+        if (item_data.location && !store.getters.getUniqueLocations.includes(item_data.location)) {
+          getLocations({ force: true });
+        }
       }
     })
     .catch(function (error) {
@@ -1060,6 +1179,16 @@ export function saveUser(user_id, user) {
     });
 }
 
+export function deleteUser(user_id, expunge = false) {
+  const url = `${API_URL}/users/${user_id}` + (expunge ? "?expunge=true" : "");
+  return fetch_delete(url).then(function (response_json) {
+    if (response_json.status !== "success") {
+      throw new Error(response_json.message || response_json.detail || "User deletion failed");
+    }
+    return response_json;
+  });
+}
+
 export function saveRole(user_id, role) {
   return fetch_patch(`${API_URL}/roles/${user_id}`, role)
     .then(function (response_json) {
@@ -1085,11 +1214,10 @@ export function deleteBlock(item_id, block_id) {
     // eslint-disable-next-line no-unused-vars
     .then(function (response_json) {
       // response_json should always just be {status: "success"}, so we don't actually use it
-      store.commit("removeBlockFromDisplay", {
+      store.commit("removeBlock", {
         item_id: item_id,
         block_id: block_id,
       });
-      // currently, we don't actually delete the block from the store, so it may get re-added to the db on the next save. Fix once new schemas are established
     })
     .catch((error) => {
       DialogService.error({
@@ -1170,9 +1298,16 @@ export async function addRemoteFileToSample(file_entry, item_id) {
  * @param {string|null} options.item_id - The item ID to fetch graph for
  * @param {string|null} options.collection_id - The collection ID to filter by
  * @param {number} options.max_depth - Maximum depth for related items (default: 1)
+ * @param {boolean} options.show_collections - Include collections as nodes linked to their
+ *   items (default: false; ignored when filtering by collection)
  * @returns {Promise<Object>} Returns graph data ({ nodes, edges })
  */
-export async function getItemGraph({ item_id = null, collection_id = null, max_depth = 1 } = {}) {
+export async function getItemGraph({
+  item_id = null,
+  collection_id = null,
+  max_depth = 1,
+  show_collections = false,
+} = {}) {
   // Short-circuit and do not send request if user is not logged in
   if (!(await waitForUserAuth())) return;
 
@@ -1187,6 +1322,9 @@ export async function getItemGraph({ item_id = null, collection_id = null, max_d
   }
   if (max_depth != null && max_depth > 1) {
     params.append("max_depth", max_depth.toString());
+  }
+  if (show_collections) {
+    params.append("hide_collections", "false");
   }
   if (params.toString()) {
     url = url + "?" + params.toString();
@@ -1211,12 +1349,12 @@ export async function getItemGraph({ item_id = null, collection_id = null, max_d
     });
 }
 
-export async function requestNewAPIKey() {
+export async function requestNewAPIKey(name) {
   try {
-    const response_json = await fetch_get(`${API_URL}/get-api-key/`);
+    const response_json = await fetch_post(`${API_URL}/api-keys`, { name });
 
     if (response_json.key) {
-      return response_json.key;
+      return response_json;
     } else {
       DialogService.error({
         title: "API Key Request Failed",
@@ -1229,7 +1367,33 @@ export async function requestNewAPIKey() {
       title: "API Key Request Failed",
       message: "Failed to retrieve new API key. Please try again later or report this issue.",
     });
-    throw new Error(`Failed to request new API key: ${error.message}`);
+    throw new Error(`Failed to request new API key: ${error.message || error}`);
+  }
+}
+
+export async function getAPIKeys() {
+  try {
+    const response_json = await fetch_get(`${API_URL}/api-keys`);
+    return response_json.api_keys || [];
+  } catch (error) {
+    DialogService.error({
+      title: "Unable to Fetch API Keys",
+      message: `Failed to fetch API keys: ${error.message || error}`,
+    });
+    return [];
+  }
+}
+
+export async function deleteAPIKey(id) {
+  try {
+    await fetch_delete(`${API_URL}/api-keys/${id}`);
+    return true;
+  } catch (error) {
+    DialogService.error({
+      title: "Unable to Delete API Key",
+      message: `Failed to delete API key: ${error.message || error}`,
+    });
+    return false;
   }
 }
 
@@ -1321,6 +1485,18 @@ export async function loadItemSchemas() {
   // in the Vuex store.
   try {
     const supportedTypes = await getSupportedSchemasList();
+    // Register any server-side types not hardcoded in the frontend registry
+    // (custom/plugin types) so they are recognised across the app.
+    supportedTypes.forEach((typeInfo) =>
+      registerDynamicItemType(typeInfo.id, {
+        title: typeInfo.attributes?.title,
+        base_type: typeInfo.attributes?.base_type,
+        hidden_fields: typeInfo.attributes?.hidden_fields,
+        ui_color: typeInfo.attributes?.ui_color,
+        available: typeInfo.attributes?.available,
+        block_type_allow_list: typeInfo.attributes?.block_type_allow_list,
+      }),
+    );
     await Promise.all(supportedTypes.map((typeInfo) => ensureItemSchema(typeInfo.id)));
   } catch (error) {
     console.error("Failed to get supported schemas list:", error);
@@ -1473,14 +1649,14 @@ export async function restoreItemVersion(refcode, versionId) {
     });
 }
 
-export async function compareItemVersions(refcode, baseVersion, targetVersion) {
-  var url = new URL(`${API_URL}/items/${refcode}/versions/compare`);
-  url.searchParams.append("base", baseVersion);
-  url.searchParams.append("target", targetVersion);
+export async function compareItemVersions(refcode, versionId1, versionId2) {
+  var url = new URL(`${API_URL}/items/${refcode}/compare-versions/`);
+  url.searchParams.append("v1", versionId1);
+  url.searchParams.append("v2", versionId2);
 
   return fetch_get(url)
     .then(function (response_json) {
-      return response_json.comparison;
+      return response_json.diff;
     })
     .catch((error) => {
       DialogService.error({

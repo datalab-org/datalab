@@ -1,5 +1,4 @@
 import datetime
-import json
 
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
@@ -7,9 +6,9 @@ from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.results import InsertOneResult, UpdateResult
 
-from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER, logged_route
 from pydatalab.models.collections import Collection
+from pydatalab.models.people import AccountStatus
 from pydatalab.mongo import COLLECTIONS_FTS_FIELDS, build_search_pipeline, flask_mongo
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 from pydatalab.routes.v0_1.items import creators_lookup, get_items_summary, groups_lookup
@@ -58,7 +57,7 @@ def get_collection(collection_id):
     except IndexError:
         doc = None
 
-    if not doc or (not current_user.is_authenticated and not CONFIG.TESTING):
+    if not doc or not current_user.is_authenticated:
         return (
             jsonify(
                 {
@@ -87,7 +86,7 @@ def get_collection(collection_id):
         {
             "status": "success",
             "collection_id": collection_id,
-            "data": json.loads(collection.json(exclude_unset=True)),
+            "data": collection.model_dump(mode="json", exclude_unset=True),
             "child_items": list(samples),
         }
     )
@@ -98,9 +97,11 @@ def create_collection():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     data = request_json.get("data", {})
     copy_from_id = request_json.get("copy_from_collection_id", None)
-    starting_members = data.get("starting_members", [])
+    starting_members = data.pop("starting_members", [])
+    # Consumed below to populate `creator_ids`; not a field of `Collection` itself.
+    additional_creators = data.pop("additional_creators", None)
 
-    if not current_user.is_authenticated and not CONFIG.TESTING:
+    if not current_user.is_authenticated:
         return (
             dict(
                 status="error",
@@ -113,20 +114,16 @@ def create_collection():
     if copy_from_id:
         raise NotImplementedError("Copying collections is not yet implemented.")
 
-    if CONFIG.TESTING:
-        data["creator_ids"] = [24 * "0"]
-        data["creators"] = [{"display_name": "Public testing user"}]
-    else:
-        data["creator_ids"] = [current_user.person.immutable_id]
-        data["creators"] = [
-            {
-                "display_name": current_user.person.display_name,
-                "gravatar_hash": current_user.person.gravatar_hash,
-            }
-        ]
+    data["creator_ids"] = [current_user.person.immutable_id]
+    data["creators"] = [
+        {
+            "display_name": current_user.person.display_name,
+            "gravatar_hash": current_user.person.gravatar_hash,
+        }
+    ]
 
-    if data.get("additional_creators"):
-        for c in data["additional_creators"]:
+    if additional_creators:
+        for c in additional_creators:
             creator_id = c.get("_id") or c.get("immutable_id")
             if creator_id:
                 data["creator_ids"].append(ObjectId(creator_id))
@@ -168,7 +165,7 @@ def create_collection():
         )
 
     result: InsertOneResult = flask_mongo.db.collections.insert_one(
-        data_model.dict(exclude={"creators", "groups"})
+        data_model.model_dump(exclude={"creators", "groups"})
     )
     if not result.acknowledged:
         return (
@@ -218,7 +215,7 @@ def create_collection():
 
     response = {
         "status": "success",
-        "data": json.loads(data_model.json()),
+        "data": data_model.model_dump(mode="json"),
     }
 
     if errors:
@@ -278,7 +275,7 @@ def save_collection(collection_id):
     collection.update(updated_data)
 
     try:
-        collection = Collection(**collection).dict()
+        collection = Collection(**collection).model_dump()
     except ValidationError as exc:
         return (
             jsonify(
@@ -370,9 +367,20 @@ def update_collection_permissions(collection_id: str):
             400,
         )
 
+    # Deleted users cannot be newly added as creators, but any already present are kept
     if creator_ids:
         found_creator_ids = [
-            d for d in flask_mongo.db.users.find({"_id": {"$in": creator_ids}}, {"_id": 1})
+            d
+            for d in flask_mongo.db.users.find(
+                {
+                    "_id": {"$in": creator_ids},
+                    "$or": [
+                        {"account_status": {"$ne": AccountStatus.DELETED}},
+                        {"_id": {"$in": current_creator_ids}},
+                    ],
+                },
+                {"_id": 1},
+            )
         ]  # type: ignore
         if len(found_creator_ids) != len(creator_ids):
             return (
@@ -534,7 +542,7 @@ def search_collections():
     )
 
     cursor = [
-        json.loads(Collection(**doc).json(exclude_unset=True))
+        Collection(**doc).model_dump(mode="json", exclude_unset=True)
         for doc in flask_mongo.db.collections.aggregate(pipeline)
     ]
 

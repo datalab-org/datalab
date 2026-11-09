@@ -10,7 +10,6 @@ from pydatalab.models.files import File
 from pydatalab.models.items import Item
 from pydatalab.models.people import DisplayName, EmailStr
 from pydatalab.models.relationships import (
-    KnownType,
     RelationshipType,
     TypedRelationship,
 )
@@ -52,7 +51,7 @@ def test_sample_with_inlined_reference():
     assert parents[0].item_id == a.item_id
     assert parents[0].refcode == a.refcode
 
-    b_both = Sample(**json.loads(b_both.json()))
+    b_both = Sample(**json.loads(b_both.model_dump_json()))
     parents = [r for r in b_both.relationships if r.relation == RelationshipType.PARENT]
     assert len(parents) == 1
 
@@ -81,26 +80,47 @@ def test_sample_with_inlined_reference():
 @pytest.mark.parametrize("model", ITEM_MODELS.values())
 def test_generate_schemas(model):
     """Test that all item model schemas can be generated."""
-    assert model.schema()
+    assert model.model_json_schema()
+
+
+def test_attribute_docstrings_in_schema():
+    """Field docstrings should be pulled into the JSON schema as descriptions.
+
+    Relies on ``use_attribute_docstrings`` being set on the shared ``BaseModel``
+    in ``pydatalab.models.utils``; covers fields defined across several different
+    trait mixins to confirm the config propagates through inheritance.
+    """
+    properties = Sample.model_json_schema(by_alias=False)["properties"]
+
+    expected = {
+        "creators": "Inlined info for the people associated with this item.",  # HasOwner
+        "blocks_obj": "A mapping from block ID to block data.",  # HasBlocks
+        "revision": "The revision number of the entry.",  # HasRevisionControl
+        "collections": "Inlined info for the collections associated with this item.",  # IsCollectable
+        "name": "An optional human-readable/usable name for the entry.",  # Item
+    }
+
+    for field, description in expected.items():
+        assert properties[field]["description"] == description
 
 
 def test_relationship_with_custom_type():
     """Test that a relationship with a custom type can be created."""
     relationship = TypedRelationship(
         relation=RelationshipType.OTHER,
-        type=KnownType.SAMPLES,
+        type="samples",
         item_id="1234",
         description="This is a relationship",
     )
     assert relationship.relation == RelationshipType.OTHER
-    assert relationship.type == KnownType.SAMPLES
+    assert relationship.type == "samples"
     assert relationship.item_id == "1234"
     assert relationship.description == "This is a relationship"
 
     with pytest.raises(pydantic.ValidationError):
         relationship = TypedRelationship(
             relation=RelationshipType.OTHER,
-            type=KnownType.SAMPLES,
+            type="samples",
             item_id="1234",
             description=None,
         )
@@ -163,9 +183,109 @@ def test_file():
     assert sample.files[1].type == "files"
 
 
+def test_tag_model():
+    from pydatalab.models.tags import Tag, TagAccessScope
+
+    tag = Tag(name="test_tag", description="This is an example", color="#f1c40f", scope="global")
+    assert tag.type == "tags"
+    assert tag.name == "test_tag"
+    assert tag.description == "This is an example"
+    assert tag.color == "#f1c40f"
+    assert tag.scope == TagAccessScope.GLOBAL
+    assert tag.owner is None
+
+    # Scope is modelled explicitly via `scope`/`owner` (not the `HasOwner` mixin).
+    assert not hasattr(tag, "creator_ids")
+    assert not hasattr(tag, "group_ids")
+
+    oid = ObjectId("0123456789ab0123456789ab")
+    doc = {"_id": oid, "type": "tags", "name": "glovebox", "scope": "global"}
+    stored_tag = Tag(**doc)
+    assert stored_tag.immutable_id == oid
+    assert stored_tag.description is None
+    assert stored_tag.color is None
+    assert stored_tag.model_dump()["immutable_id"] == oid
+    assert stored_tag.scope == TagAccessScope.GLOBAL
+
+    # Both `name` and `scope` are required.
+    with pytest.raises(pydantic.ValidationError):
+        Tag(scope="global", description="missing a name")
+    with pytest.raises(pydantic.ValidationError):
+        Tag(name="missing-a-scope")
+
+
+def test_tag_scope_owner_consistency():
+    """A user-scoped tag must have an owner; a global tag must not."""
+    from pydatalab.models.tags import Tag, TagAccessScope
+
+    owner = ObjectId()
+
+    # A valid user-defined tag.
+    user_defined = Tag(name="mine", scope="user", owner=owner)
+    assert user_defined.scope == TagAccessScope.USER
+    assert user_defined.owner == owner
+    # `owner` is preserved as an ObjectId in the stored (python-mode) dump.
+    assert isinstance(user_defined.model_dump(exclude_none=True)["owner"], ObjectId)
+    # ... and stringified in the JSON dump sent to clients.
+    assert json.loads(user_defined.model_dump_json())["owner"] == str(owner)
+
+    # A valid global tag has no owner.
+    glob = Tag(name="shared", scope="global")
+    assert glob.owner is None
+
+    # A user-scoped tag without an owner is rejected.
+    with pytest.raises(pydantic.ValidationError):
+        Tag(name="bad", scope="user")
+
+    # A global tag with an owner is rejected.
+    with pytest.raises(pydantic.ValidationError):
+        Tag(name="bad", scope="global", owner=owner)
+
+
+def test_item_tags_coercion():
+    """The `HasTags` mixin coerces references and de-duplicates tags on items."""
+    from pydatalab.models.samples import Sample
+    from pydatalab.models.utils import EntryReference
+
+    oid = ObjectId("0123456789ab0123456789ab")
+
+    sample = Sample(
+        item_id="tagged",
+        tags=[
+            {"type": "tags", "immutable_id": str(oid), "name": "Curated"},
+            {"type": "tags", "immutable_id": str(oid)},  # same reference by id -> dropped
+        ],
+    )
+
+    assert len(sample.tags) == 1
+    ref = sample.tags[0]
+    assert isinstance(ref, EntryReference)
+    assert ref.type == "tags"
+    assert ref.immutable_id == oid
+    assert ref.name == "Curated"
+
+    # Default is an empty list, so existing tag-less documents stay valid.
+    assert Sample(item_id="untagged").tags == []
+
+    # A reference to a (possibly deleted) tag still validates.
+    dangling = Sample(item_id="dangling", tags=[{"type": "tags", "immutable_id": str(ObjectId())}])
+    assert len(dangling.tags) == 1
+
+    # Bare string tags are not allowed: only references to tags entries.
+    with pytest.raises(pydantic.ValidationError):
+        Sample(item_id="string-tag", tags=["custom"])
+
+    # Re-validating a dumped item round-trips the reference tags list.
+    roundtrip = Sample(**json.loads(sample.model_dump_json()))
+    assert [type(t).__name__ for t in roundtrip.tags] == ["EntryReference"]
+
+
 def test_custom_and_inherited_items():
     class TestItem(Item):
         type: str = "items_custom"
+        new_field: str
+
+    TestItem.model_rebuild()
 
     item = TestItem(
         type="items_custom",
@@ -174,9 +294,10 @@ def test_custom_and_inherited_items():
         creators=None,
         date="2020-01-01 00:00",
         item_id="1234",
+        new_field="This is a new field",
     )
 
-    item_dict = item.dict()
+    item_dict = item.model_dump()
     assert item_dict["type"] == "items_custom"
     assert item_dict["creator_ids"][0] == ObjectId("0123456789ab0123456789ab")
     assert item_dict["creator_ids"][1] == ObjectId("1023456789ab0123456789ab")
@@ -184,10 +305,10 @@ def test_custom_and_inherited_items():
         tzinfo=datetime.timezone.utc
     )
 
-    item_json = json.loads(item.json())
+    item_json = json.loads(item.model_dump_json())
     assert item_json["type"] == "items_custom"
-    assert item_json["creator_ids"][0] == str(ObjectId("0123456789ab0123456789ab"))
-    assert item_json["creator_ids"][1] == str(ObjectId("1023456789ab0123456789ab"))
+    assert item_json["creator_ids"][0] == "0123456789ab0123456789ab"
+    assert item_json["creator_ids"][1] == "1023456789ab0123456789ab"
     assert (
         item_json["date"]
         == datetime.datetime.fromisoformat("2020-01-01 00:00")
@@ -203,7 +324,7 @@ def test_custom_and_inherited_items():
         item_id="1234",
     )
 
-    sample_dict = sample.dict()
+    sample_dict = sample.model_dump()
     assert sample_dict["type"] == "samples"
     assert sample_dict["creator_ids"][0] == ObjectId("0123456789ab0123456789ab")
     assert sample_dict["creator_ids"][1] == ObjectId("1023456789ab0123456789ab")
@@ -214,7 +335,7 @@ def test_custom_and_inherited_items():
         "2020-01-01 00:00"
     ).replace(tzinfo=datetime.timezone.utc)
 
-    sample_json = json.loads(sample.json())
+    sample_json = json.loads(sample.model_dump_json())
     assert sample_json["type"] == "samples"
     assert sample_json["creator_ids"][0] == str(ObjectId("0123456789ab0123456789ab"))
     assert sample_json["creator_ids"][1] == str(ObjectId("1023456789ab0123456789ab"))
@@ -240,13 +361,17 @@ def test_custom_and_inherited_items():
         "MP2018_TEST_COMMERCIAL",
         "MP2018_TEST_COMMERCIAL_4.5V_hold",
         "AAAAAA",
-        111111111,
+        "111111111",
     ],
 )
 def test_good_ids(id):
     """Test good human-readable IDs for validity."""
 
-    assert HumanReadableIdentifier(id)
+    class TestModel(pydantic.BaseModel):
+        test_id: HumanReadableIdentifier
+
+    model = TestModel(test_id=id)
+    assert model.test_id == id
 
 
 @pytest.mark.parametrize(
@@ -256,6 +381,7 @@ def test_good_ids(id):
         "mp 1 2 3 4 5 6",
         "lithium & sodium",
         "me388-123456789-123456789-really-long-descriptive-identifier-that-should-be-the-name-but-is-otherwise-valid",
+        111111111,
         1111111111111111111111111111111111111111111111111,
         "_AAAA",
         "AAA_",
@@ -267,8 +393,11 @@ def test_good_ids(id):
 def test_bad_ids(id):
     """Test bad human-readable IDs for invalidity."""
 
+    class TestModel(pydantic.BaseModel):
+        test_id: HumanReadableIdentifier
+
     with pytest.raises(pydantic.ValidationError):
-        HumanReadableIdentifier(id)
+        TestModel(test_id=id)
 
 
 def test_cell_with_inlined_reference():
@@ -291,7 +420,7 @@ def test_cell_with_inlined_reference():
     assert cell
     assert len(cell.relationships) == 1
 
-    cell = Cell(**json.loads(cell.json()))
+    cell = Cell(**json.loads(cell.model_dump_json()))
     assert cell
     assert len(cell.relationships) == 1
 
@@ -411,7 +540,7 @@ def test_cell_relationship_deduplication():
     assert parthood[0].item_id == "test_cathode"
 
     # Re-validating an already-clean cell must not grow the relationships list.
-    cell = Cell(**json.loads(cell.json()))
+    cell = Cell(**json.loads(cell.model_dump_json()))
     parthood = [r for r in cell.relationships if r.relation == RelationshipType.PARTHOOD]
     assert len(parthood) == 1
     assert parthood[0].refcode == "grey:ABCDEF"
@@ -506,7 +635,7 @@ def test_sample_synthesis_relationship_deduplication():
     assert parents[0].item_id == "sm_1"
 
     # Re-validating an already-clean sample must not grow the relationships list.
-    sample = Sample(**json.loads(sample.json()))
+    sample = Sample(**json.loads(sample.model_dump_json()))
     parents = [r for r in sample.relationships if r.relation == RelationshipType.PARENT]
     assert len(parents) == 1
     assert parents[0].refcode == "grey:ABCDEF"
@@ -569,8 +698,11 @@ def test_good_refcodes(refcode):
 def test_bad_refcodes(refcode):
     """Test bad refcodes for invalidity."""
 
+    class TestModel(pydantic.BaseModel):
+        test_refcode: Refcode
+
     with pytest.raises(pydantic.ValidationError):
-        Refcode(refcode)
+        TestModel(test_refcode=refcode)
 
 
 @pytest.mark.parametrize(
@@ -585,7 +717,10 @@ def test_bad_refcodes(refcode):
 def test_good_display_name(display_name):
     """Test good display name for validity."""
 
-    assert DisplayName(display_name)
+    class TestModel(pydantic.BaseModel):
+        name: DisplayName
+
+    assert TestModel(name=display_name)
 
 
 @pytest.mark.parametrize(
@@ -599,8 +734,11 @@ def test_good_display_name(display_name):
 def test_bad_display_name(display_name):
     """Test bad display_name for invalidity."""
 
+    class TestModel(pydantic.BaseModel):
+        name: DisplayName
+
     with pytest.raises(ValueError):
-        DisplayName(display_name)
+        TestModel(name=display_name)
 
 
 @pytest.mark.parametrize(
@@ -610,7 +748,11 @@ def test_bad_display_name(display_name):
     ],
 )
 def test_good_email(contact_email):
-    assert EmailStr(contact_email)
+
+    class TestModel(pydantic.BaseModel):
+        email: EmailStr
+
+    assert TestModel(email=contact_email)
 
 
 @pytest.mark.parametrize(
@@ -623,5 +765,105 @@ def test_good_email(contact_email):
     ],
 )
 def test_bad_email(contact_email):
+
+    class TestModel(pydantic.BaseModel):
+        email: EmailStr
+
     with pytest.raises(ValueError):
-        assert EmailStr(contact_email)
+        TestModel(email=contact_email)
+
+
+def test_builtin_models_have_valid_schema_hints():
+    """Every built-in item model's datalab schema hints validate against the
+    DatalabFieldExtra/DatalabModelExtra vocabulary."""
+    from pydatalab.models.schema_hints import validate_schema_hints
+
+    for model in ITEM_MODELS.values():
+        validate_schema_hints(model)
+
+
+def test_datalab_field_extra_rejects_unknown_and_mistyped_hints():
+    from pydatalab.models.schema_hints import DatalabFieldExtra
+    from pydatalab.models.units import DatalabQuantity
+
+    # Unknown datalab_ key.
+    with pytest.raises(pydantic.ValidationError):
+        DatalabFieldExtra(datalab_include_in_summary=True)
+
+    # Wrong type for a known key.
+    with pytest.raises(pydantic.ValidationError):
+        DatalabFieldExtra(datalab_ref_types="equipment")
+
+    # A valid set of hints passes.
+    quantity = DatalabQuantity(
+        canonical_unit="V",
+        display_units={
+            "V": {"scale": 1},
+            "mV": {"scale": 0.001},
+        },
+        default_display_unit="mV",
+    )
+    field_extra = DatalabFieldExtra(
+        datalab_include_field_in_summary=True,
+        datalab_ref_types=["equipment"],
+        datalab_quantity=quantity,
+    )
+    assert field_extra.datalab_quantity == quantity
+
+
+def test_validate_schema_hints_checks_canonical_quantity_relationship():
+    from typing import Literal
+
+    from pydantic import Field
+
+    from pydatalab.models.schema_hints import validate_schema_hints
+    from pydatalab.models.utils import BaseModel
+
+    class _QuantityModel(BaseModel):
+        volume: float | None = Field(
+            None,
+            json_schema_extra={
+                "datalab_quantity": {
+                    "canonical_unit": "L",
+                    "display_units": {
+                        "L": {"scale": 1},
+                        "mL": {"scale": 0.001},
+                    },
+                    "default_display_unit": "mL",
+                    "display_unit_field": "volume_display_unit",
+                }
+            },
+        )
+        volume_display_unit: Literal["L", "mL"] | None = None
+
+    validate_schema_hints(_QuantityModel)
+
+    class _MismatchedUnits(BaseModel):
+        volume: float | None = Field(
+            None,
+            json_schema_extra=_QuantityModel.model_fields["volume"].json_schema_extra,
+        )
+        volume_display_unit: Literal["L", "cL"] | None = None
+
+    with pytest.raises(ValueError, match="containing exactly"):
+        validate_schema_hints(_MismatchedUnits)
+
+
+def test_validate_schema_hints_raises_for_bad_field_hint():
+    from pydantic import Field
+
+    from pydatalab.models.schema_hints import validate_schema_hints
+    from pydatalab.models.utils import BaseModel
+
+    class _BadHints(BaseModel):
+        # `datalab_multlinee` is a typo of `datalab_multiline`.
+        widget: str | None = Field(None, json_schema_extra={"datalab_multlinee": True})
+
+    with pytest.raises(ValueError, match="widget"):
+        validate_schema_hints(_BadHints)
+
+    class _InvalidExtra(BaseModel):
+        widget: str | None = Field(None, json_schema_extra="bad")  # type: ignore[arg-type]
+
+    with pytest.raises(ValueError, match="expected a dict, callable, or None"):
+        validate_schema_hints(_InvalidExtra)

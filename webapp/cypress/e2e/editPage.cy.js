@@ -9,7 +9,7 @@ Cypress.on("window:before:load", (win) => {
 let item_ids = ["editable_sample", "component1", "component2"];
 
 before(() => {
-  cy.loginViaTestMagicLink("test-user@example.com", "user");
+  cy.loginViaTestMagicLink("test-user@datalab.test");
 });
 
 after(() => {
@@ -28,7 +28,7 @@ after(() => {
 
 describe("Edit Page", () => {
   beforeEach(() => {
-    cy.loginViaTestMagicLink("test-user@example.com", "user");
+    cy.loginViaTestMagicLink("test-user@datalab.test");
     cy.visit("/");
   });
 
@@ -43,8 +43,14 @@ describe("Edit Page", () => {
 
   it("Adds a valid sample", () => {
     cy.createSample("editable_sample", "This is a sample name", "1990-01-07T00:00");
-    cy.get("tr>td").eq(9).should("be.empty"); // 0 blocks are present
-    cy.get("tr>td").eq(10).should("be.empty"); // 0 files are present
+    // Find the columns by their header icon, as their position depends on which columns
+    // are shown.
+    cy.getIconColumnIndex("cubes").then((index) => {
+      cy.get("tr>td").eq(index).should("be.empty"); // 0 blocks are present
+    });
+    cy.getIconColumnIndex("file").then((index) => {
+      cy.get("tr>td").eq(index).should("be.empty"); // 0 files are present
+    });
   });
 
   it("Add some more samples, to use as components", () => {
@@ -64,7 +70,7 @@ describe("Edit Page", () => {
     cy.contains("Unsaved changes").should("not.exist");
     cy.findByText("Home").click();
 
-    cy.get('[data-testid="search-input"]').type("editable_sample");
+    cy.get('[data-testid="search-input"]').clear().type("editable_sample");
     cy.findByText("editable_sample");
     cy.findByText("This is a sample name");
     cy.findByText("1990-01-07");
@@ -226,15 +232,17 @@ describe("Edit Page", () => {
 
     cy.contains("Unsaved changes").should("not.exist");
 
-    cy.get(".datablock-content div").eq(0).type("the first comment box");
+    cy.get(".datablock-content [contenteditable]").eq(0).type("the first comment box");
     cy.contains("Unsaved changes");
 
     // click update block icon and make sure unsaved changes warning goes away
     cy.get('.datablock-header [aria-label="updateBlock"]').eq(0).click();
     cy.contains("Unsaved changes").should("not.exist");
-    cy.get(".datablock-content div").eq(0).contains("the first comment box");
+    cy.get(".datablock-content [contenteditable]").eq(0).contains("the first comment box");
 
-    cy.get(".datablock-content div").eq(0).type("\nThe first comment box; further changes.");
+    cy.get(".datablock-content [contenteditable]")
+      .eq(0)
+      .type("\nThe first comment box; further changes.");
     cy.contains("Unsaved changes");
 
     cy.get('[data-testid="block-description"]').first().find(".ProseMirror").click();
@@ -264,8 +272,10 @@ describe("Edit Page", () => {
     cy.contains("Unsaved changes").should("not.exist");
 
     cy.findByText("Home").click();
-    cy.get('[data-testid="search-input"]').type("editable_sample");
-    cy.get("[data-testid=sample-table] tr:nth-of-type(1) > td:nth-of-type(10)").contains(2); // 2 blocks are present
+    cy.get('[data-testid="search-input"]').clear().type("editable_sample");
+    cy.getIconColumnIndex("cubes").then((index) => {
+      cy.get("[data-testid=sample-table] tr:nth-of-type(1) > td").eq(index).contains(2); // 2 blocks are present
+    });
   });
 
   it("Clicks the upload buttons and checks that the modals are shown", () => {
@@ -321,10 +331,10 @@ describe("Edit Page", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
 
-    cy.get('[data-testid="add-block-button-top"]').click();
-    cy.get('[data-testid="add-block-dropdown"]').contains("Media").click();
-    cy.findAllByText("Select a file:").eq(0).should("exist");
-    cy.get("select.file-select-dropdown").eq(0).select(test_fname);
+    cy.addBlockFromTopDropdown("Media").within(() => {
+      cy.findByText("Select a file").should("exist");
+      cy.get("select.file-select-dropdown").select(test_fname);
+    });
 
     // Check that the img with id "media-block-img" is present
     cy.get('img[data-testid="media-block-img"]').should("exist");
@@ -338,10 +348,10 @@ describe("Edit Page", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
 
-    cy.get('[data-testid="add-block-button-top"]').click();
-    cy.get('[data-testid="add-block-dropdown"]').contains("Media").click();
-    cy.findAllByText("Select a file:").eq(1).should("exist");
-    cy.get("select.file-select-dropdown").eq(1).select(test_fname);
+    cy.addBlockFromTopDropdown("Media").within(() => {
+      cy.findByText("Select a file").should("exist");
+      cy.get("select.file-select-dropdown").select(test_fname);
+    });
 
     // Check that the SVG is displayed
     cy.get(".svg-wrapper").should("exist");
@@ -364,12 +374,10 @@ describe("Edit Page", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
 
-    cy.get('[data-testid="add-block-button-top"]').click();
-    cy.get('[data-testid="add-block-dropdown"]').contains("Raman spectroscopy").click();
-    cy.findAllByText("Select a file:").eq(2).should("exist");
-    cy.get("select.file-select-dropdown")
-      .eq(2)
-      .select("example_data_raman_labspec_raman_example.txt");
+    cy.addBlockFromTopDropdown("Raman spectroscopy").within(() => {
+      cy.findByText("Select a file").should("exist");
+      cy.get("select.file-select-dropdown").select("example_data_raman_labspec_raman_example.txt");
+    });
     cy.contains("label", "X axis").should("exist");
     cy.contains("label", "Y axis").should("exist");
   });
@@ -429,7 +437,7 @@ describe("Edit Page", () => {
 
     cy.wait(1000);
     cy.get(".data-block").should("exist");
-    cy.findAllByText("Select a file:").should("exist");
+    cy.findAllByText("Select a file").should("exist");
   });
 
   it("Verifies bottom and top 'Add a block' dropdowns work independently", () => {

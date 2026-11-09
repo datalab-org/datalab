@@ -26,7 +26,17 @@ class XRDBlock(DataBlock):
     blocktype = "xrd"
     name = "Powder XRD"
     description = "Visualize XRD patterns and perform simple baseline corrections."
-    accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye", ".rasx", ".cif", ".raw", ".brml")
+    accepted_file_extensions = (
+        ".xrdml",
+        ".xy",
+        ".dat",
+        ".xye",
+        ".rasx",
+        ".cif",
+        ".raw",
+        ".brml",
+        ".asc",
+    )
     multi_file = True
 
     defaults = {"wavelength": 1.54060}
@@ -264,7 +274,7 @@ class XRDBlock(DataBlock):
                 pattern_df.attrs["wavelength"] = (
                     f"{self.data.get('wavelength', self.defaults['wavelength'])} Å"
                 )
-                peak_information[str(f["immutable_id"])] = PeakInformation(**peak_data).dict()
+                peak_information[str(f["immutable_id"])] = PeakInformation(**peak_data).model_dump()
                 if len(all_files) > 1:
                     pattern_df["normalized intensity (staggered)"] += ind
                 pattern_dfs.append(pattern_df)

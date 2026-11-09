@@ -2,7 +2,9 @@
   <div ref="anchor" class="tooltip-anchor" :class="anchorClass">
     <slot name="anchor"></slot>
   </div>
-  <Teleport to="body">
+  <!-- Only render (and teleport) the tooltip once it has been shown, as many tooltips
+       (e.g., several per table row) are never hovered. -->
+  <Teleport v-if="hasBeenShown" to="body">
     <div ref="tooltipContent" class="styled-tooltip" role="tooltip" data-testid="styled-tooltip">
       <slot name="content"></slot>
     </div>
@@ -35,37 +37,38 @@ export default {
       type: String,
       default: "",
     },
+    // When set, clicking (or pressing enter on) the anchor pins the tooltip
+    // open so that it survives the pointer leaving, until it is clicked again
+    // or the user clicks elsewhere.
+    pinnable: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
       tooltipTimeout: null,
       popperInstance: null,
+      pinned: false,
+      hasBeenShown: false,
+      isOpen: false,
     };
   },
+  // The popper instance and the document/window listeners are only created while the
+  // tooltip is open, as setting them up for every (potentially hundreds of) tooltip on
+  // mount forces layout and adds global listeners for tooltips that are never hovered.
   mounted() {
     const anchor = this.$refs.anchor;
-    const tooltip = this.$refs.tooltipContent;
-
-    this.popperInstance = createPopper(anchor, tooltip, {
-      placement: this.placement,
-      strategy: "fixed",
-      modifiers: [
-        {
-          name: "offset",
-          options: {
-            offset: this.offset,
-          },
-        },
-      ],
-    });
 
     anchor.addEventListener("mouseenter", this.delayedShowTooltip);
     anchor.addEventListener("mouseleave", this.hideTooltip);
     anchor.addEventListener("focusin", this.delayedShowTooltip);
     anchor.addEventListener("focusout", this.hideTooltip);
 
-    document.addEventListener("mousedown", this.handleClickOutside);
-    window.addEventListener("scroll", this.hideTooltip, true);
+    if (this.pinnable) {
+      anchor.addEventListener("click", this.togglePinned);
+      anchor.addEventListener("keyup", this.handleAnchorKeyup);
+    }
   },
   beforeUnmount() {
     const anchor = this.$refs.anchor;
@@ -74,27 +77,86 @@ export default {
       anchor.removeEventListener("mouseleave", this.hideTooltip);
       anchor.removeEventListener("focusin", this.delayedShowTooltip);
       anchor.removeEventListener("focusout", this.hideTooltip);
+      anchor.removeEventListener("click", this.togglePinned);
+      anchor.removeEventListener("keyup", this.handleAnchorKeyup);
     }
-    if (this.popperInstance) {
-      this.popperInstance.destroy();
-    }
-
-    document.removeEventListener("mousedown", this.handleClickOutside);
-    window.removeEventListener("scroll", this.hideTooltip, true);
+    clearTimeout(this.tooltipTimeout);
+    this.teardownPopper();
   },
   methods: {
     delayedShowTooltip() {
-      this.tooltipTimeout = setTimeout(() => {
-        if (this.$refs.tooltipContent && this.popperInstance) {
-          this.$refs.tooltipContent.setAttribute("data-show", "");
-          this.popperInstance.update();
-        }
-      }, this.delay);
+      clearTimeout(this.tooltipTimeout);
+      this.tooltipTimeout = setTimeout(this.openTooltip, this.delay);
+    },
+    showTooltip() {
+      clearTimeout(this.tooltipTimeout);
+      this.openTooltip();
+    },
+    async openTooltip() {
+      this.isOpen = true;
+      if (!this.hasBeenShown) {
+        this.hasBeenShown = true;
+        // Wait for the content to render so that popper can measure it
+        await this.$nextTick();
+      }
+      // The tooltip may have been hidden (or unmounted) while waiting
+      const anchor = this.$refs.anchor;
+      const tooltip = this.$refs.tooltipContent;
+      if (!this.isOpen || !anchor || !tooltip) return;
+
+      if (!this.popperInstance) {
+        this.popperInstance = createPopper(anchor, tooltip, {
+          placement: this.placement,
+          strategy: "fixed",
+          modifiers: [
+            {
+              name: "offset",
+              options: {
+                offset: this.offset,
+              },
+            },
+          ],
+        });
+        document.addEventListener("mousedown", this.handleClickOutside);
+        window.addEventListener("scroll", this.forceHideTooltip, true);
+      }
+      tooltip.setAttribute("data-show", "");
+      this.popperInstance.update();
+    },
+    teardownPopper() {
+      if (this.popperInstance) {
+        this.popperInstance.destroy();
+        this.popperInstance = null;
+      }
+      document.removeEventListener("mousedown", this.handleClickOutside);
+      window.removeEventListener("scroll", this.forceHideTooltip, true);
     },
     hideTooltip() {
+      // A pinned tooltip ignores the pointer leaving; it is dismissed by
+      // clicking the anchor again or clicking outside.
+      if (this.pinned) return;
+      this.forceHideTooltip();
+    },
+    forceHideTooltip() {
+      this.pinned = false;
+      this.isOpen = false;
       clearTimeout(this.tooltipTimeout);
       if (this.$refs.tooltipContent) {
         this.$refs.tooltipContent.removeAttribute("data-show");
+      }
+      this.teardownPopper();
+    },
+    togglePinned() {
+      this.pinned = !this.pinned;
+      if (this.pinned) {
+        this.showTooltip();
+      } else {
+        this.forceHideTooltip();
+      }
+    },
+    handleAnchorKeyup(event) {
+      if (event.key === "Enter" || event.key === " ") {
+        this.togglePinned();
       }
     },
     handleClickOutside(event) {
@@ -104,7 +166,7 @@ export default {
       if (!anchor || !tooltip) return;
 
       if (!anchor.contains(event.target) && !tooltip.contains(event.target)) {
-        this.hideTooltip();
+        this.forceHideTooltip();
       }
     },
   },

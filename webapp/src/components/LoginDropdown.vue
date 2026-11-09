@@ -1,5 +1,5 @@
 <template>
-  <GetEmailModal v-model="emailModalIsOpen" />
+  <GetEmailModal v-model="emailModalIsOpen" :remember="remember" />
   <span v-if="!authMechanismsLoaded" class="dropdown-item text-muted">
     <font-awesome-icon :icon="['fa', 'spinner']" spin /> Loading…
   </span>
@@ -8,7 +8,7 @@
     type="button"
     class="dropdown-item btn login btn-link"
     aria-label="Login via GitHub"
-    :href="apiUrl + '/login/github'"
+    :href="loginUrl('github')"
     ><font-awesome-icon :icon="['fab', 'github']" /> Login via GitHub</a
   >
   <a
@@ -16,7 +16,7 @@
     type="button"
     class="dropdown-item btn login btn-link"
     aria-label="Login via ORCID"
-    :href="apiUrl + '/login/orcid'"
+    :href="loginUrl('orcid')"
     ><font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Login via ORCID</a
   >
   <a
@@ -24,7 +24,7 @@
     type="button"
     class="dropdown-item btn login btn-link"
     aria-label="Login via Google"
-    :href="apiUrl + '/login/google'"
+    :href="loginUrl('google')"
     ><font-awesome-icon :icon="['fab', 'google']" /> Login via Google</a
   >
   <a
@@ -32,7 +32,7 @@
     type="button"
     class="dropdown-item btn login btn-link"
     aria-label="Login via Microsoft"
-    :href="apiUrl + '/login/microsoft'"
+    :href="loginUrl('microsoft')"
     ><font-awesome-icon :icon="['fab', 'microsoft']" /> Login via Microsoft</a
   >
   <button
@@ -56,6 +56,16 @@ export default {
   },
   props: {
     modelValue: Boolean,
+    // Optional app path to return to after an OAuth login
+    next: {
+      type: String,
+      default: null,
+    },
+    // Whether the resulting session should persist beyond the browser session
+    remember: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
@@ -81,6 +91,19 @@ export default {
     },
     showEmail() {
       return this.$store.state.serverInfo?.features?.auth_mechanisms?.email ?? false;
+    },
+  },
+  methods: {
+    loginUrl(provider) {
+      const params = new URLSearchParams();
+      if (this.next) {
+        params.set("next", this.next);
+      }
+      if (this.remember) {
+        params.set("remember", "1");
+      }
+      const query = params.toString() ? `?${params.toString()}` : "";
+      return `${this.apiUrl}/login/${provider}${query}`;
     },
   },
 };

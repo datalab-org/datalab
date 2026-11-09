@@ -1,7 +1,11 @@
 <template>
-  <div class="form-group form-inline">
-    <label class="mr-4"><b>Select a file:</b></label>
-    <select class="form-control file-select-dropdown" :value="localModelValue" @input="handleInput">
+  <div class="block-control">
+    <label class="block-control-label">Select a file</label>
+    <select
+      class="custom-select custom-select-sm file-select-dropdown"
+      :value="localModelValue"
+      @input="handleInput"
+    >
       <option v-if="defaultToAllFiles" value="null">All compatible files</option>
       <option v-for="file_id in available_file_ids" :key="file_id" :value="file_id">
         {{ all_files_name(file_id) }}
@@ -15,7 +19,7 @@
       </option>
     </select>
 
-    <span v-if="all_files[modelValue] && all_files[modelValue].is_live" class="ml-2">
+    <span v-if="all_files[modelValue] && all_files[modelValue].is_live" class="live-badge">
       <b>Live</b> (last updated: {{ lastModified }})
     </span>
   </div>
@@ -116,7 +120,31 @@ export default {
 </script>
 
 <style scoped>
+/* Label above the control rather than inline, so that the block controls line
+   up with one another regardless of how long each label is. */
+.block-control {
+  display: inline-flex;
+  flex-direction: column;
+  vertical-align: top;
+}
+
+.block-control-label {
+  margin-bottom: 0.15rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #6c757d;
+}
+
 .file-select-dropdown {
   min-width: 20rem;
+  max-width: 100%;
+}
+
+.live-badge {
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+  color: #6c757d;
 }
 </style>

@@ -195,10 +195,10 @@ class DataBlock:
         )
         exclude_fields: set[str] = {
             f
-            for (f, s) in self.block_db_model.schema()["properties"].items()
+            for (f, s) in self.block_db_model.model_json_schema()["properties"].items()
             if s.get("datalab_exclude_from_db")
         }
-        return self.block_db_model(**self.data).dict(
+        return self.block_db_model(**self.data).model_dump(
             exclude=exclude_fields,
             exclude_unset=True,
             exclude_none=True,
@@ -254,7 +254,7 @@ class DataBlock:
         else:
             self.data.pop("warnings", None)
 
-        return self.block_db_model(**self.data).dict(exclude_unset=True, exclude_none=True)
+        return self.block_db_model(**self.data).model_dump(exclude_unset=True, exclude_none=True)
 
     def process_events(self, events: list[dict] | dict):
         """Handle any supported events passed to the block."""
@@ -262,8 +262,9 @@ class DataBlock:
             events = [events]
 
         for event in events:
-            # Match the event to any registered by the block
-            if (event_name := event.pop("event_name")) in self.event_names:
+            # Match the event to any registered by the block; malformed events
+            # without an `event_name` are skipped.
+            if (event_name := event.pop("event_name", None)) in self.event_names:
                 # Bind the method to the instance before calling
                 bound_method = self.__class__.events_by_name[event_name].__get__(
                     self, self.__class__
@@ -350,11 +351,11 @@ class DataBlock:
         )
         exclude_fields: set[str] = {
             f
-            for (f, s) in self.block_db_model.schema()["properties"].items()
+            for (f, s) in self.block_db_model.model_json_schema()["properties"].items()
             if s.get("datalab_exclude_from_load")
         }
         [data.pop(f, None) for f in exclude_fields]
-        self.data.update(self.block_db_model(**data).dict())
+        self.data.update(self.block_db_model(**data).model_dump(exclude_unset=True))
         # Fields stripped above (e.g., `metadata`, `computed`) are server-authoritative:
         # writable only via block events or block code, never from the web payload.
         # Without restoring them from the stored state here, the model defaults

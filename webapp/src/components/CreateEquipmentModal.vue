@@ -13,7 +13,7 @@
           <div class="form-group col-md-6">
             <label for="equipment-id" class="col-form-label">ID:</label>
             <input id="equipment-id" v-model="item_id" type="text" class="form-control" required />
-            <!-- eslint-disable-next-line vue/no-v-html -->
+            <!-- eslint-disable-next-line vue/no-v-html -- only renders validateEntryID/validateGroupID output, whose sole HTML is an <a> link built from a charset-validated ID -->
             <div class="form-error" v-html="isValidEntryID"></div>
           </div>
           <div class="form-group col-md-6">
@@ -56,17 +56,6 @@
             />
           </div>
         </div>
-        <!-- All item types can be added to a collection, so this is always available -->
-        <!--         <div class="form-row">
-          <div class="col-md-12 form-group">
-            <label id="startInCollection">(Optional) Insert into collection:</label>
-            <CollectionSelect
-              aria-labelledby="startInCollection"
-              multiple
-              v-model="startInCollection"
-            />
-          </div>
-        </div> -->
         <div class="form-row">
           <div class="col-md-12 form-group">
             <label id="copyFromSelectLabel"
@@ -83,13 +72,17 @@
             />
           </div>
         </div>
-        <!-- dynamically insert addons to this modal for each item type. On mount, the component
-        should emit a callback that can be called to get properly formatted
-        data to provide to the server -->
-        <!--         <component
-          :is="itemCreateModalAddonComponent"
-          @startingDataCallback="(callback) => (startingDataCallback = callback)"
-        /> -->
+        <div class="form-row">
+          <div class="col-md-12 form-group">
+            <label id="shareWithGroupsLabel">(Optional) Restrict to groups:</label>
+            <GroupSelect
+              v-model="shareWithGroups"
+              aria-labelledby="shareWithGroupsLabel"
+              multiple
+              member-only
+            />
+          </div>
+        </div>
       </template>
     </Modal>
   </form>
@@ -100,16 +93,17 @@ import { DialogService } from "@/services/DialogService";
 
 import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
+import GroupSelect from "@/components/GroupSelect.vue";
 import { createNewItem } from "@/server_fetch_utils.js";
-import { validateEntryID } from "@/field_utils.js";
+import { validateEntryID, confirmUngroupedInventory } from "@/field_utils.js";
 import { itemTypes } from "@/resources.js";
-// import CollectionSelect from "@/components/CollectionSelect.vue";
+
 export default {
   name: "CreateEquipmentModal",
   components: {
     Modal,
     ItemSelect,
-    // CollectionSelect,
+    GroupSelect,
   },
   props: {
     modelValue: Boolean,
@@ -122,9 +116,9 @@ export default {
       date: this.now(),
       name: "",
       startingDataCallback: null,
-      // startInCollection: null,
       takenItemIds: [], // this holds ids that have been tried, whereas the computed takenEquipmentIds holds ids in the equipment table
       selectedItemToCopy: null,
+      shareWithGroups: [],
       agesAgo: new Date("1970-01-01").toISOString().slice(0, -8), // a datetime for the unix epoch start
       //this is all just to filter an object in javascript:
       availableTypes: { equipment: itemTypes["equipment"] },
@@ -148,18 +142,11 @@ export default {
   },
   methods: {
     async submitForm() {
-      console.log("new equipment form submit triggered");
+      const groupsData = this.shareWithGroups.length > 0 ? this.shareWithGroups : null;
 
-      // get any extra data by calling the optional callback from the type-specific addon component
-      // const extraData = this.startingDataCallback && this.startingDataCallback();
-      // let startingCollection = [];
-      // if (this.startInCollection != null) {
-      //   startingCollection = this.startInCollection.map((x) => ({
-      //     collection_id: x.collection_id,
-      //     immutable_id: x.immutable_id,
-      //     type: "collections",
-      //   }));
-      // }
+      if (!(await confirmUngroupedInventory(this.item_type, groupsData))) {
+        return;
+      }
 
       await createNewItem(
         this.item_id,
@@ -169,6 +156,9 @@ export default {
         null, // no startingCollection
         {}, // no extra data
         this.selectedItemToCopy && this.selectedItemToCopy.item_id,
+        false,
+        groupsData,
+        null,
       )
         .then(() => {
           this.$emit("update:modelValue", false); // close this modal
@@ -177,6 +167,7 @@ export default {
           }
           this.item_id = null;
           this.date = this.now(); // reset date to the new current time
+          this.shareWithGroups = [];
         })
         .catch((error) => {
           console.log("THERE WAS AN ERROR");
@@ -209,7 +200,6 @@ export default {
       // returns a timestamp for right now
       return new Date().toISOString().slice(0, -8);
     },
-
     setCopiedName() {
       if (!this.selectedItemToCopy) {
         this.name = "";

@@ -177,16 +177,21 @@ export default {
   },
   mounted() {
     // overwrite ctrl-s and cmd-s to save the page
-    this._keyListener = function (e) {
+    // An arrow function, so that the exact same function is added here and removed on unmount
+    this._keyListener = (e) => {
       if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
         e.preventDefault(); // present "Save Page" from getting triggered.
         this.saveCollectionData();
       }
     };
-    document.addEventListener("keydown", this._keyListener.bind(this));
+    document.addEventListener("keydown", this._keyListener);
   },
   beforeUnmount() {
     document.removeEventListener("keydown", this._keyListener);
+    clearInterval(this.interval);
+    // Normally removed by the `savedStatus` watcher, which may not fire when leaving
+    // without saving, so remove it here too
+    window.removeEventListener("beforeunload", this.leavePageWarningListener, true);
   },
   methods: {
     scrollToID(event, id) {

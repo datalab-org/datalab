@@ -5,20 +5,19 @@ with their local accounts.
 """
 
 import datetime
-import json
 import os
-import random
 import re
+import secrets
 from hashlib import sha512
-from string import ascii_letters
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import jwt
 from bson import ObjectId
-from flask import Blueprint, g, jsonify, redirect, request
-from flask_dance.consumer import OAuth2ConsumerBlueprint, oauth_authorized
-from flask_login import current_user, login_user
+from flask import Blueprint, Response, g, jsonify, redirect, request, session
+from flask_dance.consumer import OAuth2ConsumerBlueprint, oauth_authorized, oauth_before_login
+from flask_login import current_user, login_user, logout_user
 from flask_login.utils import LocalProxy
-from werkzeug.exceptions import BadRequest, Forbidden
+from werkzeug.exceptions import BadRequest, Forbidden, NotFound
 
 from pydatalab.config import CONFIG
 from pydatalab.errors import UserRegistrationForbidden
@@ -27,10 +26,66 @@ from pydatalab.logger import LOGGER
 from pydatalab.login import get_by_id
 from pydatalab.models.people import AccountStatus, Identity, IdentityType, Person
 from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
+from pydatalab.permissions import ApiKey, authenticate, exclude_api_key
 from pydatalab.send_email import send_mail
+
+__all__ = ("AUTH", "OAUTH", "OAUTH_PROXIES")
 
 KEY_LENGTH: int = 32
 LINK_EXPIRATION: datetime.timedelta = datetime.timedelta(hours=1)
+
+TESTING_EMAIL_DOMAIN: str = "datalab.test"
+"""The reserved domain (RFC 2606) for test users, which are the only users that can log in
+with magic-link tokens minted outside of email (e.g., by invoke tasks), and only when
+`CONFIG.TESTING` is enabled. As the domain cannot receive email, these accounts can never
+belong to a real person."""
+OAUTH_NEXT_SESSION_KEY_PREFIX = "oauth_next_"
+OAUTH_NEXT_MAX_LENGTH = 2048
+REMEMBER_ME_SESSION_KEY = "remember_me"
+
+
+def _oauth_next_session_key(provider_name: str) -> str:
+    return f"{OAUTH_NEXT_SESSION_KEY_PREFIX}{provider_name}"
+
+
+def _is_safe_oauth_next_path(next_path: str | None) -> bool:
+    """Return whether an OAuth redirect target is a local UI path."""
+    if (
+        not next_path
+        or len(next_path) > OAUTH_NEXT_MAX_LENGTH
+        or not next_path.startswith("/")
+        or next_path.startswith("//")
+        or "\\" in next_path
+        or not next_path.isprintable()
+    ):
+        return False
+
+    parsed_path = urlsplit(next_path)
+    return not parsed_path.scheme and not parsed_path.netloc
+
+
+def _redirect_to_referer() -> Response:
+    """Redirect back to the referring UI page when no `APP_URL` is configured.
+
+    Any magic-link `token` is removed from the referer's query string, as the UI
+    would otherwise immediately send the browser straight back to the API, causing
+    a redirect loop (when the UI and API share an origin, browsers send the full
+    URL, including the token, as the referer).
+
+    """
+    referer = request.headers.get("Referer")
+    if referer:
+        parsed = urlsplit(referer)
+        if parsed.scheme in ("http", "https") and parsed.netloc:
+            query = urlencode(
+                [
+                    (key, value)
+                    for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+                    if key != "token"
+                ]
+            )
+            return redirect(urlunsplit(parsed._replace(query=query)), 307)
+    return redirect(CONFIG.ROOT_PATH or "/", 307)
 
 
 def make_github_blueprint(
@@ -397,13 +452,19 @@ orcid = LocalProxy(lambda: g.flask_dance_orcid)
 
 
 def wrapped_login_user(*args, **kwargs):
+    was_authenticated = current_user.is_authenticated
     login_user(*args, **kwargs)
+    remember = bool(session.pop(REMEMBER_ME_SESSION_KEY, False))
+    # Sessions end when the browser closes (e.g., on shared machines), unless the user
+    # opted in to "remember me" at login, in which case they last for `CONFIG.SESSION_LIFETIME`.
+    # This is set explicitly on each new login so it does not carry over from a previous session.
+    if not was_authenticated:
+        session.permanent = remember
 
 
 EMAIL_BLUEPRINT = Blueprint("email", __name__)
 
 AUTH = Blueprint("auth", __name__)
-
 
 OAUTH: dict[IdentityType, Blueprint] = {
     IdentityType.ORCID: make_orcid_blueprint(
@@ -455,9 +516,6 @@ def _check_email_domain(email: str, allow_list: list[str] | None) -> bool:
         Whether the email address is allowed to register an account.
 
     """
-    if CONFIG.TESTING:
-        return True
-
     domain = email.split("@")[-1]
     if isinstance(allow_list, list) and not allow_list:
         return False
@@ -473,6 +531,12 @@ def _check_email_domain(email: str, allow_list: list[str] | None) -> bool:
             return False
 
     return True
+
+
+def _is_login_only(identity_type: str | IdentityType) -> bool:
+    """Whether the given identity type is configured to only allow logging in to (or
+    connecting to) existing accounts, rather than registering new ones."""
+    return IdentityType(identity_type) in (CONFIG.LOGIN_ONLY_AUTH_METHODS or [])
 
 
 def find_user_with_identity(
@@ -505,7 +569,7 @@ def find_user_with_identity(
 
         if verify and not person.identities[identity_index].verified:
             flask_mongo.db.users.update_one(
-                {"_id": person.immutable_id},
+                {"_id": ObjectId(person.immutable_id)},
                 {"$set": {f"identities.{identity_index}.verified": True}},
             )
 
@@ -557,7 +621,7 @@ def find_create_or_modify_user(
             RuntimeError: If the update was unsuccessful.
 
         """
-        update = {"$push": {"identities": identity.dict()}}
+        update = {"$push": {"identities": identity.model_dump()}}
         if use_display_name and identity and identity.display_name:
             update["$set"] = {"display_name": identity.display_name}
 
@@ -600,7 +664,7 @@ def find_create_or_modify_user(
 
         # If there is no current authenticated user, make one with the current OAuth identity
         else:
-            if not create_account:
+            if not create_account or _is_login_only(identity_type):
                 raise UserRegistrationForbidden
 
             if isinstance(create_account, bool):
@@ -612,12 +676,13 @@ def find_create_or_modify_user(
                 identity, use_display_name=True, account_status=account_status
             )
             LOGGER.debug("Inserting new user model %s into database", user)
-            insert_pydantic_model_fork_safe(user, "users")
-            user_model = get_by_id(str(user.immutable_id))
-            if user is None:
+            inserted_id = insert_pydantic_model_fork_safe(user, "users")
+            login_user = get_by_id(inserted_id)
+            if login_user is None:
                 raise RuntimeError("Failed to insert user into database")
 
-            wrapped_login_user(user_model)
+            user = login_user.person
+
             # Send email notification to admins
             _send_admin_email_notification(user)
 
@@ -626,7 +691,8 @@ def find_create_or_modify_user(
 
     # Log the user into the session with this identity
     if user is not None:
-        wrapped_login_user(get_by_id(str(user.immutable_id)))
+        login_user = get_by_id(user.immutable_id)
+        wrapped_login_user(login_user)
 
 
 def _validate_magic_link_request(email: str, referrer: str) -> None:
@@ -643,7 +709,12 @@ def _validate_magic_link_request(email: str, referrer: str) -> None:
         raise BadRequest("Referrer address not provided, please contact the datalab administrator")
 
 
-def _generate_and_store_token(email: str, intent: str = "register") -> str:
+def _generate_and_store_token(
+    email: str,
+    intent: str = "register",
+    remember: bool = False,
+    channel: str = "email",
+) -> str:
     """Generate a JWT for the user with a short expiration and store it in the session.
 
     The session itself persists beyond the JWT expiration. The `exp` key is a standard
@@ -652,6 +723,11 @@ def _generate_and_store_token(email: str, intent: str = "register") -> str:
     Args:
         email: The user's email address to include in the token.
         intent: The intent of the magic link, e.g., "register" "verify", or "login".
+        remember: Whether the session created by the magic link should persist
+            beyond the browser session.
+        channel: How the token is delivered to the user: "email", or "cli" for tokens
+            minted directly by invoke tasks, which can only be redeemed by test users
+            when `CONFIG.TESTING` is enabled.
 
     Returns:
         The generated JWT token string.
@@ -661,6 +737,8 @@ def _generate_and_store_token(email: str, intent: str = "register") -> str:
         "exp": datetime.datetime.now(datetime.timezone.utc) + LINK_EXPIRATION,
         "email": email,
         "intent": intent,
+        "remember": remember,
+        "channel": channel,
     }
 
     token = jwt.encode(
@@ -669,7 +747,14 @@ def _generate_and_store_token(email: str, intent: str = "register") -> str:
         algorithm="HS256",
     )
 
-    flask_mongo.db.magic_links.insert_one({"jwt": token})
+    flask_mongo.db.magic_links.insert_one(
+        {
+            "jwt": token,
+            "channel": channel,
+            "email": email,
+            "created_at": datetime.datetime.now(datetime.timezone.utc),
+        }
+    )
 
     return token
 
@@ -678,6 +763,11 @@ def _check_user_registration_allowed(email: str) -> None:
     user = find_user_with_identity(email, IdentityType.EMAIL, verify=False)
 
     if not user:
+        if _is_login_only(IdentityType.EMAIL):
+            LOGGER.warning("Did not allow %s to register an account via email", email)
+            raise Forbidden(
+                f"No account found for {email}, and email cannot be used to register new accounts on this datalab instance. Please register via another method, or contact the administrator if you believe this is an error."
+            )
         allowed = _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST)
         if not allowed:
             LOGGER.warning("Did not allow %s to register an account", email)
@@ -794,7 +884,8 @@ def generate_and_share_magic_link():
 
     _validate_magic_link_request(email, referrer)
     _check_user_registration_allowed(email)
-    token = _generate_and_store_token(email, intent="register")
+    remember = request_json.get("remember") is True
+    token = _generate_and_store_token(email, intent="register", remember=remember)
     _send_magic_link_email(email, token, referrer)
 
     return jsonify({"status": "success", "message": "Email sent successfully."}), 200
@@ -837,13 +928,36 @@ def email_logged_in():
     if not email:
         raise BadRequest("No email found; please request a new token.")
 
+    # Tokens issued before the `channel` claim was added were all sent by email
+    channel = data.get("channel", "email")
+    if channel != "email":
+        if not CONFIG.TESTING or not email.endswith(f"@{TESTING_EMAIL_DOMAIN}"):
+            LOGGER.warning("Rejected %r login token for %s", channel, email)
+            raise Forbidden(
+                f"Login tokens not sent by email are only accepted for @{TESTING_EMAIL_DOMAIN} "
+                "users when the server is in testing mode."
+            )
+    LOGGER.info("Magic-link login for %s via %r token", email, channel)
+
+    # A magic link always logs in as the owner of the email; log out any current user
+    # so that the email is never attached to their account as a new identity
+    if current_user.is_authenticated:
+        logout_user()
+
+    if data.get("remember"):
+        session[REMEMBER_ME_SESSION_KEY] = True
+    else:
+        session.pop(REMEMBER_ME_SESSION_KEY, None)
+
     # If the email domain list is explicitly configured to None, this allows any
     # email address to make an active account, otherwise the email domain must match
     # the list of allowed domains and the admin must verify the user
 
     create_account = False
 
-    if data.get("intent") == "register":
+    # The domain allow list only applies to registration of new accounts; existing
+    # users can always log in
+    if data.get("intent") == "register" and not find_user_with_identity(email, IdentityType.EMAIL):
         if not _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST):
             raise UserRegistrationForbidden
 
@@ -864,8 +978,7 @@ def email_logged_in():
 
     if CONFIG.APP_URL:
         return redirect(CONFIG.APP_URL, 307)
-    referer = request.headers.get("Referer", CONFIG.ROOT_PATH or "/")
-    return redirect(referer, 307)
+    return _redirect_to_referer()
 
 
 @oauth_authorized.connect_via(OAUTH[IdentityType.GITHUB])
@@ -940,18 +1053,14 @@ def google_logged_in(blueprint, token):
     email = str(google_info.get("email", google_user_id))
     name = str(google_info.get("name", email))
 
+    # The domain allow list only applies to registration of new accounts; existing users
+    # can always log in, and `find_create_or_modify_user` will refuse to make new accounts
+    # when `create_account` is False
     create_account: bool | AccountStatus = False
-    if CONFIG.EMAIL_DOMAIN_ALLOW_LIST:
-        if not _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST):
-            raise UserRegistrationForbidden
-
+    if _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST):
         create_account = AccountStatus.UNVERIFIED
-
-    elif CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None:
-        create_account = AccountStatus.UNVERIFIED
-
-    if CONFIG.AUTO_ACTIVATE_ACCOUNTS:
-        create_account = AccountStatus.ACTIVE
+        if CONFIG.AUTO_ACTIVATE_ACCOUNTS:
+            create_account = AccountStatus.ACTIVE
 
     find_create_or_modify_user(
         google_user_id,
@@ -988,18 +1097,14 @@ def microsoft_logged_in(blueprint, token):
     email = str(ms_info.get("mail") or ms_info.get("userPrincipalName", ms_user_id))
     name = str(ms_info.get("displayName", email))
 
+    # The domain allow list only applies to registration of new accounts; existing users
+    # can always log in, and `find_create_or_modify_user` will refuse to make new accounts
+    # when `create_account` is False
     create_account: bool | AccountStatus = False
-
-    if CONFIG.EMAIL_DOMAIN_ALLOW_LIST:
-        if not _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST):
-            raise UserRegistrationForbidden
+    if _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST):
         create_account = AccountStatus.UNVERIFIED
-
-    elif CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None:
-        create_account = AccountStatus.UNVERIFIED
-
-    if CONFIG.AUTO_ACTIVATE_ACCOUNTS:
-        create_account = AccountStatus.ACTIVE
+        if CONFIG.AUTO_ACTIVATE_ACCOUNTS:
+            create_account = AccountStatus.ACTIVE
 
     find_create_or_modify_user(
         ms_user_id,
@@ -1046,65 +1151,119 @@ def orcid_logged_in(_, token):
 @oauth_authorized.connect
 def redirect_to_ui(blueprint, token):  # pylint: disable=unused-argument
     """Intercepts the default Flask-Dance and redirects to the referring page."""
+    next_path = session.pop(_oauth_next_session_key(blueprint.name), None)
     if CONFIG.APP_URL:
-        return redirect(CONFIG.APP_URL, 307)
-    referer = request.headers.get("Referer", CONFIG.ROOT_PATH or "/")
-    return redirect(referer, 307)
+        redirect_url = CONFIG.APP_URL
+        if _is_safe_oauth_next_path(next_path):
+            redirect_url = f"{CONFIG.APP_URL.rstrip('/')}{next_path}"
+        return redirect(redirect_url, 307)
+    return _redirect_to_referer()
+
+
+@oauth_before_login.connect
+def store_oauth_next_path(blueprint, url):  # pylint: disable=unused-argument
+    """Store a safe UI path, and whether to remember the session, in the session
+    before leaving for an OAuth provider."""
+    session_key = _oauth_next_session_key(blueprint.name)
+    session.pop(session_key, None)
+
+    next_path = request.args.get("next")
+    if _is_safe_oauth_next_path(next_path):
+        session[session_key] = next_path
+
+    session.pop(REMEMBER_ME_SESSION_KEY, None)
+    if request.args.get("remember") == "1":
+        session[REMEMBER_ME_SESSION_KEY] = True
 
 
 @AUTH.route("/get-current-user/", methods=["GET"])
 def get_authenticated_user_info():
     """Returns metadata associated with the currently authenticated user."""
     if current_user.is_authenticated:
-        current_user_response = json.loads(current_user.person.json())
+        current_user_response = current_user.person.model_dump(mode="json")
         current_user_response["role"] = current_user.role.value
         return jsonify(current_user_response), 200
     else:
         return jsonify({"status": "failure", "message": "User must be authenticated."}), 401
 
 
-@AUTH.route("/get-api-key/", methods=["GET"])
+@AUTH.route("/api-keys", methods=["POST"])
+@authenticate("User must be an authenticated user to request an API key.")
+@exclude_api_key
 def generate_user_api_key():
     """Returns metadata associated with the currently authenticated user."""
-    if current_user.is_authenticated:
-        new_key = "".join(random.choices(ascii_letters, k=KEY_LENGTH))  # noqa: S311
-        flask_mongo.db.api_keys.update_one(
-            {"_id": ObjectId(current_user.id)},
-            {"$set": {"hash": sha512(new_key.encode("utf-8")).hexdigest()}},
-            upsert=True,
-        )
-        return jsonify({"key": new_key}), 200
-    else:
-        return (
-            jsonify(
-                {
-                    "status": "failure",
-                    "message": "User must be an authenticated admin to request an API key.",
-                }
-            ),
-            401,
-        )
-
-
-@AUTH.route("/testing/create-magic-link", methods=["POST"])
-def create_test_magic_link():
-    """Create a magic link for testing purposes.
-
-    This endpoint is only available when TESTING=True.
-    It creates a user with the specified email and role, generates a magic link,
-    and returns the token.
-    """
-    if not CONFIG.TESTING:
-        return jsonify(
-            {"status": "error", "detail": "This endpoint is only available in testing mode."}
-        ), 403
 
     request_json = request.get_json()
-    email = request_json.get("email")
-    referrer = request_json.get("referrer", "http://localhost:8080")
 
-    _validate_magic_link_request(email, referrer)
+    if not request_json.get("name"):
+        raise BadRequest("API key must have a name")
+    new_key = secrets.token_urlsafe(KEY_LENGTH)
+    access_key = ApiKey(
+        name=request_json["name"],
+        user=ObjectId(current_user.id),
+        digest=new_key[:4] + "..." + new_key[-4:],
+        hash=sha512(new_key.encode("utf-8")).hexdigest(),
+        created_at=datetime.datetime.now(tz=datetime.timezone.utc),
+        expires_at=None,
+        version=1,
+    )
 
-    token = _generate_and_store_token(email, intent="register")
+    flask_mongo.db.api_keys.insert_one(access_key.model_dump())
+    return jsonify({"key": new_key, "name": request_json["name"]}), 200
 
-    return jsonify({"status": "success", "token": token}), 200
+
+@AUTH.route("/api-keys", methods=["GET"])
+@authenticate("User must be an authenticated user to request an API key.")
+@exclude_api_key
+def get_all_api_keys():
+    """Returns all the api keys associated with the currently authenticated user."""
+    all_api_keys = flask_mongo.db.api_keys.find(
+        {"user": ObjectId(current_user.id), "type": "api_key"}, {"hash": 0, "user": 0}
+    )
+    # find potential legacy keys
+    legacy_key = flask_mongo.db.api_keys.find_one(
+        {
+            "_id": ObjectId(current_user.id),
+            "name": {"$exists": False},
+            "digest": {"$exists": False},
+            "user": {"$exists": False},
+            "type": {"$exists": False},
+        },
+        {"hash": 0},
+    )
+    all_keys = list(all_api_keys)
+    if legacy_key:
+        legacy_key["digest"] = "Unknown"
+        legacy_key["name"] = "Legacy key"
+        all_keys.insert(0, legacy_key)
+
+    return jsonify({"api_keys": all_keys}), 200
+
+
+@AUTH.route("/api-keys/<api_id>", methods=["DELETE"])
+@authenticate("User must be an authenticated user to revoke an API key.")
+@exclude_api_key
+def delete_api_key(api_id):
+    """Deletes the api key associated with the given id. (After checking the user owns the key)"""
+    doc = flask_mongo.db.api_keys.find_one(
+        {"_id": ObjectId(api_id), "user": ObjectId(current_user.id), "type": "api_key"},
+        {"user": 1},
+    )
+    if (not doc) and ObjectId(api_id) == ObjectId(current_user.id):
+        # Deal with potential legacy key
+        doc = flask_mongo.db.api_keys.find_one(
+            {
+                "_id": ObjectId(api_id),
+                "user": {"$exists": False},
+                "digest": {"$exists": False},
+                "name": {"$exists": False},
+                "type": {"$exists": False},
+            },
+        )
+    if not doc:
+        raise NotFound(description="API key not found.")
+    result = flask_mongo.db.api_keys.delete_one({"_id": ObjectId(api_id)})
+    if result.deleted_count == 1:
+        return Response("", status=204)
+    else:
+        raise BadRequest(description="Problem deleting the key")

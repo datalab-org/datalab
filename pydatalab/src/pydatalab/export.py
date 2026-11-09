@@ -9,13 +9,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from pydatalab import __version__
+from pydatalab.blocks.store import load_blocks_obj
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
-from pydatalab.mongo import flask_mongo
-from pydatalab.routes.v0_1.items import (
+from pydatalab.mongo import (
     creators_lookup,
     files_lookup,
+    flask_mongo,
     groups_lookup,
 )
 
@@ -112,7 +113,7 @@ def write_eln_file(
 
             item_folder = root_folder / item[primary_key]
 
-            item_metadata = ITEM_MODELS[item.get("type")](**item).json(indent=2)
+            item_metadata = ITEM_MODELS[item.get("type")](**item).model_dump_json(indent=2)
             zipf.writestr(str(item_folder / "metadata.json"), item_metadata)
 
             for file in item.get("files", []):
@@ -377,8 +378,10 @@ def create_eln_file(
         try:
             item_data = list(cursor)[0]
 
+            if item_data.get("blocks_obj"):
+                item_data["blocks_obj"] = load_blocks_obj(item_data)
             ItemModel = ITEM_MODELS[item_data["type"]]
-            item_data = ItemModel(**item_data).dict()
+            item_data = ItemModel(**item_data).model_dump()
 
         except IndexError:
             item_data = None
@@ -419,8 +422,10 @@ def create_eln_file(
     _all_items = []
 
     for ind, item in enumerate(all_items):
+        if item.get("blocks_obj"):
+            item["blocks_obj"] = load_blocks_obj(item)
         ItemModel = ITEM_MODELS[item["type"]]
-        _all_items.append(ItemModel(**item).dict())
+        _all_items.append(ItemModel(**item).model_dump())
 
     all_items = _all_items
 

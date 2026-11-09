@@ -9,8 +9,12 @@
       <template #body>
         <div class="form-row">
           <div class="form-group">
-            <label for="sample-id" class="col-form-label"
+            <label v-if="emailRegistrationEnabled" for="email-address" class="col-form-label"
               >Enter your email address to receive a sign-in/registration link:</label
+            >
+            <label v-else for="email-address" class="col-form-label"
+              >Enter the email address of your existing account to receive a sign-in link. New
+              accounts cannot be registered via email on this deployment.</label
             >
             <input
               id="email-address"
@@ -38,6 +42,11 @@ export default {
   },
   props: {
     modelValue: Boolean,
+    // Whether the session created by the magic link should persist beyond the browser session
+    remember: {
+      type: Boolean,
+      default: false,
+    },
   },
   emits: ["update:modelValue"],
   data() {
@@ -49,17 +58,24 @@ export default {
       successMessage: "",
     };
   },
+  computed: {
+    emailRegistrationEnabled() {
+      const loginOnly = this.$store.state.serverInfo?.features?.login_only_auth_mechanisms ?? [];
+      return !loginOnly.includes("email");
+    },
+  },
   methods: {
     async submitForm() {
       this.validateEmail();
       if (this.emailValidationMessage) {
         return;
       }
-      let response = await requestMagicLink(this.emailAddress);
+      let response = await requestMagicLink(this.emailAddress, this.remember);
       if (response.status == "success") {
         this.emailSent = true;
-        this.successMessage =
-          "Email sent! Please check your inbox (and spam folder) for a link to sign in or register. It may take a few minutes to arrive.";
+        this.successMessage = `Email sent! Please check your inbox (and spam folder) for a link to ${
+          this.emailRegistrationEnabled ? "sign in or register" : "sign in"
+        }. It may take a few minutes to arrive.`;
       } else {
         this.emailError = true;
         this.emailValidationMessage =

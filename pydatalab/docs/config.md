@@ -18,12 +18,15 @@ These can be provided as either:
     - an `.env` file in the directory from which `pydatalab` is launched (NB: here, the `FLASK_` prefix is not required, but any options present in the pydatalab config must still have the `PYDATALAB_` prefix).
 3. Web app configuration, such as the URL of the relevant *datalab* API and branding (logo URLs, external homepage links).
     - These are typically provided as a `.env` file in the directory from which the webapp is built/served.
-    - The main options include (a full list can be found in the `docker-compose.yml` file):
+    - In the production Docker image they are instead read from the container's environment each time it starts, so changing them only requires recreating the container, not rebuilding the image. They are written to a `config.js` that is served publicly, so must never contain secrets.
+    - All settings are described in `webapp/src/config.schema.json`. The production container refuses to start if a value does not match this schema, and logs a warning for unknown `VUE_APP_*` variables. Elsewhere, invalid values are reported in the browser console.
+    - The main options include (a full list can be found in `webapp/src/config.schema.json`):
         - `VUE_APP_API_URL`: the URL of the *datalab* API, which is used by the web app to communicate with the server.
         - `VUE_APP_LOGO_URL`: the URL of an image to use as the logo header in the web app.
-        - `VUE_APP_HOMEPAGE_URL`: a URL to provide as a link from the web app header.
+        - `VUE_APP_HOMEPAGE_URL`: a URL to provide as a link from the web app header, and as a button on the dedicated login page.
         - `VUE_APP_EDITABLE_INVENTORY`: whether the inventory can be edited by non-admin users in the web app.
-        - `VUE_APP_WEBSITE_TITLE`: the title of the web app, which is displayed in the browser tab and header.
+        - `VUE_APP_HIDE_COLLECTIONS`: whether to hide collection pages and controls in the web app. This defaults to `false`. It is not an access-control mechanism and does not disable collection API routes or alter stored collection data.
+        - `VUE_APP_WEBSITE_TITLE`: the title of the web app, which is displayed in the browser tab and header. It is also used in the heading of the dedicated login page, as "Welcome to the <title>".
         - `VUE_APP_QR_CODE_RESOLVER_URL`: the URL of a service that can resolve QR codes to *datalab* entries, which is used by the web app to display QR codes for entries (see [datalab-org/datalab-purl](https://github.com/datalab-org/datalab-purl) for more information).
         - `VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT`: whether to automatically generate IDs for new entries in the web app by default, or require a checkbox to be ticked at item creation.
 
@@ -41,6 +44,80 @@ This prefix should be set to something relatively short (max 10 chars.) that des
 This can be set either via a config file, or as an environment variable (e.g., `PYDATALAB_IDENTIFIER_PREFIX='grey'`).
 Be warned, if the prefix changes between server launches, all entries will have to be migrated manually to the desired prefix, or maintained at the old prefix.
 
+## Item and block availability
+
+Deployments can restrict which data block types users may add with
+[`BLOCK_TYPE_ALLOW_LIST`][pydatalab.config.ServerConfig.BLOCK_TYPE_ALLOW_LIST].
+The values are the exact, case-sensitive `blocktype` slugs declared by the block classes, not
+their display names. Built-in and plugin-provided blocks use the same registry and are configured
+in the same way. For example:
+
+```json
+{
+  "BLOCK_TYPE_ALLOW_LIST": ["comment", "media", "xrd", "my-plugin-block"]
+}
+```
+
+The equivalent environment variable is a JSON list:
+
+```bash
+export PYDATALAB_BLOCK_TYPE_ALLOW_LIST='["comment", "media", "xrd", "my-plugin-block"]'
+```
+
+The default value, `null`/`None`, makes every installed block type available. An empty list
+prevents users from adding any new blocks. Unknown slugs are ignored with a warning during server
+startup, which allows temporarily missing plugins without preventing the deployment from starting.
+
+Changing the allowlist does not remove or disable blocks that are already stored. Existing blocks
+remain viewable, editable, and deletable; the setting only controls which types may be added after
+the restriction is applied. While either this setting or `ITEM_TYPE_ALLOW_LIST` is configured, new
+blocks of a type that is not installed are also rejected, rather than stored as unsupported blocks.
+
+Deployments can also restrict which item types users may create, and optionally narrow the blocks
+that may be added to each item type, with
+[`ITEM_TYPE_ALLOW_LIST`][pydatalab.config.ServerConfig.ITEM_TYPE_ALLOW_LIST]. Entries can be either
+an item type name or an object containing a `type` and `block_type_allow_list`:
+
+```json
+{
+  "ITEM_TYPE_ALLOW_LIST": [
+    "samples",
+    {
+      "type": "cells",
+      "block_type_allow_list": ["comment", "cycle"]
+    },
+    {
+      "type": "equipment",
+      "block_type_allow_list": []
+    }
+  ]
+}
+```
+
+A string entry allows that item type to use every block permitted by the global
+`BLOCK_TYPE_ALLOW_LIST`. An object entry restricts new blocks to the intersection of its
+`block_type_allow_list` and the global list. An empty nested list allows creating the item type but
+prevents adding blocks to it.
+
+The equivalent environment variable is a JSON list:
+
+```bash
+export PYDATALAB_ITEM_TYPE_ALLOW_LIST='["samples", {"type": "cells", "block_type_allow_list": ["comment", "cycle"]}]'
+```
+
+The default value, `null`/`None`, allows every registered item type with no additional per-type
+block restriction. An empty top-level list prevents creating any new items or blocks. When the
+setting is present, item types omitted from it cannot be created and existing items of those types
+cannot receive new blocks. Duplicate item type entries are invalid because their block policy
+would be ambiguous.
+
+Item names and block slugs are exact and case-sensitive. Built-in and plugin-provided types use the same
+registries; custom item types must use their complete `<namespace>:<type-name>` identifier. Unknown types produce a startup warning and are ignored.
+
+These settings only control creation. Existing restricted items and blocks remain viewable,
+editable, saveable, deletable, exportable, and restorable, so changing deployment policy does not
+require a database migration.
+
 ## User registration & authentication
 
 *datalab* has two supported user registration/authentication
@@ -51,6 +128,9 @@ mechanisms:
 
 Each is configured differently.
 If left unconfigured, then the corresponding registration mechanism will not be available to the user.
+
+Any of these methods can be restricted to logging in to (or connecting to) existing accounts, without allowing new registrations, via [`LOGIN_ONLY_AUTH_METHODS`][pydatalab.config.ServerConfig.LOGIN_ONLY_AUTH_METHODS], e.g., `["email", "github", "google", "microsoft"]` to require users to register with their ORCID first.
+The domain and organisation allow lists described below only apply to new registrations; existing users can always log in.
 
 ### Email magic links
 
@@ -70,6 +150,9 @@ This hides email authentication from the advertised authentication mechanisms an
 OAuth2 allows users to log in using their existing accounts with third-party providers, without the need for a password.
 Generally, you register an application with the provider, which gives you a client ID and secret that you can use to configure the OAuth2 settings in *datalab*.
 
+When the dedicated login page is enabled, the web app preserves the requested internal page through the external OAuth flow and returns the user to it after login.
+This redirect uses [`APP_URL`][pydatalab.config.ServerConfig.APP_URL] as the trusted web app origin, so `APP_URL` must be configured correctly.
+
 Each provider then has bespoke settings to control the permissions that accounts registered via the external provider will have.
 
 For developers, if you are testing locally without HTTPS, you must also set `OAUTHLIB_INSECURE_TRANSPORT=1` and `OAUTHLIB_RELAX_TOKEN_SCOPE=1` in your environment to circumvent security requirements; this should not be used in production.
@@ -86,8 +169,6 @@ application](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/crea
 These should be provided in a `.env` file local to your app and not added to your main config file.
 
 The authorization callback URL in the GitHub app settings should be set to `<YOUR_API_URL>/login/github/authorized`.
-A user's first login may direct them to this page rather than the web app, depending on their browser.
-The user will then simply have to navigate back to the URL of the web app, where they should find themselves to be logged in.
 
 Then, you can configure [`GITHUB_ORG_ALLOW_LIST`][pydatalab.config.ServerConfig.GITHUB_ORG_ALLOW_LIST] with a list of string IDs of GitHub organizations that user's must be a public member of to register an account.
 If this value is set to `None`, then any GitHub account will be able to register, and if it is set to an empty list, then no accounts will be able to register.
@@ -134,6 +215,10 @@ Deployments can customise the look and feel of their *datalab* instance by provi
 This directory can be a symlink to a folder in your deployment repository, or mounted as a volume in Docker.
 It should be made available at `webapp/public/custom/` relative to the *datalab* source tree.
 
+When building the production Docker image, static files in this directory are only added to the final image, so changing them does not rebuild the app; they can also be mounted at `/app/dist/custom` in the running container.
+Custom components (`public/custom/components/`) are compiled into the app, so changing them does require a rebuild.
+Only `components/` is available when they are compiled, so custom components must use absolute URLs for other files in `public/custom/` (e.g., `/custom/logos/mylogo.png`), rather than relative imports (e.g., `../logos/mylogo.png`), which will fail the build.
+
 The following customisations are supported:
 
 ### CSS overrides (`public/custom/override.css`)
@@ -179,6 +264,48 @@ Place a `CustomAbout.vue` file in `public/custom/components/` and it will automa
 The component can contain any valid Vue template, script and scoped styles.
 No special configuration or flags are needed — if the file exists, it will be used.
 
+### Custom login page content (`public/custom/components/CustomLoginInfo.vue`)
+
+Deployments can provide a custom Vue component for the content of the login box.
+Place a `CustomLoginInfo.vue` file in `public/custom/components/` and it will automatically replace the built-in `LoginInfo.vue` component at build time.
+If no custom component is provided, the built-in login welcome content is used.
+
+Authentication buttons and login behaviour remain managed by *datalab*.
+The login controls are passed to the component as a `login` slot: place `<slot name="login" />` wherever they should appear (the built-in component puts them directly under the title).
+If the slot is omitted, users will have no way to log in from this page.
+The custom component should otherwise only provide branding, text, links, images, and styling for the login box.
+To reuse content from [`CustomAbout.vue`](#custom-about-page-publiccustomcomponentscustomaboutvue), copy it into this component.
+The deployment logo (`VUE_APP_LOGO_URL`) is already shown at the top of the box, so it does not need to be included.
+
+For example:
+
+```vue
+<template>
+  <h1>My lab datalab</h1>
+  <p>Research data management for our group.</p>
+  <slot name="login" />
+</template>
+
+<script>
+export default {
+  name: "CustomLoginInfo",
+};
+</script>
+```
+
+Login page colours and sizes can also be tuned from `public/custom/override.css` without providing a custom component:
+
+```css
+:root {
+  --login-background: #f5f6f8; /* page background */
+  --login-box-background: white;
+  --login-box-color: #222;
+  --login-max-width: 26rem; /* maximum width of the login box */
+  --login-logo-max-width: 240px;
+  --login-logo-max-height: 120px;
+}
+```
+
 ### Directory structure
 
 A typical deployment customisation directory looks like:
@@ -192,7 +319,8 @@ public/custom/
 ├── logos/
 │   └── mylogo.png
 └── components/
-    └── CustomAbout.vue
+    ├── CustomAbout.vue
+    └── CustomLoginInfo.vue
 ```
 
 

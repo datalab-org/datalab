@@ -1,17 +1,16 @@
+import importlib
 import json
 import os
 import pathlib
 import re
 import shutil
+import site
 import subprocess
+import sys
 import time
-import typing
 
 import tomlkit
 from invoke import Collection, task
-
-if typing.TYPE_CHECKING:
-    from pydatalab.models.utils import UserRole
 
 ns = Collection()
 dev = Collection("dev")
@@ -25,6 +24,11 @@ migration = Collection("migration")
 PLUGINS_TOML_PATH = pathlib.Path(__file__).resolve().parent.parent / "plugins.toml"
 
 
+def _webapp_src_path() -> pathlib.Path:
+    """Return the webapp source directory adjacent to the Python project."""
+    return pathlib.Path(__file__).resolve().parent.parent / "webapp" / "src"
+
+
 def load_plugin_schema():
     """Return the top-level pydantic model describing the plugins.toml schema.
 
@@ -33,10 +37,12 @@ def load_plugin_schema():
     need them. A JSON Schema generated from the returned model is emitted to
     `pydatalab/schemas/plugin_config.json` by `invoke dev.generate-schemas`.
     """
-    from pydantic import BaseModel, root_validator
+    from pydantic import BaseModel, ConfigDict, model_validator
 
     class UvSource(BaseModel):
         """A single entry under `[tool.uv.sources]` in plugins.toml."""
+
+        model_config = ConfigDict(extra="forbid")
 
         git: str | None = None
         rev: str | None = None
@@ -45,10 +51,8 @@ def load_plugin_schema():
         path: str | None = None
         editable: bool | None = None
 
-        class Config:
-            extra = "forbid"
-
-        @root_validator
+        @model_validator(mode="before")
+        @classmethod
         def _exactly_one_source(cls, values):
             has_git = values.get("git") is not None
             has_path = values.get("path") is not None
@@ -59,36 +63,33 @@ def load_plugin_schema():
             return values
 
     class UvSection(BaseModel):
+        model_config = ConfigDict(extra="forbid")
+
         sources: dict[str, UvSource] = {}
 
-        class Config:
-            extra = "forbid"
-
     class ToolSection(BaseModel):
-        uv: UvSection = UvSection()
+        model_config = ConfigDict(extra="forbid")
 
-        class Config:
-            extra = "forbid"
+        uv: UvSection = UvSection()
 
     class PluginConfigModel(BaseModel):
         """The schema for the top-level plugins.toml file."""
 
+        model_config = ConfigDict(extra="forbid")
+
         dependencies: list[str] = []
         tool: ToolSection = ToolSection()
 
-        class Config:
-            extra = "forbid"
-
-        @root_validator
-        def _sources_must_match_dependencies(cls, values):
-            deps = {d.split("[")[0].strip() for d in values.get("dependencies", [])}
-            sources = values.get("tool", ToolSection()).uv.sources
+        @model_validator(mode="after")
+        def _sources_must_match_dependencies(self):
+            deps = {d.split("[")[0].strip() for d in self.dependencies}
+            sources = self.tool.uv.sources
             orphans = sorted(set(sources) - deps)
             if orphans:
                 raise ValueError(
                     f"[tool.uv.sources] entries have no matching dependency: {orphans}"
                 )
-            return values
+            return self
 
     return PluginConfigModel
 
@@ -111,19 +112,341 @@ def update_file(filename: str, sub_line: tuple[str, str], strip: str | None = No
 def generate_schemas(_):
     """This task generates JSONSchemas for all item models used in the project."""
     from pydatalab.models import ITEM_MODELS
+    from pydatalab.models.schema_hints import DatalabFieldExtra, DatalabModelExtra
 
     schemas_path = pathlib.Path(__file__).parent / "schemas"
 
     for model in ITEM_MODELS.values():
-        schema = model.schema(by_alias=False)
+        schema = model.model_json_schema(by_alias=False)
         with open(schemas_path / f"{model.__name__.lower()}.json", "w") as f:
             json.dump(schema, f, indent=2)
 
+    # The datalab_* json_schema_extra hint vocabulary, as a checked-in schema.
+    for name, hint_model in (
+        ("datalab_field_extra", DatalabFieldExtra),
+        ("datalab_model_extra", DatalabModelExtra),
+    ):
+        hint_schema = hint_model.model_json_schema(by_alias=False)
+        with open(schemas_path / f"{name}.json", "w") as f:
+            json.dump(hint_schema, f, indent=2)
+
     with open(schemas_path / "plugin_config.json", "w") as f:
-        json.dump(load_plugin_schema().schema(), f, indent=2)
+        json.dump(load_plugin_schema().model_json_schema(), f, indent=2)
 
 
 dev.add_task(generate_schemas)
+
+
+@task
+def generate_bokeh_fixtures(_):
+    """Regenerate the Bokeh plot fixtures used by the webapp's Bokeh callback component tests.
+
+    Each fixture is the `bokeh.embed.json_item()` output of a real block plotting
+    function run on a file from `example_data/`, so the JS callbacks under test are
+    exactly those the server sends. Rerun this whenever the Python `bokeh` version
+    changes: BokehJS can only load documents generated by its own version.
+
+    """
+    import shutil
+    import tempfile
+
+    import bokeh
+    import bokeh.embed
+
+    from pydatalab.apps.echem.blocks import CycleBlock
+    from pydatalab.apps.echem.utils import compute_gpcl_differential, reduce_echem_cycle_sampling
+    from pydatalab.apps.xrd.blocks import XRDBlock
+    from pydatalab.blocks.common import TabularDataBlock
+    from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, double_axes_echem_plot
+
+    example_data = pathlib.Path(__file__).resolve().parent / "example_data"
+    fixture_dir = (
+        pathlib.Path(__file__).resolve().parent.parent / "webapp" / "cypress" / "fixtures" / "bokeh"
+    )
+    fixture_dir.mkdir(exist_ok=True)
+
+    fixtures: dict[str, dict] = {}
+
+    # Tabular block: DataTable, axis selects and .csv export (bypass the database lookup)
+    tabular = TabularDataBlock(item_id="fixture", unique_id="tabular-fixture")
+    tabular._load = lambda: TabularDataBlock.load(example_data / "csv" / "simple.csv")  # type: ignore
+    tabular.plot_df()
+    fixtures["tabular"] = tabular.data["bokeh_plot_data"]
+
+    # XRD block: wavelength input event, XRD export dropdown, show points toggle
+    xrd = XRDBlock(item_id="fixture", unique_id="xrd-fixture")
+    xrd.generate_xrd_plot(example_data / "XRD" / "example_mac.xye")
+    fixtures["xrd"] = xrd.data["bokeh_plot_data"]
+
+    # Echem block: mirrors `CycleBlock.plot_cycle` without the database lookups
+    with tempfile.TemporaryDirectory() as tmp:
+        mpr = example_data / "echem" / "jdb11-1_c3_gcpl_5cycles_2V-3p8V_C-24_data_C09.mpr"
+        src = pathlib.Path(shutil.copy(mpr, pathlib.Path(tmp) / mpr.name))
+        raw_df, _ = CycleBlock(item_id="fixture")._load_and_cache_echem(
+            src, None, None, reload=True
+        )
+    df, _ = CycleBlock.process_raw_echem_df(raw_df, None)
+    df = reduce_echem_cycle_sampling(df, 100)
+    fixtures["echem"] = bokeh.embed.json_item(
+        double_axes_echem_plot([df]), theme=DATALAB_BOKEH_THEME
+    )
+    # The differential is evaluated on a dense spline, so downsample it again as the block does
+    dqdv_df = reduce_echem_cycle_sampling(compute_gpcl_differential(df, mode="dQ/dV"), 100)
+    fixtures["echem_dqdv"] = bokeh.embed.json_item(
+        double_axes_echem_plot([dqdv_df], mode="dQ/dV"), theme=DATALAB_BOKEH_THEME
+    )
+
+    for name, item in fixtures.items():
+        path = fixture_dir / f"{name}.json"
+        path.write_text(json.dumps(item))
+        print(f"Wrote {path} (bokeh {bokeh.__version__}, {path.stat().st_size // 1024} KiB)")
+
+
+dev.add_task(generate_bokeh_fixtures)
+
+
+def _panel_name(entry_point_value: str) -> str:
+    """Map ``my_plugin.models:MixedSolution`` to ``MixedSolutionPanel``."""
+    class_name = entry_point_value.split(":")[-1]
+    return f"{class_name}Panel"
+
+
+def _write_plugin_panel_index(
+    path: pathlib.Path, registered: dict[str, str], manifests: list[str] | None = None
+) -> None:
+    """Write the deterministic generated Vue panel registry.
+
+    ``manifests`` lists the packages that ship a ``webapp/index.js`` manifest;
+    each is imported and exported in ``PLUGINS`` for ``plugins/index.js`` to merge.
+    """
+    lines = [
+        "// Auto-generated by `invoke dev.collect-plugin-panels` — do not edit manually.",
+        "// Re-run plugin installation after installing or updating plugins.",
+    ]
+    if manifests:
+        for package_name in manifests:
+            lines.append(f'import {package_name} from "./{package_name}/index.js";')
+        lines.append(f"export const PLUGINS = [{', '.join(manifests)}];")
+    lines.append("export const PLUGIN_PANELS = {")
+    for type_name, import_path in sorted(registered.items()):
+        lines.append(f"  {json.dumps(type_name)}: () => import({json.dumps(import_path)}),")
+    lines.append("};")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+# Packages holding global state that plugins must share with the webapp, so
+# they may only be declared as `peerDependencies` of a plugin's package.json.
+SHARED_WEBAPP_PACKAGES = {
+    "vue",
+    "vuex",
+    "vue-router",
+    "primevue",
+    "@primeuix/themes",
+    "@bokeh/bokehjs",
+}
+SHARED_WEBAPP_PACKAGE_PREFIXES = ("@fortawesome/",)
+
+
+def _check_plugin_package_json(path: pathlib.Path, package_name: str) -> None:
+    """Validate the package.json shipped in a plugin's webapp folder."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    for key in ("name", "version"):
+        if not data.get(key):
+            raise ValueError(f"{package_name}/webapp/package.json must set `{key}`.")
+    shared = sorted(
+        dep
+        for dep in data.get("dependencies", {})
+        if dep in SHARED_WEBAPP_PACKAGES or dep.startswith(SHARED_WEBAPP_PACKAGE_PREFIXES)
+    )
+    if shared:
+        raise ValueError(
+            f"{package_name}/webapp/package.json lists {shared} in `dependencies`; "
+            "declare them in `peerDependencies` so the webapp's copies are shared."
+        )
+
+
+def _install_plugin_webapp_dependencies(src_path: pathlib.Path) -> bool:
+    """Install npm dependencies declared by collected plugins.
+
+    Each plugin folder with a package.json is a yarn workspace of the webapp.
+    ``--pure-lockfile`` keeps the committed ``yarn.lock`` pins for the core webapp
+    without writing the plugins' entries back into it.
+    """
+    if not any((src_path / "plugins").glob("*/package.json")):
+        return False
+    yarn = shutil.which("yarn")
+    if yarn is None:
+        print(
+            "Plugins declare webapp dependencies but `yarn` was not found; "
+            "run `yarn install --pure-lockfile` in webapp/ to install them."
+        )
+        return False
+    subprocess.run([yarn, "install", "--pure-lockfile"], cwd=src_path.parent, check=True)  # noqa: S603
+    return True
+
+
+def _refresh_site_packages() -> None:
+    """Pick up packages installed since this interpreter started.
+
+    Editable installs (e.g. a plugin with `editable = true` in plugins.toml) are
+    wired up via `.pth` files, which Python only reads at startup, so a plugin
+    installed earlier in `dev.install` would otherwise not be importable here.
+    """
+    for path in site.getsitepackages():
+        site.addsitedir(path)
+    importlib.invalidate_caches()
+
+
+def _collect_plugin_panels(src_path: pathlib.Path | None = None) -> dict[str, str]:
+    """Collect installed plugin Vue components into ``webapp/src/plugins``.
+
+    Packages registering ``pydatalab.item_types`` or ``pydatalab.apps.plugins``
+    entry points are scanned for a ``webapp/`` folder. If it contains an
+    ``index.js`` manifest, the whole folder is copied and the manifest is
+    registered; otherwise, the legacy ``<ClassName>Panel.vue`` convention applies.
+
+    The destination is treated as generated output except for the committed
+    ``index.js`` loader. Rebuilding therefore cannot retain panels from plugins
+    that were removed from the environment.
+    """
+    from importlib.metadata import entry_points
+
+    _refresh_site_packages()
+    src_path = src_path or _webapp_src_path()
+    if not src_path.is_dir():
+        raise FileNotFoundError(f"Could not find webapp/src at {src_path}.")
+
+    plugins_dir = src_path / "plugins"
+    plugins_dir.mkdir(exist_ok=True)
+    for generated_path in plugins_dir.iterdir():
+        if generated_path.name == "index.js":
+            continue
+        if generated_path.is_dir():
+            shutil.rmtree(generated_path)
+        else:
+            generated_path.unlink()
+
+    registered: dict[str, str] = {}
+    manifests: list[str] = []
+    eps = sorted(
+        entry_points(group="pydatalab.item_types"),
+        key=lambda entry_point: (entry_point.name, entry_point.value),
+    )
+    block_eps = sorted(
+        entry_points(group="pydatalab.apps.plugins"),
+        key=lambda entry_point: (entry_point.name, entry_point.value),
+    )
+    if not eps and not block_eps:
+        print("No pydatalab.item_types or pydatalab.apps.plugins entry points found.")
+
+    seen_packages: set[str] = set()
+    for ep in eps + block_eps:
+        package_name = ep.value.split(":")[0].split(".")[0]
+        if package_name in seen_packages:
+            continue
+        seen_packages.add(package_name)
+
+        try:
+            module = importlib.import_module(package_name)
+        except ImportError as exc:
+            # A plugin with a registered entry point that cannot be imported is a
+            # broken install, and skipping it would silently drop its webapp code.
+            raise SystemExit(f"Could not import plugin package {package_name!r}: {exc}") from exc
+
+        module_file = getattr(module, "__file__", None)
+        if module_file is None:
+            print(f"  [skip] {package_name}: package has no filesystem location")
+            continue
+
+        webapp_dir = pathlib.Path(module_file).parent / "webapp"
+        if not webapp_dir.is_dir():
+            print(f"  [skip] {package_name}: no webapp/ folder found")
+            continue
+
+        if (webapp_dir / "index.js").is_file():
+            shutil.copytree(
+                webapp_dir,
+                plugins_dir / package_name,
+                ignore=shutil.ignore_patterns("__pycache__", "node_modules"),
+            )
+            if (webapp_dir / "package.json").is_file():
+                _check_plugin_package_json(webapp_dir / "package.json", package_name)
+            manifests.append(package_name)
+            print(f"  Copied  {package_name}/webapp/ (manifest)")
+            continue
+
+        vue_files = sorted(webapp_dir.glob("*.vue"))
+        if not vue_files:
+            print(f"  [skip] {package_name}: no Vue components found")
+            continue
+
+        dest_pkg_dir = plugins_dir / package_name
+        dest_pkg_dir.mkdir(exist_ok=True)
+        for vue_file in vue_files:
+            destination = dest_pkg_dir / vue_file.name
+            shutil.copy2(vue_file, destination)
+            print(f"  Copied  {package_name}/webapp/{vue_file.name}")
+
+    for ep in eps:
+        package_name = ep.value.split(":")[0].split(".")[0]
+        if package_name in manifests:
+            continue
+        panel_name = _panel_name(ep.value)
+        dest_file = plugins_dir / package_name / f"{panel_name}.vue"
+        if dest_file.is_file():
+            model = ep.load()
+            item_type = model.model_json_schema()["properties"]["type"]["default"]
+            registered[item_type] = f"./{package_name}/{panel_name}.vue"
+
+    generated_index = plugins_dir / "panels.generated.js"
+    _write_plugin_panel_index(generated_index, registered, manifests)
+    print(f"\nGenerated  {generated_index}")
+    if manifests:
+        print(f"Registered plugin manifests: {', '.join(manifests)}")
+    if registered:
+        print(f"Registered panels: {', '.join(sorted(registered))}")
+    else:
+        print("No panels registered (no matching .vue files found).")
+    return registered
+
+
+def _collect_plugin_panels_if_available() -> bool:
+    """Collect panels, and install their npm dependencies, when a complete source checkout
+    includes the webapp."""
+    src_path = _webapp_src_path()
+    if not src_path.is_dir():
+        print(f"No webapp/src found at {src_path}; skipping plugin panel collection.")
+        return False
+    _collect_plugin_panels(src_path)
+    _install_plugin_webapp_dependencies(src_path)
+    return True
+
+
+@task
+def collect_plugin_panels(_):
+    """Discover installed plugin Vue components and wire them into the webapp.
+
+    Scans all installed ``pydatalab.item_types`` and ``pydatalab.apps.plugins``
+    entry points. A plugin package whose ``webapp/`` folder contains an
+    ``index.js`` manifest (declaring ``blocks`` and/or ``itemPanels``) has the
+    folder copied into ``webapp/src/plugins/<package_name>/``, and
+    ``webapp/src/plugins/panels.generated.js`` is regenerated automatically
+    (the committed ``plugins/index.js`` shim loads it when present).
+
+    Packages without a manifest fall back to the panel naming convention: the
+    model class ``MixedSolution`` → ``webapp/MixedSolutionPanel.vue``.
+
+    ``dev.install`` runs this automatically for a complete source checkout. The
+    explicit task remains useful for troubleshooting or refreshing generated
+    output without reinstalling plugins.
+    """
+    try:
+        _collect_plugin_panels()
+    except FileNotFoundError as exc:
+        raise SystemExit(str(exc)) from exc
+
+
+dev.add_task(collect_plugin_panels)
 
 
 @task(
@@ -144,6 +467,30 @@ def serve(
     debug: bool = False,
 ):
     """Boot the Flask development server."""
+    env_path = _load_dev_env()
+
+    if testing and "PYDATALAB_TESTING" not in os.environ:
+        os.environ["PYDATALAB_TESTING"] = "1"
+
+    if debug and "PYDATALAB_DEBUG" not in os.environ:
+        os.environ["PYDATALAB_DEBUG"] = "1"
+
+    from pydatalab.main import create_app
+
+    create_app(env_file=env_path).run(host=host, port=port, debug=debug, use_reloader=reload)
+
+
+dev.add_task(serve)
+
+
+def _load_dev_env() -> pathlib.Path:
+    """Load the development `.env` file and apply the insecure dev secret key fallback.
+
+    This must be called before importing anything that instantiates `CONFIG`, and is
+    shared between `dev.serve` and the test-user tasks so that login tokens minted in
+    the terminal are signed with the same key as the running dev server.
+
+    """
     from dotenv import load_dotenv
 
     # Load .env into os.environ *first*, before the guards below and before
@@ -158,22 +505,220 @@ def serve(
 
     load_dotenv(env_path)
 
-    if testing and "PYDATALAB_TESTING" not in os.environ:
-        os.environ["PYDATALAB_TESTING"] = "1"
-
-    if debug and "PYDATALAB_DEBUG" not in os.environ:
-        os.environ["PYDATALAB_DEBUG"] = "1"
-
     if "PYDATALAB_SECRET_KEY" not in os.environ:
         os.environ["PYDATALAB_SECRET_KEY"] = "dev-insecure-secret-key-do-not-use-in-production"  # noqa: S105
         os.environ["PYDATALAB_ALLOW_INSECURE_SECRET_KEY"] = "1"  # noqa: S105
 
+    return env_path
+
+
+def _ensure_test_user(database, email: str, role, display_name: str | None = None) -> str:
+    """Create or update an active test user with a verified email identity and the given role,
+    returning whether the user was "Created" or "Updated".
+
+    """
+    from pydatalab.models.people import AccountStatus, Identity, IdentityType, Person
+    from pydatalab.mongo import insert_pydantic_model_fork_safe
+
+    existing_user = database.users.find_one(
+        {"identities.identifier": email, "identities.identity_type": IdentityType.EMAIL.value}
+    )
+
+    if existing_user is None:
+        identity = Identity(
+            identity_type=IdentityType.EMAIL,
+            identifier=email,
+            name=email,
+            display_name=display_name or email.split("@")[0],
+            verified=True,
+        )
+        user = Person.new_user_from_identity(
+            identity,
+            use_contact_email=False,
+            account_status=AccountStatus.ACTIVE,
+        )
+        user_id = insert_pydantic_model_fork_safe(user, "users")
+        action = "Created"
+    else:
+        user_id = existing_user["_id"]
+        user_updates = {"account_status": AccountStatus.ACTIVE.value}
+        if display_name is not None:
+            user_updates["display_name"] = display_name
+        database.users.update_one({"_id": user_id}, {"$set": user_updates})
+        action = "Updated"
+
+    database.roles.update_one({"_id": user_id}, {"$set": {"role": role.value}}, upsert=True)
+    return action
+
+
+@task(
+    help={
+        "username": "Username for the test user; their email will be <username>@datalab.test "
+        "(random if omitted)",
+        "display_name": "Display name for the test user (defaults to the username)",
+        "role": "User role: user, manager, or admin",
+        "count": "Number of users to create with random usernames (only without --username)",
+    }
+)
+def create_test_user(
+    _,
+    username: str | None = None,
+    display_name: str | None = None,
+    role: str = "user",
+    count: int = 1,
+):
+    """Create or update active test users that can log in via `dev.list-test-users` links."""
+
+    _load_dev_env()
+
+    import secrets
+
+    from pydantic import TypeAdapter, ValidationError
+
+    from pydatalab.models.people import DisplayName
+    from pydatalab.models.utils import HumanReadableIdentifier, UserRole
+    from pydatalab.mongo import get_database
+    from pydatalab.routes.v0_1.auth import TESTING_EMAIL_DOMAIN
+
+    try:
+        role_value = UserRole(role.lower())
+    except ValueError:
+        allowed_roles = ", ".join(value.value for value in UserRole)
+        raise SystemExit(f"Invalid role {role!r}; expected one of: {allowed_roles}.") from None
+
+    if display_name is not None:
+        try:
+            display_name = TypeAdapter(DisplayName).validate_python(display_name)
+        except ValidationError as exc:
+            raise SystemExit(f"Invalid display name {display_name!r}: {exc}") from None
+
+    if count < 1:
+        raise SystemExit("--count must be at least 1.")
+
+    database = get_database()
+
+    if username is not None:
+        if count != 1:
+            raise SystemExit("--count cannot be combined with --username.")
+        try:
+            username = TypeAdapter(HumanReadableIdentifier).validate_python(username)
+        except ValidationError as exc:
+            raise SystemExit(f"Invalid test username {username!r}: {exc}") from None
+        new_users = [(username, display_name)]
+    else:
+        if count != 1 and display_name is not None:
+            raise SystemExit("--display-name cannot be combined with --count.")
+        new_users = [(secrets.token_hex(3), display_name) for _ in range(count)]
+
+    for username, user_display_name in new_users:
+        email = f"{username}@{TESTING_EMAIL_DOMAIN}"
+        action = _ensure_test_user(database, email, role_value, user_display_name)
+        print(f"{action} test user {email!r} with role {role_value.value!r}.")
+
+
+dev.add_task(create_test_user)
+
+
+@task
+def list_test_users(_):
+    """List test users with magic-link login URLs for the local webapp.
+
+    Test users are those with an @datalab.test email, as created by `dev.create-test-user`.
+    Each link is a login token (valid for one hour), minted directly rather than sent by
+    email, and only accepted by the server in testing mode. Open each in a separate
+    private browser window to be logged in as several users at once.
+
+    """
+
+    env_path = _load_dev_env()
+
+    from pydatalab.config import CONFIG
     from pydatalab.main import create_app
+    from pydatalab.models.people import IdentityType
+    from pydatalab.models.utils import UserRole
+    from pydatalab.mongo import get_database
+    from pydatalab.routes.v0_1.auth import TESTING_EMAIL_DOMAIN, _generate_and_store_token
 
-    create_app(env_file=env_path).run(host=host, port=port, debug=debug, use_reloader=reload)
+    if CONFIG.DISABLE_MAGIC_LINK_AUTH:
+        raise SystemExit("Test-user login links require magic-link auth to be enabled.")
+    if not CONFIG.APP_URL:
+        raise SystemExit("Test-user login links require PYDATALAB_APP_URL to point to the webapp.")
+
+    database = get_database()
+
+    email_suffix = f"@{TESTING_EMAIL_DOMAIN}"
+    documents = database.users.find(
+        {
+            "identities": {
+                "$elemMatch": {
+                    "identity_type": IdentityType.EMAIL.value,
+                    "identifier": {"$regex": f"{re.escape(email_suffix)}$"},
+                }
+            }
+        }
+    )
+
+    users = []
+    for document in documents:
+        email = next(
+            identity["identifier"]
+            for identity in document["identities"]
+            if identity.get("identity_type") == IdentityType.EMAIL.value
+            and identity.get("identifier", "").endswith(email_suffix)
+        )
+        role_document = database.roles.find_one({"_id": document["_id"]}, {"role": 1})
+        role = role_document["role"] if role_document else UserRole.USER.value
+        group_ids = [
+            group["immutable_id"]
+            for group in document.get("groups", [])
+            if group.get("immutable_id") is not None
+        ]
+        groups = database.groups.find(
+            {"_id": {"$in": group_ids}},
+            {"display_name": 1, "group_id": 1},
+        )
+        group_names = sorted(
+            (
+                group.get("display_name") or group.get("group_id") or str(group["_id"])
+                for group in groups
+            ),
+            key=str.casefold,
+        )
+        users.append(
+            {
+                "email": email,
+                "display_name": document.get("display_name") or email,
+                "role": role,
+                "status": document.get("account_status"),
+                "groups": group_names,
+            }
+        )
+
+    users.sort(key=lambda user: (user["display_name"].casefold(), user["email"]))
+    if not users:
+        print("No test users found; create one with `invoke dev.create-test-user`.")
+        return
+
+    use_color = sys.stdout.isatty() and "NO_COLOR" not in os.environ
+
+    def styled(value: str, code: str) -> str:
+        return f"\033[{code}m{value}\033[0m" if use_color and code else value
+
+    login_base_url = f"{CONFIG.APP_URL.rstrip('/')}/?token="
+    role_colors = {"admin": "31", "manager": "33", "user": "32"}
+    print(styled("Test users (links valid for 1 hour, with the server in testing mode)", "1;36"))
+    with create_app(env_file=env_path).app_context():
+        for user in users:
+            token = _generate_and_store_token(user["email"], intent="login", channel="cli")
+            groups = ", ".join(user["groups"]) if user["groups"] else "No groups"
+            print(f"\n{styled(user['display_name'], '1')} ({user['email']})")
+            print(f"  Role:   {styled(user['role'], role_colors.get(user['role'], ''))}")
+            print(f"  Status: {user['status']}")
+            print(f"  Groups: {groups}")
+            print(f"  Login:  {styled(login_base_url + token, '36')}")
 
 
-dev.add_task(serve)
+dev.add_task(list_test_users)
 
 
 @task
@@ -197,13 +742,13 @@ def install(_, dev=True):
             raw_plugin_data = tomlkit.load(f)
 
         try:
-            plugin_data = load_plugin_schema().parse_obj(raw_plugin_data.unwrap())
+            plugin_data = load_plugin_schema().model_validate(raw_plugin_data.unwrap())
         except Exception as exc:
             raise SystemExit(f"Invalid plugins.toml at {plugin_cfg}:\n{exc}") from None
 
         deps = list(plugin_data.dependencies)
         sources = {
-            name: source.dict(exclude_none=True)
+            name: source.model_dump(exclude_none=True)
             for name, source in plugin_data.tool.uv.sources.items()
         }
 
@@ -233,8 +778,11 @@ def install(_, dev=True):
 
         pyproject_data["project"]["optional-dependencies"]["plugins"] = deps
 
-        original_sources = pyproject_data.get("tool", {}).get("uv", {}).get("sources", {})
-        original_sources.update(sources)
+        # Create the table if the base pyproject.toml has no sources of its own,
+        # otherwise the plugin sources would be written to a throwaway dict
+        pyproject_data.setdefault("tool", {}).setdefault("uv", {}).setdefault("sources", {}).update(
+            sources
+        )
 
     build_dir = pathlib.Path(__file__).parent / "build"
     build_dir.mkdir(exist_ok=True)
@@ -268,10 +816,59 @@ def install(_, dev=True):
     install_cmd = ["uv", "pip", "install", "-e", "."]
     subprocess.run(install_cmd, check=True)  # noqa: S607, S603
 
+    _collect_plugin_panels_if_available()
+
     print("Done! To revert to locked core dependencies, run `uv sync --all-extras --dev`.")
 
 
 dev.add_task(install)
+
+
+# The test users (and their roles) that the Cypress e2e tests log in as
+E2E_TEST_USERS = {
+    "admin-user": "admin",
+    "test-user": "user",
+    "user1": "user",
+    "user2": "user",
+}
+
+
+@task
+def seed_e2e_users(_):
+    """Ensure the test users needed by the Cypress e2e tests exist, and print login tokens.
+
+    Each user in `E2E_TEST_USERS` is created (or updated) as an active `@datalab.test`
+    test user with the given role. The final line of output is a JSON object mapping each
+    email to a login token, which the e2e tests read via `cy.task("e2eLoginTokens")` (see
+    `webapp/cypress.config.js`). The tokens are valid for one hour and, like the links from
+    `dev.list-test-users`, are only accepted by a server in testing mode.
+
+    """
+    env_path = _load_dev_env()
+
+    from pydatalab.config import CONFIG
+    from pydatalab.main import create_app
+    from pydatalab.models.utils import UserRole
+    from pydatalab.mongo import get_database
+    from pydatalab.routes.v0_1.auth import TESTING_EMAIL_DOMAIN, _generate_and_store_token
+
+    if CONFIG.DISABLE_MAGIC_LINK_AUTH:
+        raise SystemExit("e2e login tokens require magic-link auth to be enabled.")
+
+    database = get_database()
+    tokens = {}
+    with create_app(env_file=env_path).app_context():
+        for username, role in E2E_TEST_USERS.items():
+            email = f"{username}@{TESTING_EMAIL_DOMAIN}"
+            # The email is used as the display name, so that the tests can check who is logged in
+            action = _ensure_test_user(database, email, UserRole(role), display_name=email)
+            print(f"{action} e2e test user {email!r} with role {role!r}.", file=sys.stderr)
+            tokens[email] = _generate_and_store_token(email, intent="login", channel="cli")
+
+    print(json.dumps(tokens))
+
+
+dev.add_task(seed_e2e_users)
 
 
 @task
@@ -286,7 +883,7 @@ admin.add_task(create_mongo_indices)
 
 
 @task
-def change_user_role(_, display_name: str, role: "UserRole"):
+def change_user_role(_, display_name: str, role: str):
     """This task takes a user's name and gives them the desired role."""
     from bson import ObjectId
 
@@ -294,8 +891,8 @@ def change_user_role(_, display_name: str, role: "UserRole"):
     from pydatalab.mongo import _get_active_mongo_client
 
     try:
-        role = getattr(UserRole, role.upper())
-    except AttributeError:
+        role = UserRole(role.lower())
+    except ValueError:
         raise SystemExit(f"Invalid role: {role!r}. Must be one of {UserRole.__members__}") from None
 
     matches = list(
@@ -427,10 +1024,11 @@ migration.add_task(add_missing_refcodes)
 
 
 def _check_id(id=None, base_url=None, api_key=None):
-    from pydatalab.logger import setup_log
-
     """Checks the given item ID served at the base URL and logs the result."""
+
     import requests
+
+    from pydatalab.logger import setup_log
 
     log = setup_log("check_item_validity")
     response = requests.get(

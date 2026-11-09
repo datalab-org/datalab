@@ -1,30 +1,33 @@
 <template>
-  <!-- think about elegant two-way binding to DataBlockBase... or, just pass all the block data into
-DataBlockBase as a prop, and save from within DataBlockBase  -->
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-    <div v-if="multiFileBlock">
-      <FileMultiSelect
-        v-model="file_ids"
-        :item_id="item_id"
-        :block_id="block_id"
-        :extensions="blockInfo?.attributes?.accepted_file_extensions"
-        :main-label="'Select and order files'"
-        update-block-on-change
-      />
-    </div>
-    <div v-else>
-      <FileSelectDropdown
-        v-model="file_id"
-        :item_id="item_id"
-        :block_id="block_id"
-        :extensions="blockInfo?.attributes?.accepted_file_extensions"
-        update-block-on-change
-      />
-    </div>
+    <template #controls>
+      <div v-if="multiFileBlock">
+        <FileMultiSelect
+          v-model="file_ids"
+          :item_id="item_id"
+          :block_id="block_id"
+          :extensions="blockInfo?.attributes?.accepted_file_extensions"
+          :main-label="'Select and order files'"
+          fallback-to-single-file-id
+          update-block-on-change
+        />
+      </div>
+      <div v-else>
+        <FileSelectDropdown
+          v-model="file_id"
+          :item_id="item_id"
+          :block_id="block_id"
+          :extensions="blockInfo?.attributes?.accepted_file_extensions"
+          update-block-on-change
+        />
+      </div>
+    </template>
 
-    <div id="bokehPlotContainer" class="limited-width">
-      <BokehPlot :bokeh-plot-data="bokehPlotData" />
-    </div>
+    <template #plot>
+      <div id="bokehPlotContainer" class="limited-width">
+        <BokehPlot :bokeh-plot-data="bokehPlotData" />
+      </div>
+    </template>
   </DataBlockBase>
 </template>
 

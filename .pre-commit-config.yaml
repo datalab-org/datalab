@@ -1,6 +1,6 @@
 default_language_version:
-  python: python3.10
-  node: "22.19.0"
+  python: python3.11
+  node: "22.23.4"
 
 ci:
   skip:
@@ -29,7 +29,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.1
+    rev: v0.16.10
     hooks:
       - id: ruff
         args: [--fix]
@@ -40,18 +40,18 @@ repos:
     hooks:
       - id: eslint
         additional_dependencies:
-          - prettier@3.8.3
+          - prettier@3.9.10
           - eslint@8.57.1
-          - eslint-config-prettier@8.10.0
-          - eslint-plugin-prettier@5.5.5
-          - eslint-plugin-vue@8.0.3
-          - "@vue/cli-plugin-babel@5.0.8"
+          - eslint-config-prettier@8.10.2
+          - eslint-plugin-prettier@5.5.6
+          - eslint-plugin-vue@8.7.1
+          - "@vue/cli-plugin-babel@5.0.9"
           - "@vue/eslint-config-prettier@8.0.0"
-          - eslint-plugin-cypress@3.3.0
-          - "@babel/core@7.29.0"
-          - "@babel/eslint-parser@7.28.6"
-          - "@babel/plugin-transform-export-namespace-from@7.27.1"
-          - "@babel/plugin-transform-class-static-block@7.28.6"
+          - eslint-plugin-cypress@3.6.0
+          - "@babel/core@7.29.7"
+          - "@babel/eslint-parser@7.29.9"
+          - "@babel/plugin-transform-export-namespace-from@7.29.7"
+          - "@babel/plugin-transform-class-static-block@7.29.7"
         types: [file]
         files: \.(js|jsx|ts|tsx|vue)$
         args: [--fix]
@@ -63,11 +63,11 @@ repos:
         args: [--py310-plus]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.3.0
+    rev: v2.4.0
     hooks:
       - id: mypy
         additional_dependencies:
-          ["types-python-dateutil", "types-requests", "types-paramiko", "pydantic~=1.10"]
+          ["types-python-dateutil", "types-requests", "types-paramiko", "pydantic", "pydantic-settings"]
         args: ["--config-file", "pydatalab/pyproject.toml"]
 
   - repo: local

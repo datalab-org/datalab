@@ -1,4 +1,3 @@
-import json
 from typing import Any
 
 from flask import Blueprint, jsonify, request
@@ -41,10 +40,7 @@ def list_remote_directories():
     then it will be reconstructed.
 
     """
-    if (
-        not (current_user.is_authenticated and current_user.account_status == "active")
-        and not CONFIG.TESTING
-    ):
+    if not (current_user.is_authenticated and current_user.account_status == "active"):
         return (
             jsonify(
                 {
@@ -76,7 +72,7 @@ def list_remote_directories():
 
     response = {}
     response["meta"] = {}
-    response["meta"]["remotes"] = [json.loads(d.json()) for d in CONFIG.REMOTE_FILESYSTEMS]
+    response["meta"]["remotes"] = [d.model_dump(mode="json") for d in CONFIG.REMOTE_FILESYSTEMS]
     if all_directory_structures:
         oldest_update = min(d["last_updated"] for d in all_directory_structures)
         response["meta"]["oldest_cache_update"] = oldest_update.isoformat()
@@ -93,7 +89,7 @@ def get_remote_directory(remote_id: str):
     given configured remote name.
 
     """
-    if not current_user.is_authenticated and not CONFIG.TESTING:
+    if not current_user.is_authenticated:
         return (
             jsonify(
                 {
@@ -139,7 +135,7 @@ def get_remote_directory(remote_id: str):
 
     response: dict[str, Any] = {}
     response["meta"] = {}
-    response["meta"]["remote"] = json.loads(d.json())
+    response["meta"]["remote"] = d.model_dump(mode="json")
     response["data"] = directory_structure
 
     return jsonify(response), 200

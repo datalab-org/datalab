@@ -1,27 +1,100 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import AliasChoices, ConfigDict, Field, field_validator, model_validator
 
-from pydatalab.models.blocks import DataBlockResponse
-from pydatalab.models.people import Group, Person
-from pydatalab.models.utils import Constituent, InlineSubstance, PyObjectId
+from pydatalab.models.people import GroupReference, PersonReference
+from pydatalab.models.utils import (
+    BaseModel,
+    Constituent,
+    EntryReference,
+    InlineSubstance,
+    PyObjectId,
+)
+
+if TYPE_CHECKING:
+    pass
+
+__all__ = (
+    "HasOwner",
+    "HasRevisionControl",
+    "IsCollectable",
+    "HasSynthesisInfo",
+    "HasSubstanceInfo",
+    "HasLocation",
+    "HasTags",
+)
 
 
 class HasOwner(BaseModel):
+    """Trait mixin for models that record who created them and which groups can access them."""
+
     creator_ids: list[PyObjectId] = Field([])
     """The database IDs of the user(s) who created the item."""
 
-    creators: list[Person] | None = Field(None)
+    creators: list[PersonReference] | None = Field(None)
     """Inlined info for the people associated with this item."""
 
     group_ids: list[PyObjectId] = Field([])
     """The database IDs of the group(s) that have read-access to this item."""
 
-    groups: list[Group] | None = Field(None)
+    groups: list[GroupReference] | None = Field(None)
     """Inlined info for the groups with access to this item."""
 
 
+class HasTags(BaseModel):
+    """Trait mixin for models that can be annotated with tags.
+
+    Note: this mixin only provides the stored `tags` field and its coercion.
+    Inlining current tag names for display (and dropping references to deleted
+    tags) is a read-time concern handled by
+    `pydatalab.mongo.resolve_tags_for_docs`, which each entity's read path must
+    call explicitly on the docs it returns.
+    """
+
+    tags: list[EntryReference] = Field(default_factory=list)
+    """Tags applied to this entry: references to `tags` entries (by
+    `immutable_id`)."""
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def coerce_tags(cls, v):
+        """Coerce raw tag entries into references and de-duplicate.
+
+        A mapping carrying an `immutable_id` becomes an `EntryReference` of type
+        ``tags``. References are de-duplicated by `immutable_id`.
+        """
+        if v is None:
+            return []
+        if not isinstance(v, list):
+            raise ValueError("`tags` must be a list")
+
+        coerced: list = []
+        seen_refs: set[PyObjectId | None] = set()
+
+        for tag in v:
+            if isinstance(tag, EntryReference):
+                if tag.immutable_id not in seen_refs:
+                    seen_refs.add(tag.immutable_id)
+                    coerced.append(tag)
+                continue
+
+            if isinstance(tag, dict) and tag.get("immutable_id") is not None:
+                data = dict(tag)
+                data.setdefault("type", "tags")
+                ref = EntryReference(**data)
+                if ref.immutable_id not in seen_refs:
+                    seen_refs.add(ref.immutable_id)
+                    coerced.append(ref)
+                continue
+
+            raise ValueError(f"Invalid tag entry: {tag!r}")
+
+        return coerced
+
+
 class HasRevisionControl(BaseModel):
+    """Trait mixin for models that track a revision history of their own state."""
+
     revision: int = 1
     """The revision number of the entry."""
 
@@ -32,12 +105,13 @@ class HasRevisionControl(BaseModel):
     """The version number used by the version control system for tracking snapshots."""
 
 
-class HasBlocks(BaseModel):
-    blocks_obj: dict[str, DataBlockResponse] = Field({})
-    """A mapping from block ID to block data."""
+class CollectionReference(BaseModel):
+    """A reference to a collection, used for inlining collection info within other models."""
 
-    display_order: list[str] = Field([])
-    """The order in which to display block data in the UI."""
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    immutable_id: PyObjectId = Field(alias="_id")
+    """The immutable ID of the collection."""
 
 
 class IsCollectable(BaseModel):
@@ -45,28 +119,22 @@ class IsCollectable(BaseModel):
     added to collections.
     """
 
-    from pydatalab.models.collections import Collection
-
-    collections: list[Collection] = Field([])
+    collections: list[CollectionReference] = Field(default_factory=list)
     """Inlined info for the collections associated with this item."""
 
-    @root_validator
-    def add_missing_collection_relationships(cls, values):
+    @model_validator(mode="after")
+    def add_missing_collection_relationships(self):
         from pydatalab.models.relationships import TypedRelationship
 
-        if values.get("collections") is not None:
-            new_ids = {coll.immutable_id for coll in values["collections"]}
-            existing_collection_relationship_ids = set()
-            if values.get("relationships") is not None:
-                existing_collection_relationship_ids = {
-                    relationship.immutable_id
-                    for relationship in values["relationships"]
-                    if relationship.type == "collections"
-                }
-            else:
-                values["relationships"] = []
+        if self.collections is not None:
+            new_ids = {coll.immutable_id for coll in self.collections}
+            existing_collection_relationship_ids = {
+                relationship.immutable_id
+                for relationship in self.relationships
+                if relationship.type == "collections"
+            }
 
-            for collection in values.get("collections", []):
+            for collection in self.collections:
                 if collection.immutable_id not in existing_collection_relationship_ids:
                     relationship = TypedRelationship(
                         relation=None,
@@ -74,20 +142,18 @@ class IsCollectable(BaseModel):
                         type="collections",
                         description="Is a member of",
                     )
-                    values["relationships"].append(relationship)
+                    self.relationships.append(relationship)
 
-            values["relationships"] = [
+            self.relationships = [
                 d
-                for d in values.get("relationships", [])
+                for d in self.relationships
                 if d.type != "collections" or d.immutable_id in new_ids
             ]
 
-        if len([d for d in values.get("relationships", []) if d.type == "collections"]) != len(
-            values.get("collections", [])
-        ):
+        if len([d for d in self.relationships if d.type == "collections"]) != len(self.collections):
             raise RuntimeError("Relationships and collections mismatch")
 
-        return values
+        return self
 
 
 class HasSynthesisInfo(BaseModel):
@@ -99,28 +165,25 @@ class HasSynthesisInfo(BaseModel):
     synthesis_description: str | None = None
     """Free-text details of the procedure applied to synthesise the sample"""
 
-    @root_validator
-    def add_missing_synthesis_relationships(cls, values):
+    @model_validator(mode="after")
+    def add_missing_synthesis_relationships(self):
         """Add any missing sample synthesis constituents to parent relationships"""
+        from pydatalab.models import constituent_item_types
         from pydatalab.models.relationships import RelationshipType, TypedRelationship
 
         constituents_set = set()
-        if values.get("synthesis_constituents") is not None:
-            existing_parent_relationships = {}
-            if values.get("relationships") is not None:
-                # Index by refcode *and* item_id so a stored relationship carrying an
-                # item_id still matches a refcode-enriched constituent (and vice-versa).
-                existing_parent_relationships = {
-                    identifier: relationship
-                    for relationship in values["relationships"]
-                    if relationship.relation == RelationshipType.PARENT
-                    for identifier in (relationship.refcode, relationship.item_id)
-                    if identifier
-                }
-            else:
-                values["relationships"] = []
+        if self.synthesis_constituents is not None:
+            # Index by refcode *and* item_id so a stored relationship carrying an
+            # item_id still matches a refcode-enriched constituent (and vice-versa).
+            existing_parent_relationships = {
+                identifier: relationship
+                for relationship in self.relationships
+                if relationship.relation == RelationshipType.PARENT
+                for identifier in (relationship.refcode, relationship.item_id)
+                if identifier
+            }
 
-            for constituent in values.get("synthesis_constituents", []):
+            for constituent in self.synthesis_constituents:
                 # If this is an inline relationship, just skip it
                 if isinstance(constituent.item, InlineSubstance):
                     continue
@@ -139,7 +202,7 @@ class HasSynthesisInfo(BaseModel):
                         type=constituent.item.type,
                         description="Is a constituent of",
                     )
-                    values["relationships"].append(relationship)
+                    self.relationships.append(relationship)
                 else:
                     # Back-fill any identifier missing from the stored relationship
                     relationship.refcode = relationship.refcode or refcode
@@ -156,26 +219,30 @@ class HasSynthesisInfo(BaseModel):
                 constituents_set.update(i for i in (refcode, item_id) if i)
 
         # Finally, filter out any parent relationships with item that were removed
-        # from the synthesis constituents
-        values["relationships"] = [
+        # from the synthesis constituents. The set of constituent-capable types is
+        # resolved dynamically so that custom item types are also cleaned up.
+        removable_types = constituent_item_types()
+        self.relationships = [
             rel
-            for rel in values["relationships"]
+            for rel in self.relationships
             if not (
                 rel.refcode not in constituents_set
                 and rel.item_id not in constituents_set
                 and rel.relation == RelationshipType.PARENT
-                and rel.type in ("samples", "starting_materials")
+                and rel.type in removable_types
             )
         ]
 
-        return values
+        return self
 
 
 class HasSubstanceInfo(BaseModel):
     """Trait mixin for models that have substance information."""
 
     chemform: str | None = Field(
-        example=["Na3P", "Na<sub>3</sub>P", "LiNiO2@C", "Na3+xP", "LiNi1/3Co0.1Mn0.1O2"],
+        None,
+        examples=["Na3P", "Na<sub>3</sub>P", "LiNiO2@C", "Na3+xP", "LiNi1/3Co0.1Mn0.1O2"],
+        json_schema_extra={"datalab_include_field_in_summary": True},
     )
     """A string representation of the chemical formula or composition associated with this sample.
 
@@ -184,35 +251,60 @@ class HasSubstanceInfo(BaseModel):
 
     """
 
-    smiles: str | None = Field(None, aliases=["SMILES", "smiles_representation"])
+    smiles: str | None = Field(
+        None,
+        validation_alias=AliasChoices("smiles_representation", "SMILES"),
+        json_schema_extra={"datalab_include_field_in_summary": True},
+    )
     """A SMILES string representation of the chemical structure associated with this sample."""
 
-    inchi: str | None = Field(None)
+    inchi: str | None = Field(None, json_schema_extra={"datalab_include_field_in_summary": False})
     """An International Chemical Identifier (InChI) string representation of chemicals/molecules associated with this sample."""
 
-    inchi_key: str | None = Field(None)
+    inchi_key: str | None = Field(
+        None, json_schema_extra={"datalab_include_field_in_summary": True}
+    )
     """A unique key derived from the InChI."""
 
     GHS_codes: str | None = Field(
+        None,
         alias="GHS H-codes",
         examples=["H224", "H303, H316, H319"],
+        json_schema_extra={"datalab_include_field_in_summary": True},
     )
     """A string describing any GHS hazard codes associated with this item. See https://pubchem.ncbi.nlm.nih.gov/ghs/ for code definitions."""
 
-    molar_mass: float | None = Field(alias="Molecular Weight")
+    molar_mass: float | None = Field(
+        None,
+        alias="Molecular Weight",
+        validate_default=True,
+        json_schema_extra={"datalab_include_field_in_summary": True},
+    )
     """Mass per formula unit, in g/mol."""
 
-    CAS: str | None = Field(alias="Substance CAS")
+    CAS: str | None = Field(
+        None,
+        alias="Substance CAS",
+        json_schema_extra={"datalab_include_field_in_summary": True},
+    )
     """The CAS Registry Number for the substance described by this entry."""
 
-    @validator("molar_mass")
-    def add_molar_mass(cls, v, values):
+    @field_validator("molar_mass", mode="before")
+    @classmethod
+    def add_molar_mass(cls, v, info):
+        """Fill in the molar mass if not already set and a chemical formula is provided."""
         from periodictable import formula
 
-        if v is None and values.get("chemform"):
+        chemform = info.data.get("chemform")
+        if v is None and chemform:
             try:
-                return formula(values.get("chemform")).mass
+                return formula(chemform).mass
             except Exception:
                 return None
 
         return v
+
+
+class HasLocation(BaseModel):
+    location: str | None = Field(None, json_schema_extra={"datalab_include_field_in_summary": True})
+    """The place where the item is located."""

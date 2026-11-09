@@ -1,4 +1,5 @@
 import StartingMaterialTable from "@/components/StartingMaterialTable.vue";
+import { EDITABLE_INVENTORY } from "@/resources.js";
 import PrimeVue from "primevue/config";
 import { createStore } from "vuex";
 
@@ -68,11 +69,22 @@ describe("StartingMaterialTable Component Tests", () => {
     cy.get('[data-testid="batch-item-button"]').should("not.exist");
     cy.get('[data-testid="scan-qr-button"]').should("not.exist");
     cy.get('[data-testid="add-collection-button"]').should("not.exist");
-    cy.get('[data-testid="add-starting-material-button"]').should("not.exist");
+    if (EDITABLE_INVENTORY) {
+      cy.get('[data-testid="add-starting-material-button"]').should(
+        "contain.text",
+        "Add a starting material",
+      );
+    } else {
+      cy.get('[data-testid="add-starting-material-button"]').should("not.exist");
+    }
     cy.get('[data-testid="add-equipment-button"]').should("not.exist");
     cy.get('[data-testid="add-to-collection-button"]').should("not.exist");
     cy.get('[data-testid="delete-selected-button"]').should("not.exist");
     cy.get('[data-testid="search-input"]').should("exist");
+    cy.get('[data-testid="selection-summary"]').should(
+      "contain.text",
+      "Number of starting materials:",
+    );
   });
 
   it("renders the correct columns in the table", () => {
@@ -85,6 +97,7 @@ describe("StartingMaterialTable Component Tests", () => {
       "Formula",
       "Date",
       "Collections",
+      "", // access
       "Supplier",
       "Location",
       "", // nblocks
@@ -99,7 +112,7 @@ describe("StartingMaterialTable Component Tests", () => {
   });
 
   it("displays data from the Vuex store", () => {
-    cy.getColumnIndices({ checkbox: 0, barcode: 3, nblocks: 10, nfiles: 11 }).then(
+    cy.getColumnIndices({ checkbox: 0, barcode: 3, access: 8, nblocks: 11, nfiles: 12 }).then(
       (columnIndices) => {
         // First row - material1
         cy.get(".p-datatable-tbody")
@@ -129,7 +142,7 @@ describe("StartingMaterialTable Component Tests", () => {
   });
 
   it("renders the component FormattedItemName", () => {
-    cy.getColumnIndices({ checkbox: 0, barcode: 3, nblocks: 10, nfiles: 11 }).then(
+    cy.getColumnIndices({ checkbox: 0, barcode: 3, access: 8, nblocks: 11, nfiles: 12 }).then(
       (columnIndices) => {
         cy.get(".p-datatable-tbody tr")
           .eq(0)
@@ -146,7 +159,7 @@ describe("StartingMaterialTable Component Tests", () => {
   });
 
   it("renders the component FormattedBarcode", () => {
-    cy.getColumnIndices({ checkbox: 0, barcode: 3, nblocks: 10, nfiles: 11 }).then(
+    cy.getColumnIndices({ checkbox: 0, barcode: 3, access: 8, nblocks: 11, nfiles: 12 }).then(
       (columnIndices) => {
         cy.get(".p-datatable-tbody tr")
           .eq(0)

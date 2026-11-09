@@ -1,6 +1,20 @@
+import datetime
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from pydatalab.routes.v0_1.auth import _check_email_domain
+import pytest
+from bson import ObjectId
+from flask import session
+
+from pydatalab.routes.v0_1.auth import (
+    REMEMBER_ME_SESSION_KEY,
+    _check_email_domain,
+    _generate_and_store_token,
+    _is_safe_oauth_next_path,
+    _oauth_next_session_key,
+    redirect_to_ui,
+    store_oauth_next_path,
+)
 
 
 def test_allow_emails():
@@ -15,11 +29,79 @@ def test_allow_emails():
     assert not _check_email_domain("test@example2.org", ["example.org"])
 
 
+def test_oauth_next_path_validation():
+    assert _is_safe_oauth_next_path("/collections?view=mine#results")
+    assert not _is_safe_oauth_next_path(None)
+    assert not _is_safe_oauth_next_path("collections")
+    assert not _is_safe_oauth_next_path("//other-site.example/collections")
+    assert not _is_safe_oauth_next_path("https://other-site.example/collections")
+    assert not _is_safe_oauth_next_path("/\\other-site.example/collections")
+    assert not _is_safe_oauth_next_path("/collections\nLocation: https://other-site.example")
+    assert not _is_safe_oauth_next_path(f"/{'a' * 2048}")
+
+
+def test_store_oauth_next_path(app):
+    blueprint = SimpleNamespace(name="github")
+    session_key = _oauth_next_session_key(blueprint.name)
+
+    with app.test_request_context(
+        "/login/github", query_string={"next": "/collections?view=mine#results"}
+    ):
+        store_oauth_next_path(blueprint, "https://github.com/login/oauth/authorize")
+        assert session[session_key] == "/collections?view=mine#results"
+
+
+def test_store_oauth_next_path_rejects_external_url(app):
+    blueprint = SimpleNamespace(name="github")
+    session_key = _oauth_next_session_key(blueprint.name)
+
+    with app.test_request_context(
+        "/login/github", query_string={"next": "//other-site.example/collections"}
+    ):
+        session[session_key] = "/stale-path"
+        store_oauth_next_path(blueprint, "https://github.com/login/oauth/authorize")
+        assert session_key not in session
+
+
+def test_oauth_redirect_uses_next_path_once(app, monkeypatch):
+    from pydatalab import config
+
+    blueprint = SimpleNamespace(name="github")
+    session_key = _oauth_next_session_key(blueprint.name)
+    monkeypatch.setattr(config.CONFIG, "APP_URL", "https://datalab.example/app")
+
+    with app.test_request_context("/"):
+        session[session_key] = "/collections?view=mine#results"
+        response = redirect_to_ui(blueprint, None)
+
+        assert response.location == "https://datalab.example/app/collections?view=mine#results"
+        assert session_key not in session
+
+        session[session_key] = "/https://other-site.example/collections"
+        response = redirect_to_ui(blueprint, None)
+        assert (
+            response.location
+            == "https://datalab.example/app/https://other-site.example/collections"
+        )
+
+
+def test_oauth_redirect_without_next_uses_app_url(app, monkeypatch):
+    from pydatalab import config
+
+    blueprint = SimpleNamespace(name="github")
+    monkeypatch.setattr(config.CONFIG, "APP_URL", "https://datalab.example/app")
+
+    with app.test_request_context("/"):
+        response = redirect_to_ui(blueprint, None)
+
+        assert response.location == "https://datalab.example/app"
+
+
 def test_magic_link_account_creation(unauthenticated_client, app, database):
     with app.extensions["mail"].record_messages() as outbox:
         response = unauthenticated_client.post(
             "/login/magic-link",
-            json={"email": "test@ml-evs.science", "referrer": "datalab.example.org"},
+            json={"email": "test@datalab-org.io", "referrer": "datalab.example.org"},
         )
         assert response.json["message"] == "Email sent successfully."
         assert response.status_code == 200
@@ -31,7 +113,7 @@ def test_magic_link_account_creation(unauthenticated_client, app, database):
     with app.extensions["mail"].record_messages() as outbox:
         response = unauthenticated_client.get(f"/login/email?token={doc['jwt']}")
         assert response.status_code == 307
-        new_user = database.users.find_one({"contact_email": "test@ml-evs.science"})
+        new_user = database.users.find_one({"contact_email": "test@datalab-org.io"})
         assert new_user
         assert new_user["account_status"] == "unverified"
         assert len(outbox) == 1  # Should be a notification to admins
@@ -41,7 +123,7 @@ def test_magic_links_expected_failures(unauthenticated_client, app):
     with app.extensions["mail"].record_messages() as outbox:
         response = unauthenticated_client.post(
             "/login/magic-link",
-            json={"email": "test@ml-evs.science"},
+            json={"email": "test@datalab-org.io"},
         )
         assert response.status_code == 400
         assert len(outbox) == 0
@@ -71,7 +153,7 @@ def test_magic_link_auth_can_be_disabled(unauthenticated_client, app, database, 
     with app.extensions["mail"].record_messages() as outbox:
         response = unauthenticated_client.post(
             "/login/magic-link",
-            json={"email": "test@ml-evs.science", "referrer": "datalab.example.org"},
+            json={"email": "test@datalab-org.io", "referrer": "datalab.example.org"},
         )
         assert response.status_code == 403
         assert (
@@ -88,6 +170,343 @@ def test_magic_link_auth_can_be_disabled(unauthenticated_client, app, database, 
             == "Magic-link authentication is disabled for this datalab instance."
         )
         assert len(outbox) == 0
+
+
+@pytest.mark.parametrize("remember", [True, False])
+def test_magic_link_remember_me(unauthenticated_client, app, database, remember):
+    """Only magic-link logins that opt in to "remember me" should get a persistent session
+    cookie; others should end when the browser is closed."""
+    database.magic_links.delete_many({})
+
+    with app.extensions["mail"].record_messages():
+        response = unauthenticated_client.post(
+            "/login/magic-link",
+            json={
+                "email": "remember-me@datalab-org.io",
+                "referrer": "datalab.example.org",
+                "remember": remember,
+            },
+        )
+        assert response.status_code == 200
+
+        doc = database.magic_links.find_one()
+        response = unauthenticated_client.get(f"/login/email?token={doc['jwt']}")
+        assert response.status_code == 307
+
+    cookies = [c for c in response.headers.getlist("Set-Cookie") if c.startswith("session=")]
+    assert len(cookies) == 1
+    assert ("Expires=" in cookies[0]) is remember
+
+    with unauthenticated_client.session_transaction() as sess:
+        assert REMEMBER_ME_SESSION_KEY not in sess
+
+
+def test_magic_link_for_new_email_does_not_attach_to_current_user(
+    session_client, app, database, user_id
+):
+    """Following a registration link while logged in should create a new account for
+    that email, rather than attaching the email to the logged in user's account."""
+    email = "new-identity@datalab-org.io"
+    with app.app_context():
+        token = _generate_and_store_token(email, intent="register")
+
+    with app.extensions["mail"].record_messages():
+        response = session_client.get(f"/login/email?token={token}")
+    assert response.status_code == 307
+
+    assert not database.users.find_one({"_id": user_id, "identities.identifier": email})
+    new_user = database.users.find_one({"identities.identifier": email})
+    assert new_user["_id"] != user_id
+    with session_client.session_transaction() as sess:
+        assert sess["_user_id"] == str(new_user["_id"])
+
+    database.users.delete_one({"_id": new_user["_id"]})
+
+
+def test_magic_link_switches_logged_in_user(session_client, app, database, user_id):
+    """Following a login link for another user's email while logged in should log in
+    as that user, without modifying either account."""
+    email = "existing-identity@datalab-org.io"
+    other_user_id = ObjectId()
+    database.users.insert_one(
+        {
+            "_id": other_user_id,
+            "display_name": "Existing Identity",
+            "account_status": "active",
+            "identities": [
+                {"identity_type": "email", "identifier": email, "name": email, "verified": True}
+            ],
+        }
+    )
+    with app.app_context():
+        token = _generate_and_store_token(email, intent="login")
+
+    response = session_client.get(f"/login/email?token={token}")
+    assert response.status_code == 307
+
+    assert not database.users.find_one({"_id": user_id, "identities.identifier": email})
+    assert database.users.count_documents({"identities.identifier": email}) == 1
+    with session_client.session_transaction() as sess:
+        assert sess["_user_id"] == str(other_user_id)
+
+    database.users.delete_one({"_id": other_user_id})
+
+
+# ──────────────────────────────────────────────
+# API key tests
+# ──────────────────────────────────────────────
+
+
+def test_create_api_key(session_client, api_keys_db):
+    json = {"name": "Test_API_KEY"}
+    request_result = session_client.post("/api-keys", json=json)
+
+    assert request_result.status_code == 200
+
+    result_from_database = api_keys_db.find_one({"name": "Test_API_KEY"})
+
+    assert result_from_database is not None
+    assert result_from_database["digest"][4:-4] == "..."
+
+
+def test_create_api_key_unauthorized(unauthenticated_session_client, api_keys_db):
+    json = {"name": "Test_API_KEY"}
+    request_result = unauthenticated_session_client.post("/api-keys", json=json)
+
+    assert request_result.status_code == 401
+
+    result_from_database = api_keys_db.find_one({"name": "Test_API_KEY"})
+    assert result_from_database is None
+
+
+def test_cannot_create_api_key_using_api_key(api_key_client, api_keys_db):
+    json = {"name": "API_KEY_MADE_USING_API"}
+    request_result = api_key_client.post("/api-keys", json=json)
+
+    assert request_result.status_code == 403
+    assert request_result.json["message"] == "You are not allowed to access this resource."
+
+    result_from_database = api_keys_db.find_one({"name": "API_KEY_MADE_USING_API"})
+    assert result_from_database is None
+
+
+def test_get_api_keys_for_user(session_client, api_keys_db, user_id):
+    api_keys = [
+        {
+            "name": "Test_API_KEY_1",
+            "digest": "234...567",
+            "hash": "test hash",
+            "user": ObjectId(str(user_id)),
+            "created_at": datetime.datetime(2026, 8, 1, 9, 30, tzinfo=datetime.timezone.utc),
+            "expires_at": None,
+            "type": "api_key",
+            "version": "1",
+        },
+        {
+            "name": "Test_API_KEY_2",
+            "digest": "658...098",
+            "hash": "test hash",
+            "user": ObjectId(str(user_id)),
+            "created_at": datetime.datetime(2026, 8, 1, 9, 30, tzinfo=datetime.timezone.utc),
+            "expires_at": None,
+            "type": "api_key",
+            "version": "1",
+        },
+        {
+            "name": "Anaconda_instance_4",
+            "digest": "433...851",
+            "hash": "test hash",
+            "user": ObjectId(str(user_id)),
+            "created_at": datetime.datetime(2026, 8, 1, 9, 30, tzinfo=datetime.timezone.utc),
+            "expires_at": None,
+            "type": "api_key",
+            "version": "1",
+        },
+    ]
+    db_result = api_keys_db.insert_many(api_keys)
+    assert len(db_result.inserted_ids) == 3
+
+    request_result = session_client.get("/api-keys")
+    assert request_result.status_code == 200
+    request_json = list(request_result.json["api_keys"])
+
+    assert len(request_json) == 4
+
+    # First one will be the API key for the test client
+    assert request_json[0]["name"] == "testing API key"
+
+    assert request_json[1]["name"] == "Test_API_KEY_1"
+    assert request_json[1]["digest"] == "234...567"
+    assert request_json[1].get("hash", None) is None
+
+    assert request_json[2]["name"] == "Test_API_KEY_2"
+    assert request_json[2]["digest"] == "658...098"
+    assert request_json[2].get("hash", None) is None
+
+    assert request_json[3]["name"] == "Anaconda_instance_4"
+    assert request_json[3]["digest"] == "433...851"
+    assert request_json[3].get("hash", None) is None
+
+
+def test_cannot_gain_access_to_unauthorised_api_keys(session_client, another_user_id, api_keys_db):
+    api_keys = [
+        {
+            "name": "Test_API_KEY_1",
+            "digest": "234...567",
+            "hash": "test hash",
+            "user": another_user_id,
+            "created_at": datetime.datetime(2026, 8, 1, 9, 30, tzinfo=datetime.timezone.utc),
+            "expires_at": None,
+            "type": "api_key",
+            "version": "1",
+        },
+        {
+            "name": "Test_API_KEY_2",
+            "digest": "658...098",
+            "hash": "test hash",
+            "user": another_user_id,
+            "created_at": datetime.datetime(2026, 8, 1, 9, 30, tzinfo=datetime.timezone.utc),
+            "expires_at": None,
+            "type": "api_key",
+            "version": "1",
+        },
+        {
+            "name": "Anaconda_instance_4",
+            "digest": "433...851",
+            "hash": "test hash",
+            "user": another_user_id,
+            "created_at": datetime.datetime(2026, 7, 24, 11, 30, tzinfo=datetime.timezone.utc),
+            "expires_at": None,
+            "type": "api_key",
+            "version": "1",
+        },
+    ]
+    db_result = api_keys_db.insert_many(api_keys)
+    assert len(db_result.inserted_ids) == 3
+
+    request_result = session_client.get("/api-keys")
+    assert request_result.status_code == 200
+    request_json = list(request_result.json["api_keys"])
+    print(request_json)
+
+    assert len(request_json) == 1
+
+    # First one will be the API key for the test client
+    assert request_json[0]["name"] == "testing API key"
+
+
+def test_cannot_gain_authorised_access_to_api_keys(unauthenticated_session_client):
+    request_result = unauthenticated_session_client.get("/api-keys")
+    assert request_result.status_code == 401
+
+
+def test_cannot_access_api_keys_using_an_api_key(api_key_client):
+    request_result = api_key_client.get("/api-keys")
+    assert request_result.status_code == 403
+    assert request_result.json["message"] == "You are not allowed to access this resource."
+
+
+def test_can_delete_api_key(session_client, api_keys_db, user_id):
+    api_keys_db.insert_one(
+        {
+            "_id": ObjectId("507f1f88bcf86cd733439011"),
+            "name": "Test_API_KEY_1",
+            "digest": "234...567",
+            "user": user_id,
+            "created_at": datetime.datetime(2026, 8, 14, 9, 30, tzinfo=datetime.timezone.utc),
+            "expires_at": None,
+            "type": "api_key",
+            "version": "1",
+        }
+    )
+
+    request_result = session_client.delete("/api-keys/507f1f88bcf86cd733439011")
+    assert request_result.status_code == 204
+
+    result = api_keys_db.find_one({"name": "Test_API_KEY_1", "digest": "234...567"})
+    assert result is None
+
+
+def test_cannot_delete_someone_else_api_key(session_client, another_user_id, api_keys_db):
+    api_keys_db.insert_one(
+        {
+            "_id": ObjectId("507f1f88bcf86cd733439011"),
+            "name": "Test_API_KEY_1",
+            "digest": "234...567",
+            "user": another_user_id,
+        }
+    )
+
+    request_result = session_client.delete("/api-keys/507f1f88bcf86cd733439011")
+    assert request_result.status_code == 404
+
+    result = api_keys_db.find_one({"name": "Test_API_KEY_1", "digest": "234...567"})
+    assert result is not None
+
+
+def test_cannot_delete_api_key_when_unauthorised(
+    unauthenticated_session_client, user_id, api_keys_db
+):
+    api_keys_db.insert_one(
+        {
+            "_id": ObjectId("507f1f88bcf86cd733439011"),
+            "name": "Test_API_KEY_1",
+            "digest": "234...567",
+            "user": user_id,
+        }
+    )
+
+    request_result = unauthenticated_session_client.delete("/api-keys/507f1f88bcf86cd733439011")
+    assert request_result.status_code == 401
+
+    result = api_keys_db.find_one({"name": "Test_API_KEY_1", "digest": "234...567"})
+    assert result is not None
+
+
+def test_cannot_delete_api_key_when_using_api_key(api_key_client, user_id, api_keys_db):
+    api_keys_db.insert_one(
+        {
+            "_id": ObjectId("507f1f88bcf86cd733439011"),
+            "name": "Test_API_KEY_1",
+            "digest": "234...567",
+            "user": user_id,
+        }
+    )
+
+    request_result = api_key_client.delete("/api-keys/507f1f88bcf86cd733439011")
+    assert request_result.status_code == 403
+
+    result = api_keys_db.find_one({"name": "Test_API_KEY_1", "digest": "234...567"})
+    assert result is not None
+
+
+# Legacy key tests ======================================
+def test_retrieve_legacy_key(session_client, user_id, api_keys_db):
+    # Create legacy API key
+    api_keys_db.insert_one(
+        {
+            "_id": ObjectId(str(user_id)),
+            "hash": "test hash",
+        }
+    )
+    request_result = session_client.get("/api-keys")
+    assert request_result.status_code == 200
+    request_json = list(request_result.json["api_keys"])
+    assert len(request_json) == 2
+    assert request_json[0]["name"] == "Legacy key"
+    assert request_json[0]["digest"] == "Unknown"
+
+
+def test_delete_legacy_key(session_client, api_keys_db, user_id):
+    api_keys_db.insert_one(
+        {
+            "_id": ObjectId(user_id),
+            "hash": "test hash",
+        }
+    )
+    request_result = session_client.delete(f"/api-keys/{user_id}")
+    assert request_result.status_code == 204
+    assert api_keys_db.find_one({"_id": ObjectId(user_id)}) is None
 
 
 # ──────────────────────────────────────────────
@@ -122,6 +541,32 @@ def test_github_login_success(database, app, monkeypatch):
     user = database.users.find_one({"identities.identifier": "12345"})
     assert user is not None
     assert user["display_name"] == "The Octocat"
+
+
+@pytest.mark.parametrize("remember", [True, False])
+def test_oauth_login_remember_me(database, app, monkeypatch, remember):
+    """The "remember me" flag passed when starting an OAuth login should decide
+    whether the resulting session persists beyond the browser session."""
+    from pydatalab import config
+    from pydatalab.routes.v0_1.auth import github_logged_in
+
+    monkeypatch.setattr(config.CONFIG, "GITHUB_ORG_ALLOW_LIST", None)
+
+    fake_resp = MagicMock()
+    fake_resp.ok = True
+    fake_resp.json.return_value = {"id": 54321, "login": "rememberer", "name": "Remember Me"}
+    fake_blueprint = MagicMock()
+    fake_blueprint.name = "github"
+    fake_blueprint.session.get.return_value = fake_resp
+
+    query_string = {"remember": "1"} if remember else {}
+    with app.test_request_context("/login/github", query_string=query_string):
+        store_oauth_next_path(fake_blueprint, "https://github.com/login/oauth/authorize")
+        assert (REMEMBER_ME_SESSION_KEY in session) is remember
+
+        github_logged_in(fake_blueprint, token={"access_token": "fake-token"})
+        assert session.permanent is remember
+        assert REMEMBER_ME_SESSION_KEY not in session
 
 
 def test_github_login_no_token(database, app):
@@ -284,3 +729,163 @@ def test_microsoft_login_bad_api_response(database, app):
 
     assert result is False
     assert database.users.find_one({"identities.identity_type": "microsoft"}) is None
+
+
+@pytest.mark.parametrize(
+    "referer,expected_location",
+    [
+        ("https://datalab.example/?token=abc", "https://datalab.example/"),
+        (
+            "https://datalab.example/items?foo=bar&token=abc",
+            "https://datalab.example/items?foo=bar",
+        ),
+        ("https://datalab.example/", "https://datalab.example/"),
+        ("javascript:alert(1)", "/"),
+        (None, "/"),
+    ],
+)
+def test_magic_link_redirect_without_app_url_strips_token(
+    unauthenticated_client, app, monkeypatch, referer, expected_location
+):
+    """Without `APP_URL`, the magic-link login redirects back to the referer, which
+    must not include the token, otherwise the UI redirects back to the API in a loop
+    (see #2067)."""
+    from pydatalab import config
+
+    monkeypatch.setattr(config.CONFIG, "APP_URL", None)
+    monkeypatch.setattr(config.CONFIG, "ROOT_PATH", "/")
+
+    email = f"redirect-loop-{ObjectId()}@datalab-org.io"
+    with app.app_context():
+        token = _generate_and_store_token(email, intent="register")
+
+    headers = {"Referer": referer} if referer else {}
+    with app.extensions["mail"].record_messages():
+        response = unauthenticated_client.get(f"/login/email?token={token}", headers=headers)
+    assert response.status_code == 307
+    assert response.location == expected_location
+
+
+def test_magic_link_login_only(unauthenticated_client, app, database, monkeypatch):
+    """When email is login-only, new email addresses cannot register,
+    but existing users can still request a magic link."""
+    from pydatalab import config
+
+    monkeypatch.setattr(config.CONFIG, "LOGIN_ONLY_AUTH_METHODS", ["email"])
+    database.magic_links.delete_many({})
+
+    with app.extensions["mail"].record_messages() as outbox:
+        response = unauthenticated_client.post(
+            "/login/magic-link",
+            json={"email": "new-user@datalab-org.io", "referrer": "datalab.example.org"},
+        )
+        assert response.status_code == 403
+        assert len(outbox) == 0
+        assert database.magic_links.count_documents({}) == 0
+
+    # Tokens issued before the setting was changed should not create accounts either
+    with app.app_context():
+        token = _generate_and_store_token("new-user@datalab-org.io", intent="register")
+    response = unauthenticated_client.get(f"/login/email?token={token}")
+    assert response.status_code == 403
+    assert database.users.find_one({"contact_email": "new-user@datalab-org.io"}) is None
+
+    existing_email = "existing-user@datalab-org.io"
+    database.users.insert_one(
+        {
+            "display_name": existing_email,
+            "contact_email": existing_email,
+            "account_status": "active",
+            "identities": [
+                {
+                    "identifier": existing_email,
+                    "identity_type": "email",
+                    "name": existing_email,
+                    "verified": True,
+                }
+            ],
+        }
+    )
+
+    with app.extensions["mail"].record_messages() as outbox:
+        response = unauthenticated_client.post(
+            "/login/magic-link",
+            json={"email": existing_email, "referrer": "datalab.example.org"},
+        )
+        assert response.status_code == 200
+        assert len(outbox) == 1
+
+
+def test_github_login_only(database, app, monkeypatch):
+    """When GitHub is login-only, a new GitHub identity cannot register an account,
+    even if it would otherwise be allowed and auto-activated."""
+    from pydatalab import config
+    from pydatalab.errors import UserRegistrationForbidden
+    from pydatalab.routes.v0_1.auth import github_logged_in
+
+    monkeypatch.setattr(config.CONFIG, "GITHUB_ORG_ALLOW_LIST", None)
+    monkeypatch.setattr(config.CONFIG, "AUTO_ACTIVATE_ACCOUNTS", True)
+    monkeypatch.setattr(config.CONFIG, "LOGIN_ONLY_AUTH_METHODS", ["github"])
+
+    fake_resp = MagicMock()
+    fake_resp.ok = True
+    fake_resp.json.return_value = {"id": 54321, "login": "login-only", "name": "Login Only"}
+    fake_blueprint = MagicMock()
+    fake_blueprint.session.get.return_value = fake_resp
+
+    with app.test_request_context():
+        with pytest.raises(UserRegistrationForbidden):
+            github_logged_in(fake_blueprint, token={"access_token": "fake-token"})
+
+    assert database.users.find_one({"identities.identifier": "54321"}) is None
+
+
+def test_google_domain_allow_list_only_applies_to_registration(database, app, monkeypatch):
+    """Existing users can log in via Google even if their domain is not on the allow list,
+    but new users with such domains cannot register."""
+    from pydatalab import config
+    from pydatalab.errors import UserRegistrationForbidden
+    from pydatalab.routes.v0_1.auth import google_logged_in
+
+    monkeypatch.setattr(config.CONFIG, "EMAIL_DOMAIN_ALLOW_LIST", ["datalab-org.io"])
+
+    def _fake_blueprint(google_id, email):
+        fake_resp = MagicMock()
+        fake_resp.ok = True
+        fake_resp.json.return_value = {"id": google_id, "email": email, "name": email}
+        fake_blueprint = MagicMock()
+        fake_blueprint.session.get.return_value = fake_resp
+        return fake_blueprint
+
+    with app.test_request_context():
+        with pytest.raises(UserRegistrationForbidden):
+            google_logged_in(
+                _fake_blueprint("google-id-new", "new@gmail.com"),
+                token={"access_token": "fake-token"},
+            )
+    assert database.users.find_one({"identities.identifier": "google-id-new"}) is None
+
+    database.users.insert_one(
+        {
+            "display_name": "Existing Google User",
+            "account_status": "active",
+            "identities": [
+                {
+                    "identifier": "google-id-existing",
+                    "identity_type": "google",
+                    "name": "existing@gmail.com",
+                    "verified": True,
+                }
+            ],
+        }
+    )
+
+    with app.test_request_context():
+        google_logged_in(
+            _fake_blueprint("google-id-existing", "existing@gmail.com"),
+            token={"access_token": "fake-token"},
+        )
+        from flask_login import current_user
+
+        assert current_user.is_authenticated
+        assert current_user.display_name == "Existing Google User"

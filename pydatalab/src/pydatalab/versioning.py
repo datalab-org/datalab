@@ -56,6 +56,30 @@ def apply_protected_fields(restored_data: dict, current_item: dict) -> dict:
     return restored_data
 
 
+MECHANICAL_FIELDS = {
+    "last_modified",
+    "version",
+    "_id",
+    "immutable_id",
+    "refcode",
+    "creators",
+    "groups",
+}
+"""Fields ignored when deciding whether an item's content has changed.
+
+Covers those that change on every save without reflecting a real edit (`last_modified`,
+`version`); identifiers fixed for the life of an item (`_id`, `immutable_id`,
+`refcode`), which cannot legitimately differ between an item and its own snapshot; and
+`creators`/`groups`, which are inlined by joins for display and written inconsistently
+by the creation and save paths -- item creation omits them, `/save-item/` stores
+`groups` as null.
+
+The permissions themselves (`creator_ids` and `group_ids`) are deliberately *not* here:
+a change of ownership is recorded in an item's history like any other edit.
+
+"""
+
+
 def get_next_version_number(refcode: str) -> int:
     """Atomically get and increment the version counter for an item.
 
@@ -114,6 +138,7 @@ def save_version_snapshot(
         Tuple of (response_dict, status_code)
     """
     from pydatalab import __version__
+    from pydatalab.blocks.store import is_block_reference, snapshot_block_version
     from pydatalab.config import CONFIG
 
     if len(refcode.split(":")) != 2:
@@ -127,21 +152,6 @@ def save_version_snapshot(
     item = flask_mongo.db.items.find_one(query)
     if not item:
         raise NotFound(f"Item {refcode} not found.")
-
-    # Skip creating a new version if content is identical to the last snapshot.
-    # Excludes fields that change mechanically on every save and don't reflect real edits.
-    _MECHANICAL_FIELDS = {"last_modified", "version", "_id"}
-    last_version = flask_mongo.db.item_versions.find_one(
-        {"refcode": refcode}, sort=[("version", -1)]
-    )
-    if last_version:
-        current_data = {k: v for k, v in item.items() if k not in _MECHANICAL_FIELDS}
-        last_data = {k: v for k, v in last_version["data"].items() if k not in _MECHANICAL_FIELDS}
-        if current_data == last_data:
-            return {"status": "success", "message": "No changes detected, version not saved."}, 200
-
-    # Atomically get the next version number
-    next_version_number = get_next_version_number(refcode)
 
     # Extract user information for hybrid storage approach
     user_id = None
@@ -162,9 +172,56 @@ def save_version_snapshot(
 
     action = VersionAction.MANUAL_SAVE if action is None else action
 
+    # Cut `block_versions` entries for any *referenced* blocks whose payload has
+    # changed since their last committed version, and pin each referenced
+    # `blocks_obj` value to its now-current version number in this snapshot.
+    # Embedded blocks are captured verbatim in the item snapshot.
+    # This must happen before the de-duplication guard below so that a
+    # block content change is seen as an item change.
+    for block_id, blocks_obj_value in list((item.get("blocks_obj") or {}).items()):
+        if not is_block_reference(blocks_obj_value):
+            continue
+        block_version = snapshot_block_version(
+            blocks_obj_value["immutable_id"], action=action, user_id=user_id
+        )
+        if block_version is None:
+            # There is no live block document and no committed history for
+            # this reference (e.g. a dangling reference left by a crash), so
+            # there is no content anywhere to snapshot: record the block as
+            # absent rather than storing an unresolvable reference. Only this
+            # in-memory snapshot is altered — the live item is not modified.
+            LOGGER.warning(
+                "Dropping dangling block reference %r (%s) from version snapshot of %s",
+                block_id,
+                blocks_obj_value["immutable_id"],
+                refcode,
+            )
+            del item["blocks_obj"][block_id]
+            if isinstance(item.get("display_order"), list):
+                item["display_order"] = [b for b in item["display_order"] if b != block_id]
+            continue
+        item["blocks_obj"][block_id] = {
+            "immutable_id": blocks_obj_value["immutable_id"],
+            "version": block_version,
+        }
+
+    # Skip creating a new version if content is identical to the last snapshot.
+    # Excludes fields that change mechanically on every save and don't reflect real edits.
+    last_version = flask_mongo.db.item_versions.find_one(
+        {"refcode": refcode}, sort=[("version", -1)]
+    )
+    if last_version:
+        current_data = {k: v for k, v in item.items() if k not in MECHANICAL_FIELDS}
+        last_data = {k: v for k, v in last_version["data"].items() if k not in MECHANICAL_FIELDS}
+        if current_data == last_data:
+            LOGGER.debug(
+                "No changes detected for %s, skipping version save: %s", refcode, current_data
+            )
+            return {"status": "success", "message": "No changes detected, version not saved."}, 200
+
     version_entry = {
         "refcode": refcode,
-        "version": next_version_number,
+        "version": 1,
         "timestamp": datetime.datetime.now(tz=datetime.timezone.utc),
         "action": action,  # Audit trail: why this version was created
         "user_id": user_id,  # ObjectId for efficient querying
@@ -191,10 +248,19 @@ def save_version_snapshot(
             400,
         )
 
-    # Insert validated data (convert to dict and exclude None values)
-    flask_mongo.db.item_versions.insert_one(
-        validated_version.dict(by_alias=True, exclude_none=True)
-    )
+    # Only now allocate the version number: the counter is persistent and monotonic, so
+    # taking a number before validation burns it whenever validation fails, leaving a
+    # permanent gap in the item's version history.
+    next_version_number = get_next_version_number(refcode)
+
+    # Insert validated data, but restore the original item dict into 'data' so that
+    # None-valued fields are not stripped by model_dump(exclude_none=True) recursing into it.
+    version_doc = validated_version.model_dump(exclude_none=True)
+    version_doc["data"] = item
+    version_doc["version"] = next_version_number
+
+    flask_mongo.db.item_versions.insert_one(version_doc)
+
     return (
         {"status": "success", "message": "Version saved.", "version": next_version_number},
         200,

@@ -130,7 +130,7 @@ class NMRBlock(DataBlock):
         metadata["pulse_program_name"] = a_dic["acqus"]["PULPROG"]
         metadata["title"] = topspin_title
 
-        self.data["metadata"] = NMRMetadata(**metadata).dict()
+        self.data["metadata"] = NMRMetadata(**metadata).model_dump()
 
         return serialized_df, metadata
 
@@ -209,7 +209,7 @@ class NMRBlock(DataBlock):
             pass
 
         serialized_df = df.to_dict() if (df is not None) else None
-        self.data["metadata"] = NMRMetadata(**metadata).dict()
+        self.data["metadata"] = NMRMetadata(**metadata).model_dump()
 
         return serialized_df, metadata
 
@@ -293,7 +293,7 @@ class NMRBlock(DataBlock):
         metadata["nscans"] = nscans
 
         serialized_df = df.to_dict() if (df is not None) else None
-        self.data["metadata"] = NMRMetadata(**metadata).dict()
+        self.data["metadata"] = NMRMetadata(**metadata).model_dump()
 
         return serialized_df, metadata
 
@@ -380,8 +380,12 @@ class NMRBlock(DataBlock):
             plot_line=True,
             plot_points=False,
         )
-        # flip x axis, per NMR convention. Note that the figure is the second element
-        # of the layout in the current implementation, but this could be fragile.
-        bokeh_layout.children[1].x_range.flipped = True
+        # Flip the x axis, per NMR convention. The figure is found by looking for
+        # the child that has an x axis at all, rather than by position: the layout
+        # also holds axis selectors and an export button, whose ordering is an
+        # implementation detail of `selectable_axes_plot`.
+        figure = next((child for child in bokeh_layout.children if hasattr(child, "x_range")), None)
+        if figure is not None:
+            figure.x_range.flipped = True
 
         return bokeh.embed.json_item(bokeh_layout, theme=DATALAB_BOKEH_THEME)

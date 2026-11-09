@@ -5,12 +5,12 @@ from functools import lru_cache
 from typing import Any
 
 import pymongo
+from bson import ObjectId
 from flask_pymongo import PyMongo
 from pydantic import BaseModel
 from pymongo.errors import ConnectionFailure
 
 from pydatalab.logger import LOGGER
-from pydatalab.models import ITEM_MODELS
 
 __all__ = (
     "flask_mongo",
@@ -20,12 +20,17 @@ __all__ = (
     "insert_pydantic_model_fork_safe",
     "gravatar_hash_for",
     "run_startup_migrations",
-    "ITEMS_FTS_FIELDS",
+    "get_items_fts_fields",
     "USERS_FTS_FIELDS",
     "COLLECTIONS_FTS_FIELDS",
     "GROUPS_FTS_FIELDS",
+    "TAGS_FTS_FIELDS",
     "generate_heuristic_regex_search",
     "build_search_pipeline",
+    "creators_lookup",
+    "groups_lookup",
+    "files_lookup",
+    "resolve_tags_for_docs",
 )
 
 flask_mongo = PyMongo()
@@ -34,20 +39,124 @@ flask_mongo = PyMongo()
 """One-liner that pulls all non-semantic string fields out of all item
 models implemented for this server.
 """
-ITEMS_FTS_FIELDS: set[str] = set().union(
-    *(
-        {
-            f
-            for f, p in model.schema(by_alias=False)["properties"].items()
-            if (
-                p.get("type") == "string"
-                and p.get("format") not in ("date-time", "uuid")
-                and f != "type"
-            )
-        }
-        for model in ITEM_MODELS.values()
-    )
-)
+
+
+def creators_lookup() -> dict:
+    return {
+        "from": "users",
+        "let": {"creator_ids": "$creator_ids"},
+        "pipeline": [
+            {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$creator_ids", []]}]}}},
+            {"$addFields": {"__order": {"$indexOfArray": ["$$creator_ids", "$_id"]}}},
+            {"$sort": {"__order": 1}},
+            {"$project": {"_id": 1, "display_name": 1, "gravatar_hash": 1}},
+        ],
+        "as": "creators",
+    }
+
+
+def groups_lookup() -> dict:
+    return {
+        "from": "groups",
+        "let": {"group_ids": "$group_ids"},
+        "pipeline": [
+            {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$group_ids", []]}]}}},
+            {"$addFields": {"__order": {"$indexOfArray": ["$$group_ids", "$_id"]}}},
+            {"$sort": {"__order": 1}},
+            {"$project": {"_id": 1, "display_name": 1, "group_id": 1}},
+        ],
+        "as": "groups",
+    }
+
+
+def files_lookup() -> dict:
+    return {
+        "from": "files",
+        "localField": "file_ObjectIds",
+        "foreignField": "_id",
+        "as": "files",
+    }
+
+
+def resolve_tags_for_docs(docs: list[dict]) -> None:
+    """Inline tag details into each doc's `tags` field, in place.
+
+    Tag references (mappings carrying an `immutable_id`) are resolved against
+    the `tags` collection with no permission filter: display access is gated
+    by the parent entry itself, so every tag on a viewable entry resolves.
+    References to deleted tags are dropped.
+    """
+    tag_ids: set[ObjectId] = set()
+    for doc in docs:
+        for tag in doc.get("tags") or []:
+            if isinstance(tag, dict):
+                tag_ids.add(ObjectId(tag["immutable_id"]))
+
+    if not tag_ids:
+        return
+
+    resolved = {
+        tag_doc["_id"]: tag_doc
+        for tag_doc in flask_mongo.db.tags.find(
+            {"_id": {"$in": list(tag_ids)}},
+            projection={"_id": 1, "name": 1, "description": 1, "color": 1, "scope": 1},
+        )
+    }
+
+    for doc in docs:
+        tags = doc.get("tags")
+        if not tags:
+            continue
+        resolved_tags: list = []
+        for tag in tags:
+            if isinstance(tag, dict):
+                match = resolved.get(ObjectId(tag["immutable_id"]))
+                # Referenced tag no longer exists: drop it silently.
+                if match is not None:
+                    resolved_tags.append(
+                        {
+                            "type": "tags",
+                            "immutable_id": str(match["_id"]),
+                            "name": match.get("name"),
+                            "description": match.get("description"),
+                            "color": match.get("color"),
+                            # `scope` lets the UI mark user-defined tags distinctly.
+                            "scope": match.get("scope"),
+                        }
+                    )
+        doc["tags"] = resolved_tags
+
+
+@lru_cache(maxsize=1)
+def get_items_fts_fields() -> set[str]:
+    """Get all string fields from item models for full-text search."""
+    from pydatalab.models import ITEM_MODELS
+
+    fields = set()
+
+    for model_name, model in ITEM_MODELS.items():
+        schema = model.model_json_schema(by_alias=False)
+
+        model_fields = set()
+        for f, p in schema.get("properties", {}).items():
+            if f == "type":
+                continue
+
+            if p.get("type") == "string" and p.get("format") not in ("date-time", "uuid"):
+                model_fields.add(f)
+            elif "anyOf" in p:
+                for option in p["anyOf"]:
+                    if option.get("type") == "string" and option.get("format") not in (
+                        "date-time",
+                        "uuid",
+                    ):
+                        model_fields.add(f)
+                        break
+
+        fields.update(model_fields)
+
+    return fields
+
 
 USERS_FTS_FIELDS: set[str] = {"identities.name", "display_name", "contact_email"}
 """Fields to search for users."""
@@ -57,6 +166,9 @@ COLLECTIONS_FTS_FIELDS: set[str] = {"collection_id", "title", "description"}
 
 GROUPS_FTS_FIELDS: set[str] = {"group_id", "display_name", "description"}
 """Fields to search for groups."""
+
+TAGS_FTS_FIELDS: set[str] = {"name", "description"}
+"""Fields to search for tags."""
 
 
 def generate_heuristic_regex_search(
@@ -148,7 +260,7 @@ def insert_pydantic_model_fork_safe(model: BaseModel, collection: str) -> str:
     """Inserts a Pydantic model into chosen collection, returning the inserted ID."""
     return (
         get_database()[collection]
-        .insert_one(model.dict(by_alias=True, exclude_none=True))
+        .insert_one(model.model_dump(by_alias=False, exclude_none=True))
         .inserted_id
     )
 
@@ -167,7 +279,6 @@ def _get_active_mongo_client(timeoutMS: int = 1000) -> pymongo.MongoClient:
 
     """
     from pydatalab.config import CONFIG
-    from pydatalab.logger import LOGGER
 
     try:
         client = pymongo.MongoClient(
@@ -235,6 +346,11 @@ def create_default_indices(
 
     """
 
+    items_fts_fields = get_items_fts_fields()
+
+    if not items_fts_fields:
+        raise ValueError("Cannot create text indices: no fields available for full-text search")
+
     if client is None:
         client = _get_active_mongo_client()
     db = client.get_database()
@@ -259,7 +375,7 @@ def create_default_indices(
 
     ret += create_or_recreate_text_index(
         db.items,
-        ITEMS_FTS_FIELDS,
+        items_fts_fields,
         weights={"refcode": 3, "item_id": 3, "name": 3, "chemform": 3},
     )
 
@@ -267,6 +383,12 @@ def create_default_indices(
         db.collections,
         ["collection_id", "title", "description"],
         weights={"collection_id": 3, "title": 3, "description": 3},
+    )
+
+    ret += create_or_recreate_text_index(
+        db.tags,
+        ["name", "description"],
+        weights={"name": 3, "description": 1},
     )
 
     ret += db.items.create_index("type", name="item type", background=background)
@@ -372,6 +494,30 @@ def create_default_indices(
     )
     ret += db.version_counters.create_index(
         "refcode", unique=True, name="unique refcode counter", background=background
+    )
+
+    # Block storage indexes. `block_id` is only effectively unique (random,
+    # historically unique within a single item), so is not a unique index.
+    ret += db.blocks.create_index("block_id", name="block ID", background=background)
+    ret += db.blocks.create_index("blocktype", name="block type", background=background)
+    ret += db.blocks.create_index("creator_ids", name="block creators", background=background)
+    ret += db.blocks.create_index("group_ids", name="block groups", background=background)
+    # Non-unique like item_versions. NB unlike item_versions this uniqueness is
+    # security-relevant: a colliding DB entry could resolve a pin to another user's
+    # block content. May worth considering making it unique and handle the potential failures.
+    ret += db.block_versions.create_index(
+        [("block_immutable_id", pymongo.ASCENDING), ("version", pymongo.DESCENDING)],
+        name="block immutable ID and version",
+        background=background,
+    )
+    ret += db.block_versions.create_index(
+        "block_id", name="block version block ID", background=background
+    )
+    ret += db.block_version_counters.create_index(
+        "block_immutable_id",
+        unique=True,
+        name="unique block version counter",
+        background=background,
     )
 
     return ret

@@ -1,5 +1,5 @@
 <template>
-  <StyledTooltip :delay="500">
+  <StyledTooltip :delay="500" pinnable>
     <template #anchor>
       <font-awesome-icon :icon="['fas', 'info-circle']" class="info-icon" tabindex="0" />
     </template>

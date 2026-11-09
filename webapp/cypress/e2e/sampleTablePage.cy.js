@@ -7,7 +7,7 @@ Cypress.on("window:before:load", (win) => {
 });
 
 before(() => {
-  cy.loginViaTestMagicLink("test-user@example.com", "user");
+  cy.loginViaTestMagicLink("test-user@datalab.test");
 });
 
 after(() => {
@@ -55,7 +55,7 @@ after(() => {
 
 describe("Sample table page", () => {
   beforeEach(() => {
-    cy.loginViaTestMagicLink("test-user@example.com", "user");
+    cy.loginViaTestMagicLink("test-user@datalab.test");
     cy.visit("/");
   });
 
@@ -205,7 +205,7 @@ describe("Sample table page", () => {
 
 describe("Advanced sample creation features", () => {
   beforeEach(() => {
-    cy.loginViaTestMagicLink("test-user@example.com", "user");
+    cy.loginViaTestMagicLink("test-user@datalab.test");
     cy.visit("/");
   });
   it("Adds some valid samples", () => {
@@ -245,7 +245,7 @@ describe("Advanced sample creation features", () => {
     cy.get('[data-testid="add-block-button-top"]').click();
     cy.get('[data-testid="add-block-dropdown"]').findByText("Comment").click();
 
-    cy.get(".datablock-content div").first().type("a comment is added here.");
+    cy.get(".datablock-content [contenteditable]").first().type("a comment is added here.");
     cy.expandIfCollapsed("[data-testid=synthesis-block]");
     cy.get("#synthesis-information .vs__search").first().type("component3");
     cy.get(".vs__dropdown-menu").contains(".badge", "component3").click();

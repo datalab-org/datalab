@@ -3,7 +3,10 @@
 
 """
 
+import warnings
 from typing import TYPE_CHECKING
+
+from pydantic.warnings import PydanticDeprecatedSince20
 
 if TYPE_CHECKING:
     # This import is required to prevent circular imports for application-specific blocks
@@ -26,13 +29,6 @@ def load_app_blocks():
 
         app_blocks.append(CanaryBlock)
         app_blocks.append(AsyncCanaryBlock)
-    except ImportError as e:
-        _check_error(e)
-
-    try:
-        from pydatalab.apps.chat import ChatBlock
-
-        app_blocks.append(ChatBlock)
     except ImportError as e:
         _check_error(e)
 
@@ -106,6 +102,51 @@ BLOCKS = COMMON_BLOCKS + load_app_blocks()
 BLOCK_TYPES: dict[str, type["DataBlock"]] = {block.blocktype: block for block in BLOCKS}
 
 
+def is_block_type_available(block_type: str, item_type: str | None = None) -> bool:
+    """Whether an installed block type is available for creating a new block."""
+    from pydatalab.config import CONFIG
+
+    globally_available = block_type in BLOCK_TYPES and (
+        CONFIG.BLOCK_TYPE_ALLOW_LIST is None or block_type in CONFIG.BLOCK_TYPE_ALLOW_LIST
+    )
+    if not globally_available or item_type is None:
+        return globally_available
+
+    from pydatalab.models import get_item_block_type_allow_list
+
+    item_block_type_allow_list = get_item_block_type_allow_list(item_type)
+    return item_block_type_allow_list is None or block_type in item_block_type_allow_list
+
+
+def warn_for_unknown_block_types() -> None:
+    """Warn about configured block types that were not registered at startup."""
+    from pydatalab.config import CONFIG
+    from pydatalab.logger import LOGGER
+
+    if CONFIG.BLOCK_TYPE_ALLOW_LIST is not None:
+        unknown_block_types = sorted(set(CONFIG.BLOCK_TYPE_ALLOW_LIST) - BLOCK_TYPES.keys())
+        if unknown_block_types:
+            LOGGER.warning(
+                "Ignoring unknown block types in BLOCK_TYPE_ALLOW_LIST: %s",
+                ", ".join(unknown_block_types),
+            )
+
+    item_type_allow_list = CONFIG.ITEM_TYPE_ALLOW_LIST
+    if item_type_allow_list is None:
+        return
+
+    for entry in item_type_allow_list:
+        if entry.block_type_allow_list is None:
+            continue
+        unknown_block_types = sorted(set(entry.block_type_allow_list) - BLOCK_TYPES.keys())
+        if unknown_block_types:
+            LOGGER.warning(
+                "Ignoring unknown block types for item type %r in ITEM_TYPE_ALLOW_LIST: %s",
+                entry.type,
+                ", ".join(unknown_block_types),
+            )
+
+
 def load_block_plugins():
     """Search through any registered entrypoints at 'pydatalab.apps.plugins'
     and load them as DataBlock subclasses.
@@ -116,7 +157,13 @@ def load_block_plugins():
 
     block_plugins: dict[str, type[DataBlock]] = {}
     for entry_point in entry_points(group="pydatalab.apps.plugins"):
-        block = entry_point.load()
+        # Plugins may not yet be migrated to pydantic v2, so tolerate the v2
+        # deprecation warnings their models emit at import time (e.g. extra `Field`
+        # kwargs like `datalab_exclude_*`) rather than letting them error out plugin
+        # loading. datalab's own deprecations are still surfaced as errors.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", PydanticDeprecatedSince20)
+            block = entry_point.load()
 
         if not issubclass(block, DataBlock):
             raise ValueError(f"Plugin {block} must be a subclass of DataBlock")
@@ -131,3 +178,36 @@ def load_block_plugins():
 
 
 load_block_plugins()
+# Run once the registry is complete, so this applies wherever blocks are loaded
+# (app, workers, CLI) without changing the startup order of `create_app`
+warn_for_unknown_block_types()
+
+
+def load_item_plugins():
+    """Search through any registered entry points at 'pydatalab.item_types' and
+    register them as custom `Item` subclasses, making them available through the
+    generic item endpoints and at `/info/types`.
+
+    Each entry point must resolve to a concrete `Item` subclass declaring its
+    own unique `type` literal; `register_item_model` enforces this and mutates
+    the global `ITEM_MODELS`/`ITEM_SCHEMAS` registries in place.
+    """
+    from importlib.metadata import entry_points
+
+    from pydatalab.models import register_item_model
+
+    item_plugins = []
+    for entry_point in entry_points(group="pydatalab.item_types"):
+        # As with block plugins, tolerate the pydantic v2 deprecation warnings
+        # emitted at import time by plugins that have not yet migrated.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", PydanticDeprecatedSince20)
+            model = entry_point.load()
+
+        register_item_model(model)
+        item_plugins.append(model)
+
+    return item_plugins
+
+
+load_item_plugins()

@@ -1,4 +1,3 @@
-import json
 from datetime import datetime
 from datetime import timedelta as td
 from datetime import timezone as tz
@@ -6,11 +5,12 @@ from datetime import timezone as tz
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
+from pydantic import ValidationError
 from werkzeug.exceptions import BadRequest, Forbidden, Unauthorized
 
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
-from pydatalab.models.people import AccountStatus, DisplayName, EmailStr, Person
+from pydatalab.models.people import AccountStatus, Person
 from pydatalab.mongo import (
     USERS_FTS_FIELDS,
     build_search_pipeline,
@@ -41,30 +41,38 @@ def save_user(user_id):
         contact_email = request_json.get("contact_email", False)
         account_status = request_json.get("account_status", None)
 
-    if not current_user.is_authenticated and not CONFIG.TESTING:
+    if not current_user.is_authenticated:
         raise Unauthorized("No user authenticated.")
 
-    if not CONFIG.TESTING and current_user.id != user_id and current_user.role != "admin":
+    if current_user.id != user_id and current_user.role != "admin":
         raise Forbidden("Current user not allowed to edit this profile.")
+
+    if account_status == AccountStatus.DELETED:
+        raise BadRequest("Accounts must be deleted via the dedicated admin endpoint.")
+
+    if flask_mongo.db.users.find_one(
+        {"_id": ObjectId(user_id), "account_status": AccountStatus.DELETED}, {"_id": 1}
+    ):
+        raise BadRequest("Deleted accounts cannot be modified.")
 
     update = {}
 
+    if display_name:
+        update["display_name"] = display_name
+
+    if contact_email or contact_email in (None, ""):
+        if contact_email in ("", None):
+            update["contact_email"] = None
+        else:
+            update["contact_email"] = contact_email
+
+    if account_status:
+        update["account_status"] = account_status
+
     try:
-        if display_name:
-            update["display_name"] = DisplayName(display_name)
-
-    except ValueError:
-        raise BadRequest(f"Invalid display name {display_name!r} was passed")
-
-    try:
-        if contact_email or contact_email in (None, ""):
-            if contact_email in ("", None):
-                update["contact_email"] = None
-            else:
-                update["contact_email"] = EmailStr(contact_email)
-
-    except ValueError:
-        raise BadRequest(f"Invalid email address {contact_email!r} was passed")
+        _ = Person(**update)
+    except ValidationError as e:
+        raise BadRequest(f"Invalid user data: {e.errors()}") from e
 
     if "contact_email" in update or "display_name" in update:
         existing = (
@@ -73,6 +81,24 @@ def save_user(user_id):
             )
             or {}
         )
+        # An unchanged contact email is skipped if already verified; otherwise it is processed
+        # again below so that the verification email is re-sent
+        if "contact_email" in update and update["contact_email"] == existing.get("contact_email"):
+            already_verified = update["contact_email"] is None or flask_mongo.db.users.find_one(
+                {
+                    "_id": ObjectId(user_id),
+                    "identities": {
+                        "$elemMatch": {
+                            "identity_type": "email",
+                            "identifier": update["contact_email"],
+                            "verified": True,
+                        }
+                    },
+                },
+                {"_id": 1},
+            )
+            if already_verified:
+                update.pop("contact_email")
         update["gravatar_hash"] = gravatar_hash_for(
             update.get("contact_email", existing.get("contact_email")),
             update.get("display_name", existing.get("display_name")),
@@ -80,37 +106,32 @@ def save_user(user_id):
 
     trigger_email_verification = False
     if update.get("contact_email"):
-        # Check if this email identity already exists for this user
-        existing_email_identity = False
-        if update.get("contact_email") is not None:
-            existing_email_identity = flask_mongo.db.users.find_one(
-                {
-                    "_id": ObjectId(user_id),
-                    "identities": {
-                        "$elemMatch": {"identity_type": "email", "identifier": contact_email}
-                    },
+        email_identity_match = {"identity_type": "email", "identifier": contact_email}
+        # Push the email as a new unverified identity only if the user does not already have it;
+        # doing this in a single conditional update avoids duplicates from concurrent requests
+        push_result = flask_mongo.db.users.update_one(
+            {
+                "_id": ObjectId(user_id),
+                "identities": {"$not": {"$elemMatch": email_identity_match}},
+            },
+            {
+                "$push": {
+                    "identities": {**email_identity_match, "name": contact_email, "verified": False}
                 }
-            )
-            if not existing_email_identity:
-                # If not, push it as a new unverified identity
-                flask_mongo.db.users.update_one(
-                    {"_id": ObjectId(user_id)},
-                    {
-                        "$push": {
-                            "identities": {
-                                "identity_type": "email",
-                                "identifier": contact_email,
-                                "name": contact_email,
-                                "verified": False,
-                            }
-                        }
-                    },
-                )
-                trigger_email_verification = True
-
-        if existing_email_identity and not existing_email_identity.get("verified"):
-            # If this did exist, but is not yet verified, also trigger an email
+            },
+        )
+        if push_result.modified_count:
             trigger_email_verification = True
+        else:
+            # If this did exist, but is not yet verified, also trigger an email
+            trigger_email_verification = bool(
+                flask_mongo.db.users.find_one(
+                    {
+                        "_id": ObjectId(user_id),
+                        "identities": {"$elemMatch": {**email_identity_match, "verified": False}},
+                    }
+                )
+            )
 
         if trigger_email_verification:
             token = _generate_and_store_token(
@@ -127,12 +148,6 @@ def save_user(user_id):
             except RuntimeError as e:
                 trigger_email_verification = False
                 LOGGER.critical("Unable to send verification email on this deployment: %s", e)
-
-    try:
-        if account_status:
-            update["account_status"] = AccountStatus(account_status)
-    except ValueError:
-        raise BadRequest(f"Invalid account status {account_status!r} was passed")
 
     if not update:
         return jsonify({"status": "success", "message": "No update to perform."}), 200
@@ -209,7 +224,12 @@ def search_users():
     if not query:
         return jsonify({"status": "error", "message": "No query provided."}), 400
 
-    pipeline = build_search_pipeline(query, USERS_FTS_FIELDS, permissions=None)
+    # Deleted accounts cannot be given access to anything, so are never offered as results
+    pipeline = build_search_pipeline(
+        query,
+        USERS_FTS_FIELDS,
+        permissions={"account_status": {"$ne": AccountStatus.DELETED}},
+    )
     pipeline.append({"$limit": nresults})
     pipeline.append(
         {
@@ -223,5 +243,5 @@ def search_users():
 
     cursor = flask_mongo.db.users.aggregate(pipeline)
     return jsonify(
-        {"status": "success", "users": [json.loads(Person(**d).json()) for d in cursor]}
+        {"status": "success", "users": [Person(**d).model_dump(mode="json") for d in cursor]}
     ), 200

@@ -70,7 +70,7 @@ let sample_ids = [
 ];
 
 before(() => {
-  cy.loginViaTestMagicLink("test-user@example.com", "user");
+  cy.loginViaTestMagicLink("test-user@datalab.test");
 });
 
 after(() => {
@@ -89,7 +89,7 @@ after(() => {
 
 describe("Batch sample creation", () => {
   beforeEach(() => {
-    cy.loginViaTestMagicLink("test-user@example.com", "user");
+    cy.loginViaTestMagicLink("test-user@datalab.test");
     cy.visit("/");
   });
   it("Adds 3 valid samples", () => {
@@ -168,7 +168,7 @@ describe("Batch sample creation", () => {
     cy.get('[data-testid="add-block-button-top"]').click();
     cy.get('[data-testid="add-block-dropdown"]').findByText("Comment").click();
 
-    cy.get(".datablock-content div").first().type("a comment is added here.");
+    cy.get(".datablock-content [contenteditable]").first().type("a comment is added here.");
 
     cy.get(".fa-save").click();
     cy.findByText("Home").click();
@@ -181,7 +181,7 @@ describe("Batch sample creation", () => {
     cy.findByLabelText("Description").type("this is a description of baseB.");
     cy.get('[data-testid="add-block-button-top"]').click();
     cy.get('[data-testid="add-block-dropdown"]').findByText("Comment").click();
-    cy.get(".datablock-content div").first().type("a comment is added here.");
+    cy.get(".datablock-content [contenteditable]").first().type("a comment is added here.");
 
     cy.findByLabelText("Procedure").type("a description of the synthesis here");
 
@@ -519,7 +519,7 @@ describe("Batch sample creation", () => {
     cy.get("[data-testid=batch-modal-container]").contains("Close").click();
 
     function checkCreatedSample(item_id) {
-      cy.get('[data-testid="search-input"]').type(item_id);
+      cy.get('[data-testid="search-input"]').clear().type(item_id);
       cy.contains(item_id).click();
       cy.contains("this is a description of baseB.");
       cy.get("#synthesis-information table").contains("component3");
@@ -709,7 +709,7 @@ describe("Batch sample creation", () => {
 
 describe("Batch cell creation", () => {
   beforeEach(() => {
-    cy.loginViaTestMagicLink("test-user@example.com", "user");
+    cy.loginViaTestMagicLink("test-user@datalab.test");
     cy.visit("/");
   });
 
@@ -826,7 +826,7 @@ describe("Batch cell creation", () => {
     cy.verifySample("cell_3", "this is the test cell #3", "1980-02-01T23:59");
 
     function checkCreatedCell(item_id) {
-      cy.get('[data-testid="search-input"]').type(item_id);
+      cy.get('[data-testid="search-input"]').clear().type(item_id);
       cy.contains(item_id).click();
       cy.get("#pos-electrode-table").contains("comp1");
       cy.get("#pos-electrode-table").contains("tagged");

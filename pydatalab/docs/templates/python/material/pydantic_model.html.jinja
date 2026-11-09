@@ -1,0 +1,9 @@
+{% extends "_base/pydantic_model.html.jinja" %}
+
+{#
+  griffe-pydantic lists every field name and type at the top of a model, but the
+  per-attribute sections below already carry that information plus the field
+  descriptions. Suppress the summary list and keep the detailed sections, which
+  are what cross-link config object types such as `RemoteFilesystem`.
+#}
+{% block fields %}{% endblock fields %}

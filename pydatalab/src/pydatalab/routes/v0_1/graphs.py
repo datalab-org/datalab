@@ -1,9 +1,13 @@
 from flask import Blueprint, jsonify, request
 
+from pydatalab.blocks.store import is_block_reference
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 
 GRAPHS = Blueprint("graphs", __name__)
+
+HIDDEN_UNCONNECTED_TYPES = ("starting_materials", "equipment")
+"""Item types that are only shown in the graph when connected to something."""
 
 
 @GRAPHS.before_request
@@ -47,12 +51,19 @@ def get_graph_cy_format(
             }
         else:
             query = {}
-        all_documents = flask_mongo.db.items.find(
-            {**query, **get_default_permissions(user_only=False)},
-            projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1, "blocks_obj": 1},
+        all_documents = list(
+            flask_mongo.db.items.find(
+                {**query, **get_default_permissions(user_only=False)},
+                projection={
+                    "item_id": 1,
+                    "name": 1,
+                    "type": 1,
+                    "relationships": 1,
+                    "blocks_obj": 1,
+                },
+            )
         )
         node_ids: set[str] = {document["item_id"] for document in all_documents}
-        all_documents.rewind()
 
     else:
         main_item = flask_mongo.db.items.find_one(
@@ -138,6 +149,22 @@ def get_graph_cy_format(
     nodes = []
     edges = []
 
+    # Resolve the blocktype of referenced blocks_obj values in one batched query.
+    referenced_block_ids = {
+        blocks_obj_value["immutable_id"]
+        for document in all_documents
+        for blocks_obj_value in (document.get("blocks_obj") or {}).values()
+        if is_block_reference(blocks_obj_value)
+    }
+    referenced_blocktypes: dict = {}
+    if referenced_block_ids:
+        referenced_blocktypes = {
+            doc["_id"]: doc.get("blocktype", "unknown")
+            for doc in flask_mongo.db.blocks.find(
+                {"_id": {"$in": list(referenced_block_ids)}}, {"blocktype": 1}
+            )
+        }
+
     # Collect the elements that have already been added to the graph, to avoid duplication
     drawn_elements = set()
     node_collections: set[str] = set()
@@ -217,7 +244,9 @@ def get_graph_cy_format(
                 {
                     "data": {
                         "id": document["item_id"],
-                        "name": document["name"] if document["name"] else document["item_id"],
+                        "name": document.get("name")
+                        if document.get("name")
+                        else document["item_id"],
                         "type": document["type"],
                         "special": document["item_id"] == item_id,
                     }
@@ -228,7 +257,10 @@ def get_graph_cy_format(
         for block_id, block_data in (document.get("blocks_obj") or {}).items():
             if block_id not in drawn_elements:
                 drawn_elements.add(block_id)
-                blocktype = block_data.get("blocktype", "unknown")
+                if is_block_reference(block_data):
+                    blocktype = referenced_blocktypes.get(block_data["immutable_id"], "unknown")
+                else:
+                    blocktype = block_data.get("blocktype", "unknown")
                 nodes.append(
                     {
                         "data": {
@@ -260,10 +292,12 @@ def get_graph_cy_format(
     if item_id:
         whitelist.add(item_id)
 
+    # Unconnected starting materials and equipment are left out, as there are often
+    # very many of them; every other item (including custom item types) is kept.
     nodes = [
         node
         for node in nodes
-        if node["data"]["type"] in ("samples", "cells", "blocks")
+        if node["data"]["type"] not in HIDDEN_UNCONNECTED_TYPES
         or node["data"]["id"] in whitelist
         or node["data"]["id"].startswith("Collection:")
     ]

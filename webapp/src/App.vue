@@ -1,11 +1,22 @@
 <template>
-  <router-view />
+  <!-- Keep the item tables alive so that navigating back to one from an item page is instant,
+       rather than rebuilding the table for the full list. -->
+  <router-view v-slot="{ Component }">
+    <keep-alive :include="['Samples', 'StartingMaterials', 'Collections', 'Equipment']">
+      <component :is="Component" />
+    </keep-alive>
+  </router-view>
   <DialogContainer />
 </template>
 
 <script>
 import DialogContainer from "@/components/DialogContainer.vue";
-import { getApiConfig, loadItemSchemas, getBlocksInfos } from "@/server_fetch_utils.js";
+import {
+  getApiConfig,
+  loadItemSchemas,
+  getBlocksInfos,
+  getStatsHistory,
+} from "@/server_fetch_utils.js";
 
 export default {
   components: {
@@ -13,10 +24,12 @@ export default {
   },
   async created() {
     await this.$router.isReady();
-    if (this.$route.name === "files-redirect") return;
+    if (["files-redirect", "login"].includes(this.$route.name)) return;
     await loadItemSchemas();
     await getApiConfig();
     await getBlocksInfos();
+    // Warm the deployment stats in the background; failures are handled where they are shown
+    getStatsHistory().catch(() => {});
   },
 };
 </script>

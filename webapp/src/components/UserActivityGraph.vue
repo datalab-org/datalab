@@ -1,5 +1,9 @@
 <template>
-  <div class="activity-graph-container" :class="{ compact: compact }">
+  <div
+    class="activity-graph-container"
+    :class="{ compact: compact }"
+    :style="{ '--cell-size': `${cellSize}px` }"
+  >
     <div v-if="isLoading" class="text-center p-4">
       <font-awesome-icon :icon="['fa', 'sync']" spin />
     </div>
@@ -8,31 +12,40 @@
     </div>
     <div v-else-if="!error" class="heatmap-wrapper">
       <h5 v-if="title">{{ title }}</h5>
-      <div class="heatmap-container">
-        <div class="months-labels">
-          <span
-            v-for="(month, index) in monthLabels"
-            :key="index"
-            class="month-label"
-            :style="{
-              position: 'absolute',
-              left: month.weekIndex * (cellSize + cellGap) + 10 + 'px',
-            }"
-          >
-            {{ month.month }}
-          </span>
+      <div v-if="showSummary && weeks.length" class="activity-summary">
+        <div v-for="stat in summaryStats" :key="stat.label" class="activity-stat">
+          <div class="activity-stat-value">{{ stat.value }}</div>
+          <div v-if="stat.detail" class="activity-stat-detail">{{ stat.detail }}</div>
+          <div class="activity-stat-label">{{ stat.label }}</div>
         </div>
-        <div class="heatmap-grid">
-          <div v-for="(week, weekIndex) in weeks" :key="weekIndex" class="week-column">
-            <div
-              v-for="(day, dayIndex) in week"
-              v-show="day.count !== -1"
-              :key="dayIndex"
-              :class="['day-cell', getIntensityClass(day.count)]"
-              :data-date="day.date"
-              @mouseenter="showTooltip($event, day.date, day.count)"
-              @mouseleave="hideTooltip"
-            ></div>
+      </div>
+      <div ref="heatmapContainer" class="heatmap-container">
+        <div class="heatmap-inner">
+          <div class="months-labels">
+            <span
+              v-for="(month, index) in monthLabels"
+              :key="index"
+              class="month-label"
+              :style="{
+                position: 'absolute',
+                left: month.weekIndex * (cellSize + cellGap) + gridPadding + 'px',
+              }"
+            >
+              {{ month.month }}
+            </span>
+          </div>
+          <div class="heatmap-grid">
+            <div v-for="(week, weekIndex) in weeks" :key="weekIndex" class="week-column">
+              <div
+                v-for="(day, dayIndex) in week"
+                v-show="day.count !== -1"
+                :key="dayIndex"
+                :class="['day-cell', getIntensityClass(day.count)]"
+                :data-date="day.date"
+                @mouseenter="showTooltip($event, day.date, day.count)"
+                @mouseleave="hideTooltip"
+              ></div>
+            </div>
           </div>
         </div>
       </div>
@@ -48,6 +61,7 @@
 </template>
 
 <script>
+import { format, parseISO } from "date-fns";
 import { fetchUserActivity } from "@/server_fetch_utils";
 import { createPopper } from "@popperjs/core";
 
@@ -74,6 +88,15 @@ export default {
       type: Boolean,
       default: false,
     },
+    showSummary: {
+      type: Boolean,
+      default: false,
+    },
+    cellSize: {
+      // Width and height of each day's cell, in pixels
+      type: Number,
+      default: 10,
+    },
   },
   data() {
     return {
@@ -87,8 +110,29 @@ export default {
     };
   },
   computed: {
-    cellSize() {
-      return this.compact ? 10 : 10;
+    summaryStats() {
+      // Derived from the rendered weeks, so the totals match the visible heatmap
+      const days = this.weeks.flat().filter((day) => day.count > 0);
+
+      let total = 0;
+      let busiestDay = null;
+      for (const day of days) {
+        total += day.count;
+        if (!busiestDay || day.count > busiestDay.count) busiestDay = day;
+      }
+
+      return [
+        { label: "Items recorded", value: total },
+        { label: "Active days", value: days.length },
+        {
+          label: "Busiest day",
+          value: busiestDay ? busiestDay.count : "–",
+          detail: busiestDay ? format(parseISO(busiestDay.date), "d MMM yyyy") : null,
+        },
+      ];
+    },
+    gridPadding() {
+      return this.compact ? 8 : 10;
     },
     cellGap() {
       return this.compact ? 2 : 2;
@@ -97,6 +141,12 @@ export default {
   async mounted() {
     await this.fetchActivityData();
     this.generateCalendar();
+    // If the heatmap is too wide for its container, start scrolled to the most recent weeks
+    await this.$nextTick();
+    const container = this.$refs.heatmapContainer;
+    if (container) {
+      container.scrollLeft = container.scrollWidth;
+    }
   },
   beforeUnmount() {
     this.destroyTooltip();
@@ -257,6 +307,11 @@ export default {
   overflow-x: visible;
 }
 
+.activity-graph-container.compact .heatmap-wrapper {
+  width: fit-content;
+  max-width: 100%;
+}
+
 .heatmap-wrapper {
   display: flex;
   flex-direction: column;
@@ -264,16 +319,59 @@ export default {
   width: 100%;
 }
 
+.activity-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.activity-stat {
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 8.5rem;
+  padding: 0.6rem 0.75rem;
+  text-align: center;
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+}
+
+.activity-stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #00695c;
+}
+
+.activity-stat-label {
+  margin-top: auto;
+  font-size: 0.75rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.activity-stat-detail {
+  font-size: 0.75rem;
+  color: #6c757d;
+}
+
 .heatmap-container {
   display: flex;
   flex-direction: column;
   gap: 8px;
   width: 100%;
-  overflow: hidden;
+  overflow-x: auto;
   padding: 15px;
   background: #fafafa;
   border-radius: 12px;
   border: 1px solid #e0e0e0;
+}
+
+.heatmap-inner {
+  width: fit-content;
+  max-width: 100%;
 }
 
 .months-labels {
@@ -310,17 +408,12 @@ export default {
 }
 
 .day-cell {
-  width: 10px;
-  height: 10px;
+  width: var(--cell-size);
+  height: var(--cell-size);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.15s ease;
   border: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-.activity-graph-container.compact .day-cell {
-  width: 10px;
-  height: 10px;
 }
 
 .day-cell:hover {
@@ -404,11 +497,6 @@ export default {
 }
 
 @media (max-width: 900px) {
-  .day-cell {
-    width: 10px;
-    height: 10px;
-  }
-
   .heatmap-grid {
     gap: 2px;
   }

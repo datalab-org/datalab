@@ -52,7 +52,7 @@ def test_collection_regex_search(query, should_find, real_mongo_client, client, 
     if real_mongo_client is None:
         pytest.skip("Skipping search tests, not connected to real MongoDB")
 
-    test_collection = default_collection.dict()
+    test_collection = default_collection.model_dump()
     clean_query = query.replace("=", "_").replace("%23", "hash_").replace("'", "")
     test_collection["collection_id"] = f"test_coll_{clean_query}"
     test_collection["title"] = "test collection"

@@ -1,58 +1,69 @@
 #!/bin/sh
 
-# Patch the built app to use the specified environment variables
-# at runtime, then serve the app
+# Write the runtime configuration of the built app from the specified environment
+# variables. Run by the nginx image's entrypoint (from `/docker-entrypoint.d/`)
+# before nginx starts; a non-zero exit stops the container from starting.
 #
-# See https://stackoverflow.com/questions/53010064/pass-environment-variable-into-a-vue-app-at-runtime for inspiration.
+# Everything written here is served publicly, so only the settings defined in
+# `webapp/src/config.schema.json` are passed through; it must never contain secrets.
 #
 set -e
 ROOT_DIR=/app/dist
 
-if [ -z "$VUE_APP_API_URL" ]; then
-    echo "VUE_APP_API_URL is unset and we are in production mode. Exiting."
-    echo ""
-    echo "Found settings:"
-    echo ""
-    env
-    echo ""
+SCHEMA=/app/config.schema.json
+
+# Default to the version the image was built with
+export VUE_APP_GIT_VERSION="${VUE_APP_GIT_VERSION:-$DATALAB_IMAGE_VERSION}"
+
+# Refuse to start with settings that do not match the schema; empty values count as unset.
+errors=$(jq -r '
+    .required as $required
+    | .properties | to_entries[]
+    | .key as $name | .value as $setting
+    | (env["VUE_APP_" + $name] // "") as $value
+    | if $value == "" then
+        if ($required | index($name)) then "VUE_APP_\($name) must be set: \($setting.description)" else empty end
+      elif ($setting.pattern and ($value | test($setting.pattern) | not)) then
+        "Invalid value \"\($value)\" for VUE_APP_\($name): \($setting.description)"
+      else empty end
+' "$SCHEMA")
+if [ -n "$errors" ]; then
+    echo "Invalid web app settings, see $SCHEMA. Exiting." >&2
+    echo "$errors" >&2
     exit 1
 fi
 
-# If the VUE_APP_GIT_VERSION has not been overridden, set it to the default
-# from package.json; the real `.git` version, if available, should still
-# take precedence.
-if [ -z "$VUE_APP_GIT_VERSION" ]; then
-    VUE_APP_GIT_VERSION="0.0.0-git"
+# Settings that are not in the schema are not passed on to the app, so may be typos.
+jq -r '
+    .properties as $settings
+    | env | keys[]
+    | select(startswith("VUE_APP_") and (ltrimstr("VUE_APP_") as $name | $settings | has($name) | not))
+    | "WARNING: ignoring unknown setting \(.)"
+' "$SCHEMA"
+
+jq -r '
+    .properties | keys
+    | map({key: ., value: (env["VUE_APP_" + .] // "")} | select(.value != ""))
+    | from_entries
+    | "window.__DATALAB_CONFIG__ = \(tojson);"
+' "$SCHEMA" > "$ROOT_DIR/config.js"
+
+echo "Wrote $ROOT_DIR/config.js:"
+cat "$ROOT_DIR/config.js"
+
+# Escape characters that sed would otherwise interpret in the replacement
+# (e.g., `&` in URL query strings).
+escape() {
+    printf '%s' "$1" | sed -e 's/[\\&#]/\\&/g'
+}
+
+# The API URL is also advertised in the HTML, where it is read by API clients
+# such as datalab-api, and the title is shown before the app has loaded.
+api_url=$(escape "$VUE_APP_API_URL")
+sed -i -E "s#(<meta name=\"?x_datalab_api_url\"? content=)(\"[^\"]*\"|[^ >]*)#\1\"${api_url}\"#" "$ROOT_DIR/index.html"
+if [ -n "$VUE_APP_WEBSITE_TITLE" ]; then
+    title=$(escape "$VUE_APP_WEBSITE_TITLE")
+    sed -i -E "s#<title>[^<]*</title>#<title>${title}</title>#" "$ROOT_DIR/index.html"
 fi
 
-echo "Replacing env vars in Javascript files"
-echo "Settings:"
-echo ""
-echo "  APP_VERSION: ${VUE_APP_GIT_VERSION}"
-echo "  API_URL: ${VUE_APP_API_URL}"
-echo "  LOGO_URL: ${VUE_APP_LOGO_URL}"
-echo "  LOGO_WIDTH: ${VUE_APP_LOGO_WIDTH}"
-echo "  HOMEPAGE_URL: ${VUE_APP_HOMPAGE_URL}"
-echo "  EDITABLE_INVENTORY: ${VUE_APP_EDITABLE_INVENTORY}"
-echo "  WEBSITE_TITLE: ${VUE_APP_WEBSITE_TITLE}"
-echo "  QR_CODE_RESOLVER_URL: ${VUE_APP_QR_CODE_RESOLVER_URL}"
-echo "  AUTOMATICALLY_GENERATE_ID_DEFAULT: ${VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT}"
-echo ""
-echo "Patching..."
-
-for file in $ROOT_DIR/js/app.*.js* $ROOT_DIR/*html; do
-    echo "$file"
-    sed -i "s|0.0.0-git|${VUE_APP_GIT_VERSION}|g" $file
-    sed -i "s|magic-api-url|${VUE_APP_API_URL}|g" $file
-    sed -i "s|magic-logo-url|${VUE_APP_LOGO_URL}|g" $file
-    sed -i "s|magic-logo-width|${VUE_APP_LOGO_WIDTH}|g" $file
-    sed -i "s|magic-homepage-url|${VUE_APP_HOMEPAGE_URL}|g" $file
-    sed -i "s|magic-setting|${VUE_APP_EDITABLE_INVENTORY}|g" $file
-    sed -i "s|magic-title|${VUE_APP_WEBSITE_TITLE}|g" $file
-    sed -i "s|magic-qr-code-resolver-url|${VUE_APP_QR_CODE_RESOLVER_URL}|g" $file
-    sed -i "s|magic-generate-id-setting|${VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT}|g" $file
-    done
-
 echo "Done!"
-
-serve -s ${ROOT_DIR} -p 8081
