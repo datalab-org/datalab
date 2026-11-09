@@ -12,6 +12,7 @@ types into other test modules.
 """
 
 import copy
+import json
 
 import pytest
 
@@ -760,6 +761,63 @@ def test_custom_reference_and_synthesis_constituent_coexist(client, custom_item_
     assert response.status_code == 200, response.json
     item_data = client.get("/get-item-data/custom-coexist-holder").json["item_data"]
     assert _parent_item_ids(item_data) == ["custom-coexist-constituent"]
+
+
+def test_partial_save_updates_custom_reference_relationships(
+    client, database, default_collection, custom_item_models
+):
+    """A `/save-item/` payload that only carries a custom reference field (and no
+    `collections` key) still adds and removes the matching parent relationship,
+    while the item's collection membership is left untouched."""
+    collection_dict = json.loads(default_collection.model_dump_json())
+    collection_dict["collection_id"] = "custom-partial-collection"
+    response = client.put("/collections", json={"data": collection_dict})
+    assert response.status_code == 201, response.json
+    collection_id = database.collections.find_one({"collection_id": "custom-partial-collection"})[
+        "_id"
+    ]
+
+    response = client.post(
+        "/new-sample/",
+        json={"new_sample_data": {"type": "samples", "item_id": "custom-partial-source"}},
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "example:items",
+                "item_id": "custom-partial-holder",
+                "collections": [{"collection_id": "custom-partial-collection"}],
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    def _stored_relationships():
+        item = database.items.find_one({"item_id": "custom-partial-holder"})
+        parents = [r["item_id"] for r in item["relationships"] if r["relation"] == "parent"]
+        collections = [
+            r["immutable_id"] for r in item["relationships"] if r["type"] == "collections"
+        ]
+        return parents, collections
+
+    response = client.post(
+        "/save-item/",
+        json={
+            "item_id": "custom-partial-holder",
+            "data": {"source": {"item_id": "custom-partial-source", "type": "samples"}},
+        },
+    )
+    assert response.status_code == 200, response.json
+    assert _stored_relationships() == (["custom-partial-source"], [collection_id])
+
+    response = client.post(
+        "/save-item/", json={"item_id": "custom-partial-holder", "data": {"source": None}}
+    )
+    assert response.status_code == 200, response.json
+    assert _stored_relationships() == ([], [collection_id])
 
 
 def test_unconnected_custom_items_in_graph(client, custom_item_models):

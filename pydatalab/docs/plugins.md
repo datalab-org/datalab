@@ -264,6 +264,10 @@ canonical = displayed * scale + offset
 The optional `display_unit_field` stores only the user's display-unit preference. It must name a
 companion string `Literal` whose possible values exactly match the keys in `display_units`.
 
+Item references in the fields a custom type adds (here `solute` and `solvent`), including nested
+ones such as the `item` of a `Constituent`, become parent relationships of the item in the item
+graph. `datalab_ref_types` only filters the UI selector; the server accepts any item type.
+
 ### Custom panels (full control)
 
 When annotations aren't enough (structured tables, values computed in the browser, plots, or

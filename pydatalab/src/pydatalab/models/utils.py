@@ -430,7 +430,8 @@ class Constituent(BaseModel):
 
 def iter_item_references(value: Any) -> Iterator[EntryReference]:
     """Recursively yield every `EntryReference` to a registered item type found in
-    `value` (a model, list or dict), at any depth, e.g. including `Constituent.item`."""
+    `value` (a model, list, tuple, set or dict), at any depth, e.g. including
+    `Constituent.item`."""
     from pydatalab.models import ITEM_MODELS
 
     if isinstance(value, EntryReference):
@@ -439,7 +440,7 @@ def iter_item_references(value: Any) -> Iterator[EntryReference]:
     elif isinstance(value, PydanticBaseModel):
         for name in type(value).model_fields:
             yield from iter_item_references(getattr(value, name))
-    elif isinstance(value, list):
+    elif isinstance(value, (list, tuple, set, frozenset)):
         for v in value:
             yield from iter_item_references(v)
     elif isinstance(value, dict):

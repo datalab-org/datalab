@@ -867,3 +867,34 @@ def test_validate_schema_hints_raises_for_bad_field_hint():
 
     with pytest.raises(ValueError, match="expected a dict, callable, or None"):
         validate_schema_hints(_InvalidExtra)
+
+
+def test_iter_item_references_in_tuples_and_sets():
+    from pydantic import ConfigDict
+
+    from pydatalab.models.utils import Constituent, EntryReference, iter_item_references
+
+    class HashableReference(EntryReference):
+        model_config = ConfigDict(frozen=True)
+
+    in_tuple = EntryReference(type="samples", item_id="in-tuple")
+    in_constituent = Constituent(
+        item=EntryReference(type="starting_materials", item_id="in-constituent"), quantity=None
+    )
+    in_set = HashableReference(type="samples", item_id="in-set")
+    in_frozenset = HashableReference(type="samples", item_id="in-frozenset")
+    not_an_item = EntryReference(type="collections", item_id="not-an-item")
+
+    value = {
+        "tuple": (in_tuple, (in_constituent,)),
+        "set": {in_set},
+        "frozenset": frozenset([in_frozenset]),
+        "other": [not_an_item],
+    }
+
+    assert sorted(ref.item_id for ref in iter_item_references(value)) == [
+        "in-constituent",
+        "in-frozenset",
+        "in-set",
+        "in-tuple",
+    ]

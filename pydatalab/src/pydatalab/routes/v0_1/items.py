@@ -1893,8 +1893,13 @@ def save_item():
 
     item_type = item["type"]
 
-    preserve_relationships = "collections" not in updated_data
-    original_relationships = item.get("relationships", []) if preserve_relationships else None
+    # Without a `collections` key, the model would drop the item's collection
+    # relationships, so the stored ones are restored after validation.
+    original_collection_relationships = (
+        [rel for rel in item.get("relationships", []) if rel.get("type") == "collections"]
+        if "collections" not in updated_data
+        else None
+    )
 
     # Snapshot the tags already on the item so we only authorize newly added
     # tags below.
@@ -1912,8 +1917,10 @@ def save_item():
     except ValidationError as exc:
         raise BadRequest(f"Unable to update item {item_id=} ({item_type=}): {exc}")
 
-    if preserve_relationships and original_relationships is not None:
-        item["relationships"] = original_relationships
+    if original_collection_relationships is not None:
+        item["relationships"] = [
+            rel for rel in item.get("relationships", []) if rel.get("type") != "collections"
+        ] + original_collection_relationships
 
     # remove collections and creators and any other reference fields
     item.pop("collections", None)

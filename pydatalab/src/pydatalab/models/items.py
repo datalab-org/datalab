@@ -102,7 +102,7 @@ class Item(
 
         # Index by refcode *and* item_id so a stored relationship carrying an
         # item_id still matches a refcode-enriched reference (and vice-versa).
-        existing_parent_relationships = {
+        existing_relationships = {
             identifier: relationship
             for relationship in self.relationships
             if relationship.relation == RelationshipType.PARENT
@@ -116,9 +116,9 @@ class Item(
             if not (refcode or item_id):
                 continue
 
-            relationship = existing_parent_relationships.get(
-                refcode
-            ) or existing_parent_relationships.get(item_id)
+            relationship = existing_relationships.get(refcode) or existing_relationships.get(
+                item_id
+            )
             if relationship is None:
                 relationship = TypedRelationship(
                     relation=RelationshipType.PARENT,
@@ -134,9 +134,15 @@ class Item(
 
             for identifier in (relationship.refcode, relationship.item_id):
                 if identifier:
-                    existing_parent_relationships[identifier] = relationship
+                    existing_relationships[identifier] = relationship
 
-        # Parents of synthesis constituents are managed by `HasSynthesisInfo`
+        # Rebuild the list without the parent relationships to items that are no longer
+        # referenced, so that clearing a reference field also removes its relationship.
+        # As in `HasSynthesisInfo.add_missing_synthesis_relationships`, relationships do
+        # not record which field created them: any parent relationship that is neither
+        # referenced by a custom field nor by a synthesis constituent is removed.
+        # Synthesis constituents are counted as references so that their parent
+        # relationships, managed by `HasSynthesisInfo`, are kept.
         references.extend(iter_item_references(getattr(self, "synthesis_constituents", [])))
         referenced = {
             identifier
