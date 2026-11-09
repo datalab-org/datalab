@@ -764,3 +764,128 @@ def test_magic_link_redirect_without_app_url_strips_token(
         response = unauthenticated_client.get(f"/login/email?token={token}", headers=headers)
     assert response.status_code == 307
     assert response.location == expected_location
+
+
+def test_magic_link_login_only(unauthenticated_client, app, database, monkeypatch):
+    """When email is login-only, new email addresses cannot register,
+    but existing users can still request a magic link."""
+    from pydatalab import config
+
+    monkeypatch.setattr(config.CONFIG, "LOGIN_ONLY_AUTH_METHODS", ["email"])
+    database.magic_links.delete_many({})
+
+    with app.extensions["mail"].record_messages() as outbox:
+        response = unauthenticated_client.post(
+            "/login/magic-link",
+            json={"email": "new-user@datalab-org.io", "referrer": "datalab.example.org"},
+        )
+        assert response.status_code == 403
+        assert len(outbox) == 0
+        assert database.magic_links.count_documents({}) == 0
+
+    # Tokens issued before the setting was changed should not create accounts either
+    with app.app_context():
+        token = _generate_and_store_token("new-user@datalab-org.io", intent="register")
+    response = unauthenticated_client.get(f"/login/email?token={token}")
+    assert response.status_code == 403
+    assert database.users.find_one({"contact_email": "new-user@datalab-org.io"}) is None
+
+    existing_email = "existing-user@datalab-org.io"
+    database.users.insert_one(
+        {
+            "display_name": existing_email,
+            "contact_email": existing_email,
+            "account_status": "active",
+            "identities": [
+                {
+                    "identifier": existing_email,
+                    "identity_type": "email",
+                    "name": existing_email,
+                    "verified": True,
+                }
+            ],
+        }
+    )
+
+    with app.extensions["mail"].record_messages() as outbox:
+        response = unauthenticated_client.post(
+            "/login/magic-link",
+            json={"email": existing_email, "referrer": "datalab.example.org"},
+        )
+        assert response.status_code == 200
+        assert len(outbox) == 1
+
+
+def test_github_login_only(database, app, monkeypatch):
+    """When GitHub is login-only, a new GitHub identity cannot register an account,
+    even if it would otherwise be allowed and auto-activated."""
+    from pydatalab import config
+    from pydatalab.errors import UserRegistrationForbidden
+    from pydatalab.routes.v0_1.auth import github_logged_in
+
+    monkeypatch.setattr(config.CONFIG, "GITHUB_ORG_ALLOW_LIST", None)
+    monkeypatch.setattr(config.CONFIG, "AUTO_ACTIVATE_ACCOUNTS", True)
+    monkeypatch.setattr(config.CONFIG, "LOGIN_ONLY_AUTH_METHODS", ["github"])
+
+    fake_resp = MagicMock()
+    fake_resp.ok = True
+    fake_resp.json.return_value = {"id": 54321, "login": "login-only", "name": "Login Only"}
+    fake_blueprint = MagicMock()
+    fake_blueprint.session.get.return_value = fake_resp
+
+    with app.test_request_context():
+        with pytest.raises(UserRegistrationForbidden):
+            github_logged_in(fake_blueprint, token={"access_token": "fake-token"})
+
+    assert database.users.find_one({"identities.identifier": "54321"}) is None
+
+
+def test_google_domain_allow_list_only_applies_to_registration(database, app, monkeypatch):
+    """Existing users can log in via Google even if their domain is not on the allow list,
+    but new users with such domains cannot register."""
+    from pydatalab import config
+    from pydatalab.errors import UserRegistrationForbidden
+    from pydatalab.routes.v0_1.auth import google_logged_in
+
+    monkeypatch.setattr(config.CONFIG, "EMAIL_DOMAIN_ALLOW_LIST", ["datalab-org.io"])
+
+    def _fake_blueprint(google_id, email):
+        fake_resp = MagicMock()
+        fake_resp.ok = True
+        fake_resp.json.return_value = {"id": google_id, "email": email, "name": email}
+        fake_blueprint = MagicMock()
+        fake_blueprint.session.get.return_value = fake_resp
+        return fake_blueprint
+
+    with app.test_request_context():
+        with pytest.raises(UserRegistrationForbidden):
+            google_logged_in(
+                _fake_blueprint("google-id-new", "new@gmail.com"),
+                token={"access_token": "fake-token"},
+            )
+    assert database.users.find_one({"identities.identifier": "google-id-new"}) is None
+
+    database.users.insert_one(
+        {
+            "display_name": "Existing Google User",
+            "account_status": "active",
+            "identities": [
+                {
+                    "identifier": "google-id-existing",
+                    "identity_type": "google",
+                    "name": "existing@gmail.com",
+                    "verified": True,
+                }
+            ],
+        }
+    )
+
+    with app.test_request_context():
+        google_logged_in(
+            _fake_blueprint("google-id-existing", "existing@gmail.com"),
+            token={"access_token": "fake-token"},
+        )
+        from flask_login import current_user
+
+        assert current_user.is_authenticated
+        assert current_user.display_name == "Existing Google User"

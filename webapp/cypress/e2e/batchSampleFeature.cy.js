@@ -519,7 +519,7 @@ describe("Batch sample creation", () => {
     cy.get("[data-testid=batch-modal-container]").contains("Close").click();
 
     function checkCreatedSample(item_id) {
-      cy.get('[data-testid="search-input"]').type(item_id);
+      cy.get('[data-testid="search-input"]').clear().type(item_id);
       cy.contains(item_id).click();
       cy.contains("this is a description of baseB.");
       cy.get("#synthesis-information table").contains("component3");
@@ -826,7 +826,7 @@ describe("Batch cell creation", () => {
     cy.verifySample("cell_3", "this is the test cell #3", "1980-02-01T23:59");
 
     function checkCreatedCell(item_id) {
-      cy.get('[data-testid="search-input"]').type(item_id);
+      cy.get('[data-testid="search-input"]').clear().type(item_id);
       cy.contains(item_id).click();
       cy.get("#pos-electrode-table").contains("comp1");
       cy.get("#pos-electrode-table").contains("tagged");

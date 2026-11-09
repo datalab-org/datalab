@@ -2,7 +2,9 @@
   <form class="modal-enclosure" data-testid="create-item-form" @submit.prevent="submitForm">
     <Modal
       :model-value="modelValue"
-      :disable-submit="Boolean(isValidEntryID) || (!generateIDAutomatically && !Boolean(item_id))"
+      :disable-submit="
+        !item_type || Boolean(isValidEntryID) || (!generateIDAutomatically && !Boolean(item_id))
+      "
       @update:model-value="$emit('update:modelValue', $event)"
     >
       <template #header> Add new item </template>
@@ -64,8 +66,8 @@
             <input id="create-item-name" v-model="name" type="text" class="form-control" />
           </div>
         </div>
-        <!-- All item types can be added to a collection, so this is always available -->
-        <div class="form-row">
+        <!-- When collections are visible, any item type can be added to a collection. -->
+        <div v-if="!hideCollections" class="form-row">
           <div class="col-md-12 form-group">
             <label id="startInCollection">(Optional) Insert into collection:</label>
             <CollectionSelect
@@ -138,6 +140,7 @@ import {
   SAMPLE_TABLE_TYPES,
   INVENTORY_TYPES,
   AUTOMATICALLY_GENERATE_ID_DEFAULT,
+  HIDE_COLLECTIONS,
 } from "@/resources.js";
 import CollectionSelect from "@/components/CollectionSelect.vue";
 export default {
@@ -169,6 +172,7 @@ export default {
       selectedItemToCopy: null,
       startingConstituents: [],
       generateIDAutomatically: AUTOMATICALLY_GENERATE_ID_DEFAULT,
+      hideCollections: HIDE_COLLECTIONS,
       agesAgo: new Date("1970-01-01").toISOString().slice(0, -8), // a datetime for the unix epoch start
       shareWithGroups: [],
       additionalCreators: [],
@@ -187,16 +191,18 @@ export default {
             (type) => itemTypes[type]?.isDynamic && itemTypes[type]?.isCreateable,
           )
         : [];
-      return [...new Set([...this.allowedTypes, ...dynamic])];
+      return [...new Set([...this.allowedTypes, ...dynamic])].filter(
+        (type) => itemTypes[type]?.available !== false,
+      );
     },
     isInventoryType() {
       return INVENTORY_TYPES.includes(this.item_type);
     },
     itemTypeDisplayName() {
-      return itemTypes[this.item_type].display;
+      return itemTypes[this.item_type]?.display || "item";
     },
     itemCreateModalAddonComponent() {
-      return itemTypes[this.item_type].itemCreateModalAddon;
+      return itemTypes[this.item_type]?.itemCreateModalAddon;
     },
     takenSampleIds() {
       return this.$store.state.sample_list
@@ -207,8 +213,15 @@ export default {
       return validateEntryID(this.item_id, this.takenItemIds, this.takenSampleIds);
     },
   },
-  created() {
-    this.item_type = this.effectiveAllowedTypes[0];
+  watch: {
+    effectiveAllowedTypes: {
+      handler(types) {
+        if (!types.includes(this.item_type)) {
+          this.item_type = types[0] || "";
+        }
+      },
+      immediate: true,
+    },
   },
   methods: {
     async submitForm() {

@@ -23,6 +23,52 @@ def test_block_type_allow_list_settings():
     ]
 
 
+def test_item_type_allow_list_settings(monkeypatch):
+    from pydatalab.config import ItemTypeAllowListEntry, ServerConfig
+
+    assert ServerConfig().ITEM_TYPE_ALLOW_LIST is None
+    assert ServerConfig(ITEM_TYPE_ALLOW_LIST=[]).ITEM_TYPE_ALLOW_LIST == []
+
+    config = ServerConfig(
+        ITEM_TYPE_ALLOW_LIST=[
+            "samples",
+            {"type": "cells", "block_type_allow_list": ["comment", "cycle"]},
+            {"type": "equipment", "block_type_allow_list": []},
+            {"type": "starting_materials", "block_type_allow_list": None},
+        ]
+    )
+    assert config.ITEM_TYPE_ALLOW_LIST == [
+        ItemTypeAllowListEntry(type="samples", block_type_allow_list=None),
+        ItemTypeAllowListEntry(type="cells", block_type_allow_list=["comment", "cycle"]),
+        ItemTypeAllowListEntry(type="equipment", block_type_allow_list=[]),
+        ItemTypeAllowListEntry(type="starting_materials", block_type_allow_list=None),
+    ]
+
+    monkeypatch.setenv(
+        "PYDATALAB_ITEM_TYPE_ALLOW_LIST",
+        '["samples", {"type": "cells", "block_type_allow_list": ["comment"]}]',
+    )
+    assert ServerConfig().ITEM_TYPE_ALLOW_LIST == [
+        ItemTypeAllowListEntry(type="samples", block_type_allow_list=None),
+        ItemTypeAllowListEntry(type="cells", block_type_allow_list=["comment"]),
+    ]
+
+    with pytest.raises(ValueError, match="Field required"):
+        ServerConfig(ITEM_TYPE_ALLOW_LIST=[{"type": "samples"}])
+
+
+def test_item_type_allow_list_rejects_duplicate_types():
+    from pydatalab.config import ServerConfig
+
+    with pytest.raises(ValueError, match="duplicate item types: samples"):
+        ServerConfig(
+            ITEM_TYPE_ALLOW_LIST=[
+                "samples",
+                {"type": "samples", "block_type_allow_list": []},
+            ]
+        )
+
+
 def test_update_settings():
     from pydatalab.config import ServerConfig
 

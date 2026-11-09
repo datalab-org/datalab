@@ -308,11 +308,14 @@ export function createNewSamples(
     new_sample_datas: newSampleDatas,
     generate_ids_automatically: generateIDsAutomatically,
   }).then(function (response_json) {
-    response_json.responses.forEach((response) => {
-      if (response.status == "success") {
-        store.commit("prependToSampleList", response.sample_list_entry);
-      }
-    });
+    // Prepend all new entries in one go (reversed to match the previous one-at-a-time order),
+    // rather than copying the whole frozen list once per new item
+    const created = response_json.responses
+      .filter((response) => response.status == "success")
+      .map((response) => response.sample_list_entry);
+    if (created.length) {
+      store.commit("prependManyToSampleList", created.reverse());
+    }
 
     return response_json.responses;
   });
@@ -386,10 +389,20 @@ export async function getInfo() {
     });
 }
 
+// Commit a fetched item list only if it differs from the stored one, so that re-fetching on
+// returning to a (kept-alive) table does not force the whole table to be rebuilt for
+// identical data.
+function commitListIfChanged(mutation, current, incoming) {
+  if (current && JSON.stringify(current) === JSON.stringify(incoming)) {
+    return;
+  }
+  store.commit(mutation, incoming);
+}
+
 export function getSampleList() {
   return fetch_get(`${API_URL}/samples/`)
     .then(function (response_json) {
-      store.commit("setSampleList", response_json.samples);
+      commitListIfChanged("setSampleList", store.state.sample_list, response_json.samples);
     })
     .catch((error) => {
       if (error === "UNAUTHORIZED") {
@@ -417,7 +430,7 @@ export function getCollectionSampleList(collection_id) {
 export function getCollectionList() {
   return fetch_get(`${API_URL}/collections`)
     .then(function (response_json) {
-      store.commit("setCollectionList", response_json.data);
+      commitListIfChanged("setCollectionList", store.state.collection_list, response_json.data);
     })
     .catch((error) => {
       if (error === "UNAUTHORIZED") {
@@ -536,7 +549,11 @@ export function removeUserFromGroup(groupId, userId) {
 export function getStartingMaterialList() {
   return fetch_get(`${API_URL}/starting-materials/`)
     .then(function (response_json) {
-      store.commit("setStartingMaterialList", response_json.items);
+      commitListIfChanged(
+        "setStartingMaterialList",
+        store.state.starting_material_list,
+        response_json.items,
+      );
     })
     .catch((error) => {
       if (error === "UNAUTHORIZED") {
@@ -550,7 +567,7 @@ export function getStartingMaterialList() {
 export function getEquipmentList() {
   return fetch_get(`${API_URL}/equipment/`)
     .then(function (response_json) {
-      store.commit("setEquipmentList", response_json.items);
+      commitListIfChanged("setEquipmentList", store.state.equipment_list, response_json.items);
     })
     .catch((error) => {
       if (error === "UNAUTHORIZED") {
@@ -1466,6 +1483,8 @@ export async function loadItemSchemas() {
         base_type: typeInfo.attributes?.base_type,
         hidden_fields: typeInfo.attributes?.hidden_fields,
         ui_color: typeInfo.attributes?.ui_color,
+        available: typeInfo.attributes?.available,
+        block_type_allow_list: typeInfo.attributes?.block_type_allow_list,
       }),
     );
     await Promise.all(supportedTypes.map((typeInfo) => ensureItemSchema(typeInfo.id)));
