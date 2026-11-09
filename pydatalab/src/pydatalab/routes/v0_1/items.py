@@ -26,6 +26,7 @@ from pydatalab.models import (
     custom_item_fields,
     flagged_summary_fields,
     get_base_item_model,
+    is_item_type_available,
 )
 from pydatalab.models.items import Item
 from pydatalab.models.people import AccountStatus
@@ -602,15 +603,21 @@ def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
     return sample_dict
 
 
-def _check_incoming_block_types(blocks_obj: dict, stored_payloads: dict | None = None) -> None:
+def _check_incoming_block_types(
+    blocks_obj: dict,
+    item_type: str,
+    stored_payloads: dict | None = None,
+) -> None:
     """Validate the block types of an incoming `blocks_obj` against the stored blocks
-    and the deployment's `BLOCK_TYPE_ALLOW_LIST`.
+    and the deployment's block availability settings.
 
     - Every block must be a dict with a string `blocktype` (400 otherwise).
     - Existing blocks (those in `stored_payloads`) may not change their `blocktype` (400).
-    - New blocks of an installed type must be allowed by the deployment (403). New blocks of
-      an uninstalled type are let through, to be stored as `notsupported` blocks, matching the
-      behaviour without an allow list.
+    - Existing blocks otherwise remain editable if their type becomes unavailable.
+    - New blocks of an installed type must be allowed globally and for the item type (403).
+    - New blocks of an uninstalled type are only let through, to be stored as `notsupported`
+      blocks, when neither `BLOCK_TYPE_ALLOW_LIST` nor `ITEM_TYPE_ALLOW_LIST` is set (403
+      otherwise).
 
     """
     if not isinstance(blocks_obj, dict):
@@ -632,8 +639,19 @@ def _check_incoming_block_types(blocks_obj: dict, stored_payloads: dict | None =
                 )
             continue
 
-        if block_type in BLOCK_TYPES and not is_block_type_available(block_type):
-            raise Forbidden(f"Block type {block_type!r} is not available in this deployment.")
+        if block_type not in BLOCK_TYPES:
+            if CONFIG.BLOCK_TYPE_ALLOW_LIST is not None or CONFIG.ITEM_TYPE_ALLOW_LIST is not None:
+                raise Forbidden(
+                    f"Block type {block_type!r} is not installed and cannot be added "
+                    "while block or item type allow lists are configured."
+                )
+            continue
+
+        if not is_block_type_available(block_type, item_type):
+            raise Forbidden(
+                f"Block type {block_type!r} is not available in this deployment "
+                f"for item type {item_type!r}."
+            )
 
 
 def _create_sample(
@@ -664,11 +682,13 @@ def _create_sample(
     type_ = sample_dict["type"]
     if type_ not in ITEM_MODELS:
         raise BadRequest(f"Invalid type {type_!r}, must be one of {ITEM_MODELS.keys()}")
+    if not is_item_type_available(type_):
+        raise Forbidden(f"Item type {type_!r} is not available in this deployment.")
 
     model = ITEM_MODELS[type_]
 
     new_sample = sample_dict.copy()
-    _check_incoming_block_types(new_sample.get("blocks_obj") or {})
+    _check_incoming_block_types(new_sample.get("blocks_obj") or {}, type_)
 
     if type_ in INVENTORY_TYPES:
         # starting_materials and equipment are open to all in the deployment (or to the
@@ -1791,7 +1811,7 @@ def save_item():
         # referenced block that payload lives in the `blocks` collection, not in
         # the item's `blocks_obj` entry.
         stored_payloads = block_store.load_blocks_obj(item) if stored_blocks_obj else {}
-        _check_incoming_block_types(incoming_blocks, stored_payloads)
+        _check_incoming_block_types(incoming_blocks, item["type"], stored_payloads)
         for block_id, block_data in incoming_blocks.items():
             blocktype = block_data["blocktype"]
             block = BLOCK_TYPES.get(blocktype, BLOCK_TYPES["notsupported"]).from_web(

@@ -1,5 +1,6 @@
 <template>
   <div
+    v-if="!hideCollections"
     ref="outerdiv"
     class="h-100 form-group clickable"
     @click="isEditingCollections = !isEditingCollections"
@@ -42,6 +43,7 @@
 import CollectionSelect from "@/components/CollectionSelect";
 import CollectionList from "@/components/CollectionList";
 import { OnClickOutside } from "@vueuse/components";
+import { HIDE_COLLECTIONS } from "@/resources.js";
 
 export default {
   components: {
@@ -60,6 +62,7 @@ export default {
     return {
       isEditingCollections: false,
       outerDivRef: null,
+      hideCollections: HIDE_COLLECTIONS,
     };
   },
   computed: {

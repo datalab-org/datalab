@@ -25,6 +25,7 @@ These can be provided as either:
         - `VUE_APP_LOGO_URL`: the URL of an image to use as the logo header in the web app.
         - `VUE_APP_HOMEPAGE_URL`: a URL to provide as a link from the web app header, and as a button on the dedicated login page.
         - `VUE_APP_EDITABLE_INVENTORY`: whether the inventory can be edited by non-admin users in the web app.
+        - `VUE_APP_HIDE_COLLECTIONS`: whether to hide collection pages and controls in the web app. This defaults to `false`. It is not an access-control mechanism and does not disable collection API routes or alter stored collection data.
         - `VUE_APP_WEBSITE_TITLE`: the title of the web app, which is displayed in the browser tab and header. It is also used in the heading of the dedicated login page, as "Welcome to the <title>".
         - `VUE_APP_QR_CODE_RESOLVER_URL`: the URL of a service that can resolve QR codes to *datalab* entries, which is used by the web app to display QR codes for entries (see [datalab-org/datalab-purl](https://github.com/datalab-org/datalab-purl) for more information).
         - `VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT`: whether to automatically generate IDs for new entries in the web app by default, or require a checkbox to be ticked at item creation.
@@ -43,7 +44,7 @@ This prefix should be set to something relatively short (max 10 chars.) that des
 This can be set either via a config file, or as an environment variable (e.g., `PYDATALAB_IDENTIFIER_PREFIX='grey'`).
 Be warned, if the prefix changes between server launches, all entries will have to be migrated manually to the desired prefix, or maintained at the old prefix.
 
-## Block availability
+## Item and block availability
 
 Deployments can restrict which data block types users may add with
 [`BLOCK_TYPE_ALLOW_LIST`][pydatalab.config.ServerConfig.BLOCK_TYPE_ALLOW_LIST].
@@ -69,7 +70,53 @@ startup, which allows temporarily missing plugins without preventing the deploym
 
 Changing the allowlist does not remove or disable blocks that are already stored. Existing blocks
 remain viewable, editable, and deletable; the setting only controls which types may be added after
-the restriction is applied.
+the restriction is applied. While either this setting or `ITEM_TYPE_ALLOW_LIST` is configured, new
+blocks of a type that is not installed are also rejected, rather than stored as unsupported blocks.
+
+Deployments can also restrict which item types users may create, and optionally narrow the blocks
+that may be added to each item type, with
+[`ITEM_TYPE_ALLOW_LIST`][pydatalab.config.ServerConfig.ITEM_TYPE_ALLOW_LIST]. Entries can be either
+an item type name or an object containing a `type` and `block_type_allow_list`:
+
+```json
+{
+  "ITEM_TYPE_ALLOW_LIST": [
+    "samples",
+    {
+      "type": "cells",
+      "block_type_allow_list": ["comment", "cycle"]
+    },
+    {
+      "type": "equipment",
+      "block_type_allow_list": []
+    }
+  ]
+}
+```
+
+A string entry allows that item type to use every block permitted by the global
+`BLOCK_TYPE_ALLOW_LIST`. An object entry restricts new blocks to the intersection of its
+`block_type_allow_list` and the global list. An empty nested list allows creating the item type but
+prevents adding blocks to it.
+
+The equivalent environment variable is a JSON list:
+
+```bash
+export PYDATALAB_ITEM_TYPE_ALLOW_LIST='["samples", {"type": "cells", "block_type_allow_list": ["comment", "cycle"]}]'
+```
+
+The default value, `null`/`None`, allows every registered item type with no additional per-type
+block restriction. An empty top-level list prevents creating any new items or blocks. When the
+setting is present, item types omitted from it cannot be created and existing items of those types
+cannot receive new blocks. Duplicate item type entries are invalid because their block policy
+would be ambiguous.
+
+Item names and block slugs are exact and case-sensitive. Built-in and plugin-provided types use the same
+registries; custom item types must use their complete `<namespace>:<type-name>` identifier. Unknown types produce a startup warning and are ignored.
+
+These settings only control creation. Existing restricted items and blocks remain viewable,
+editable, saveable, deletable, exportable, and restorable, so changing deployment policy does not
+require a database migration.
 
 ## User registration & authentication
 
@@ -81,6 +128,9 @@ mechanisms:
 
 Each is configured differently.
 If left unconfigured, then the corresponding registration mechanism will not be available to the user.
+
+Any of these methods can be restricted to logging in to (or connecting to) existing accounts, without allowing new registrations, via [`LOGIN_ONLY_AUTH_METHODS`][pydatalab.config.ServerConfig.LOGIN_ONLY_AUTH_METHODS], e.g., `["email", "github", "google", "microsoft"]` to require users to register with their ORCID first.
+The domain and organisation allow lists described below only apply to new registrations; existing users can always log in.
 
 ### Email magic links
 
