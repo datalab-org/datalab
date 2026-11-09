@@ -9,7 +9,7 @@ import os
 import re
 import secrets
 from hashlib import sha512
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import jwt
 from bson import ObjectId
@@ -62,6 +62,30 @@ def _is_safe_oauth_next_path(next_path: str | None) -> bool:
 
     parsed_path = urlsplit(next_path)
     return not parsed_path.scheme and not parsed_path.netloc
+
+
+def _redirect_to_referer() -> Response:
+    """Redirect back to the referring UI page when no `APP_URL` is configured.
+
+    Any magic-link `token` is removed from the referer's query string, as the UI
+    would otherwise immediately send the browser straight back to the API, causing
+    a redirect loop (when the UI and API share an origin, browsers send the full
+    URL, including the token, as the referer).
+
+    """
+    referer = request.headers.get("Referer")
+    if referer:
+        parsed = urlsplit(referer)
+        if parsed.scheme in ("http", "https") and parsed.netloc:
+            query = urlencode(
+                [
+                    (key, value)
+                    for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+                    if key != "token"
+                ]
+            )
+            return redirect(urlunsplit(parsed._replace(query=query)), 307)
+    return redirect(CONFIG.ROOT_PATH or "/", 307)
 
 
 def make_github_blueprint(
@@ -509,6 +533,12 @@ def _check_email_domain(email: str, allow_list: list[str] | None) -> bool:
     return True
 
 
+def _is_login_only(identity_type: str | IdentityType) -> bool:
+    """Whether the given identity type is configured to only allow logging in to (or
+    connecting to) existing accounts, rather than registering new ones."""
+    return IdentityType(identity_type) in (CONFIG.LOGIN_ONLY_AUTH_METHODS or [])
+
+
 def find_user_with_identity(
     identifier: str,
     identity_type: str | IdentityType,
@@ -634,7 +664,7 @@ def find_create_or_modify_user(
 
         # If there is no current authenticated user, make one with the current OAuth identity
         else:
-            if not create_account:
+            if not create_account or _is_login_only(identity_type):
                 raise UserRegistrationForbidden
 
             if isinstance(create_account, bool):
@@ -733,6 +763,11 @@ def _check_user_registration_allowed(email: str) -> None:
     user = find_user_with_identity(email, IdentityType.EMAIL, verify=False)
 
     if not user:
+        if _is_login_only(IdentityType.EMAIL):
+            LOGGER.warning("Did not allow %s to register an account via email", email)
+            raise Forbidden(
+                f"No account found for {email}, and email cannot be used to register new accounts on this datalab instance. Please register via another method, or contact the administrator if you believe this is an error."
+            )
         allowed = _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST)
         if not allowed:
             LOGGER.warning("Did not allow %s to register an account", email)
@@ -920,7 +955,9 @@ def email_logged_in():
 
     create_account = False
 
-    if data.get("intent") == "register":
+    # The domain allow list only applies to registration of new accounts; existing
+    # users can always log in
+    if data.get("intent") == "register" and not find_user_with_identity(email, IdentityType.EMAIL):
         if not _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST):
             raise UserRegistrationForbidden
 
@@ -941,8 +978,7 @@ def email_logged_in():
 
     if CONFIG.APP_URL:
         return redirect(CONFIG.APP_URL, 307)
-    referer = request.headers.get("Referer", CONFIG.ROOT_PATH or "/")
-    return redirect(referer, 307)
+    return _redirect_to_referer()
 
 
 @oauth_authorized.connect_via(OAUTH[IdentityType.GITHUB])
@@ -1017,18 +1053,14 @@ def google_logged_in(blueprint, token):
     email = str(google_info.get("email", google_user_id))
     name = str(google_info.get("name", email))
 
+    # The domain allow list only applies to registration of new accounts; existing users
+    # can always log in, and `find_create_or_modify_user` will refuse to make new accounts
+    # when `create_account` is False
     create_account: bool | AccountStatus = False
-    if CONFIG.EMAIL_DOMAIN_ALLOW_LIST:
-        if not _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST):
-            raise UserRegistrationForbidden
-
+    if _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST):
         create_account = AccountStatus.UNVERIFIED
-
-    elif CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None:
-        create_account = AccountStatus.UNVERIFIED
-
-    if CONFIG.AUTO_ACTIVATE_ACCOUNTS:
-        create_account = AccountStatus.ACTIVE
+        if CONFIG.AUTO_ACTIVATE_ACCOUNTS:
+            create_account = AccountStatus.ACTIVE
 
     find_create_or_modify_user(
         google_user_id,
@@ -1065,18 +1097,14 @@ def microsoft_logged_in(blueprint, token):
     email = str(ms_info.get("mail") or ms_info.get("userPrincipalName", ms_user_id))
     name = str(ms_info.get("displayName", email))
 
+    # The domain allow list only applies to registration of new accounts; existing users
+    # can always log in, and `find_create_or_modify_user` will refuse to make new accounts
+    # when `create_account` is False
     create_account: bool | AccountStatus = False
-
-    if CONFIG.EMAIL_DOMAIN_ALLOW_LIST:
-        if not _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST):
-            raise UserRegistrationForbidden
+    if _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST):
         create_account = AccountStatus.UNVERIFIED
-
-    elif CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None:
-        create_account = AccountStatus.UNVERIFIED
-
-    if CONFIG.AUTO_ACTIVATE_ACCOUNTS:
-        create_account = AccountStatus.ACTIVE
+        if CONFIG.AUTO_ACTIVATE_ACCOUNTS:
+            create_account = AccountStatus.ACTIVE
 
     find_create_or_modify_user(
         ms_user_id,
@@ -1129,8 +1157,7 @@ def redirect_to_ui(blueprint, token):  # pylint: disable=unused-argument
         if _is_safe_oauth_next_path(next_path):
             redirect_url = f"{CONFIG.APP_URL.rstrip('/')}{next_path}"
         return redirect(redirect_url, 307)
-    referer = request.headers.get("Referer", CONFIG.ROOT_PATH or "/")
-    return redirect(referer, 307)
+    return _redirect_to_referer()
 
 
 @oauth_before_login.connect

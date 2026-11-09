@@ -48,7 +48,9 @@ class Cell(Item):
     characteristic_mass: float | None = None
     """The characteristic mass of the cell in milligrams. Can be used to normalize capacities."""
 
-    characteristic_chemical_formula: str | None = None
+    characteristic_chemical_formula: str | None = Field(
+        None, json_schema_extra={"datalab_include_field_in_summary": True}
+    )
     """The chemical formula of the active material. Can be used to calculated molar mass in g/mol for normalizing capacities."""
 
     characteristic_molar_mass: float | None = None
@@ -69,7 +71,10 @@ class Cell(Item):
     active_ion_charge: float = 1
     """The charge of the active ion species."""
 
-    status: CellStatus = Field(default=CellStatus.ACTIVE)
+    status: CellStatus = Field(
+        default=CellStatus.ACTIVE,
+        json_schema_extra={"datalab_include_field_in_summary": True},
+    )
     """The status of the cells, indicating its current state."""
 
     @field_validator("characteristic_molar_mass", mode="before")

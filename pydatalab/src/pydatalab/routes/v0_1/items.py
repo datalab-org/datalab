@@ -3,6 +3,7 @@ import datetime
 import json
 import secrets
 from hashlib import sha512
+from typing import Literal, get_args, get_origin
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -13,7 +14,7 @@ from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
 from werkzeug.exceptions import BadRequest, Conflict, Forbidden, InternalServerError, NotFound
 
-from pydatalab.apps import BLOCK_TYPES
+from pydatalab.apps import BLOCK_TYPES, is_block_type_available
 from pydatalab.blocks import store as block_store
 from pydatalab.config import CONFIG
 from pydatalab.feature_flags import FEATURE_FLAGS
@@ -23,11 +24,13 @@ from pydatalab.models import (
     ITEM_MODELS,
     ItemVersion,
     flagged_summary_fields,
+    is_item_type_available,
 )
 from pydatalab.models.items import Item
 from pydatalab.models.people import AccountStatus
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import (
+    Constituent,
     InlineSubstance,
     construct_location_hierarchy,
     generate_unique_refcode,
@@ -79,178 +82,62 @@ LAST_MODIFIED_PROJECTION = {"$ifNull": ["$last_modified", {"$toDate": "$_id"}]}
 def _(): ...
 
 
-@ITEMS.route("/equipment/", methods=["GET"])
-def get_equipment_summary():
-    _project = {
-        "_id": 0,
-        "item_id": 1,
-        "name": 1,
-        "type": 1,
-        "date": 1,
-        "last_modified": LAST_MODIFIED_PROJECTION,
-        "refcode": 1,
-        "location": 1,
-        "status": 1,
-        "creators": {
-            "display_name": 1,
-            "gravatar_hash": 1,
-        },
-        "groups": {
-            "display_name": 1,
-            "group_id": 1,
-        },
-    }
-
-    for field in flagged_summary_fields(("equipment",)):
-        _project.setdefault(field, 1)
-
-    items = [
-        doc
-        for doc in flask_mongo.db.items.aggregate(
-            [
-                {
-                    "$match": {
-                        "type": "equipment",
-                        **get_default_permissions(user_only=False, inherit_from_collections=False),
-                    }
-                },
-                {"$lookup": creators_lookup()},
-                {"$lookup": groups_lookup()},
-                {"$project": _project},
-            ]
-        )
-    ]
-    return jsonify({"status": "success", "items": items})
+@ITEMS.route("/items/", methods=["GET"])
+def get_items(
+    item_types: list[str] | None = None,
+    filter: str | None = None,
+    sort: tuple[str, int] | None = None,
+    permissions: Literal["mine", "shared_with_me", "shared_with_my_groups", "all"] = "mine",
+    page_cursor: str | None = None,
+):
+    # parse arguments
+    # handle permissions
+    # get types (cached)
+    # get summary fields (cached)
+    # parse filter
+    # handle sorting
+    # get items (paginated)
+    # resolve references to other entries (blocks, collections, + others)
+    raise NotImplementedError("get_items endpoint is not yet implemented.")
 
 
-@ITEMS.route("/starting-materials/", methods=["GET"])
-def get_starting_materials():
-    _project = {
-        "_id": 0,
-        "item_id": 1,
-        "blocks": {
-            "$map": {
-                "input": {"$objectToArray": {"$ifNull": ["$blocks_obj", {}]}},
-                "as": "b",
-                "in": {
-                    "blocktype": "$$b.v.blocktype",
-                    "title": "$$b.v.title",
-                },
-            }
-        },
-        "collections": {
-            "collection_id": 1,
-        },
-        "nblocks": {"$size": "$display_order"},
-        "nfiles": {"$size": "$file_ObjectIds"},
-        "date": 1,
-        "chemform": 1,
-        "smiles": 1,
-        "inchi_key": 1,
-        "GHS_codes": 1,
-        "molar_mass": 1,
-        "name": 1,
-        "type": 1,
-        "chemical_purity": 1,
-        "barcode": 1,
-        "refcode": 1,
-        "supplier": 1,
-        "location": 1,
-        "status": 1,
-        "CAS": 1,
-        "creators": {
-            "display_name": 1,
-            "gravatar_hash": 1,
-        },
-        "groups": {
-            "display_name": 1,
-            "group_id": 1,
-        },
-    }
+def _get_summary(
+    types: list[str] | None = None,
+    match: dict | None = None,
+    project: dict | None = None,
+    inherit_from_collections: bool = True,
+    include_blocks: bool = True,
+    include_collections: bool = True,
+) -> list[dict]:
+    """Return summaries of the item entries that match some criteria.
 
-    for field in flagged_summary_fields(("starting_materials",)):
-        _project.setdefault(field, 1)
-
-    items = [
-        doc
-        for doc in flask_mongo.db.items.aggregate(
-            [
-                {
-                    "$match": {
-                        "type": "starting_materials",
-                        **get_default_permissions(user_only=False, inherit_from_collections=False),
-                    }
-                },
-                {"$lookup": creators_lookup()},
-                {"$lookup": groups_lookup()},
-                {"$lookup": collections_lookup()},
-                *block_store.blocks_preview_stages(),
-                {
-                    "$project": {
-                        "_id": 0,
-                        "item_id": 1,
-                        "blocks": block_store.blocks_preview_projection(),
-                        "collections": {
-                            "collection_id": 1,
-                        },
-                        "nblocks": {"$size": "$display_order"},
-                        "nfiles": {"$size": "$file_ObjectIds"},
-                        "date": 1,
-                        "last_modified": LAST_MODIFIED_PROJECTION,
-                        "chemform": 1,
-                        "smiles": 1,
-                        "inchi_key": 1,
-                        "GHS_codes": 1,
-                        "molar_mass": 1,
-                        "name": 1,
-                        "type": 1,
-                        "chemical_purity": 1,
-                        "barcode": 1,
-                        "refcode": 1,
-                        "supplier": 1,
-                        "location": 1,
-                        "status": 1,
-                        "CAS": 1,
-                        "creators": {
-                            "display_name": 1,
-                            "gravatar_hash": 1,
-                        },
-                        "groups": {
-                            "display_name": 1,
-                            "group_id": 1,
-                        },
-                    }
-                },
-                {
-                    "$sort": {
-                        "date": -1,
-                    },
-                },
-            ]
-        )
-    ]
-    return jsonify({"status": "success", "items": items})
-
-
-get_starting_materials.methods = ("GET",)  # type: ignore
-
-
-def get_items_summary(match: dict | None = None, project: dict | None = None) -> list[dict]:
-    """Return a summary of item entries that match some criteria.
+    The projected fields are those flagged with `datalab_include_field_in_summary`
+    in the models of the requested item types, alongside some fields that are
+    common to all summaries (type, creators, groups, last modification time) and,
+    optionally, collection and block previews.
 
     Parameters:
+        types: The item types to summarise; defaults to all registered item types.
         match: A MongoDB aggregation match query to filter the results.
         project: A MongoDB aggregation project query to filter the results, relative
             to the default included below.
+        inherit_from_collections: Whether items should inherit read access from the
+            collections they are members of.
+        include_blocks: Whether to include block previews and block/file counts.
+        include_collections: Whether to include the collections each item is in.
 
     """
-    if not match:
-        match = {}
-    match.update(get_default_permissions(user_only=False))
+    match = dict(match) if match else {}
+    match.update(
+        get_default_permissions(user_only=False, inherit_from_collections=inherit_from_collections)
+    )
+    if types is not None:
+        match["type"] = {"$in": types}
 
-    _project = {
+    _project: dict = {
         "_id": 0,
-        "blocks": block_store.blocks_preview_projection(),
+        "type": 1,
+        "last_modified": LAST_MODIFIED_PROJECTION,
         "creators": {
             "display_name": 1,
             "gravatar_hash": 1,
@@ -259,30 +146,24 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
             "display_name": 1,
             "group_id": 1,
         },
-        "collections": {
-            "collection_id": 1,
-            "title": 1,
-        },
-        "item_id": 1,
-        "name": 1,
-        "chemform": 1,
-        "smiles": 1,
-        "inchi_key": 1,
-        "GHS_codes": 1,
-        "molar_mass": 1,
-        "nblocks": {"$size": "$display_order"},
-        "nfiles": {"$size": "$file_ObjectIds"},
-        "characteristic_chemical_formula": 1,
-        "type": 1,
-        "date": 1,
-        "last_modified": LAST_MODIFIED_PROJECTION,
-        "refcode": 1,
-        "status": 1,
     }
+    pipeline: list[dict] = [
+        {"$match": match},
+        {"$lookup": creators_lookup()},
+        {"$lookup": groups_lookup()},
+    ]
 
-    # Include any fields (across all registered item types, including custom
-    # ones) that opt into summaries via `datalab_include_field_in_summary`.
-    for field in flagged_summary_fields(ITEM_MODELS):
+    if include_collections:
+        _project["collections"] = {"collection_id": 1, "title": 1}
+        pipeline.append({"$lookup": collections_lookup()})
+
+    if include_blocks:
+        _project["blocks"] = block_store.blocks_preview_projection()
+        _project["nblocks"] = {"$size": "$display_order"}
+        _project["nfiles"] = {"$size": "$file_ObjectIds"}
+        pipeline.extend(block_store.blocks_preview_stages())
+
+    for field in flagged_summary_fields(types if types is not None else ITEM_MODELS):
         _project.setdefault(field, 1)
 
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
@@ -293,19 +174,41 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
             else:
                 _project[key] = 1
 
-    return list(
-        flask_mongo.db.items.aggregate(
-            [
-                {"$match": match},
-                {"$lookup": creators_lookup()},
-                {"$lookup": groups_lookup()},
-                {"$lookup": collections_lookup()},
-                *block_store.blocks_preview_stages(),
-                {"$project": _project},
-                {"$sort": {"date": -1}},
-            ]
-        )
+    pipeline.extend([{"$project": _project}, {"$sort": {"date": -1}}])
+
+    return list(flask_mongo.db.items.aggregate(pipeline))
+
+
+@ITEMS.route("/equipment/", methods=["GET"])
+def get_equipment_summary():
+    items = _get_summary(
+        ["equipment"],
+        inherit_from_collections=False,
+        include_blocks=False,
+        include_collections=False,
     )
+    return jsonify({"status": "success", "items": items})
+
+
+@ITEMS.route("/starting-materials/", methods=["GET"])
+def get_starting_materials():
+    items = _get_summary(["starting_materials"], inherit_from_collections=False)
+    return jsonify({"status": "success", "items": items})
+
+
+get_starting_materials.methods = ("GET",)  # type: ignore
+
+
+def get_items_summary(match: dict | None = None, project: dict | None = None) -> list[dict]:
+    """Return a summary of item entries of any type that match some criteria.
+
+    Parameters:
+        match: A MongoDB aggregation match query to filter the results.
+        project: A MongoDB aggregation project query to filter the results, relative
+            to the default included below.
+
+    """
+    return _get_summary(match=match, project=project)
 
 
 def get_samples_summary(match: dict | None = None, project: dict | None = None) -> list[dict]:
@@ -317,73 +220,19 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
             to the default included below.
 
     """
-    if not match:
-        match = {}
-    match.update(get_default_permissions(user_only=False, inherit_from_collections=False))
     # Custom/plugin item types are surfaced in the samples listing for now (a
     # `base_type`-aware split into samples/equipment/inventory can refine this later).
     custom_item_types = [t for t in ITEM_MODELS if t not in BUILTIN_ITEM_TYPES]
-    match["type"] = {"$in": ["samples", "cells", *custom_item_types]}
 
-    _project = {
-        "_id": 0,
-        "blocks": block_store.blocks_preview_projection(),
-        "creators": {
-            "display_name": 1,
-            "gravatar_hash": 1,
-        },
-        "groups": {
-            "display_name": 1,
-            "group_id": 1,
-        },
-        "collections": {
-            "collection_id": 1,
-            "title": 1,
-        },
-        "item_id": 1,
-        "name": 1,
-        "chemform": 1,
-        "GHS_codes": 1,
-        "smiles": 1,
-        "molar_mass": 1,
-        "CAS": 1,
-        "nblocks": {"$size": "$display_order"},
-        "nfiles": {"$size": "$file_ObjectIds"},
-        "characteristic_chemical_formula": 1,
-        "type": 1,
-        "date": 1,
-        "last_modified": LAST_MODIFIED_PROJECTION,
-        "refcode": 1,
-        "status": 1,
-    }
+    project = dict(project) if project else {}
     if FEATURE_FLAGS.tags:
-        _project["tags"] = 1
+        project.setdefault("tags", 1)
 
-    # Include any fields on samples/cells/custom types that opt into summaries
-    # via `datalab_include_field_in_summary`.
-    for field in flagged_summary_fields(ITEM_MODELS):
-        _project.setdefault(field, 1)
-
-    # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
-    if project:
-        for key in project:
-            if project[key] == 0:
-                _project.pop(key, None)
-            else:
-                _project[key] = 1
-
-    samples = list(
-        flask_mongo.db.items.aggregate(
-            [
-                {"$match": match},
-                {"$lookup": creators_lookup()},
-                {"$lookup": groups_lookup()},
-                {"$lookup": collections_lookup()},
-                *block_store.blocks_preview_stages(),
-                {"$project": _project},
-                {"$sort": {"date": -1}},
-            ]
-        )
+    samples = _get_summary(
+        ["samples", "cells", *custom_item_types],
+        match=match,
+        project=project,
+        inherit_from_collections=False,
     )
     if FEATURE_FLAGS.tags:
         resolve_tags_for_docs(samples)
@@ -506,6 +355,21 @@ def collections_lookup() -> dict:
     }
 
 
+def _collection_identity_query(collection: dict) -> dict | None:
+    """Build a query that identifies a collection by its ID only.
+
+    Collection references sent by the client may carry other fields (e.g., `title`
+    or a defaulted `relationships`) that do not necessarily match the stored
+    document, so these must not be used as query filters.
+
+    """
+    if collection.get("immutable_id"):
+        return {"_id": ObjectId(collection["immutable_id"])}
+    if collection.get("collection_id"):
+        return {"collection_id": collection["collection_id"]}
+    return None
+
+
 def _check_collections(sample_dict: dict) -> list[dict[str, str]]:
     """Loop through the provided collection metadata for the sample and
     return the list of references to store (i.e., just the `immutable_id`
@@ -522,10 +386,9 @@ def _check_collections(sample_dict: dict) -> list[dict[str, str]]:
     """
     if sample_dict.get("collections", []):
         for ind, c in enumerate(sample_dict.get("collections", [])):
-            query = {}
-            query.update(c)
-            if "immutable_id" in c:
-                query["_id"] = ObjectId(query.pop("immutable_id"))
+            query = _collection_identity_query(c)
+            if query is None:
+                raise ValueError(f"Collection reference must have an ID: {c}")
             result = flask_mongo.db.collections.find_one({**query, **get_default_permissions()})
             if not result:
                 raise ValueError(f"No collection found matching request: {c}")
@@ -547,10 +410,9 @@ def _scrub_collections_for_save(sample_dict: dict) -> list[dict[str, str]]:
 
     if sample_dict.get("collections", []):
         for c in sample_dict.get("collections", []):
-            query = {}
-            query.update(c)
-            if "immutable_id" in c:
-                query["_id"] = ObjectId(query.pop("immutable_id"))
+            query = _collection_identity_query(c)
+            if query is None:
+                continue
 
             result = flask_mongo.db.collections.find_one({**query, **get_default_permissions()})
 
@@ -621,6 +483,24 @@ def search_items():
     return jsonify({"status": "success", "items": list(cursor)}), 200
 
 
+def _copyable_constituent_fields(item_type: str) -> tuple[str, ...]:
+    """Return the names of the fields of the item model that are lists of `Constituent`s
+    (or subclasses thereof, e.g., `CellComponent`).
+
+    """
+    fields: tuple[str, ...] = ()
+    for name, info in ITEM_MODELS[item_type].model_fields.items():
+        args = get_args(info.annotation)
+        if (
+            get_origin(info.annotation) is list
+            and args
+            and isinstance(args[0], type)
+            and issubclass(args[0], Constituent)
+        ):
+            fields += (name,)
+    return fields
+
+
 def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
     copied_doc = flask_mongo.db.items.find_one(
         {"item_id": copy_from_item_id, **get_default_permissions(user_only=False)}
@@ -648,49 +528,93 @@ def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
     copied_doc.pop("blocks", None)
     copied_doc.pop("file_ObjectIds", None)
 
-    # any provided constituents will be added to the synthesis information table in
+    requested_type = sample_dict.get("type")
+    if requested_type and requested_type != copied_doc["type"]:
+        raise BadRequest(
+            f"Request to copy item with id {copy_from_item_id} of type {copied_doc['type']!r} "
+            f"into a new item of different type {requested_type!r} is not supported."
+        )
+
+    # any provided constituents will be added to the relevant constituent tables in
     # addition to the constituents copied from the copy_from_item_id, avoiding duplicates
-    if copied_doc["type"] == "samples":
-        existing_consituent_ids = [
-            constituent["item"].get("item_id", None)
-            for constituent in copied_doc["synthesis_constituents"]
-        ]
-        copied_doc["synthesis_constituents"] += [
+    # (matched by either item_id or refcode).
+    for component in _copyable_constituent_fields(copied_doc["type"]):
+        if not isinstance(copied_doc.get(component), list):
+            continue
+        existing_constituent_ids = {
+            identifier
+            for constituent in copied_doc[component]
+            for identifier in (
+                constituent["item"].get("item_id"),
+                constituent["item"].get("refcode"),
+            )
+            if identifier
+        }
+        copied_doc[component] += [
             constituent
-            for constituent in sample_dict.get("synthesis_constituents", [])
-            if constituent["item"].get("item_id") is None
-            or constituent["item"].get("item_id") not in existing_consituent_ids
+            for constituent in sample_dict.get(component, [])
+            if not {constituent["item"].get("item_id"), constituent["item"].get("refcode")}
+            & existing_constituent_ids
         ]
 
-        original_collections = sample_dict.get("collections", [])
-        sample_dict = copied_doc
+    original_collections = sample_dict.get("collections", [])
+    sample_dict = copied_doc
 
-        if original_collections:
-            sample_dict["collections"] = original_collections
-
-    elif copied_doc["type"] == "cells":
-        for component in (
-            "positive_electrode",
-            "negative_electrode",
-            "electrolyte",
-        ):
-            existing_consituent_ids = [
-                constituent["item"].get("item_id", None) for constituent in copied_doc[component]
-            ]
-            copied_doc[component] += [
-                constituent
-                for constituent in sample_dict.get(component, [])
-                if constituent["item"].get("item_id", None) is None
-                or constituent["item"].get("item_id") not in existing_consituent_ids
-            ]
-
-        original_collections = sample_dict.get("collections", [])
-        sample_dict = copied_doc
-
-        if original_collections:
-            sample_dict["collections"] = original_collections
+    if original_collections:
+        sample_dict["collections"] = original_collections
 
     return sample_dict
+
+
+def _check_incoming_block_types(
+    blocks_obj: dict,
+    item_type: str,
+    stored_payloads: dict | None = None,
+) -> None:
+    """Validate the block types of an incoming `blocks_obj` against the stored blocks
+    and the deployment's block availability settings.
+
+    - Every block must be a dict with a string `blocktype` (400 otherwise).
+    - Existing blocks (those in `stored_payloads`) may not change their `blocktype` (400).
+    - Existing blocks otherwise remain editable if their type becomes unavailable.
+    - New blocks of an installed type must be allowed globally and for the item type (403).
+    - New blocks of an uninstalled type are only let through, to be stored as `notsupported`
+      blocks, when neither `BLOCK_TYPE_ALLOW_LIST` nor `ITEM_TYPE_ALLOW_LIST` is set (403
+      otherwise).
+
+    """
+    if not isinstance(blocks_obj, dict):
+        raise BadRequest("`blocks_obj` must be a mapping of block IDs to block data.")
+
+    stored_payloads = stored_payloads or {}
+    for block_id, block_data in blocks_obj.items():
+        if not isinstance(block_data, dict) or not isinstance(block_data.get("blocktype"), str):
+            raise BadRequest(f"Block {block_id!r} must be an object with a string 'blocktype'.")
+
+        block_type = block_data["blocktype"]
+        stored_block = stored_payloads.get(block_id)
+        if stored_block is not None:
+            stored_type = stored_block.get("blocktype")
+            if stored_type is not None and stored_type != block_type:
+                raise BadRequest(
+                    f"Cannot change the type of existing block {block_id!r} "
+                    f"from {stored_type!r} to {block_type!r}."
+                )
+            continue
+
+        if block_type not in BLOCK_TYPES:
+            if CONFIG.BLOCK_TYPE_ALLOW_LIST is not None or CONFIG.ITEM_TYPE_ALLOW_LIST is not None:
+                raise Forbidden(
+                    f"Block type {block_type!r} is not installed and cannot be added "
+                    "while block or item type allow lists are configured."
+                )
+            continue
+
+        if not is_block_type_available(block_type, item_type):
+            raise Forbidden(
+                f"Block type {block_type!r} is not available in this deployment "
+                f"for item type {item_type!r}."
+            )
 
 
 def _create_sample(
@@ -721,10 +645,13 @@ def _create_sample(
     type_ = sample_dict["type"]
     if type_ not in ITEM_MODELS:
         raise BadRequest(f"Invalid type {type_!r}, must be one of {ITEM_MODELS.keys()}")
+    if not is_item_type_available(type_):
+        raise Forbidden(f"Item type {type_!r} is not available in this deployment.")
 
     model = ITEM_MODELS[type_]
 
     new_sample = sample_dict.copy()
+    _check_incoming_block_types(new_sample.get("blocks_obj") or {}, type_)
 
     if type_ in INVENTORY_TYPES:
         # starting_materials and equipment are open to all in the deployment (or to the
@@ -1754,11 +1681,14 @@ def delete_version(refcode, version_id):
 
 @ITEMS.route("/items/<refcode>/save-version/", methods=["POST"])
 def save_version(refcode):
-    """Manually save the current state of an item as a version snapshot with an incremental version number."""
+    """Manually save the current state of an item as a version snapshot with an incremental version number.
+
+    Requires write access to the item.
+    """
     response, status_code = save_version_snapshot(
         refcode,
         action=None,  # let the function determine the appropriate action (e.g. AGENT_SAVE vs MANUAL_SAVE) based on user-agent
-        permission_filter=get_default_permissions(user_only=False),
+        permission_filter=get_default_permissions(user_only=True),
     )
     if status_code == 200 and "version" in response:
         if len(refcode.split(":")) != 2:
@@ -1844,6 +1774,7 @@ def save_item():
         # referenced block that payload lives in the `blocks` collection, not in
         # the item's `blocks_obj` entry.
         stored_payloads = block_store.load_blocks_obj(item) if stored_blocks_obj else {}
+        _check_incoming_block_types(incoming_blocks, item["type"], stored_payloads)
         for block_id, block_data in incoming_blocks.items():
             blocktype = block_data["blocktype"]
             block = BLOCK_TYPES.get(blocktype, BLOCK_TYPES["notsupported"]).from_web(

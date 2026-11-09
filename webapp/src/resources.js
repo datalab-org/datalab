@@ -1,15 +1,13 @@
 // Resources for the application
 
-import { reactive } from "vue";
+import { defineAsyncComponent, reactive } from "vue";
+
+import { CONFIG } from "@/config.js";
 
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import MediaBlock from "@/components/datablocks/MediaBlock";
-import XRDInsituBlock from "@/components/datablocks/XRDInsituBlock";
-import ChatBlock from "@/components/datablocks/ChatBlock";
 import CycleBlock from "@/components/datablocks/CycleBlock";
 import NMRBlock from "@/components/datablocks/NMRBlock";
-import NMRInsituBlock from "@/components/datablocks/NMRInsituBlock";
-import UVVisInsituBlock from "@/components/datablocks/UVVisInsituBlock.vue";
 import UVVisBlock from "@/components/datablocks/UVVisBlock";
 
 import SampleInformation from "@/components/SampleInformation";
@@ -19,50 +17,36 @@ import CollectionInformation from "@/components/CollectionInformation";
 import EquipmentInformation from "@/components/EquipmentInformation";
 import ItemInformation from "@/components/ItemInformation";
 
-import { PLUGIN_PANELS } from "./plugins/index.js";
+import { PLUGIN_BLOCKS, PLUGIN_PANELS } from "./plugins/index.js";
 
 import SampleCreateModalAddon from "@/components/itemCreateModalAddons/SampleCreateModalAddon";
 import CellCreateModalAddon from "@/components/itemCreateModalAddons/CellCreateModalAddon";
 import StartingMaterialCreateModalAddon from "./components/itemCreateModalAddons/StartingMaterialCreateModalAddon.vue";
 
-// Look for values set in .env file. Use defaults if `null` is not explicitly handled elsewhere in the code.
-export const API_URL =
-  process.env.VUE_APP_API_URL != null ? process.env.VUE_APP_API_URL : "http://localhost:5001";
+export const API_URL = CONFIG.API_URL;
 
-export const QR_CODE_RESOLVER_URL = process.env.VUE_APP_QR_CODE_RESOLVER_URL;
+export const QR_CODE_RESOLVER_URL = CONFIG.QR_CODE_RESOLVER_URL;
 
 export const FEDERATION_QR_CODE_RESOLVER_URL = "https://purl.datalab-org.io";
 
-export const LOGO_URL = process.env.VUE_APP_LOGO_URL;
-export const LOGO_WIDTH = process.env.VUE_APP_LOGO_WIDTH || "100";
-export const HOMEPAGE_URL = process.env.VUE_APP_HOMEPAGE_URL;
-export const APP_VERSION = process.env.VUE_APP_GIT_VERSION;
+export const LOGO_URL = CONFIG.LOGO_URL;
+export const LOGO_WIDTH = CONFIG.LOGO_WIDTH;
+export const HOMEPAGE_URL = CONFIG.HOMEPAGE_URL;
+export const APP_VERSION = CONFIG.GIT_VERSION;
 
-export const WEBSITE_TITLE = process.env.VUE_APP_WEBSITE_TITLE || "datalab";
+export const WEBSITE_TITLE = CONFIG.WEBSITE_TITLE;
 
 export const GRAVATAR_STYLE = "identicon";
 
-// determine whether inventory should be readonly (except blocks). Note: environment
-// variables can only be strings, not bools.
-const editable_inventory = process.env.VUE_APP_EDITABLE_INVENTORY || "false";
-export const EDITABLE_INVENTORY = editable_inventory.toLowerCase() == "true";
+// determine whether inventory should be readonly (except blocks).
+export const EDITABLE_INVENTORY = CONFIG.EDITABLE_INVENTORY;
 
-const automatically_generate_id_default =
-  process.env.VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT || "false";
-export const AUTOMATICALLY_GENERATE_ID_DEFAULT =
-  automatically_generate_id_default.toLowerCase() == "true";
+export const HIDE_COLLECTIONS = CONFIG.HIDE_COLLECTIONS;
+
+export const AUTOMATICALLY_GENERATE_ID_DEFAULT = CONFIG.AUTOMATICALLY_GENERATE_ID_DEFAULT;
 
 // Eventually this should be pulled from the schema
 export const DATETIME_FIELDS = new Set(["date"]);
-
-export const UPPY_MAX_TOTAL_FILE_SIZE =
-  Number(process.env.VUE_APP_UPPY_MAX_TOTAL_FILE_SIZE) != null
-    ? process.env.VUE_APP_UPPY_MAX_TOTAL_FILE_SIZE
-    : 102400000000;
-export const UPPY_MAX_NUMBER_OF_FILES =
-  Number(process.env.VUE_APP_UPPY_MAX_NUMBER_OF_FILES) != null
-    ? process.env.VUE_APP_UPPY_MAX_NUMBER_OF_FILES
-    : 10000;
 
 export const debounceTime = 250; // time after user stops typing before request is sent
 
@@ -72,16 +56,18 @@ export const customBlockTypes = {
   media: { description: "Media", component: MediaBlock, name: "Media" },
   cycle: { description: "Electrochemistry", component: CycleBlock, name: "Electrochemistry" },
   nmr: { description: "Nuclear Magnetic Resonance Spectroscopy", component: NMRBlock, name: "NMR" },
-  chat: { description: "Virtual assistant", component: ChatBlock, name: "Virtual Assistant" },
   "uv-vis": { description: "UV-Vis", component: UVVisBlock, name: "UV-Vis" },
-  "insitu-nmr": { description: "NMR insitu", component: NMRInsituBlock, name: "NMR insitu" },
-  "insitu-uvvis": {
-    description: "UV-Vis insitu",
-    component: UVVisInsituBlock,
-    name: "UV-Vis insitu",
-  },
-  "insitu-xrd": { description: "XRD insitu", component: XRDInsituBlock, name: "XRD insitu" },
 };
+
+// Blocks contributed by plugin manifests; built-in components take precedence.
+// Each component is wrapped once here so it is not remounted on every render.
+for (const [blocktype, loader] of Object.entries(PLUGIN_BLOCKS)) {
+  if (blocktype in customBlockTypes) {
+    console.warn(`Plugin block "${blocktype}" shadows a built-in block; ignoring.`);
+    continue;
+  }
+  customBlockTypes[blocktype] = { component: defineAsyncComponent(loader) };
+}
 
 // Reactive so that components re-render when dynamic (plugin) types are
 // registered after app startup — plain mutation would be cached forever by
@@ -161,7 +147,7 @@ const BASE_TYPE_COMPONENTS = {
 
 export function prettifyType(type) {
   return type
-    .replace(/_/g, " ")
+    .replace(/[-_:]+/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase())
     .trim();
 }
@@ -181,14 +167,34 @@ function lightTint(hex, amount = 0.82) {
   return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
 }
 
-// Register a custom/plugin item type (one served by the backend but not hardcoded
-// above) into the shared `itemTypes` registry.
+// Apply server-provided metadata to a built-in item type, or register a
+// custom/plugin type that is not hardcoded above, in the shared `itemTypes` registry.
 // - base_type: the built-in type string this model inherits from (e.g. "samples")
 // - hidden_fields: base-component fields the plugin wants to hide (from model_config)
 // - title: human-readable display name
 // - ui_color: accent color for navbar/labels (`datalab_ui_color` on model_config)
-export function registerDynamicItemType(type, { title, base_type, hidden_fields, ui_color } = {}) {
-  if (!type || itemTypes[type]) return; // never clobber a built-in / existing entry
+export function registerDynamicItemType(
+  type,
+  {
+    title,
+    base_type,
+    hidden_fields,
+    ui_color,
+    available = true,
+    block_type_allow_list = null,
+  } = {},
+) {
+  if (!type) return;
+
+  const itemTypeAvailability = {
+    available: available !== false,
+    blockTypeAllowList: block_type_allow_list,
+  };
+  if (itemTypes[type]) {
+    Object.assign(itemTypes[type], itemTypeAvailability);
+    return;
+  }
+
   const display = title || prettifyType(type);
   const color = ui_color || "#4a4a4a";
   itemTypes[type] = {
@@ -203,6 +209,7 @@ export function registerDynamicItemType(type, { title, base_type, hidden_fields,
     baseType: base_type || null,
     hiddenFields: hidden_fields || [],
     customPanel: PLUGIN_PANELS[type] || null,
+    ...itemTypeAvailability,
   };
 }
 

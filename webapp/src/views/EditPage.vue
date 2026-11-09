@@ -62,6 +62,7 @@
           menu-testid="add-block-dropdown"
           :suggested-block-types="suggestedBlockTypes"
           :all-block-types="allBlockTypes"
+          :disabled="noBlockTypesAvailable"
           @select="newBlock"
         />
         <ExportDropdown
@@ -152,6 +153,7 @@
           menu-testid="add-block-dropdown-bottom"
           :suggested-block-types="suggestedBlockTypes"
           :all-block-types="allBlockTypes"
+          :disabled="noBlockTypesAvailable"
           @select="newBlock"
         />
       </div>
@@ -331,11 +333,7 @@ export default {
         return [];
       }
 
-      return this.blocksInfos.filter((blockInfo) => {
-        if (blockInfo.id === "notsupported") {
-          return false;
-        }
-
+      return this.availableBlockInfos.filter((blockInfo) => {
         const acceptedExtensions = blockInfo.attributes?.accepted_file_extensions;
         if (!acceptedExtensions || acceptedExtensions.length === 0) {
           return false;
@@ -348,12 +346,27 @@ export default {
         );
       });
     },
+    // Block types that may be added to this item: excludes the `notsupported` placeholder
+    // and types disallowed globally or for this item type.
+    availableBlockInfos() {
+      const blockTypeAllowList = this.itemTypeEntry?.blockTypeAllowList ?? null;
+      return this.blocksInfos.filter((blockInfo) => {
+        return (
+          blockInfo.id !== "notsupported" &&
+          blockInfo.attributes?.available !== false &&
+          (blockTypeAllowList === null || blockTypeAllowList.includes(blockInfo.id))
+        );
+      });
+    },
     allBlockTypes() {
       if (!this.blockInfoLoaded) {
         return [];
       }
 
-      return this.blocksInfos.filter((blockInfo) => blockInfo.id !== "notsupported");
+      return this.availableBlockInfos;
+    },
+    noBlockTypesAvailable() {
+      return this.blockInfoLoaded && this.allBlockTypes.length === 0;
     },
   },
   watch: {
@@ -384,23 +397,32 @@ export default {
   },
   mounted() {
     // overwrite ctrl-s and cmd-s to save the page
-    this._keyListener = function (e) {
+    // An arrow function, so that the exact same function is added here and removed on unmount
+    this._keyListener = (e) => {
       if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
         e.preventDefault(); // present "Save Page" from getting triggered.
         this.saveSample();
       }
     };
-    document.addEventListener("keydown", this._keyListener.bind(this));
+    document.addEventListener("keydown", this._keyListener);
 
     // Retreive the cached file tree
     // this.loadCachedTree()
     // this.updateRemoteTree()
 
-    // setup the uppy instsance
-    setupUppy(this.item_id, "#uppy-trigger", {});
+    // Set up the uppy instance. The item is looked up per upload, as this page is reused
+    // (not remounted) when navigating between items, and when opened by refcode only knows
+    // its `item_id` once the item has loaded.
+    this.uppyPromise = setupUppy(() => this.item_id, "#uppy-trigger", {});
   },
   beforeUnmount() {
     document.removeEventListener("keydown", this._keyListener);
+    clearInterval(this.interval);
+    // Normally removed by the `savedStatus` watcher, which may not fire when leaving
+    // without saving, so remove it here too
+    window.removeEventListener("beforeunload", this.leavePageWarningListener, true);
+    // Remove the upload dashboard (and its document listeners) from the page
+    this.uppyPromise?.then((uppy) => uppy.destroy());
   },
   methods: {
     async newBlock(blockType, index = null) {
@@ -499,6 +521,9 @@ export default {
       this.blockInfoLoaded = true;
     },
     reloadForRoute() {
+      // Clear the upload dashboard so that files queued for the previous item are not
+      // shown (or uploaded) on the new one
+      this.uppyPromise?.then((uppy) => uppy.cancelAll());
       this.item_id = this.$route.params?.id || null;
       this.refcode = this.$route.params?.refcode || null;
       this.itemDataLoaded = false;
