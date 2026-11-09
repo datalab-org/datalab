@@ -13,6 +13,63 @@ def test_default_settings():
     assert Path(config.FILE_DIRECTORY).name == "files"
 
 
+def test_block_type_allow_list_settings():
+    from pydatalab.config import ServerConfig
+
+    assert ServerConfig().BLOCK_TYPE_ALLOW_LIST is None
+    assert ServerConfig(BLOCK_TYPE_ALLOW_LIST=[]).BLOCK_TYPE_ALLOW_LIST == []
+    assert ServerConfig(BLOCK_TYPE_ALLOW_LIST=["comment", "xrd"]).BLOCK_TYPE_ALLOW_LIST == [
+        "comment",
+        "xrd",
+    ]
+
+
+def test_item_type_allow_list_settings(monkeypatch):
+    from pydatalab.config import ItemTypeAllowListEntry, ServerConfig
+
+    assert ServerConfig().ITEM_TYPE_ALLOW_LIST is None
+    assert ServerConfig(ITEM_TYPE_ALLOW_LIST=[]).ITEM_TYPE_ALLOW_LIST == []
+
+    config = ServerConfig(
+        ITEM_TYPE_ALLOW_LIST=[
+            "samples",
+            {"type": "cells", "block_type_allow_list": ["comment", "cycle"]},
+            {"type": "equipment", "block_type_allow_list": []},
+            {"type": "starting_materials", "block_type_allow_list": None},
+        ]
+    )
+    assert config.ITEM_TYPE_ALLOW_LIST == [
+        ItemTypeAllowListEntry(type="samples", block_type_allow_list=None),
+        ItemTypeAllowListEntry(type="cells", block_type_allow_list=["comment", "cycle"]),
+        ItemTypeAllowListEntry(type="equipment", block_type_allow_list=[]),
+        ItemTypeAllowListEntry(type="starting_materials", block_type_allow_list=None),
+    ]
+
+    monkeypatch.setenv(
+        "PYDATALAB_ITEM_TYPE_ALLOW_LIST",
+        '["samples", {"type": "cells", "block_type_allow_list": ["comment"]}]',
+    )
+    assert ServerConfig().ITEM_TYPE_ALLOW_LIST == [
+        ItemTypeAllowListEntry(type="samples", block_type_allow_list=None),
+        ItemTypeAllowListEntry(type="cells", block_type_allow_list=["comment"]),
+    ]
+
+    with pytest.raises(ValueError, match="Field required"):
+        ServerConfig(ITEM_TYPE_ALLOW_LIST=[{"type": "samples"}])
+
+
+def test_item_type_allow_list_rejects_duplicate_types():
+    from pydatalab.config import ServerConfig
+
+    with pytest.raises(ValueError, match="duplicate item types: samples"):
+        ServerConfig(
+            ITEM_TYPE_ALLOW_LIST=[
+                "samples",
+                {"type": "samples", "block_type_allow_list": []},
+            ]
+        )
+
+
 def test_update_settings():
     from pydatalab.config import ServerConfig
 
@@ -254,3 +311,18 @@ def test_key_strength_checker():
         assert _check_key_strength("ab" * 16)
 
     assert _check_key_strength("abcdefghijklmnopqrstuvwxyz") is None
+
+
+def test_bad_export_dir_fails_startup(tmp_path, monkeypatch, secret_key):
+    """App startup should fail if the `.eln` export directory cannot be created."""
+    from pydatalab.main import create_app
+    from pydatalab.routes.v0_1 import export
+
+    # A path nested under a regular file can never be created as a directory
+    not_a_dir = tmp_path / "not-a-dir"
+    not_a_dir.write_text("")
+    monkeypatch.setattr(export, "_export_dir", lambda: not_a_dir / "eln-exports")
+
+    # Reset the secret key, as previous tests may have left a weak one in the global config
+    with pytest.raises(RuntimeError, match="export directory"):
+        create_app({"SECRET_KEY": secret_key})

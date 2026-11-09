@@ -1,4 +1,5 @@
 import { findIconDefinition } from "@fortawesome/fontawesome-svg-core";
+import { CONFIG } from "@/config.js";
 
 export const NAVIGATION_VIEWS = {
   about: {
@@ -12,6 +13,7 @@ export const NAVIGATION_VIEWS = {
   collections: {
     routeName: "collections",
     defaultLabel: "Collections",
+    isAvailable: () => !CONFIG.HIDE_COLLECTIONS,
   },
   "starting-materials": {
     routeName: "starting-materials",
@@ -62,8 +64,7 @@ export function resolveNavigation(serverInfo) {
       return [];
     }
     const definition = NAVIGATION_VIEWS[view];
-    // Views can become conditional when their corresponding feature exists by adding, e.g.,
-    // `isAvailable: (info) => info.features.collections_enabled` to their catalog entry.
+    // Conditional views define an `isAvailable` predicate in the catalog, as Collections does.
     if (definition.isAvailable && !definition.isAvailable(serverInfo)) {
       console.warn(`Ignoring unavailable navigation view ${JSON.stringify(view)}.`);
       return [];

@@ -8,6 +8,7 @@ from pymongo.results import InsertOneResult, UpdateResult
 
 from pydatalab.logger import LOGGER, logged_route
 from pydatalab.models.collections import Collection
+from pydatalab.models.people import AccountStatus
 from pydatalab.mongo import COLLECTIONS_FTS_FIELDS, build_search_pipeline, flask_mongo
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 from pydatalab.routes.v0_1.items import creators_lookup, get_items_summary, groups_lookup
@@ -366,9 +367,20 @@ def update_collection_permissions(collection_id: str):
             400,
         )
 
+    # Deleted users cannot be newly added as creators, but any already present are kept
     if creator_ids:
         found_creator_ids = [
-            d for d in flask_mongo.db.users.find({"_id": {"$in": creator_ids}}, {"_id": 1})
+            d
+            for d in flask_mongo.db.users.find(
+                {
+                    "_id": {"$in": creator_ids},
+                    "$or": [
+                        {"account_status": {"$ne": AccountStatus.DELETED}},
+                        {"_id": {"$in": current_creator_ids}},
+                    ],
+                },
+                {"_id": 1},
+            )
         ]  # type: ignore
         if len(found_creator_ids) != len(creator_ids):
             return (

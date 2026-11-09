@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import AliasChoices, ConfigDict, Field, field_validator, model_validator
 
-from pydatalab.models.people import Group, Person
+from pydatalab.models.people import GroupReference, PersonReference
 from pydatalab.models.utils import (
     BaseModel,
     Constituent,
@@ -31,13 +31,13 @@ class HasOwner(BaseModel):
     creator_ids: list[PyObjectId] = Field([])
     """The database IDs of the user(s) who created the item."""
 
-    creators: list[Person] | None = Field(None)
+    creators: list[PersonReference] | None = Field(None)
     """Inlined info for the people associated with this item."""
 
     group_ids: list[PyObjectId] = Field([])
     """The database IDs of the group(s) that have read-access to this item."""
 
-    groups: list[Group] | None = Field(None)
+    groups: list[GroupReference] | None = Field(None)
     """Inlined info for the groups with access to this item."""
 
 
@@ -242,6 +242,7 @@ class HasSubstanceInfo(BaseModel):
     chemform: str | None = Field(
         None,
         examples=["Na3P", "Na<sub>3</sub>P", "LiNiO2@C", "Na3+xP", "LiNi1/3Co0.1Mn0.1O2"],
+        json_schema_extra={"datalab_include_field_in_summary": True},
     )
     """A string representation of the chemical formula or composition associated with this sample.
 
@@ -251,27 +252,41 @@ class HasSubstanceInfo(BaseModel):
     """
 
     smiles: str | None = Field(
-        None, validation_alias=AliasChoices("smiles_representation", "SMILES")
+        None,
+        validation_alias=AliasChoices("smiles_representation", "SMILES"),
+        json_schema_extra={"datalab_include_field_in_summary": True},
     )
     """A SMILES string representation of the chemical structure associated with this sample."""
 
-    inchi: str | None = Field(None)
+    inchi: str | None = Field(None, json_schema_extra={"datalab_include_field_in_summary": False})
     """An International Chemical Identifier (InChI) string representation of chemicals/molecules associated with this sample."""
 
-    inchi_key: str | None = Field(None)
+    inchi_key: str | None = Field(
+        None, json_schema_extra={"datalab_include_field_in_summary": True}
+    )
     """A unique key derived from the InChI."""
 
     GHS_codes: str | None = Field(
         None,
         alias="GHS H-codes",
         examples=["H224", "H303, H316, H319"],
+        json_schema_extra={"datalab_include_field_in_summary": True},
     )
     """A string describing any GHS hazard codes associated with this item. See https://pubchem.ncbi.nlm.nih.gov/ghs/ for code definitions."""
 
-    molar_mass: float | None = Field(None, alias="Molecular Weight", validate_default=True)
+    molar_mass: float | None = Field(
+        None,
+        alias="Molecular Weight",
+        validate_default=True,
+        json_schema_extra={"datalab_include_field_in_summary": True},
+    )
     """Mass per formula unit, in g/mol."""
 
-    CAS: str | None = Field(None, alias="Substance CAS")
+    CAS: str | None = Field(
+        None,
+        alias="Substance CAS",
+        json_schema_extra={"datalab_include_field_in_summary": True},
+    )
     """The CAS Registry Number for the substance described by this entry."""
 
     @field_validator("molar_mass", mode="before")
@@ -291,5 +306,5 @@ class HasSubstanceInfo(BaseModel):
 
 
 class HasLocation(BaseModel):
-    location: str | None = Field(None)
+    location: str | None = Field(None, json_schema_extra={"datalab_include_field_in_summary": True})
     """The place where the item is located."""

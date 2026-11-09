@@ -4,6 +4,91 @@
 > Release candidates and other pre-releases are not included in this changelog; there may be more
 recent changes described in the [release notes on GitHub](https://github.com/datalab-org/datalab/releases).
 
+## v0.7.12 (October 2026)
+
+This release backports dependency and image updates that address recent vulnerabilities, with no changes to *datalab* functionality.
+The certifi CA bundle is bumped to 2026.10.19 (exempted from the usual one-week dependency cooldown so it can be picked up immediately), and the Docker and CI Node version moves to 22.23.
+The server Docker image and CI now use the latest uv release rather than a pinned version.
+CI also pins MongoDB to 8.0.20, as newer 8.x releases refuse to start on some recent Linux kernels ([SERVER-125742](https://jira.mongodb.org/browse/SERVER-125742)); the Docker Compose MongoDB image can be overridden in the same way with the `MONGO_IMAGE_TAG` environment variable.
+
+Deployments are recommended to update to this or the [v0.8.0-alpha.3](https://github.com/datalab-org/datalab/releases/v0.8.0-alpha.3) alpha and rebuild their containers.
+
+### What's Changed
+
+* Backport CI and docker version pins to resolve recent CA vulns by @ml-evs in https://github.com/datalab-org/datalab/pull/2237
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.11...v0.7.12
+
+## v0.7.11 (October 2026)
+
+This release backports a fix for an XSS bug for moderate severity advisory [GHSA-9cgv-hvcw-jxgx](https://github.com/datalab-org/datalab/security/advisories/GHSA-9cgv-hvcw-jxgx).
+More details can be found above, but deployments are recommended to update.
+
+### What's Changed
+
+* Backport of "XSS fixes for chemical formulae and user display names" by @ml-evs in https://github.com/datalab-org/datalab/pull/2174
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.10...v0.7.11
+
+## v0.7.10 (September 2026)
+
+This release backports a security fix for email (magic-link) authentication.
+Previously, if a logged-in user followed a registration link for an email address without an account, that
+address was added to their own account as a verified identity, allowing whoever controls the
+address to subsequently log in as them.
+Magic links now always log in as the owner of the email address, logging out any current user first (see [#2142](https://github.com/datalab-org/datalab/issues/2142)).
+
+Deployments with email authentication enabled are advised to update.
+The attack surface is small: it requires a logged-in user to be persuaded to follow a link crafted by the attacker, and, where `EMAIL_DOMAIN_ALLOW_LIST` is configured, the attacker must control an address in an allowed domain.
+Deployments without email authentication are unaffected.
+
+### What's Changed
+
+* Backport of "Prevent "registration" magic links from attaching new email to existing user" by @ml-evs in https://github.com/datalab-org/datalab/pull/2144
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.9...v0.7.10
+
+## v0.7.9 (September 2026)
+
+This minor release backports a fix for the in situ plugin that was using a defunct option to the async processing API.
+
+### What's Changed
+
+* Backport "Remove defunct trigger_async causing KeyError when using in situ plugin" by @ml-evs in https://github.com/datalab-org/datalab/pull/2109
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.8...v0.7.9
+
+## v0.7.8 (September 2026)
+
+This minor release bumps the Debian version used in the app container and updates navani to fix a bug with Neware data import.
+
+### What's Changed
+
+* Backport navani bump to fix Neware timestamp issue by @ml-evs in https://github.com/datalab-org/datalab/pull/2081
+* Backport 'Bump Debian version to trixie in app docker build' by @ml-evs in https://github.com/datalab-org/datalab/pull/2086
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.7...v0.7.8
+
+## v0.7.7 (August 2026)
+
+Another release with backported fixes and usability improvements, this time focusing on the TipTap WYSIWYG editor used in the ELN, enabling resizable images and fixing the markdown previewer, as well as a fix for the webapp over requesting data from blocks.
+
+### What's Changed
+
+* Backport tiptap improvements and block request fix by @ml-evs in https://github.com/datalab-org/datalab/pull/2060
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.6...v0.7.7
+
+## v0.7.6 (August 2026)
+
+This is a hotfix release for a UI bug that affected production deployments of 0.7.5. Our test harness has been adapted to run in production mode to catch these in future.
+
+### What's Changed
+
+* Backport table filtering and e2e test fixes to 0.7.x by @ml-evs in https://github.com/datalab-org/datalab/pull/2036
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.7.5...v0.7.6
+
 ## v0.7.5 (August 2026)
 
 This is expected to be the final release in the 0.7.x series. It includes:
@@ -46,7 +131,7 @@ This patch release adds a series of quality-of-life improvements, principally:
 * Fixed editing of roles (UI) by @davidwaroquiers in https://github.com/datalab-org/datalab/pull/1924
 * Bump the python-production group across 1 directory with 9 updates by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1956
 * Extend GSAS-II vendored .raw reader to be able to read incomplete files by @ml-evs in https://github.com/datalab-org/datalab/pull/1974
-* Remove unecessary log volume mounts from docker compose by @ml-evs in https://github.com/datalab-org/datalab/pull/1980
+* Remove unnecessary log volume mounts from docker compose by @ml-evs in https://github.com/datalab-org/datalab/pull/1980
 * Add mongo image healthcheck and add API startup dependency by @ml-evs in https://github.com/datalab-org/datalab/pull/1985
 * Tidy up and improve API logging by @ml-evs in https://github.com/datalab-org/datalab/pull/1984
 * Make block hydration more consistent when using pydantic by @ml-evs in https://github.com/datalab-org/datalab/pull/1979
@@ -115,7 +200,7 @@ On a more pleasant note, the release also includes some niceties:
 * Remove mentions of Jest in documentation and add component test runner by @ml-evs in https://github.com/datalab-org/datalab/pull/1856
 * Fix bug where only admins could be set as managers by @jdbocarsly in https://github.com/datalab-org/datalab/pull/1829
 * Use native bokeh objects in callbacks rather than relying on `window.event` by @be-smith in https://github.com/datalab-org/datalab/pull/1835
-* Fixes error in MS block where multiple chanels aren't plotted as separate panels by @be-smith in https://github.com/datalab-org/datalab/pull/1883
+* Fixes error in MS block where multiple channels aren't plotted as separate panels by @be-smith in https://github.com/datalab-org/datalab/pull/1883
 * Improve install docs for node, Python and MongoDB by @ml-evs in https://github.com/datalab-org/datalab/pull/1903
 * Add some notes and more rules to AGENTS.md by @ml-evs in https://github.com/datalab-org/datalab/pull/1871
 * Fix group search + group row unclickable by @jbouquiaux in https://github.com/datalab-org/datalab/pull/1909
@@ -204,7 +289,7 @@ There is also a new tool called [`beholder`](https://github.com/datalab-industri
 * Add contribution graph visualization for user and community activity by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1461
 * Add CRUD API for user groups by @ml-evs in https://github.com/datalab-org/datalab/pull/1493
 * Add read-only group permissions model for items by @ml-evs in https://github.com/datalab-org/datalab/pull/1499
-* UI for creating and adminstering user groups and item permissions by @ml-evs in https://github.com/datalab-org/datalab/pull/1500
+* UI for creating and administering user groups and item permissions by @ml-evs in https://github.com/datalab-org/datalab/pull/1500
 * Fix XRD block legend display issues by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1489
 * Add icon counters for blocks and files in collection items table by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1471
 * Update Person model to better handle partial data by @ml-evs in https://github.com/datalab-org/datalab/pull/1501
@@ -388,7 +473,7 @@ item relationship graph.
 
 ### What's Changed
 
-* Improve regex item search: implict word boundaries, chaining and literal matches by @ml-evs in https://github.com/datalab-org/datalab/pull/1338
+* Improve regex item search: implicit word boundaries, chaining and literal matches by @ml-evs in https://github.com/datalab-org/datalab/pull/1338
 * Adjust file permissions so block permission gives equivalent access by @ml-evs in https://github.com/datalab-org/datalab/pull/1376
 * Remove name reset in CreateItemModal by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1369
 * Item graph display too many items by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1367
@@ -750,7 +835,7 @@ It also adds the ability for data blocks to pass errors and warnings to the fron
 
 **Full Changelog**: https://github.com/the-grey-group/datalab/compare/v0.3.0...v0.3.1
 
-## v0.3.0 (Feburary 2024)
+## v0.3.0 (February 2024)
 
 This is the long overdue v0.3.0 release of datalab, which coincides with many new deployments popping up. It is strongly recommended to upgrade and continue to keep up-to-date with releases as they come out. There are no intentional breaking changes between this release and the previous release candidates, so please report any issues you come across on the [GitHub issue tracker](https://github.com/the-grey-group/datalab/issues).
 
@@ -786,7 +871,7 @@ Thanks to new contributor @elbee99 who has added support for Raman spectroscopy,
 * Fix broken README link and update affiliations by @ml-evs in https://github.com/the-grey-group/datalab/pull/448
 * Manual overhaul of API docs by @ml-evs in https://github.com/the-grey-group/datalab/pull/451
 * Fix bug where user cannot be created with blank display name by @ml-evs in https://github.com/the-grey-group/datalab/pull/456
-* Bump navani and try to accomodate other deps by @ml-evs in https://github.com/the-grey-group/datalab/pull/457
+* Bump navani and try to accommodate other deps by @ml-evs in https://github.com/the-grey-group/datalab/pull/457
 * Update INSTALL.md by @jdbocarsly in https://github.com/the-grey-group/datalab/pull/458
 * Add subtitled intro video to README by @ml-evs in https://github.com/the-grey-group/datalab/pull/459
 * Bump @babel/traverse from 7.22.10 to 7.23.2 in /webapp by @dependabot in https://github.com/the-grey-group/datalab/pull/463
@@ -796,7 +881,7 @@ Thanks to new contributor @elbee99 who has added support for Raman spectroscopy,
 * Add more details to README by @ml-evs in https://github.com/the-grey-group/datalab/pull/479
 * Adding limits on file uploads by @ml-evs in https://github.com/the-grey-group/datalab/pull/475
 * Improve login/logout UI to support multiple authentication mechanisms by @ml-evs in https://github.com/the-grey-group/datalab/pull/384
-* Remove unecessary scope for GitHub OAuth by @ml-evs in https://github.com/the-grey-group/datalab/pull/483
+* Remove unnecessary scope for GitHub OAuth by @ml-evs in https://github.com/the-grey-group/datalab/pull/483
 * Tweak to deployed documentation by @ml-evs in https://github.com/the-grey-group/datalab/pull/485
 * Revamp installation docs with additional configuration/administration/deployment info by @ml-evs in https://github.com/the-grey-group/datalab/pull/490
 * [pre-commit.ci] pre-commit autoupdate by @pre-commit-ci in https://github.com/the-grey-group/datalab/pull/493

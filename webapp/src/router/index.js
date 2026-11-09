@@ -11,7 +11,7 @@ import ItemGraphPage from "@/views/ItemGraphPage.vue";
 import Admin from "@/views/Admin.vue";
 import Login from "../views/Login.vue";
 import { resolveDefaultRouteName } from "@/navigation.js";
-import { API_URL, WEBSITE_TITLE } from "@/resources.js";
+import { API_URL, HIDE_COLLECTIONS, WEBSITE_TITLE } from "@/resources.js";
 import { getInfo } from "@/server_fetch_utils.js";
 import store from "@/store/index.js";
 
@@ -107,7 +107,7 @@ const routes = [
     name: "admin",
     component: Admin,
   },
-];
+].filter((route) => !HIDE_COLLECTIONS || !["collections", "Collection"].includes(route.name));
 
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),

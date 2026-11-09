@@ -17,7 +17,9 @@ Plugins can also be kept private and installed from e.g., a private git reposito
 
 At present, a *datalab* plugin is a Python package that registers one or more [data block](blocks/index.md) classes or item types via a Python entry point.
 Data blocks ingest a file (or set of files) attached to an item and render an interactive view of the parsed data, e.g. an NMR spectrum, an electrochemistry cycler trace, or an XRD pattern.
-Plugins (and deployments) can also register **custom item types**, new top-level item models served through the generic item endpoints (see [below](#custom-item-types)). Further plugin types, e.g., ingestion hooks and webapp components, are planned in the future (see [roadmap.md](roadmap.md)); please reach out if you have a specific use case.
+Plugins (and deployments) can also register **custom item types**, new top-level item models served through the generic item endpoints (see [below](#custom-item-types)).
+Plugins can ship Vue components for their blocks and item types (see [below](#webapp-components)).
+Further plugin types, e.g., ingestion hooks, are planned in the future (see [roadmap.md](roadmap.md)); please reach out if you have a specific use case.
 *datalab* discovers them at server startup by enumerating the relevant entry point group, with no changes required to the core code.
 
 ## Writing a plugin
@@ -85,7 +87,18 @@ Beyond data blocks, a deployment can register **custom item types**: new top-lev
 
 A custom item type is a subclass either of an existing item model (to extend it) or of the base `Item` model (for a wholly new type).
 At a minimum, it **must** declare its own `type` literal, which must not collide with a built-in type.
-Custom types are namespaced with a leading underscore, reserving the un-prefixed namespace for built-in types; a type that does not already have one has it added at registration (so `my_samples` is served as `_my_samples`):
+Its identifier must have the form `<namespace>:<type-name>`, for example `battery:electrode` and `battery_lab:coin-cell`.
+Both parts must use lowercase letters and numbers, with hyphens or underscores allowed between words.
+Exactly one colon separates the namespace from the type name.
+The complete value is the canonical type identifier. It must be used wherever the type is referenced, including Python models,
+REST payloads and URLs, database documents, relationships, constituents, schemas and the web UI.
+The namespace and type name are only components of the naming convention; they are not stored or queried separately.
+
+Existing core identifiers such as `samples` and `cells` remain bare and are exempt from this
+custom-type rule. All built-in item types use bare identifiers. Choose a stable namespace owned by
+the plugin or domain, because changing a type identifier changes stored data and API references.
+Each model declares its complete identifier; a package may reuse one namespace for all of its
+models or publish models under different namespaces.
 
 ```python
 from typing import Literal
@@ -96,7 +109,7 @@ from pydatalab.models.samples import Sample
 
 
 class MySample(Sample):
-    type: Literal["my_samples"] = "my_samples"
+    type: Literal["example:samples"] = "example:samples"
 
     drying_time: float | None = Field(
         None,
@@ -116,8 +129,11 @@ There are two ways to register a custom item type, both of which run at server s
     ```toml
     # pyproject.toml of the plugin package
     [project.entry-points."pydatalab.item_types"]
-    my_samples = "my_plugin.models:MySample"
+    example-samples = "my_plugin.models:MySample"
     ```
+
+   The entry-point key is a packaging-safe discovery name. The model's `type` literal is the
+   canonical item type identifier.
 
 2. **From the server config**, by listing dotted import paths
    (`package.module:ClassName`) in `CUSTOM_ITEM_MODELS` — convenient for models
@@ -134,6 +150,11 @@ There are two ways to register a custom item type, both of which run at server s
 
 Fields tagged with `json_schema_extra={"datalab_include_field_in_summary": True}` are additionally included in item list/summary responses.
 A worked example of both a `Sample` subclass and a standalone `Item` subclass lives at `pydatalab/src/pydatalab/models/_example_custom.py`.
+
+Deployments using `ITEM_TYPE_ALLOW_LIST` must refer to a custom type by its complete `<namespace>:<type-name>` identifier.
+A string entry permits every globally available block, while an object entry can provide a narrower `block_type_allow_list`.
+See [Item and block availability](config.md#item-and-block-availability) for the complete
+configuration semantics.
 
 ### What belongs in a custom item type
 
@@ -204,7 +225,7 @@ class Solution(Sample):
             "datalab_ui_color": "#3a7ca5",
         },
     )
-    type: Literal["solutions"] = "solutions"
+    type: Literal["chemistry:solutions"] = "chemistry:solutions"
 
     # Fields linking to a built-in `starting_materials` or another `samples` item:
     solute: EntryReference | None = Field(
@@ -290,6 +311,13 @@ not changed:
 uv run invoke dev.collect-plugin-panels
 ```
 
+The generated panel registry uses the model's exact type identifier. Because colon-separated names
+are not JavaScript identifiers, these keys are quoted, for example:
+
+```js
+"chemistry:mixed-solutions": () => import("./my_plugin/MixedSolutionPanel.vue"),
+```
+
 The panel receives two props, `item_id` and `itemType`, and reads/writes the item through the
 Vuex store — exactly like the built-in information components:
 
@@ -310,7 +338,7 @@ Reuse datalab's building blocks rather than rebuilding them, imported via the `@
 alias: `ItemSelect` (item search), `FormattedItemName` (the type-coloured item badge + link),
 `TooltipIcon`, and so on. The separate
 [`datalab-item-plugin-example-custom-vue`](https://github.com/Matgenix/datalab-item-plugin-example-custom-vue)
-repository provides a complete `MixedSolutionPanel.vue`: it references `solutions` items from the
+repository provides a complete `MixedSolutionPanel.vue`: it references solution items from the
 companion schema-only example, pulls their concentrations via `getItemData`, and computes the
 resulting mixture live — none of which the core panel can do on its own.
 
@@ -319,6 +347,49 @@ resulting mixture live — none of which the core panel can do on its own.
     installing or updating a UI plugin means rebuilding the frontend. The Docker commands above
     perform collection before the development or production frontend is compiled. Only install
     panels from sources you trust.
+
+## Webapp components
+
+A plugin can ship Vue components by placing a `webapp/` folder containing an `index.js` manifest
+inside its Python package. The manifest declares components for two extension points: `blocks`,
+keyed by blocktype, and `itemPanels`, keyed by the complete canonical item type identifier, e.g.
+`example:mixed-solutions`:
+
+```js
+// my_plugin/webapp/index.js
+export default {
+  apiVersion: 1,
+  blocks: {
+    my_block: () => import("./MyBlock.vue"),
+  },
+  itemPanels: {},
+};
+```
+
+The whole folder is collected into the webapp by `invoke dev.install` (as for custom panels above),
+so components can import each other relatively and datalab's own components via `@/…`. A block
+component receives `item_id` and `block_id` props and typically wraps `DataBlockBase`. Plugin
+blocks cannot replace built-in block components, and a manifest takes precedence over the
+`<ClassName>Panel.vue` convention for its package.
+The plugin's `pyproject.toml` must include the folder as package data.
+
+A plugin can declare npm dependencies with a `package.json` (requiring `name` and `version`)
+in the same folder. Each collected plugin becomes a [yarn workspace](https://classic.yarnpkg.com/en/docs/workspaces/)
+of the webapp, and `invoke dev.install` runs `yarn install --pure-lockfile`, which keeps the
+webapp's locked versions without writing the plugin's dependencies into `yarn.lock`. Versions
+that conflict with the webapp's are installed alongside it for the plugin alone. Packages that
+must be shared with the webapp (`vue`, `vuex`, `vue-router`, `primevue`, `@primeuix/themes`,
+`@bokeh/bokehjs` and `@fortawesome/*`) may only be listed under `peerDependencies`:
+
+```json
+{
+  "name": "my-plugin-webapp",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": { "markdown-it": "^14.1.0" },
+  "peerDependencies": { "vue": "^3.5.0" }
+}
+```
 
 ## Deployment integration
 

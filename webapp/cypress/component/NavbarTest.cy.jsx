@@ -3,16 +3,21 @@ import { createRouter, createWebHistory } from "vue-router";
 import { createStore } from "vuex";
 import LoginDetails from "@/components/LoginDetails.vue";
 import { NAVIGATION_VIEWS, resolveDefaultRouteName } from "@/navigation.js";
+import { CONFIG } from "@/config.js";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faProjectDiagram, faVials } from "@fortawesome/free-solid-svg-icons";
 
 library.add(faProjectDiagram, faVials);
+
+const collectionsAvailability = NAVIGATION_VIEWS.collections.isAvailable;
+const hideCollections = CONFIG.HIDE_COLLECTIONS;
 
 describe("Navbar", () => {
   let store;
   let router;
 
   beforeEach(() => {
+    CONFIG.HIDE_COLLECTIONS = false;
     store = createStore({
       state: {
         currentUserDisplayName: null,
@@ -43,7 +48,8 @@ describe("Navbar", () => {
   });
 
   afterEach(() => {
-    delete NAVIGATION_VIEWS.collections.isAvailable;
+    CONFIG.HIDE_COLLECTIONS = hideCollections;
+    NAVIGATION_VIEWS.collections.isAvailable = collectionsAvailability;
   });
 
   it("renders logo image when logo_url is provided", () => {
@@ -226,9 +232,6 @@ describe("Navbar", () => {
     cy.mount(Navbar, {
       global: {
         plugins: [store, router],
-        stubs: {
-          LoginDetails: true,
-        },
       },
     });
 
@@ -256,10 +259,9 @@ describe("Navbar", () => {
     cy.get("#nav .nav-separator").should("have.length", 1);
   });
 
-  it("hides a configured view when its catalog availability predicate returns false", () => {
-    NAVIGATION_VIEWS.collections.isAvailable = (serverInfo) => serverInfo.features.test_enabled;
+  it("hides Collections when the deployment configuration disables it", () => {
+    CONFIG.HIDE_COLLECTIONS = true;
     store.state.serverInfo = {
-      features: { test_enabled: false },
       navigation: [{ view: "samples" }, { view: "collections" }, { view: "equipment" }],
     };
 
