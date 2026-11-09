@@ -89,6 +89,10 @@
       </template>
 
       <div class="form-group form-check mt-3">
+        <input id="show-labels" v-model="showLabels" class="form-check-input" type="checkbox" />
+        <label class="form-check-label" for="show-labels"> show labels </label>
+      </div>
+      <div v-if="showLabels" class="form-group form-check mt-3">
         <input
           id="label-starting-materials-by-name"
           v-model="labelStartingMaterialsByName"
@@ -99,7 +103,7 @@
           label starting materials by name</label
         >
       </div>
-      <div class="form-group form-check mt-3">
+      <div v-if="showLabels" class="form-group form-check mt-3">
         <input
           id="label-items-by-name"
           v-model="labelItemsByName"
@@ -110,9 +114,19 @@
           label samples/cells by name</label
         >
       </div>
-      <div class="form-group form-check mt-3">
+      <div v-if="includeBlocks" class="form-group form-check mt-3">
         <input id="show-blocks" v-model="showBlocks" class="form-check-input" type="checkbox" />
         <label class="form-check-label" for="show-blocks"> show data blocks </label>
+      </div>
+      <div v-if="showCollections !== null" class="form-group form-check mt-3">
+        <input
+          id="show-collections"
+          :checked="showCollections"
+          class="form-check-input"
+          type="checkbox"
+          @change="$emit('update:showCollections', $event.target.checked)"
+        />
+        <label class="form-check-label" for="show-collections"> show collections </label>
       </div>
     </div>
   </div>
@@ -198,6 +212,12 @@ export default {
       type: Boolean,
       default: true,
     },
+    // Whether every node is labelled; otherwise only the hovered node is. Labels are
+    // the most expensive part of drawing large graphs.
+    defaultShowLabels: {
+      type: Boolean,
+      default: true,
+    },
     defaultShowBlocks: {
       type: Boolean,
       default: false,
@@ -207,9 +227,17 @@ export default {
     // (unlike defaultShowBlocks, which only hides them)
     includeBlocks: {
       type: Boolean,
-      default: true,
+      default: false,
+    },
+    // Whether collections are shown as nodes linked to their items. The parent fetches
+    // the graph, so it handles the change (`v-model:show-collections`); when null, the
+    // option is not offered.
+    showCollections: {
+      type: Boolean,
+      default: null,
     },
   },
+  emits: ["update:showCollections"],
   data() {
     return {
       graphStyle: this.defaultGraphStyle,
@@ -220,6 +248,7 @@ export default {
       hideCollections: HIDE_COLLECTIONS,
       labelStartingMaterialsByName: true,
       labelItemsByName: false,
+      showLabels: this.defaultShowLabels,
       showBlocks: this.defaultShowBlocks,
       layoutIsRunning: true,
     };
@@ -230,20 +259,14 @@ export default {
       this.generateCyNetworkPlot();
     },
     labelStartingMaterialsByName() {
-      // update the cytoscape stylesheet. Note: this adds styles, rather than overwriting the existing ones.
-      // That seems to be OK for performance.
-      this.cy
-        .style()
-        .selector('node[type = "starting_materials"]')
-        .style("label", this.labelStartingMaterialsByName ? "data(name)" : "data(id)")
-        .update();
+      // Replaces the whole stylesheet, so toggling doesn't accumulate rules.
+      this.cy && this.cy.style(this.buildStylesheet());
     },
     labelItemsByName() {
-      this.cy
-        .style()
-        .selector('node[type = "samples"], node[type = "cells"]')
-        .style("label", this.labelItemsByName ? "data(name)" : "data(id)")
-        .update();
+      this.cy && this.cy.style(this.buildStylesheet());
+    },
+    showLabels() {
+      this.cy && this.cy.style(this.buildStylesheet());
     },
     showBlocks() {
       const blockNodes = this.cy.$('node[type = "blocks"]');
@@ -296,12 +319,97 @@ export default {
     updateAndRunLayout() {
       this.stopLayout();
       this.layoutIsRunning = true;
-      this.layout = this.cy.layout(layoutOptions[this.graphStyle]);
+      // Lay out only what is shown: hidden elements (e.g. block nodes, when blocks are
+      // not shown) would otherwise still take part in the layout.
+      this.layout = this.cy.elements(":visible").layout(layoutOptions[this.graphStyle]);
       this.layout.run();
     },
     stopLayout() {
       this.layout && this.layout.stop();
       this.layout = null;
+    },
+    /**
+     * The whole graph style as a stylesheet, so that cytoscape can share computed
+     * styles between elements rather than holding per-element overrides.
+     * Later rules take precedence over earlier ones.
+     */
+    buildStylesheet() {
+      const byName = (enabled) => (enabled ? "data(name)" : "data(id)");
+      const typeColours = Object.entries(itemTypes)
+        .filter(([, info]) => info && info.navbarColor)
+        .flatMap(([type, info]) => [
+          {
+            selector: `node[type = "${type}"]`,
+            style: { "background-color": info.navbarColor },
+          },
+          {
+            selector: `node[type = "${type}"][?special]`,
+            style: { "background-color": info.lightColor || info.navbarColor },
+          },
+        ]);
+      return [
+        {
+          selector: "node",
+          style: {
+            label: "data(id)",
+            shape: "ellipse",
+            "border-width": 0,
+            "border-color": "grey",
+            // Text is the most expensive thing to draw; skip labels too small to read.
+            "min-zoomed-font-size": 10,
+          },
+        },
+        {
+          selector: 'node[type = "starting_materials"]',
+          style: { label: byName(this.labelStartingMaterialsByName) },
+        },
+        {
+          selector: 'node[type = "samples"], node[type = "cells"]',
+          style: { label: byName(this.labelItemsByName) },
+        },
+        {
+          selector: 'node[shape = "triangle"]',
+          style: { shape: "triangle" },
+        },
+        {
+          selector: 'node[type = "blocks"]',
+          style: { label: "data(name)", shape: "rectangle", width: 20, height: 20 },
+        },
+        ...typeColours,
+        {
+          selector: "node[?special]",
+          style: { "border-width": 2 },
+        },
+        // Without labels, only the hovered node is labelled (by name).
+        ...(this.showLabels ? [] : [{ selector: "node", style: { label: "" } }]),
+        {
+          selector: "node.hovered",
+          style: {
+            opacity: 0.8,
+            "border-width": 3,
+            "border-color": "black",
+            ...(this.showLabels ? {} : { label: "data(id)", "min-zoomed-font-size": 0 }),
+          },
+        },
+        ...(this.showLabels
+          ? []
+          : [{ selector: "node.hovered[name]", style: { label: "data(name)" } }]),
+        {
+          // Undirected straight lines: haystack edges are the cheapest to draw.
+          selector: "edge",
+          style: {
+            width: 2,
+            "line-color": "#9dbaea",
+            "curve-style": "haystack",
+            "haystack-radius": 0,
+          },
+        },
+        {
+          // Haystack edges can't draw loops.
+          selector: "edge:loop",
+          style: { "curve-style": "bezier" },
+        },
+      ];
     },
     generateCyNetworkPlot() {
       if (!this.graphData) {
@@ -339,63 +447,15 @@ export default {
         userZoomingEnabled: true,
         wheelSensitivity: 0.5,
         boxSelectionEnabled: false,
-        style: [
-          {
-            selector: "node",
-            style: {
-              label: "data(id)",
-            },
-          },
-          {
-            selector: 'node[type = "starting_materials"]',
-            style: {
-              label: this.labelStartingMaterialsByName ? "data(name)" : "data(id)",
-            },
-          },
-          {
-            selector: 'node[type = "samples"], node[type = "cells"]',
-            style: {
-              label: this.labelItemsByName ? "data(name)" : "data(id)",
-            },
-          },
-          {
-            selector: 'node[type = "blocks"]',
-            style: {
-              label: "data(name)",
-              shape: "rectangle",
-              width: 20,
-              height: 20,
-            },
-          },
-          {
-            selector: "edge",
-            style: {
-              width: 4,
-              "target-arrow-shape": "triangle",
-              "line-color": "#9dbaea",
-              "target-arrow-color": "#9dbaea",
-              "curve-style": "bezier",
-            },
-          },
-        ],
+        // Rendering shortcuts for large graphs: pan and zoom a cached image of the
+        // graph rather than redrawing it, and hide edges while doing so.
+        textureOnViewport: true,
+        hideEdgesOnViewport: true,
+        style: this.buildStylesheet(),
         // The real layout is run further down, once the layout event handlers
         // are attached; synchronous layouts (e.g. random) would otherwise
         // finish before the handlers exist, leaving layoutIsRunning stuck
         layout: { name: "preset" },
-      });
-
-      // set colors of each of the nodes by type
-      this.cy.nodes().each(function (element) {
-        const type = element.data("type");
-        if (type && itemTypes[type]) {
-          element.style(
-            "background-color",
-            element.data("special") == 1 ? itemTypes[type].lightColor : itemTypes[type].navbarColor,
-          );
-        }
-        element.style("border-width", element.data("special") == 1 ? 2 : 0);
-        element.style("border-color", "grey");
-        (element.style("shape"), element.data("shape") == "triangle" ? "triangle" : "ellipse");
       });
 
       // Toggle hide block nodes
@@ -419,19 +479,9 @@ export default {
       this.updateAndRunLayout();
 
       // tapdragover and tapdragout are mouseover and mouseout events
-      // that also work with touch screens
-      this.cy.on("tapdragover", "node", function (evt) {
-        var node = evt.target;
-        node.style("opacity", 0.8);
-        node.style("border-width", 3);
-        node.style("border-color", "black");
-      });
-      this.cy.on("tapdragout", "node", function (evt) {
-        var node = evt.target;
-        node.style("opacity", 1);
-        node.style("border-width", node.data("special") == 1 ? 2 : 0);
-        node.style("border-color", "grey");
-      });
+      // that also work with touch screens; the look is in the stylesheet
+      this.cy.on("tapdragover", "node", (evt) => evt.target.addClass("hovered"));
+      this.cy.on("tapdragout", "node", (evt) => evt.target.removeClass("hovered"));
 
       this.cy.on("click", "node", function (evt) {
         var node = evt.target;
