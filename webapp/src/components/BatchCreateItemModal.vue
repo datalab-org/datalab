@@ -1,5 +1,5 @@
 <template>
-  <form data-testid="batch-modal-container" class="modal-enclosure" @submit.prevent="submitForm">
+  <form data-testid="batch-modal-container" class="modal-enclosure" @submit.prevent>
     <Modal
       :model-value="modelValue"
       :disable-submit="

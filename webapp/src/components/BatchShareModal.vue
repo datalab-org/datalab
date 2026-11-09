@@ -1,6 +1,6 @@
 <template>
-  <form class="modal-enclosure" data-testid="batch-share-form" @submit.prevent="submitForm">
-    <Modal :model-value="modelValue" @update:model-value="handleClose">
+  <form class="modal-enclosure" data-testid="batch-share-form" @submit.prevent>
+    <Modal :model-value="modelValue" @update:model-value="handleClose" @submit="submitForm">
       <template #header> Share Items</template>
       <template #body>
         <div v-if="modelValue">

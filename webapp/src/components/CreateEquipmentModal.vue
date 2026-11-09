@@ -1,5 +1,5 @@
 <template>
-  <form class="modal-enclosure" data-testid="create-equipment-form" @submit.prevent="submitForm">
+  <form class="modal-enclosure" data-testid="create-equipment-form" @submit.prevent>
     <Modal
       :model-value="modelValue"
       :disable-submit="Boolean(isValidEntryID) || !Boolean(item_id)"

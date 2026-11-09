@@ -1,9 +1,10 @@
 <template>
-  <form class="modal-enclosure" data-testid="create-group-form" @submit.prevent="submitForm">
+  <form class="modal-enclosure" data-testid="create-group-form" @submit.prevent>
     <Modal
       :model-value="modelValue"
       :disable-submit="!isFormValid"
       @update:model-value="$emit('update:modelValue', $event)"
+      @submit="submitForm"
     >
       <template #header> Create new group </template>
 
