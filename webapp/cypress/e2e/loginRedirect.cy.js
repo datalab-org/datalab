@@ -53,6 +53,17 @@ describe("Login redirect for unauthenticated users", () => {
     });
   });
 
+  it("continues to the configured landing page when no `next` path is set", () => {
+    cy.loginViaTestMagicLink("test-user@datalab.test");
+    cy.intercept("GET", `${API_URL}/info`, {
+      data: { attributes: { navigation: [{ view: "equipment", default: true }] } },
+    });
+
+    cy.visit("/login");
+    cy.findByRole("button", { name: "Continue to app" }).click();
+    cy.location("pathname").should("eq", "/equipment");
+  });
+
   it("loads an item page with a valid access token without redirecting to login", () => {
     cy.intercept("GET", `${API_URL}/items/*`).as("tokenFetch");
     cy.visit(`/items/${refcode}?at=${accessToken}`);
