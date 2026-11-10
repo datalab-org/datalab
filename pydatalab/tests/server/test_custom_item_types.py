@@ -820,6 +820,192 @@ def test_partial_save_updates_custom_reference_relationships(
     assert _stored_relationships() == ([], [collection_id])
 
 
+def test_custom_reference_cleanup_keeps_unmanaged_parents(client, database, custom_item_models):
+    """Clearing a custom reference only removes the parent relationships created for
+    custom references: an unrelated parent is kept, and an existing unmarked parent to
+    the referenced item is reused (not duplicated) and kept."""
+    for item_type, item_id in (
+        ("equipment", "unmanaged-equipment"),
+        ("samples", "unmanaged-src"),
+        ("samples", "unmanaged-component"),
+    ):
+        response = client.post(
+            "/new-sample/", json={"new_sample_data": {"type": item_type, "item_id": item_id}}
+        )
+        assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={"new_sample_data": {"type": "example:items", "item_id": "unmanaged-holder"}},
+    )
+    assert response.status_code == 201, response.json
+
+    # Parent relationships not created for a custom reference, e.g. added by another
+    # mechanism, carry no `managed_by` marker
+    database.items.update_one(
+        {"item_id": "unmanaged-holder"},
+        {
+            "$push": {
+                "relationships": {
+                    "$each": [
+                        {
+                            "relation": "parent",
+                            "type": "equipment",
+                            "item_id": "unmanaged-equipment",
+                        },
+                        {"relation": "parent", "type": "samples", "item_id": "unmanaged-src"},
+                    ]
+                }
+            }
+        },
+    )
+
+    def _stored_parents():
+        item = database.items.find_one({"item_id": "unmanaged-holder"})
+        return sorted(
+            (r["item_id"], r.get("managed_by"))
+            for r in item["relationships"]
+            if r["relation"] == "parent"
+        )
+
+    unmanaged = [("unmanaged-equipment", None), ("unmanaged-src", None)]
+
+    response = client.post(
+        "/save-item/",
+        json={
+            "item_id": "unmanaged-holder",
+            "data": {"source": {"item_id": "unmanaged-src", "type": "samples"}},
+        },
+    )
+    assert response.status_code == 200, response.json
+    assert _stored_parents() == unmanaged
+
+    response = client.post(
+        "/save-item/", json={"item_id": "unmanaged-holder", "data": {"source": None}}
+    )
+    assert response.status_code == 200, response.json
+    assert _stored_parents() == unmanaged
+
+    # A parent created for a custom reference is marked, and removed once cleared
+    response = client.post(
+        "/save-item/",
+        json={
+            "item_id": "unmanaged-holder",
+            "data": {
+                "components": [{"item": {"item_id": "unmanaged-component", "type": "samples"}}]
+            },
+        },
+    )
+    assert response.status_code == 200, response.json
+    assert _stored_parents() == sorted([("unmanaged-component", "custom_reference"), *unmanaged])
+
+    response = client.post(
+        "/save-item/", json={"item_id": "unmanaged-holder", "data": {"components": []}}
+    )
+    assert response.status_code == 200, response.json
+    assert _stored_parents() == unmanaged
+
+
+def test_immutable_id_only_custom_reference_rejected(client, database, custom_item_models):
+    """A custom reference that only gives an `immutable_id` cannot be turned into a
+    parent relationship, so it is rejected rather than silently stored."""
+    response = client.post(
+        "/new-sample/",
+        json={"new_sample_data": {"type": "samples", "item_id": "immutable-ref-source"}},
+    )
+    assert response.status_code == 201, response.json
+    source_id = database.items.find_one({"item_id": "immutable-ref-source"})["_id"]
+
+    response = client.post(
+        "/new-sample/",
+        json={"new_sample_data": {"type": "example:items", "item_id": "immutable-ref-holder"}},
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/save-item/",
+        json={
+            "item_id": "immutable-ref-holder",
+            "data": {"source": {"immutable_id": str(source_id), "type": "samples"}},
+        },
+    )
+    assert response.status_code == 400, response.json
+    assert "refcode" in response.json["message"]
+    assert database.items.find_one({"item_id": "immutable-ref-holder"}).get("source") is None
+
+
+def test_restore_legacy_snapshot_adds_custom_reference_relationships(
+    client, database, default_collection, custom_item_models
+):
+    """Restoring a snapshot that holds a custom reference but not its parent
+    relationship (as saved before these relationships existed) stores the
+    relationship, and keeps the snapshot's collection membership."""
+    collection_dict = json.loads(default_collection.model_dump_json())
+    collection_dict["collection_id"] = "custom-restore-collection"
+    response = client.put("/collections", json={"data": collection_dict})
+    assert response.status_code == 201, response.json
+    collection_id = database.collections.find_one({"collection_id": "custom-restore-collection"})[
+        "_id"
+    ]
+
+    response = client.post(
+        "/new-sample/",
+        json={"new_sample_data": {"type": "samples", "item_id": "custom-restore-source"}},
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "example:items",
+                "item_id": "custom-restore-holder",
+                "source": {"item_id": "custom-restore-source", "type": "samples"},
+                "collections": [{"collection_id": "custom-restore-collection"}],
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+    refcode = database.items.find_one({"item_id": "custom-restore-holder"})["refcode"]
+    short_refcode = refcode.split(":")[1]
+
+    response = client.post(f"/items/{short_refcode}/save-version/")
+    assert response.status_code == 200, response.json
+    version_id = client.get(f"/items/{short_refcode}/versions/").json["versions"][0]["_id"]
+
+    # Turn the snapshot into a legacy one, without the derived parent relationship
+    version = database.item_versions.find_one({"refcode": refcode})
+    database.item_versions.update_one(
+        {"_id": version["_id"]},
+        {
+            "$set": {
+                "data.relationships": [
+                    r for r in version["data"]["relationships"] if r["relation"] != "parent"
+                ]
+            }
+        },
+    )
+
+    response = client.post(
+        "/save-item/", json={"item_id": "custom-restore-holder", "data": {"source": None}}
+    )
+    assert response.status_code == 200, response.json
+
+    response = client.post(
+        f"/items/{short_refcode}/restore-version/", json={"version_id": version_id}
+    )
+    assert response.status_code == 200, response.json
+
+    item = database.items.find_one({"item_id": "custom-restore-holder"})
+    assert item["source"]["item_id"] == "custom-restore-source"
+    assert [r["item_id"] for r in item["relationships"] if r["relation"] == "parent"] == [
+        "custom-restore-source"
+    ]
+    assert [r["immutable_id"] for r in item["relationships"] if r["type"] == "collections"] == [
+        collection_id
+    ]
+
+
 def test_unconnected_custom_items_in_graph(client, custom_item_models):
     """Custom items are kept in the full graph even when they are not connected to
     anything, as samples are; unconnected starting materials are still left out."""

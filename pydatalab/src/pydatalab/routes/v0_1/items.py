@@ -1573,11 +1573,24 @@ def restore_version(refcode):
             **restored_data,
             "blocks_obj": block_store.resolve_snapshot_blocks_obj(restored_data),
         }
-        ITEM_MODELS[item_type](**validation_data)
+        validated_item = ITEM_MODELS[item_type](**validation_data)
     except ValidationError as exc:
         raise BadRequest(
             f"Restored data failed validation against schema for type {item_type}: {exc}"
         )
+
+    # Store the relationships derived by the model (e.g., the parents of the items
+    # referenced by synthesis constituents or custom fields), which an older snapshot may
+    # lack. Collection relationships are taken from the snapshot as is: without a
+    # `collections` key, the model would drop them.
+    if "relationships" in restored_data:
+        restored_data["relationships"] = [
+            rel
+            for rel in validated_item.model_dump(include={"relationships"}, exclude_unset=True).get(
+                "relationships", []
+            )
+            if rel.get("type") != "collections"
+        ] + [rel for rel in restored_data["relationships"] if rel.get("type") == "collections"]
 
     # Extract user information for hybrid storage approach
     user_id = None

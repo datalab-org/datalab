@@ -266,7 +266,9 @@ companion string `Literal` whose possible values exactly match the keys in `disp
 
 Item references in the fields a custom type adds (here `solute` and `solvent`), including nested
 ones such as the `item` of a `Constituent`, become parent relationships of the item in the item
-graph. `datalab_ref_types` only filters the UI selector; the server accepts any item type.
+graph; clearing a reference removes its relationship. Other parent relationships and built-in
+fields keep their usual behaviour. References need a `refcode` or an `item_id`.
+`datalab_ref_types` only filters the UI selector; the server accepts any item type.
 
 ### Custom panels (full control)
 

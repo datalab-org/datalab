@@ -19,6 +19,10 @@ from pydatalab.models.utils import (
     iter_item_references,
 )
 
+CUSTOM_REFERENCE_MANAGER = "custom_reference"
+"""The `managed_by` marker of the parent relationships derived from the item references
+in the fields of a custom item type (see `Item.add_missing_reference_relationships`)."""
+
 
 class Item(
     Entry,
@@ -89,8 +93,14 @@ class Item(
     @model_validator(mode="after")
     def add_missing_reference_relationships(self):
         """Add a parent relationship for every item referenced in a custom field (see
-        `custom_item_fields`), and remove parent relationships to items that are no
-        longer referenced. Built-in types are left untouched."""
+        `custom_item_fields`), and remove the parent relationships it created to items
+        that are no longer referenced. Built-in types are left untouched.
+
+        Relationships created here are marked with `managed_by="custom_reference"`, and
+        only marked relationships are removed. An existing unmarked parent relationship
+        to a referenced item is reused as is, and is kept when the reference is cleared.
+
+        """
         from pydatalab.models import custom_item_fields
         from pydatalab.models.relationships import RelationshipType, TypedRelationship
 
@@ -114,7 +124,10 @@ class Item(
             refcode = reference.refcode
             item_id = reference.item_id
             if not (refcode or item_id):
-                continue
+                raise ValueError(
+                    f"References to items in the fields of {self.type!r} must provide a "
+                    f"`refcode` or an `item_id`, not only an `immutable_id`: {reference!r}"
+                )
 
             relationship = existing_relationships.get(refcode) or existing_relationships.get(
                 item_id
@@ -126,6 +139,7 @@ class Item(
                     item_id=item_id,
                     type=reference.type,
                     description="Is referenced by",
+                    managed_by=CUSTOM_REFERENCE_MANAGER,
                 )
                 self.relationships.append(relationship)
             else:
@@ -136,13 +150,11 @@ class Item(
                 if identifier:
                     existing_relationships[identifier] = relationship
 
-        # Rebuild the list without the parent relationships to items that are no longer
-        # referenced, so that clearing a reference field also removes its relationship.
-        # As in `HasSynthesisInfo.add_missing_synthesis_relationships`, relationships do
-        # not record which field created them: any parent relationship that is neither
-        # referenced by a custom field nor by a synthesis constituent is removed.
-        # Synthesis constituents are counted as references so that their parent
-        # relationships, managed by `HasSynthesisInfo`, are kept.
+        # Rebuild the list without the relationships created here to items that are no
+        # longer referenced, so that clearing a reference field also removes its
+        # relationship. A relationship created here may since have been reused for a
+        # synthesis constituent (see `HasSynthesisInfo`), so synthesis constituents
+        # also count as references.
         references.extend(iter_item_references(getattr(self, "synthesis_constituents", [])))
         referenced = {
             identifier
@@ -155,6 +167,7 @@ class Item(
             for rel in self.relationships
             if not (
                 rel.relation == RelationshipType.PARENT
+                and rel.managed_by == CUSTOM_REFERENCE_MANAGER
                 and rel.refcode not in referenced
                 and rel.item_id not in referenced
             )
