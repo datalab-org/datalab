@@ -662,6 +662,16 @@ export default {
 </script>
 
 <style scoped>
+/* Keep every row on a single line. The flex-based cell components (tags, creators)
+   wrap by default, so override them here rather than changing them everywhere. */
+:deep(.p-datatable-tbody > tr > td) {
+  white-space: nowrap;
+}
+:deep(.p-datatable-tbody > tr > td .tag-list),
+:deep(.p-datatable-tbody > tr > td .creators-container) {
+  flex-wrap: nowrap !important;
+}
+
 .last-modified-cell {
   font-size: 0.85em;
   font-style: italic;
