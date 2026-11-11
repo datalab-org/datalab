@@ -1,6 +1,8 @@
 import { findIconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { CONFIG } from "@/config.js";
 
+// `isAvailable` is optional, but when defined it must be a predicate function.
+// It receives `serverInfo` but predicates may ignore it, as Collections does.
 export const NAVIGATION_VIEWS = {
   about: {
     routeName: "About",
@@ -56,15 +58,16 @@ export function resolveNavigation(serverInfo) {
   const navigation = Array.isArray(serverInfo.navigation)
     ? serverInfo.navigation
     : LEGACY_NAVIGATION;
+  const knownViews = Object.keys(NAVIGATION_VIEWS);
 
   return navigation.flatMap((entry) => {
     const view = entry?.view;
-    if (!Object.prototype.hasOwnProperty.call(NAVIGATION_VIEWS, view)) {
+    if (!knownViews.includes(view)) {
       console.warn(`Ignoring unknown navigation view ${JSON.stringify(view)}.`);
       return [];
     }
     const definition = NAVIGATION_VIEWS[view];
-    // Conditional views define an `isAvailable` predicate in the catalog, as Collections does.
+    // Conditional views use their catalog predicate to decide whether they are currently available.
     if (definition.isAvailable && !definition.isAvailable(serverInfo)) {
       console.warn(`Ignoring unavailable navigation view ${JSON.stringify(view)}.`);
       return [];
