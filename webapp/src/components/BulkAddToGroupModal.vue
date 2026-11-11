@@ -1,6 +1,11 @@
 <template>
-  <form class="modal-enclosure" data-testid="bulk-add-to-group-form" @submit.prevent="submitForm">
-    <Modal :model-value="modelValue" :disable-submit="!isValid" @update:model-value="handleClose">
+  <form class="modal-enclosure" data-testid="bulk-add-to-group-form" @submit.prevent>
+    <Modal
+      :model-value="modelValue"
+      :disable-submit="!isValid"
+      @update:model-value="handleClose"
+      @submit="submitForm"
+    >
       <template #header> Add Users to Group </template>
 
       <template #body>

@@ -494,7 +494,7 @@ jobs:
         run: |
           # Balanced by their run times (~2.5 min each); new specs must be added to a shard
           declare -A SHARDS=(
-            [1]="batchSampleFeature shareItem loginRedirect"
+            [1]="batchSampleFeature shareItem loginRedirect modalSubmit"
             [2]="sampleTablePage authenticatedSampleTests collectionPage startingMaterial"
             [3]="editPage equipment navbarResponsive tagsManagement"
           )

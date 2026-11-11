@@ -2,6 +2,7 @@
   <div id="dummyDivForModalBackground" :class="{ overlay: modalOpaque }"></div>
 
   <div
+    ref="modal"
     class="modal fade"
     tabindex="-1"
     role="dialog"
@@ -22,8 +23,14 @@
           <slot name="body"></slot>
         </div>
         <div class="modal-footer">
-          <slot name="footer">
-            <input type="submit" class="btn btn-info" :disabled="disableSubmit" value="Submit" />
+          <slot name="footer" :submitting="submitting">
+            <input
+              type="submit"
+              class="btn btn-info"
+              :disabled="disableSubmit || submitting"
+              value="Submit"
+            />
+
             <button
               type="button"
               class="btn btn-secondary"
@@ -51,12 +58,18 @@ export default {
       type: Boolean,
       default: true,
     },
+    onSubmit: {
+      type: Function,
+      default: null,
+    },
   },
   emits: ["update:modelValue"],
   data() {
     return {
       modalDisplayed: false,
       modalOpaque: false,
+      submitting: false,
+      form: null,
     };
   },
   watch: {
@@ -69,7 +82,34 @@ export default {
       }
     },
   },
+  mounted() {
+    this.form = this.$refs.modal.closest("form");
+    this.form?.addEventListener("submit", this.handleFormSubmit);
+  },
+  beforeUnmount() {
+    this.form?.removeEventListener("submit", this.handleFormSubmit);
+  },
   methods: {
+    /**
+     * Runs the `@submit` handler for the enclosing form (from the submit button or the Enter key),
+     * ignoring further submissions until it settles so that slow requests cannot be sent twice.
+     * The lock is released whether or not the handler succeeds, so a failed submission can be retried.
+     */
+    async handleFormSubmit(event) {
+      if (!this.onSubmit) {
+        return;
+      }
+      event.preventDefault();
+      if (this.submitting) {
+        return;
+      }
+      this.submitting = true;
+      try {
+        await this.onSubmit(event);
+      } finally {
+        this.submitting = false;
+      }
+    },
     async openModal() {
       this.modalDisplayed = true;
       await new Promise((resolve) => setTimeout(resolve, 20)); //hacky...
