@@ -1,0 +1,191 @@
+name: Publish container images
+on:
+  # Pushes the release tag, plus `latest` for non-prereleases
+  release:
+    types:
+      - published
+  # Pushes `nightly`, if there are new commits on main since the last build
+  schedule:
+    - cron: "17 3 * * *"
+  # From main this behaves like a nightly; from any other branch it only pushes the `sha-` tag
+  workflow_dispatch:
+
+env:
+  APP_IMAGE: ghcr.io/datalab-org/datalab-app
+  API_IMAGE: ghcr.io/datalab-org/datalab-server-api
+  # See the note in ci.yml: newer 8.x releases do not start on the runner's kernel
+  MONGO_IMAGE_TAG: "8.0.20-noble"
+
+concurrency:
+  group: container-images-${{ github.ref }}
+
+jobs:
+  publish:
+    name: Build, test and publish container images
+    runs-on: ubuntu-latest
+    if: github.repository == 'datalab-org/datalab'
+    # The `docker-release` environment only allows `v*` tags
+    environment:
+      name: ${{ github.event_name == 'release' && 'docker-release' || '' }}
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: false
+          working-directory: "./pydatalab"
+
+      - name: Work out the version and tags
+        id: meta
+        env:
+          IS_PRERELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          # This is the same version that the package would get from a git checkout
+          version="$(cd pydatalab && uvx --from 'setuptools-scm>=8.1,<11' python -m setuptools_scm)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "sha_tag=sha-${GITHUB_SHA:0:12}" >> "$GITHUB_OUTPUT"
+
+          # Tags that are only applied once the pushed images have passed the tests below
+          case "$GITHUB_EVENT_NAME" in
+            release)
+              # This assumes that any non-prerelease is the newest release
+              promote="$GITHUB_REF_NAME"
+              if [ "$IS_PRERELEASE" = "false" ]; then promote="$promote latest"; fi
+              ;;
+            *)
+              if [ "$GITHUB_REF_NAME" = "main" ]; then promote="nightly"; else promote=""; fi
+              ;;
+          esac
+          echo "promote=$promote" >> "$GITHUB_OUTPUT"
+
+          # Only trusted refs write to the shared build cache
+          if [ -n "$promote" ]; then
+            echo "write_cache=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "Building $version as ${GITHUB_SHA:0:12}, to be tagged with: ${promote:-(no other tags)}"
+
+      - name: Log in to the container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check whether this commit has already been published
+        id: existing
+        if: github.event_name == 'schedule'
+        run: |
+          if docker manifest inspect "$API_IMAGE:${{ steps.meta.outputs.sha_tag }}" > /dev/null 2>&1; then
+            echo "No new commits since the last build, skipping"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Docker Buildx
+        if: steps.existing.outputs.skip != 'true'
+        uses: docker/setup-buildx-action@v4
+
+      # This must build from a clean checkout: the API image copies all of `pydatalab/`, so a
+      # `pydatalab/.env` or `config.json` that exists at this point would be published.
+      - name: Build and push images
+        if: steps.existing.outputs.skip != 'true'
+        uses: docker/bake-action@v7
+        with:
+          files: docker-compose.yml
+          push: true
+          source: .
+          targets: "app,api"
+          # Empty lines (from the conditions below) are ignored
+          set: |
+            *.platform=linux/amd64
+            *.attest=type=provenance,mode=max
+            *.attest=type=sbom
+            *.labels.org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            *.labels.org.opencontainers.image.revision=${{ github.sha }}
+            *.labels.org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+            api.args.SETUPTOOLS_SCM_PRETEND_VERSION=${{ steps.meta.outputs.version }}
+            app.args.VUE_APP_GIT_VERSION=${{ steps.meta.outputs.version }}
+            api.tags=${{ env.API_IMAGE }}:${{ steps.meta.outputs.sha_tag }}
+            app.tags=${{ env.APP_IMAGE }}:${{ steps.meta.outputs.sha_tag }}
+            api.cache-from=type=registry,ref=${{ env.API_IMAGE }}:buildcache
+            app.cache-from=type=registry,ref=${{ env.APP_IMAGE }}:buildcache
+            ${{ steps.meta.outputs.write_cache == 'true' && format('api.cache-to=type=registry,ref={0}:buildcache,mode=max', env.API_IMAGE) || '' }}
+            ${{ steps.meta.outputs.write_cache == 'true' && format('app.cache-to=type=registry,ref={0}:buildcache,mode=max', env.APP_IMAGE) || '' }}
+
+      - name: Pull the published images, as an anonymous user
+        if: steps.existing.outputs.skip != 'true'
+        env:
+          SHA_TAG: ${{ steps.meta.outputs.sha_tag }}
+        run: |
+          # New packages are private by default, which would prevent anyone from pulling them
+          docker logout ghcr.io
+          for image in "$API_IMAGE" "$APP_IMAGE"; do
+            if ! docker pull "$image:$SHA_TAG"; then
+              echo "::error::Could not pull $image:$SHA_TAG; check that the package is public"
+              exit 1
+            fi
+          done
+
+      - name: Start the published images
+        if: steps.existing.outputs.skip != 'true'
+        env:
+          SHA_TAG: ${{ steps.meta.outputs.sha_tag }}
+        run: |
+          docker network create datalab
+          docker run -d --name database --network datalab "mongo:$MONGO_IMAGE_TAG"
+          docker run -d --name api --network datalab -p 5001:5001 \
+            -e PYDATALAB_MONGO_URI=mongodb://database:27017/datalabvue \
+            -e PYDATALAB_TESTING=true \
+            "$API_IMAGE:$SHA_TAG"
+          docker run -d --name app -p 8081:8081 \
+            -e VUE_APP_API_URL=http://localhost:5001 \
+            "$APP_IMAGE:$SHA_TAG"
+
+      - name: Test the published images
+        if: steps.existing.outputs.skip != 'true'
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -x -o pipefail
+          curl -fsS --retry 30 --retry-delay 2 --retry-all-errors http://localhost:5001/healthcheck/is_ready
+          curl -fsS http://localhost:5001/info | jq -e --arg version "$VERSION" '.meta.server_version == $version'
+          curl -fsS --retry 15 --retry-delay 1 --retry-all-errors http://localhost:8081/config.js | grep -F "$VERSION"
+          curl -fsS http://localhost:8081/config.js | grep -F 'http://localhost:5001'
+          # The image must not contain any deployment configuration or plugins
+          docker exec api sh -c 'test ! -e /app/.env && test ! -e /app/config.json && test ! -e /plugins.toml'
+
+      - name: Show container diagnostics
+        if: failure()
+        run: |
+          docker ps --all
+          docker logs api || true
+          docker logs app || true
+
+      - name: Log back in to the container registry
+        if: steps.existing.outputs.skip != 'true' && steps.meta.outputs.promote != ''
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Apply the remaining tags
+        if: steps.existing.outputs.skip != 'true' && steps.meta.outputs.promote != ''
+        env:
+          SHA_TAG: ${{ steps.meta.outputs.sha_tag }}
+          PROMOTE: ${{ steps.meta.outputs.promote }}
+        run: |
+          for image in "$API_IMAGE" "$APP_IMAGE"; do
+            for tag in $PROMOTE; do
+              docker buildx imagetools create --tag "$image:$tag" "$image:$SHA_TAG"
+            done
+          done
