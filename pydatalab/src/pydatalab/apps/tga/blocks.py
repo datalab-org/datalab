@@ -42,6 +42,7 @@ class MassSpecBlock(DataBlock):
                 return
 
             ms_data = parse_mt_mass_spec_ascii(Path(file_info["location"]))
+            self.set_measured_at(ms_data.get("meta", {}).get("Start Time"))
             if ms_data:
                 self.data["bokeh_plot_data"] = self._plot_ms_data(ms_data)
 

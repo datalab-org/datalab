@@ -1,9 +1,9 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict, Field
 
-from pydatalab.models.blocks import DataBlockResponse
+from pydatalab.models.blocks import BlockMetadata, DataBlockResponse
 
 
-class NMRMetadata(BaseModel):
+class NMRMetadata(BlockMetadata):
     nucleus: str
     """The nucleus being observed in the NMR experiment (e.g., '1H', '13C', etc.)."""
 
@@ -50,4 +50,6 @@ class NMRMetadata(BaseModel):
 
 
 class NMRModel(DataBlockResponse):
-    metadata: NMRMetadata | None = None
+    metadata: NMRMetadata | None = Field(
+        default=None, json_schema_extra={"datalab_exclude_from_load": True}
+    )

@@ -502,6 +502,7 @@ def create_default_indices(
     ret += db.blocks.create_index("blocktype", name="block type", background=background)
     ret += db.blocks.create_index("creator_ids", name="block creators", background=background)
     ret += db.blocks.create_index("group_ids", name="block groups", background=background)
+    ret += db.blocks.create_index("timestamp", name="block timestamp", background=background)
     # Non-unique like item_versions. NB unlike item_versions this uniqueness is
     # security-relevant: a colliding DB entry could resolve a pin to another user's
     # block content. May worth considering making it unique and handle the potential failures.

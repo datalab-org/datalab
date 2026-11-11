@@ -1,5 +1,27 @@
 {
   "$defs": {
+    "BlockMetadata": {
+      "additionalProperties": true,
+      "description": "The base model for the structured (scientific) metadata of a block.\n\nFields common to every block live here; block types should subclass this\nmodel to describe their own metadata (e.g., `NMRMetadata`). Extra fields are\nallowed so that blocks storing unstructured metadata dictionaries remain valid.",
+      "properties": {
+        "measured_at": {
+          "anyOf": [
+            {
+              "format": "datetime",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When the measurement (or experiment) described by the block took place,\ntypically as read from the block's data file.",
+          "title": "Measured At"
+        }
+      },
+      "title": "BlockMetadata",
+      "type": "object"
+    },
     "CellComponent": {
       "properties": {
         "item": {
@@ -282,8 +304,7 @@
         "metadata": {
           "anyOf": [
             {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/$defs/BlockMetadata"
             },
             {
               "type": "null"
@@ -291,8 +312,41 @@
           ],
           "datalab_exclude_from_load": true,
           "default": null,
-          "description": "Any structured metadata associated with the block, for example,\nexperimental acquisition parameters.",
-          "title": "Metadata"
+          "description": "Any structured metadata associated with the block, for example,\nexperimental acquisition parameters."
+        },
+        "created_at": {
+          "anyOf": [
+            {
+              "format": "datetime",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "datalab_exclude_from_db": true,
+          "datalab_exclude_from_load": true,
+          "default": null,
+          "description": "When the block was created, taken from its `blocks` document. Read-only and\nunavailable for legacy blocks embedded in their item.",
+          "title": "Created At"
+        },
+        "creators": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/PersonReference"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "datalab_exclude_from_db": true,
+          "datalab_exclude_from_load": true,
+          "default": null,
+          "description": "Who created the block, taken from its `blocks` document. Read-only and\nunavailable for legacy blocks embedded in their item.",
+          "title": "Creators"
         }
       },
       "required": [
