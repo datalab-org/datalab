@@ -147,13 +147,13 @@ describe("Navbar", () => {
       },
     });
 
-    cy.get("#nav a").then(($links) => {
-      expect([...$links].map((link) => link.textContent.trim())).to.deep.equal([
-        "Equipment",
-        "Starting Materials",
-        "About this deployment",
-      ]);
-    });
+    const labels = ["Equipment", "Starting Materials", "About this deployment"];
+
+    cy.get("#nav a")
+      .should("have.length", labels.length)
+      .each(($link, index) => {
+        expect($link.text().trim()).to.equal(labels[index]);
+      });
     cy.get('[data-testid="navbar-link-starting-materials"]')
       .should("have.attr", "href", "/starting-materials")
       .find('font-awesome-icon[icon="vials"]')
