@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import platform
+from collections import Counter
 from pathlib import Path
 from typing import Any, Literal
 
@@ -18,9 +19,16 @@ from pydantic import (
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from pydatalab.models import Person
+from pydatalab.models.people import IdentityType
 from pydatalab.models.utils import RandomAlphabeticalRefcodeFactory, RefCodeFactory
 
-__all__ = ("CONFIG", "ServerConfig", "DeploymentMetadata", "RemoteFilesystem")
+__all__ = (
+    "CONFIG",
+    "ServerConfig",
+    "DeploymentMetadata",
+    "ItemTypeAllowListEntry",
+    "RemoteFilesystem",
+)
 
 config_logger = logging.getLogger("pydatalab.config")
 
@@ -111,6 +119,15 @@ class RemoteFilesystem(BaseModel):
         description="The hostname for the filesystem. `None` indicates the filesystem is already mounted locally.",
     )
     path: Path = Field(description="The path to the base of the filesystem to include.")
+
+
+class ItemTypeAllowListEntry(BaseModel):
+    """An item type and the block types that may be added to it."""
+
+    type: str
+    block_type_allow_list: list[str] | None
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class SMTPSettings(BaseModel):
@@ -235,6 +252,11 @@ class ServerConfig(BaseSettings):
         description="A dictionary containing SMTP settings for sending emails for account registration.",
     )
 
+    LOGIN_ONLY_AUTH_METHODS: list[IdentityType] = Field(
+        [],
+        description='A list of authentication methods (from `email`, `github`, `orcid`, `google`, `microsoft`) that can only be used to log in to existing accounts, or to connect to an account that is already logged in, but not to register new accounts. For example, setting `["email", "github", "google", "microsoft"]` requires users to first register with their ORCID before connecting any other accounts.',
+    )
+
     DISABLE_MAGIC_LINK_AUTH: bool = Field(
         False,
         description="Whether to disable magic-link email authentication while retaining SMTP-backed notification emails.",
@@ -272,6 +294,16 @@ its importance when deploying a datalab instance.""",
     ASYNC_BLOCK_TYPES: list[str] = Field(
         [],
         description="A list of block type slugs (e.g. ['cycle', 'xrd']) that should be processed asynchronously via the task queue. Defaults to no blocks.",
+    )
+
+    BLOCK_TYPE_ALLOW_LIST: list[str] | None = Field(
+        None,
+        description="A list of block type slugs that users may add. Setting the value to `None` allows every installed block type, while an empty list prevents adding any new blocks.",
+    )
+
+    ITEM_TYPE_ALLOW_LIST: list[ItemTypeAllowListEntry] | None = Field(
+        None,
+        description="A list of item types users may create. A string permits all globally available blocks; an object requires `type` and `block_type_allow_list`, where `None` also permits all. A top-level `None` permits all registered item types; an empty list permits none.",
     )
 
     CUSTOM_ITEM_MODELS: list[str] = Field(
@@ -322,6 +354,37 @@ its importance when deploying a datalab instance.""",
                 f"The maximum cache age must be greater than the minimum cache age: min {min_age=}, max {max_age=}"
             )
         return self
+
+    @field_validator("ITEM_TYPE_ALLOW_LIST", mode="before")
+    @classmethod
+    def validate_item_type_allow_list(cls, value):
+        """Normalize string entries into typed entries."""
+        if value is None:
+            return value
+
+        normalized_entries = []
+        for entry in value:
+            if isinstance(entry, str):
+                entry = ItemTypeAllowListEntry(type=entry, block_type_allow_list=None)
+            normalized_entries.append(entry)
+        return normalized_entries
+
+    @field_validator("ITEM_TYPE_ALLOW_LIST")
+    @classmethod
+    def validate_unique_item_types(cls, value):
+        """Reject duplicate entries with ambiguous block policies."""
+        if value is None:
+            return value
+
+        item_types = [entry.type for entry in value]
+        duplicates = sorted(
+            item_type for item_type, count in Counter(item_types).items() if count > 1
+        )
+        if duplicates:
+            raise ValueError(
+                "ITEM_TYPE_ALLOW_LIST contains duplicate item types: " + ", ".join(duplicates)
+            )
+        return value
 
     @field_validator("SECRET_KEY", mode="before")
     @classmethod

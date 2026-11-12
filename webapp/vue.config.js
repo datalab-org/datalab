@@ -10,6 +10,19 @@ module.exports = {
   configureWebpack: (config) => {
     config.resolve.symlinks = false;
 
+    // Opt-in persistent cache of the compiled modules (in `node_modules/.cache/webpack`), used
+    // to speed up the dev server in the CI e2e tests. Webpack cannot see settings that change
+    // the babel output, so these are part of the cache version.
+    if (process.env.DATALAB_WEBPACK_CACHE === "true") {
+      config.cache = {
+        type: "filesystem",
+        version: [process.env.NODE_ENV, process.env.DATALAB_E2E_COVERAGE].join("-"),
+        buildDependencies: {
+          config: [__filename, path.resolve(__dirname, "babel.config.js")],
+        },
+      };
+    }
+
     config.resolve.fallback = {
       stream: false,
       process: require.resolve("process/browser"),
@@ -49,6 +62,15 @@ module.exports = {
     config.plugins = [...(config.plugins || []), ...plugins];
   },
   chainWebpack: (config) => {
+    // Component styles are scoped, so the order in which their extracted CSS is combined
+    // does not matter; silence the many "Conflicting order" warnings this otherwise causes,
+    // e.g., in the (production mode) component test build in CI
+    if (config.plugins.has("extract-css")) {
+      config.plugin("extract-css").tap((args) => {
+        args[0] = { ...args[0], ignoreOrder: true };
+        return args;
+      });
+    }
     config.plugin("html").tap((args) => {
       args[0].title = process.env.VUE_APP_WEBSITE_TITLE || SETTINGS.WEBSITE_TITLE.default;
       args[0].meta = {

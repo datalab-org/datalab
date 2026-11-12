@@ -16,7 +16,7 @@ from pydantic import (
 )
 
 from pydatalab import __version__
-from pydatalab.apps import BLOCK_TYPES
+from pydatalab.apps import BLOCK_TYPES, is_block_type_available
 from pydatalab.config import CONFIG
 from pydatalab.deployment_stats import (
     STATS_REFRESH_INTERVAL,
@@ -26,7 +26,15 @@ from pydatalab.deployment_stats import (
 )
 from pydatalab.feature_flags import FEATURE_FLAGS, FeatureFlags
 from pydatalab.logger import LOGGER
-from pydatalab.models import BUILTIN_ITEM_TYPES, ITEM_MODELS, ITEM_SCHEMAS, Item, Person
+from pydatalab.models import (
+    BUILTIN_ITEM_TYPES,
+    ITEM_MODELS,
+    ITEM_SCHEMAS,
+    Item,
+    Person,
+    get_item_block_type_allow_list,
+    is_item_type_available,
+)
 from pydatalab.models.schema_hints import DatalabModelExtra
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only
@@ -221,6 +229,7 @@ def list_block_types():
                         "version": getattr(block, "version", __version__),
                         "accepted_file_extensions": getattr(block, "accepted_file_extensions", []),
                         "multi_file": getattr(block, "multi_file", False),
+                        "available": is_block_type_available(block_type),
                     },
                 )
                 for block_type, block in BLOCK_TYPES.items()
@@ -282,6 +291,8 @@ def _type_attributes(item_type: str, schema: dict) -> dict:
         "base_fields": list(base_model.model_fields) if base_model is not None else [],
         "hidden_fields": extra.datalab_ui_hidden_fields or [],
         "ui_color": extra.datalab_ui_color,
+        "available": is_item_type_available(item_type),
+        "block_type_allow_list": get_item_block_type_allow_list(item_type),
     }
 
 

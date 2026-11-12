@@ -534,6 +534,12 @@ def _check_email_domain(email: str, allow_list: list[str] | None) -> bool:
     return True
 
 
+def _is_login_only(identity_type: str | IdentityType) -> bool:
+    """Whether the given identity type is configured to only allow logging in to (or
+    connecting to) existing accounts, rather than registering new ones."""
+    return IdentityType(identity_type) in (CONFIG.LOGIN_ONLY_AUTH_METHODS or [])
+
+
 def find_user_with_identity(
     identifier: str,
     identity_type: str | IdentityType,
@@ -659,7 +665,7 @@ def find_create_or_modify_user(
 
         # If there is no current authenticated user, make one with the current OAuth identity
         else:
-            if not create_account:
+            if not create_account or _is_login_only(identity_type):
                 raise UserRegistrationForbidden
 
             if isinstance(create_account, bool):
@@ -758,6 +764,11 @@ def _check_user_registration_allowed(email: str) -> None:
     user = find_user_with_identity(email, IdentityType.EMAIL, verify=False)
 
     if not user:
+        if _is_login_only(IdentityType.EMAIL):
+            LOGGER.warning("Did not allow %s to register an account via email", email)
+            raise Forbidden(
+                f"No account found for {email}, and email cannot be used to register new accounts on this datalab instance. Please register via another method, or contact the administrator if you believe this is an error."
+            )
         allowed = _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST)
         if not allowed:
             LOGGER.warning("Did not allow %s to register an account", email)
@@ -945,7 +956,9 @@ def email_logged_in():
 
     create_account = False
 
-    if data.get("intent") == "register":
+    # The domain allow list only applies to registration of new accounts; existing
+    # users can always log in
+    if data.get("intent") == "register" and not find_user_with_identity(email, IdentityType.EMAIL):
         if not _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST):
             raise UserRegistrationForbidden
 
@@ -1041,18 +1054,14 @@ def google_logged_in(blueprint, token):
     email = str(google_info.get("email", google_user_id))
     name = str(google_info.get("name", email))
 
+    # The domain allow list only applies to registration of new accounts; existing users
+    # can always log in, and `find_create_or_modify_user` will refuse to make new accounts
+    # when `create_account` is False
     create_account: bool | AccountStatus = False
-    if CONFIG.EMAIL_DOMAIN_ALLOW_LIST:
-        if not _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST):
-            raise UserRegistrationForbidden
-
+    if _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST):
         create_account = AccountStatus.UNVERIFIED
-
-    elif CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None:
-        create_account = AccountStatus.UNVERIFIED
-
-    if CONFIG.AUTO_ACTIVATE_ACCOUNTS:
-        create_account = AccountStatus.ACTIVE
+        if CONFIG.AUTO_ACTIVATE_ACCOUNTS:
+            create_account = AccountStatus.ACTIVE
 
     find_create_or_modify_user(
         google_user_id,
@@ -1089,18 +1098,14 @@ def microsoft_logged_in(blueprint, token):
     email = str(ms_info.get("mail") or ms_info.get("userPrincipalName", ms_user_id))
     name = str(ms_info.get("displayName", email))
 
+    # The domain allow list only applies to registration of new accounts; existing users
+    # can always log in, and `find_create_or_modify_user` will refuse to make new accounts
+    # when `create_account` is False
     create_account: bool | AccountStatus = False
-
-    if CONFIG.EMAIL_DOMAIN_ALLOW_LIST:
-        if not _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST):
-            raise UserRegistrationForbidden
+    if _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST):
         create_account = AccountStatus.UNVERIFIED
-
-    elif CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None:
-        create_account = AccountStatus.UNVERIFIED
-
-    if CONFIG.AUTO_ACTIVATE_ACCOUNTS:
-        create_account = AccountStatus.ACTIVE
+        if CONFIG.AUTO_ACTIVATE_ACCOUNTS:
+            create_account = AccountStatus.ACTIVE
 
     find_create_or_modify_user(
         ms_user_id,

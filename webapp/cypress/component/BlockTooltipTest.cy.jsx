@@ -38,7 +38,8 @@ describe("BlockTooltip", () => {
       cy.get(".info-icon").trigger("mouseenter", { force: true });
       cy.get(".info-icon").trigger("mouseleave", { force: true });
 
-      cy.get("[data-testid='styled-tooltip']").should("not.have.attr", "data-show");
+      // The tooltip is only rendered once shown, so it may not exist at all here
+      cy.get("[data-testid='styled-tooltip'][data-show]").should("not.exist");
     });
 
     it("shows and hides tooltip on focus and blur", () => {
@@ -111,7 +112,8 @@ describe("BlockTooltip", () => {
       cy.get("a.dropdown-item").trigger("mouseenter");
       cy.get("a.dropdown-item").trigger("mouseleave");
 
-      cy.get("[data-testid='styled-tooltip']").should("not.have.attr", "data-show");
+      // The tooltip is only rendered once shown, so it may not exist at all here
+      cy.get("[data-testid='styled-tooltip'][data-show]").should("not.exist");
     });
 
     it("shows and hides tooltip on focus and blur", () => {

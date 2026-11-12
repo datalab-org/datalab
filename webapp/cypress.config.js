@@ -33,15 +33,31 @@ module.exports = defineConfig({
     baseUrl: "http://localhost:8080",
     apiUrl: "http://localhost:5001",
     defaultCommandTimeout: 10000,
+    env: {
+      // Collect coverage only from an app built with `DATALAB_E2E_COVERAGE=true` (see
+      // `babel.config.js`), as `@cypress/code-coverage` warns on every test otherwise
+      coverage: process.env.DATALAB_E2E_COVERAGE === "true",
+    },
     setupNodeEvents(on, config) {
+      require("@cypress/code-coverage/task")(on, config);
       on("task", {
         e2eLoginTokens: () => getLoginTokens(config.projectRoot),
       });
+      return config;
     },
   },
   component: {
     // Avoid port 8080's macOS WebSocket issue and the usual local dev-server port, 8081.
     port: 8082,
+    setupNodeEvents(on) {
+      // Lets component tests print to the terminal output, e.g., measured DOM sizes
+      on("task", {
+        log(message) {
+          console.log(message);
+          return null;
+        },
+      });
+    },
     devServer: {
       framework: "vue-cli",
       bundler: "webpack",

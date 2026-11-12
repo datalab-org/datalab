@@ -26,6 +26,7 @@ class AIIntegrations(BaseModel):
 
 class FeatureFlags(BaseModel):
     auth_mechanisms: AuthMechanisms = AuthMechanisms()
+    login_only_auth_mechanisms: list[str] = []
     ai_integrations: AIIntegrations = AIIntegrations()
     email_notifications: bool = False
     tags: bool = False
@@ -63,6 +64,9 @@ def check_feature_flags(app):
     """
 
     FEATURE_FLAGS.tags = CONFIG.ENABLE_TAGS
+    FEATURE_FLAGS.login_only_auth_mechanisms = [
+        method.value for method in (CONFIG.LOGIN_ONLY_AUTH_METHODS or [])
+    ]
     FEATURE_FLAGS.ungrouped_inventory = CONFIG.UNGROUPED_INVENTORY
 
     if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is None:
@@ -93,7 +97,10 @@ def check_feature_flags(app):
                 "`CONFIG.DISABLE_MAGIC_LINK_AUTH` is set; email magic-link authentication will not be enabled."
             )
         elif (
-            CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None or CONFIG.EMAIL_DOMAIN_ALLOW_LIST
+            CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None
+            or CONFIG.EMAIL_DOMAIN_ALLOW_LIST
+            # Login-only email does not need any domains allowed for registration
+            or "email" in FEATURE_FLAGS.login_only_auth_mechanisms
         ) and FEATURE_FLAGS.email_notifications:
             FEATURE_FLAGS.auth_mechanisms.email = True
         else:

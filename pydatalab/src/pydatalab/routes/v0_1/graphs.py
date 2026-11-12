@@ -7,6 +7,9 @@ from pydatalab.utils import is_truthy_arg_value
 
 GRAPHS = Blueprint("graphs", __name__)
 
+HIDDEN_UNCONNECTED_TYPES = ("starting_materials", "equipment")
+"""Item types that are only shown in the graph when connected to something."""
+
 
 @GRAPHS.before_request
 @active_users_or_get_only
@@ -288,10 +291,12 @@ def get_graph_cy_format(
     if item_id:
         whitelist.add(item_id)
 
+    # Unconnected starting materials and equipment are left out, as there are often
+    # very many of them; every other item (including custom item types) is kept.
     nodes = [
         node
         for node in nodes
-        if node["data"]["type"] in ("samples", "cells", "blocks")
+        if node["data"]["type"] not in HIDDEN_UNCONNECTED_TYPES
         or node["data"]["id"] in whitelist
         or node["data"]["id"].startswith("Collection:")
     ]
