@@ -127,11 +127,7 @@
 
     <!-- Display the blocks -->
     <div v-if="blocksLoaded && blockInfoLoaded" class="container block-container">
-      <transition-group name="block-list" tag="div">
-        <div v-for="block_id in item_data.display_order" :key="block_id" class="block-list-item">
-          <component :is="getBlockDisplayType(block_id)" :item_id="item_id" :block_id="block_id" />
-        </div>
-      </transition-group>
+      <BlockList ref="blockList" :item_id="item_id" />
       <div ref="blockLoadingIndicator" class="text-center">
         <font-awesome-icon
           v-if="isLoadingNewBlock"
@@ -144,6 +140,9 @@
       </div>
 
       <div class="mt-4 text-center">
+        <button class="btn btn-outline-secondary mr-2" type="button" @click="newSection">
+          <font-awesome-icon :icon="['fas', 'folder-open']" fixed-width /> Add Section
+        </button>
         <AddBlockDropdown
           variant="button"
           direction="up"
@@ -191,7 +190,6 @@ import {
   getItemByRefcode,
   addABlock,
   saveItem,
-  updateBlockFromServer,
   getBlocksInfos,
 } from "@/server_fetch_utils";
 import LoginDetails from "@/components/LoginDetails";
@@ -201,14 +199,15 @@ import CustomFieldsPanel from "@/components/custom/CustomFieldsPanel.vue";
 
 import setupUppy from "@/file_upload.js";
 
-import { itemTypes, API_URL, customBlockTypes } from "@/resources.js";
-import BokehBlock from "@/components/datablocks/BokehBlock.vue";
-import ErrorBlock from "@/components/datablocks/ErrorBlock.vue";
+import { itemTypes, API_URL } from "@/resources.js";
 import { formatDistanceToNow } from "date-fns";
 
 import AddBlockDropdown from "@/components/AddBlockDropdown";
 
 import ExportDropdown from "@/components/ExportDropdown";
+import BlockList from "@/components/BlockList";
+
+import { blockIdsOf, createSection } from "@/utils/displayOrderSections.js";
 
 export default {
   components: {
@@ -223,6 +222,7 @@ export default {
     CustomFieldsPanel,
     AddBlockDropdown,
     ExportDropdown,
+    BlockList,
   },
   provide() {
     return {
@@ -298,7 +298,7 @@ export default {
         return true;
       }
       let allSavedStatusBlocks = this.$store.state.saved_status_blocks;
-      let allBlocksAreSaved = this.item_data.display_order.every(
+      let allBlocksAreSaved = blockIdsOf(this.item_data.display_order).every(
         (block_id) => allSavedStatusBlocks[block_id] !== false,
       );
       return allBlocksAreSaved && this.$store.state.saved_status_items[this.item_id];
@@ -392,9 +392,6 @@ export default {
     this.getSampleData();
     this.interval = setInterval(() => this.setLastModified(), 30000);
   },
-  beforeMount() {
-    this.customBlockTypes = customBlockTypes; // bind customBlockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
-  },
   mounted() {
     // overwrite ctrl-s and cmd-s to save the page
     // An arrow function, so that the exact same function is added here and removed on unmount
@@ -438,30 +435,18 @@ export default {
         behavior: "smooth",
       });
     },
+    newSection() {
+      const section = createSection("New section");
+      this.$store.commit("addSection", { item_id: this.item_id, section });
+      this.$nextTick(() => {
+        document.getElementById(section.section_id)?.scrollIntoView({ behavior: "smooth" });
+      });
+    },
     scrollToID(event, id) {
       var element = document.getElementById(id);
       element.scrollIntoView({
         behavior: "smooth",
       });
-    },
-    getBlockDisplayType(block_id) {
-      const block = this.blocks[block_id];
-
-      if (!block || this.$store.state.block_errors[block_id]) {
-        return ErrorBlock;
-      }
-
-      const type = block.blocktype;
-
-      if (!(type in this.$store.state.blocksInfos)) {
-        return ErrorBlock;
-      }
-
-      if (type in customBlockTypes) {
-        return customBlockTypes[type].component;
-      } else {
-        return BokehBlock;
-      }
     },
     saveSample() {
       saveItem(this.item_id);
@@ -501,15 +486,7 @@ export default {
     },
     async updateBlocks() {
       if (this.itemDataLoaded && this.item_data && this.item_data.display_order) {
-        // update each block asynchronously
-        this.item_data.display_order.forEach((block_id) => {
-          console.log(`calling update on block ${block_id}`);
-          updateBlockFromServer(this.item_id, block_id, this.item_data.blocks_obj[block_id]).catch(
-            (error) => {
-              console.error(`Error updating block ${block_id}:`, error);
-            },
-          );
-        });
+        this.$refs.blockList?.reloadBlocks();
         this.blocksLoaded = true;
         this.setLastModified();
       }
@@ -556,7 +533,7 @@ export default {
       // Mark item as saved (restored data is already in DB)
       this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: true });
       // Mark all blocks as saved
-      this.item_data.display_order.forEach((block_id) => {
+      blockIdsOf(this.item_data.display_order).forEach((block_id) => {
         this.$store.commit("setBlockSaved", { block_id: block_id, isSaved: true });
       });
       // Refresh the blocks
@@ -645,24 +622,6 @@ label,
 .block-container {
   padding-bottom: 100px;
   position: relative;
-}
-
-.block-list-item {
-  transition: all 0.6s ease;
-  /*display: inline-block;*/
-  width: 100%;
-  position: relative;
-}
-
-.block-list-enter-from,
-.block-list-leave-to {
-  opacity: 0;
-  /*transform: translateX(-100px);*/
-}
-
-.block-list-leave-active {
-  position: absolute;
-  max-width: calc(100% - 30px);
 }
 
 .navbar-right-cluster {
