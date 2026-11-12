@@ -37,7 +37,7 @@ describe("Navbar", () => {
     router = createRouter({
       history: createWebHistory(),
       routes: [
-        { path: "/about", name: "About" },
+        { path: "/about", name: "about" },
         { path: "/samples", name: "samples" },
         { path: "/collections", name: "collections" },
         { path: "/starting-materials", name: "starting-materials" },
@@ -223,7 +223,7 @@ describe("Navbar", () => {
         features: { test_enabled: false },
         navigation: [{ view: "collections", default: true }, { view: "about" }],
       }),
-    ).to.equal("About");
+    ).to.equal("about");
   });
 
   it("does not render links before server metadata is loaded", () => {

@@ -5,7 +5,7 @@ import { CONFIG } from "@/config.js";
 // It receives `serverInfo` but predicates may ignore it, as Collections does.
 export const NAVIGATION_VIEWS = {
   about: {
-    routeName: "About",
+    routeName: "about",
     defaultLabel: "About",
   },
   samples: {
