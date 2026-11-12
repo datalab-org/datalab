@@ -161,7 +161,7 @@ describe("Navbar", () => {
     cy.get("#nav .nav-separator").should("have.length", 2);
   });
 
-  it("supports an explicitly empty navigation", () => {
+  it("handles an empty navigation response", () => {
     store.state.serverInfo.navigation = [];
 
     cy.mount(Navbar, {
