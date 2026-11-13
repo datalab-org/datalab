@@ -143,6 +143,10 @@ def get_by_id(
     if not user:
         return None
 
+    # Deleted accounts can never be authenticated, e.g., via a lingering session cookie
+    if user.get("account_status") == AccountStatus.DELETED:
+        return None
+
     role = flask_mongo.db.roles.find_one({"_id": ObjectId(user_id)})
     if not role:
         role = "user"

@@ -2,7 +2,9 @@
   <form class="modal-enclosure" data-testid="create-item-form" @submit.prevent="submitForm">
     <Modal
       :model-value="modelValue"
-      :disable-submit="Boolean(isValidEntryID) || (!generateIDAutomatically && !Boolean(item_id))"
+      :disable-submit="
+        !item_type || Boolean(isValidEntryID) || (!generateIDAutomatically && !Boolean(item_id))
+      "
       @update:model-value="$emit('update:modelValue', $event)"
     >
       <template #header> Add new item </template>
@@ -19,7 +21,7 @@
               :disabled="generateIDAutomatically"
               :required="!generateIDAutomatically"
             />
-            <!-- eslint-disable-next-line vue/no-v-html -->
+            <!-- eslint-disable-next-line vue/no-v-html -- only renders validateEntryID/validateGroupID output, whose sole HTML is an <a> link built from a charset-validated ID -->
             <div class="form-error" v-html="isValidEntryID"></div>
             <div class="form-check mt-1 ml-1">
               <input
@@ -40,7 +42,7 @@
           <div class="form-group col-md-6">
             <label for="item-type-select" class="col-form-label">Type:</label>
             <select id="item-type-select" v-model="item_type" class="form-control" required>
-              <option v-for="type in allowedTypes" :key="type" :value="type">
+              <option v-for="type in effectiveAllowedTypes" :key="type" :value="type">
                 {{ itemTypes[type].display }}
               </option>
             </select>
@@ -64,8 +66,8 @@
             <input id="create-item-name" v-model="name" type="text" class="form-control" />
           </div>
         </div>
-        <!-- All item types can be added to a collection, so this is always available -->
-        <div class="form-row">
+        <!-- When collections are visible, any item type can be added to a collection. -->
+        <div v-if="!hideCollections" class="form-row">
           <div class="col-md-12 form-group">
             <label id="startInCollection">(Optional) Insert into collection:</label>
             <CollectionSelect
@@ -100,11 +102,14 @@
         />
         <div class="form-row">
           <div class="col-md-6 form-group">
-            <label id="shareWithGroupsLabel">(Optional) Share with groups:</label>
+            <label id="shareWithGroupsLabel"
+              >(Optional) {{ isInventoryType ? "Restrict to" : "Share with" }} groups:</label
+            >
             <GroupSelect
               v-model="shareWithGroups"
               aria-labelledby="shareWithGroupsLabel"
               multiple
+              :member-only="isInventoryType"
             />
           </div>
           <div class="col-md-6 form-group">
@@ -129,8 +134,14 @@ import ItemSelect from "@/components/ItemSelect.vue";
 import GroupSelect from "@/components/GroupSelect.vue";
 import UserSelect from "@/components/UserSelect.vue";
 import { createNewItem } from "@/server_fetch_utils.js";
-import { validateEntryID } from "@/field_utils.js";
-import { itemTypes, SAMPLE_TABLE_TYPES, AUTOMATICALLY_GENERATE_ID_DEFAULT } from "@/resources.js";
+import { validateEntryID, confirmUngroupedInventory } from "@/field_utils.js";
+import {
+  itemTypes,
+  SAMPLE_TABLE_TYPES,
+  INVENTORY_TYPES,
+  AUTOMATICALLY_GENERATE_ID_DEFAULT,
+  HIDE_COLLECTIONS,
+} from "@/resources.js";
 import CollectionSelect from "@/components/CollectionSelect.vue";
 export default {
   name: "CreateItemModal",
@@ -161,6 +172,7 @@ export default {
       selectedItemToCopy: null,
       startingConstituents: [],
       generateIDAutomatically: AUTOMATICALLY_GENERATE_ID_DEFAULT,
+      hideCollections: HIDE_COLLECTIONS,
       agesAgo: new Date("1970-01-01").toISOString().slice(0, -8), // a datetime for the unix epoch start
       shareWithGroups: [],
       additionalCreators: [],
@@ -170,11 +182,27 @@ export default {
     itemTypes() {
       return itemTypes;
     },
+    effectiveAllowedTypes() {
+      // Custom/plugin item types all live in the Samples page for now. Keep them
+      // out of the Inventory modal even when they inherit from StartingMaterial.
+      const isSamplesContext = this.allowedTypes.some((type) => SAMPLE_TABLE_TYPES.includes(type));
+      const dynamic = isSamplesContext
+        ? Object.keys(this.$store.state.schemas || {}).filter(
+            (type) => itemTypes[type]?.isDynamic && itemTypes[type]?.isCreateable,
+          )
+        : [];
+      return [...new Set([...this.allowedTypes, ...dynamic])].filter(
+        (type) => itemTypes[type]?.available !== false,
+      );
+    },
+    isInventoryType() {
+      return INVENTORY_TYPES.includes(this.item_type);
+    },
     itemTypeDisplayName() {
-      return itemTypes[this.item_type].display;
+      return itemTypes[this.item_type]?.display || "item";
     },
     itemCreateModalAddonComponent() {
-      return itemTypes[this.item_type].itemCreateModalAddon;
+      return itemTypes[this.item_type]?.itemCreateModalAddon;
     },
     takenSampleIds() {
       return this.$store.state.sample_list
@@ -185,8 +213,15 @@ export default {
       return validateEntryID(this.item_id, this.takenItemIds, this.takenSampleIds);
     },
   },
-  created() {
-    this.item_type = this.allowedTypes[0];
+  watch: {
+    effectiveAllowedTypes: {
+      handler(types) {
+        if (!types.includes(this.item_type)) {
+          this.item_type = types[0] || "";
+        }
+      },
+      immediate: true,
+    },
   },
   methods: {
     async submitForm() {
@@ -205,6 +240,14 @@ export default {
       const groupsData = this.shareWithGroups.length > 0 ? this.shareWithGroups : null;
       const creatorsData = this.additionalCreators.length > 0 ? this.additionalCreators : null;
 
+      if (!(await confirmUngroupedInventory(this.item_type, groupsData))) {
+        return;
+      }
+
+      // Custom (dynamic) types have no list page to land on, so navigate to the
+      // new item's editor after creation.
+      const navigateAfterCreate = Boolean(itemTypes[this.item_type]?.isDynamic);
+
       await createNewItem(
         this.item_id,
         this.item_type,
@@ -217,7 +260,7 @@ export default {
         groupsData,
         creatorsData,
       )
-        .then(() => {
+        .then((newItemId) => {
           this.$emit("update:modelValue", false); // close this modal
           // can enable the following line to get smooth scrolling into view, but will fail
           // if generateIDAutomatically. It's currently not necessary because
@@ -227,6 +270,9 @@ export default {
           this.date = this.now(); // reset date to the new current time
           this.shareWithGroups = [];
           this.additionalCreators = [];
+          if (navigateAfterCreate && newItemId) {
+            this.$router.push(`/edit/${newItemId}`);
+          }
         })
         .catch((error) => {
           let is_item_id_error = false;

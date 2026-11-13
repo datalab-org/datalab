@@ -38,6 +38,7 @@
         <DynamicDataTableButtons
           :data-type="dataType"
           :items-selected="itemsSelected"
+          :displayed-item-count="filteredItemCount"
           :filters="filters"
           :editable-inventory="editable_inventory"
           :show-buttons="showButtons"
@@ -142,9 +143,10 @@
   />
   <BatchCreateItemModal v-model="batchCreateItemModalIsOpen" />
   <QRScannerModal v-model="qrScannerModalIsOpen" />
-  <CreateCollectionModal v-model="createCollectionModalIsOpen" />
+  <CreateCollectionModal v-if="!hideCollections" v-model="createCollectionModalIsOpen" />
   <CreateEquipmentModal v-model="createEquipmentModalIsOpen" />
   <AddToCollectionModal
+    v-if="!hideCollections"
     v-model="addToCollectionModalIsOpen"
     :items-selected="itemsSelected"
     @items-updated="handleItemsUpdated"
@@ -166,7 +168,7 @@ import CreateEquipmentModal from "@/components/CreateEquipmentModal";
 import AddToCollectionModal from "@/components/AddToCollectionModal";
 import BatchShareModal from "@/components/BatchShareModal";
 
-import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY } from "@/resources.js";
+import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY, HIDE_COLLECTIONS } from "@/resources.js";
 
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
@@ -253,6 +255,7 @@ export default {
       filteredData: [],
       allowedTypes: INVENTORY_TABLE_TYPES,
       editable_inventory: EDITABLE_INVENTORY,
+      hideCollections: HIDE_COLLECTIONS,
       selectedColumns: [],
       // Names of the per-column matchers this instance registered with the global
       // FilterService, so that they can be removed again when it unmounts.
@@ -261,6 +264,12 @@ export default {
   },
 
   computed: {
+    filteredItemCount() {
+      if (this.filteredData === null) {
+        return this.data ? this.data.length : 0;
+      }
+      return this.filteredData.length;
+    },
     rows() {
       return this.$store.state.datatablePaginationSettings[this.dataType].rows;
     },
@@ -653,6 +662,16 @@ export default {
 </script>
 
 <style scoped>
+/* Keep every row on a single line. The flex-based cell components (tags, creators)
+   wrap by default, so override them here rather than changing them everywhere. */
+:deep(.p-datatable-tbody > tr > td) {
+  white-space: nowrap;
+}
+:deep(.p-datatable-tbody > tr > td .tag-list),
+:deep(.p-datatable-tbody > tr > td .creators-container) {
+  flex-wrap: nowrap !important;
+}
+
 .last-modified-cell {
   font-size: 0.85em;
   font-style: italic;

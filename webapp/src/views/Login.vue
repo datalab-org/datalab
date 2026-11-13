@@ -2,13 +2,8 @@
   <div class="login-page min-vh-100 px-3 py-5">
     <main class="login-box card shadow-sm mx-auto">
       <div class="card-body p-4 p-sm-5 text-center">
-        <div v-if="logo_url != null" class="mb-4">
-          <a
-            v-if="homepage_url != null"
-            :href="homepage_url"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+        <div v-if="logo_url" class="mb-4">
+          <a v-if="homepage_url" :href="homepage_url" target="_blank" rel="noopener noreferrer">
             <img class="logo-banner d-block mx-auto" :src="logo_url" alt="Logo" />
           </a>
           <img v-else class="logo-banner d-block mx-auto" :src="logo_url" alt="Logo" />
@@ -41,25 +36,43 @@
               <div
                 v-else
                 v-on-click-outside="() => (isLoginDropdownVisible = false)"
-                class="dropdown d-inline-block"
+                class="d-inline-block"
               >
-                <button
-                  id="loginDropdown"
-                  class="btn btn-default dropdown-toggle"
-                  type="button"
-                  aria-haspopup="true"
-                  :aria-expanded="isLoginDropdownVisible"
-                  @click="isLoginDropdownVisible = !isLoginDropdownVisible"
-                >
-                  <font-awesome-icon icon="sign-in-alt" />&nbsp;Login/Register
-                </button>
-                <div
-                  v-show="isLoginDropdownVisible"
-                  class="dropdown-menu"
-                  style="display: block"
-                  aria-labelledby="loginDropdown"
-                >
-                  <LoginDropdown :next="nextPath" />
+                <div class="dropdown">
+                  <button
+                    id="loginDropdown"
+                    class="btn btn-default dropdown-toggle"
+                    type="button"
+                    aria-haspopup="true"
+                    :aria-expanded="isLoginDropdownVisible"
+                    @click="isLoginDropdownVisible = !isLoginDropdownVisible"
+                  >
+                    <font-awesome-icon icon="sign-in-alt" />&nbsp;Login/Register
+                  </button>
+                  <div
+                    v-show="isLoginDropdownVisible"
+                    class="dropdown-menu"
+                    style="display: block"
+                    aria-labelledby="loginDropdown"
+                  >
+                    <LoginDropdown :next="nextPath" :remember="rememberMe" />
+                  </div>
+                </div>
+                <div class="form-check mt-3">
+                  <input
+                    id="rememberMe"
+                    v-model="rememberMe"
+                    type="checkbox"
+                    class="form-check-input"
+                    data-testid="remember-me-checkbox"
+                  />
+                  <label
+                    class="form-check-label small text-muted"
+                    for="rememberMe"
+                    title="Remember me on this machine (do not use on shared machines)"
+                  >
+                    Remember me on this device
+                  </label>
                 </div>
               </div>
             </div>
@@ -94,6 +107,7 @@ export default {
       authMechanisms: {},
       currentUser: null,
       isLoaded: false,
+      rememberMe: false,
     };
   },
   computed: {

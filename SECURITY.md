@@ -53,8 +53,13 @@ Security fixes are typically issued for the **latest released minor version** on
   Registration can be restricted by GitHub organisation membership or email domain, and accounts require admin activation by default. Administrative users are encouraged to authenticate through an identity provider with MFA enabled.
 - **Per-item and per-group permissions.** Every read and write is filtered by a permission query derived from the requesting user's identity, their group memberships, and any managed users.
   Items may inherit read access from collections they belong to; write access is never inherited.
+  Inventory items (starting materials and equipment) are readable and editable by all users, unless restricted to one or more groups, in which case only members of those groups can access them.
+  Deployments can set [`UNGROUPED_INVENTORY`][pydatalab.config.ServerConfig.UNGROUPED_INVENTORY] to warn users who create inventory items without a group, or to require one.
 - **Hashed credentials at rest.** API keys and item access tokens are stored as hashes, never in plaintext.
 - **A write audit trail.** Item edits are snapshotted as versions, attributed to the user who made them.
+- **Account deletion.** Admins can irreversibly delete an account, which removes its connected identities, email addresses, API keys and management roles, and replaces its display name with a random pseudonym so that anything the user created remains intact and attributed.
+  Deleted accounts can never be used to log in again, and any existing sessions are invalidated.
+  Unverified accounts that nothing refers to will instead be expunged from the database entirely.
 
 ### What it does not defend against
 
@@ -115,6 +120,7 @@ The following are the deploying institution's responsibility:
 Note the limits of this: it protects against a stolen disk or a leaked snapshot, and not at all against compromise of a running server, since the database decrypts transparently for anyone who can connect.
 - **Backups.** Configure and, importantly, **periodically test restoring** them, ideally following the 3-2-1 rule.
 *datalab* provides a native way of creating scheduled snapshots, though this should likely be complemented with an incremental backup process (e.g., borg).
+Personal data removed by deleting an account will persist in backups until they expire, so retention periods should be set deliberately and reflected in the deployment's privacy notice.
 - **Remote filesystems.** Scope any configured remote filesystem to the narrowest possible directory, using a dedicated account with read-only access.
 - **Plugins.** Review and pin them; treat additions as deployment changes.
 - **Updates.** Track releases and subscribe to this repository's security advisories.

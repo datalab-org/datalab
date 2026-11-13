@@ -7,7 +7,7 @@
   <p class="text-muted mb-4">Sign in or register to continue.</p>
   <slot name="login" />
   <a
-    v-if="homepageUrl != null"
+    v-if="homepageUrl"
     :href="homepageUrl"
     class="btn btn-default mt-3"
     target="_blank"

@@ -42,7 +42,7 @@ reproducible with additional features such as automatic backups and monitoring.
 ## Manual deployment with Docker and Docker Compose
 
 Dockerfiles for the web app, server and database can be found in the `.docker` directory.
-The production target will copy the state of the repository on build and use `gunicorn` and `serve` to serve the server and app respectively.
+The production target will copy the state of the repository on build and use `gunicorn` and `nginx` to serve the server and app respectively.
 
 There are several steps involved from taking the Docker containers above and provisioning a persistent *datalab* server and instance available through the internet.
 Many of these involve tuning the server configuration for your group following the [additional documentation](config.md) on configuration, but many additional choices also depend on how you plan to host the containers in the long-term.
@@ -293,7 +293,7 @@ policy suitable for their deployment.
 Each Python notebook and Jupyter console preloads:
 
 ```python
-datalab       # authenticated datalab_api.DatalabClient
+datalab  # authenticated datalab_api.DatalabClient
 current_user  # launch-time identity, role, and group snapshot
 ```
 
@@ -308,8 +308,8 @@ and defines:
 
 ```python
 selected_item_refcodes  # ordered immutable refcodes from the table
-selected_items          # accessible item dictionaries
-selected_item_errors    # refcodes that could not be loaded
+selected_items  # accessible item dictionaries
+selected_item_errors  # refcodes that could not be loaded
 ```
 
 The cell remains editable and rerunnable. It is not executed automatically

@@ -7,7 +7,7 @@
     <div v-show="false" class="navbar-nav"><LoginDetails /></div>
     <span class="navbar-brand clickable" @click="scrollToID($event, 'topScrollPoint')">
       <span class="navbar-brand-type"
-        >{{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;</span
+        >{{ itemTypeEntry?.navbarName || itemType || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;</span
       >
       <span class="navbar-brand-name">
         <FormattedItemName :item_id="item_id" :item-type="itemType" />
@@ -62,6 +62,7 @@
           menu-testid="add-block-dropdown"
           :suggested-block-types="suggestedBlockTypes"
           :all-block-types="allBlockTypes"
+          :disabled="noBlockTypesAvailable"
           @select="newBlock"
         />
         <ExportDropdown
@@ -107,9 +108,16 @@
   <!-- Item-type header information goes here -->
   <div class="editor-body">
     <component
-      :is="itemTypeEntry?.itemInformationComponent"
+      :is="informationComponent"
       ref="sampleInformation"
       :item_id="item_id"
+      :hidden-fields="itemTypeEntry?.hiddenFields || []"
+    />
+    <component
+      :is="resolvedCustomPanel"
+      v-if="hasCustomPanel"
+      :item_id="item_id"
+      :item-type="itemType"
     />
     <FileList :item_id="item_id" :stored_files="stored_files" />
 
@@ -145,6 +153,7 @@
           menu-testid="add-block-dropdown-bottom"
           :suggested-block-types="suggestedBlockTypes"
           :all-block-types="allBlockTypes"
+          :disabled="noBlockTypesAvailable"
           @select="newBlock"
         />
       </div>
@@ -187,6 +196,8 @@ import {
 } from "@/server_fetch_utils";
 import LoginDetails from "@/components/LoginDetails";
 import FormattedItemName from "@/components/FormattedItemName";
+import { defineAsyncComponent } from "vue";
+import CustomFieldsPanel from "@/components/custom/CustomFieldsPanel.vue";
 
 import setupUppy from "@/file_upload.js";
 
@@ -209,6 +220,7 @@ export default {
     VersionHistoryModal,
     SharingModal,
     FormattedItemName,
+    CustomFieldsPanel,
     AddBlockDropdown,
     ExportDropdown,
   },
@@ -261,6 +273,17 @@ export default {
     itemTypeEntry() {
       return itemTypes[this.itemType] || undefined;
     },
+    informationComponent() {
+      return this.itemTypeEntry?.itemInformationComponent || null;
+    },
+    hasCustomPanel() {
+      // `itemTypes` is reactive, so this re-evaluates once dynamic types register.
+      return !!this.itemTypeEntry?.isDynamic;
+    },
+    resolvedCustomPanel() {
+      const factory = this.itemTypeEntry?.customPanel;
+      return factory ? defineAsyncComponent(factory) : CustomFieldsPanel;
+    },
     navbarColor() {
       return this.itemTypeEntry?.navbarColor || "DarkGrey";
     },
@@ -310,11 +333,7 @@ export default {
         return [];
       }
 
-      return this.blocksInfos.filter((blockInfo) => {
-        if (blockInfo.id === "notsupported") {
-          return false;
-        }
-
+      return this.availableBlockInfos.filter((blockInfo) => {
         const acceptedExtensions = blockInfo.attributes?.accepted_file_extensions;
         if (!acceptedExtensions || acceptedExtensions.length === 0) {
           return false;
@@ -327,12 +346,27 @@ export default {
         );
       });
     },
+    // Block types that may be added to this item: excludes the `notsupported` placeholder
+    // and types disallowed globally or for this item type.
+    availableBlockInfos() {
+      const blockTypeAllowList = this.itemTypeEntry?.blockTypeAllowList ?? null;
+      return this.blocksInfos.filter((blockInfo) => {
+        return (
+          blockInfo.id !== "notsupported" &&
+          blockInfo.attributes?.available !== false &&
+          (blockTypeAllowList === null || blockTypeAllowList.includes(blockInfo.id))
+        );
+      });
+    },
     allBlockTypes() {
       if (!this.blockInfoLoaded) {
         return [];
       }
 
-      return this.blocksInfos.filter((blockInfo) => blockInfo.id !== "notsupported");
+      return this.availableBlockInfos;
+    },
+    noBlockTypesAvailable() {
+      return this.blockInfoLoaded && this.allBlockTypes.length === 0;
     },
   },
   watch: {
@@ -363,23 +397,32 @@ export default {
   },
   mounted() {
     // overwrite ctrl-s and cmd-s to save the page
-    this._keyListener = function (e) {
+    // An arrow function, so that the exact same function is added here and removed on unmount
+    this._keyListener = (e) => {
       if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
         e.preventDefault(); // present "Save Page" from getting triggered.
         this.saveSample();
       }
     };
-    document.addEventListener("keydown", this._keyListener.bind(this));
+    document.addEventListener("keydown", this._keyListener);
 
     // Retreive the cached file tree
     // this.loadCachedTree()
     // this.updateRemoteTree()
 
-    // setup the uppy instsance
-    setupUppy(this.item_id, "#uppy-trigger", {});
+    // Set up the uppy instance. The item is looked up per upload, as this page is reused
+    // (not remounted) when navigating between items, and when opened by refcode only knows
+    // its `item_id` once the item has loaded.
+    this.uppyPromise = setupUppy(() => this.item_id, "#uppy-trigger", {});
   },
   beforeUnmount() {
     document.removeEventListener("keydown", this._keyListener);
+    clearInterval(this.interval);
+    // Normally removed by the `savedStatus` watcher, which may not fire when leaving
+    // without saving, so remove it here too
+    window.removeEventListener("beforeunload", this.leavePageWarningListener, true);
+    // Remove the upload dashboard (and its document listeners) from the page
+    this.uppyPromise?.then((uppy) => uppy.destroy());
   },
   methods: {
     async newBlock(blockType, index = null) {
@@ -478,6 +521,9 @@ export default {
       this.blockInfoLoaded = true;
     },
     reloadForRoute() {
+      // Clear the upload dashboard so that files queued for the previous item are not
+      // shown (or uploaded) on the new one
+      this.uppyPromise?.then((uppy) => uppy.cancelAll());
       this.item_id = this.$route.params?.id || null;
       this.refcode = this.$route.params?.refcode || null;
       this.itemDataLoaded = false;

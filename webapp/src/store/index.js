@@ -86,6 +86,7 @@ export default createStore({
     },
     schemas: {}, // keys: item types, vals: schema objects
     userActivityCache: {}, // keys: userId (or 'combined' for combined activity), vals: { data, timestamp }
+    statsHistory: null, // monthly histograms of deployment usage from /info/stats/history
   },
   mutations: {
     setServerInfo(state, serverInfo) {
@@ -93,16 +94,19 @@ export default createStore({
       state.serverInfo = serverInfo;
     },
     setSampleList(state, sampleSummaries) {
-      // sampleSummaries is an array of json objects summarizing the available samples
-      state.sample_list = sampleSummaries || [];
+      // sampleSummaries is an array of json objects summarizing the available samples.
+      // Frozen so Vue does not make the (potentially very long) list deeply reactive; the
+      // list is only ever replaced wholesale, never mutated in place.
+      state.sample_list = Object.freeze(sampleSummaries || []);
     },
+    // The item lists below are frozen in the same way as `sample_list`, and only ever replaced.
     setStartingMaterialList(state, startingMaterialSummaries) {
       // startingMaterialSummaries is an array of json objects summarizing the available starting materials
-      state.starting_material_list = startingMaterialSummaries || [];
+      state.starting_material_list = Object.freeze(startingMaterialSummaries || []);
     },
     setCollectionList(state, collectionSummaries) {
       // collectionSummaries is an array of json objects summarizing the available collections
-      state.collection_list = collectionSummaries || [];
+      state.collection_list = Object.freeze(collectionSummaries || []);
     },
     setTagList(state, tags) {
       // tags is an array of tag objects
@@ -135,7 +139,7 @@ export default createStore({
     },
     setEquipmentList(state, equipmentSummaries) {
       // equipmentSummary is an array of json objects summarizing the available samples
-      state.equipment_list = equipmentSummaries || [];
+      state.equipment_list = Object.freeze(equipmentSummaries || []);
     },
     setLocationsList(state, locations) {
       // locations is { flat_locations: [...], nested_locations: {...} } from GET /locations
@@ -143,50 +147,36 @@ export default createStore({
     },
     appendToSampleList(state, sampleSummary) {
       // sampleSummary is a json object summarizing the new sample
-      if (state.sample_list === null) {
-        state.sample_list = [sampleSummary];
-      } else {
-        state.sample_list.push(sampleSummary);
-      }
+      state.sample_list = Object.freeze([...(state.sample_list || []), sampleSummary]);
     },
     prependToSampleList(state, sampleSummary) {
       // sampleSummary is a json object summarizing the new sample
-      if (state.sample_list === null) {
-        state.sample_list = [sampleSummary];
-      } else {
-        state.sample_list.unshift(sampleSummary);
-      }
+      state.sample_list = Object.freeze([sampleSummary, ...(state.sample_list || [])]);
+    },
+    prependManyToSampleList(state, sampleSummaries) {
+      state.sample_list = Object.freeze([...sampleSummaries, ...(state.sample_list || [])]);
     },
     prependToStartingMaterialList(state, itemSummary) {
-      // sampleSummary is a json object summarizing the new sample
-      if (state.starting_material_list === null) {
-        state.starting_material_list = [itemSummary];
-      } else {
-        state.starting_material_list.unshift(itemSummary);
-      }
+      // itemSummary is a json object summarizing the new starting material
+      state.starting_material_list = Object.freeze([
+        itemSummary,
+        ...(state.starting_material_list || []),
+      ]);
     },
     prependToEquipmentList(state, equipmentSummary) {
-      // sampleSummary is a json object summarizing the new sample
-      if (state.equipment_list === null) {
-        state.equipment_list = [equipmentSummary];
-      } else {
-        state.equipment_list.unshift(equipmentSummary);
-      }
+      // equipmentSummary is a json object summarizing the new equipment
+      state.equipment_list = Object.freeze([equipmentSummary, ...(state.equipment_list || [])]);
     },
     prependToCollectionList(state, collectionSummary) {
       // collectionSummary is a json object summarizing the new collection
-      if (state.collection_list === null) {
-        state.collection_list = [collectionSummary];
-      } else {
-        state.collection_list.unshift(collectionSummary);
-      }
+      state.collection_list = Object.freeze([collectionSummary, ...(state.collection_list || [])]);
     },
     deleteFromSampleList(state, item_id) {
       if (state.sample_list === null) return;
 
       const index = state.sample_list.map((e) => e.item_id).indexOf(item_id);
       if (index > -1) {
-        state.sample_list.splice(index, 1);
+        state.sample_list = Object.freeze(state.sample_list.filter((_, i) => i !== index));
       } else {
         console.warn(`deleteFromSampleList couldn't find the item with id ${item_id}`);
       }
@@ -196,7 +186,9 @@ export default createStore({
 
       const index = state.starting_material_list.map((e) => e.item_id).indexOf(item_id);
       if (index > -1) {
-        state.starting_material_list.splice(index, 1);
+        state.starting_material_list = Object.freeze(
+          state.starting_material_list.filter((_, i) => i !== index),
+        );
       } else {
         console.warn(`deleteFromStartingMaterialList couldn't find the item with id ${item_id}`);
       }
@@ -208,7 +200,7 @@ export default createStore({
         .map((e) => e.collection_id)
         .indexOf(collection_summary.collection_id);
       if (index > -1) {
-        state.collection_list.splice(index, 1);
+        state.collection_list = Object.freeze(state.collection_list.filter((_, i) => i !== index));
       } else {
         console.warn("deleteFromCollectionList couldn't find the object");
       }
@@ -218,7 +210,7 @@ export default createStore({
 
       const index = state.equipment_list.map((e) => e.item_id).indexOf(item_id);
       if (index > -1) {
-        state.equipment_list.splice(index, 1);
+        state.equipment_list = Object.freeze(state.equipment_list.filter((_, i) => i !== index));
       } else {
         console.warn(`deleteFromEquipmentList couldn't find the item with id ${item_id}`);
       }
@@ -456,6 +448,9 @@ export default createStore({
     },
     setSchema(state, { type, schema }) {
       state.schemas[type] = schema;
+    },
+    setStatsHistory(state, statsHistory) {
+      state.statsHistory = statsHistory;
     },
     setUserActivityCache(state, { userId, data }) {
       // userId can be a user ID string or 'combined' for combined activity

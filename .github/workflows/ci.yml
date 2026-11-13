@@ -6,10 +6,17 @@ on:
     branches:
       - main
 
+# No job needs to write with the `GITHUB_TOKEN` (caches and artifacts use their own tokens)
+permissions:
+  contents: read
+
 env:
   FORCE_COLOR: true
-  UV_VERSION: "0.11.8"
-  NODE_VERSION: "22.22"
+  NODE_VERSION: "22.23"
+  # Recent MongoDB 8.x releases exit on startup on the runner's kernel (7.0.0-azure), see
+  # https://jira.mongodb.org/browse/SERVER-125742; 8.0.20 is the last 8.0 release without
+  # this check. Also update the pytest `mongo` service image below.
+  MONGO_IMAGE_TAG: "8.0.20-noble"
   MIN_PYTHON_VERSION: "3.11"
 
 concurrency:
@@ -32,7 +39,6 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
         with:
-          version: ${{ env.UV_VERSION }}
           enable-cache: true
 
       - name: Install dependencies
@@ -50,7 +56,8 @@ jobs:
 
     services:
       mongo:
-        image: mongo:8
+        # Should match `env.MONGO_IMAGE_TAG` (`env` is not available in `services`)
+        image: mongo:8.0.20-noble
         ports:
           - 27017:27017
 
@@ -80,7 +87,6 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
         with:
-          version: ${{ env.UV_VERSION }}
           working-directory: "./pydatalab"
           enable-cache: true
 
@@ -120,12 +126,20 @@ jobs:
         working-directory: ./webapp
         run: yarn install --frozen-lockfile
 
+      # yarn v1's `--frozen-lockfile` does not fail on stale entries in `yarn.lock`
+      # (yarnpkg/yarn#5840), so re-run a normal install and fail if it prunes anything
+      - name: Check yarn.lock has no stale entries
+        working-directory: ./webapp
+        run: |
+          yarn install --ignore-scripts --prefer-offline
+          git diff --exit-code yarn.lock
+
       - name: Build web app
         working-directory: ./webapp
         run: yarn build
 
   plugins:
-    name: Test plugin builds
+    name: Test production containers and plugin builds
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -135,11 +149,14 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
+        with:
+          # Removing the builder (and its GBs of build cache) takes ~25 s, which is
+          # pointless on a runner that is thrown away after the job
+          cleanup: false
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
         with:
-          version: ${{ env.UV_VERSION }}
           enable-cache: false
           working-directory: "./pydatalab"
 
@@ -162,6 +179,7 @@ jobs:
         run: |
           echo "PYDATALAB_TESTING=true" >> .env
           echo "PYDATALAB_ROOT_PATH='/api'" >> .env
+          echo "VUE_APP_API_URL=http://localhost:5001/api" >> .env
           echo "PYDATALAB_TESTING=true" >> pydatalab/.env
           echo "PYDATALAB_ROOT_PATH='/api'" >> pydatalab/.env
 
@@ -171,19 +189,25 @@ jobs:
           files: docker-compose.yml
           load: true
           source: .
-          targets: "api"
+          targets: "api,app"
+          # Each image variant has its own cache scope, as they would otherwise overwrite each
+          # other's cache index. Only `main` writes the cache, as PRs changing the lockfiles
+          # would each add GBs of layers to the shared 10 GB limit; PRs still reuse `main`'s.
           set: |
-            api.cache-from=type=gha,scope=${{ github.ref_name }}-build-api
-            api.cache-from=type=gha,scope=main-build-api
-            api.cache-to=type=gha,scope=${{ github.ref_name }}-build-api,mode=max
+            api.cache-from=type=gha,scope=build-api-plugins
+            ${{ github.ref == 'refs/heads/main' && 'api.cache-to=type=gha,scope=build-api-plugins,mode=max' || '' }}
             api.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0+ci
             api.args.WEB_CONCURRENCY=1
             api.tags=datalab-api:latest
+            app.cache-from=type=gha,scope=build-app-plugins
+            ${{ github.ref == 'refs/heads/main' && 'app.cache-to=type=gha,scope=build-app-plugins,mode=max' || '' }}
+            app.args.VUE_APP_GIT_VERSION=0.0.0+ci
+            app.tags=datalab-app:latest
 
       - name: Start services
         run: |
           # Launch production container profiles and wait for them to come up
-          if ! docker compose up api --force-recreate -d --wait; then
+          if ! docker compose up api app --force-recreate -d --wait; then
             echo "=== Docker compose startup failed ==="
             echo "=== Container logs: ==="
             docker compose logs database api app
@@ -194,8 +218,97 @@ jobs:
 
       - name: Test that plugin is loaded
         run: |
-          # Test that plugin block is listed in info endpoint
-          curl -s http://localhost:5000/api/info/blocks | jq '.data | any(.id == "example")'
+          # Test that plugin blocks are listed in info endpoint (`-e` to fail on `false`)
+          curl -s http://localhost:5001/api/info/blocks | jq -e '.data | any(.id == "example")'
+          curl -s http://localhost:5001/api/info/blocks | jq -e '.data | any(.id == "chat")'
+          # Test that the whinchat panel was compiled into the app bundle; `markdown-it` is
+          # only a dependency of the panel, so this also checks plugin JS deps were installed
+          docker compose exec -T app sh -c 'grep -q "markdown-it" /app/dist/js/*.js'
+
+      - name: Add static custom files
+        run: |
+          mkdir -p webapp/public/custom/logos
+          echo '<svg xmlns="http://www.w3.org/2000/svg"></svg>' > webapp/public/custom/logos/ci-logo.svg
+          echo '/* ci-override */' > webapp/public/custom/override.css
+
+      - name: Rebuild the app image with static custom files
+        run: |
+          set -o pipefail
+          # These settings must match the build above for its layers to be reused
+          docker buildx bake --file docker-compose.yml --progress=plain --load \
+            --set api.cache-from=type=gha,scope=build-api-plugins \
+            --set api.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0+ci \
+            --set api.args.WEB_CONCURRENCY=1 \
+            --set app.cache-from=type=gha,scope=build-app-plugins \
+            --set app.args.VUE_APP_GIT_VERSION=0.0.0+ci \
+            --set app.tags=datalab-app:latest \
+            app 2>&1 | tee custom-files-build.log
+
+      - name: Test that static custom files do not recompile the app
+        run: |
+          # Build steps are logged as `#<id> [<stage>] RUN ...`, followed by `#<id> CACHED` if reused
+          echo "Build steps that were not reused from the cache:"
+          awk '
+            /^#[0-9]+ \[app [^ ]+ +[0-9]+\/[0-9]+\]/ {
+              id = $1; title = $0; sub(/^#[0-9]+ /, "", title); titles[id] = title; order[++n] = id
+            }
+            /^#[0-9]+ (CACHED|DONE)/ { status[$1] = $2 }
+            END {
+              for (i = 1; i <= n; i++)
+                if (status[order[i]] == "DONE" && titles[order[i]] !~ /\] FROM /) print "  " titles[order[i]]
+            }
+          ' custom-files-build.log
+
+          step="$(grep -m1 -E '^#[0-9]+ \[.*\] RUN .*vue-cli-service build' custom-files-build.log | cut -d' ' -f1)"
+          if [ -z "$step" ]; then
+            echo "::error::Could not find the vue-cli-service build step in the build log; has the Dockerfile changed?"
+            exit 1
+          fi
+          if ! grep -qx "$step CACHED" custom-files-build.log; then
+            echo "::error::Adding static custom files recompiled the app; see the steps listed above for the first COPY that was not reused"
+            exit 1
+          fi
+
+      - name: Start the app with static custom files
+        run: |
+          if ! docker compose up app --no-build --force-recreate -d --wait; then
+            echo "::error::The app container did not become healthy"
+            docker compose logs app
+            docker compose ps app
+            exit 1
+          fi
+
+      - name: Test that static custom files are served
+        run: |
+          set -x -o pipefail
+          curl -fsS http://localhost:8081/custom/logos/ci-logo.svg | grep -F '<svg'
+          curl -fsS -o /dev/null -w '%{content_type}' http://localhost:8081/custom/logos/ci-logo.svg | grep -F 'image/svg+xml'
+          curl -fsS http://localhost:8081/custom/override.css | grep -F 'ci-override'
+
+      - name: Test that runtime settings are applied to the app
+        run: |
+          set -x -o pipefail
+          curl -fsS http://localhost:8081/config.js | grep -F 'http://localhost:5001/api'
+          # The version comes from the image, as it is not set when the container starts
+          curl -fsS http://localhost:8081/config.js | grep -F '0.0.0+ci'
+          # API clients discover the API URL from this tag in the HTML
+          curl -fsS http://localhost:8081/ | grep -F 'x_datalab_api_url' | grep -F 'http://localhost:5001/api'
+
+      - name: Test that the container refuses to start with invalid settings
+        run: |
+          set +e
+          output="$(timeout 30 docker run --rm -e VUE_APP_API_URL=http://localhost:5001/api -e VUE_APP_LOGO_WIDTH=100px datalab-app:latest 2>&1)"
+          status=$?
+          set -e
+          echo "$output"
+          if [ "$status" -ne 1 ]; then
+            echo "::error::Expected the container to exit with status 1, but got $status (124 means it kept running)"
+            exit 1
+          fi
+          if ! echo "$output" | grep -qF 'VUE_APP_LOGO_WIDTH'; then
+            echo "::error::The container exited, but did not report the invalid VUE_APP_LOGO_WIDTH"
+            exit 1
+          fi
 
   docker-dev:
     name: Test dev Docker builds
@@ -209,6 +322,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
+        with:
+          # Removing the builder (and its GBs of build cache) takes ~25 s, which is
+          # pointless on a runner that is thrown away after the job
+          cleanup: false
 
       - name: Validate Docker Compose configuration
         run: docker compose config --quiet
@@ -220,14 +337,14 @@ jobs:
           load: true
           source: .
           targets: "app-dev,api-dev,database-dev"
+          # Only `main` writes the cache, see the `plugins` job
           set: |
-            app-dev.cache-from=type=gha,scope=${{ github.ref_name }}-build-app-dev
-            app-dev.cache-from=type=gha,scope=main-build-app-dev
-            app-dev.cache-to=type=gha,scope=${{ github.ref_name }}-build-app-dev,mode=max
-            api-dev.cache-from=type=gha,scope=${{ github.ref_name }}-build-api
-            api-dev.cache-from=type=gha,scope=main-build-api
-            database-dev.cache-from=type=gha,scope=${{ github.ref_name }}-build-database
-            database-dev.cache-from=type=gha,scope=main-build-database
+            app-dev.cache-from=type=gha,scope=build-app-dev
+            ${{ github.ref == 'refs/heads/main' && 'app-dev.cache-to=type=gha,scope=build-app-dev,mode=max' || '' }}
+            api-dev.cache-from=type=gha,scope=build-api-dev
+            ${{ github.ref == 'refs/heads/main' && 'api-dev.cache-to=type=gha,scope=build-api-dev,mode=max' || '' }}
+            database-dev.cache-from=type=gha,scope=build-database-dev
+            ${{ github.ref == 'refs/heads/main' && 'database-dev.cache-to=type=gha,scope=build-database-dev,mode=max' || '' }}
             api-dev.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0+ci
             app-dev.tags=datalab-app-dev:latest
             api-dev.tags=datalab-api-dev:latest
@@ -255,13 +372,241 @@ jobs:
         run: docker compose --profile dev down --volumes
 
   e2e:
-    name: e2e tests
+    # Runs against the dev servers, as when developing locally. The production images are
+    # tested by the `plugins` job, and the suite runs against them on `main` in `e2e-production`.
+    # The specs are split across shards (see "Select specs for this shard"), as the tests
+    # take ~8 min in total, while starting the servers and Cypress takes ~3 min per job
+    name: e2e tests (${{ matrix.browser-backend }}, ${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: 3
       matrix:
         browser-backend: ["electron", "chrome"] # , "firefox"]  # Temporarily disable Firefox until migration to Cypress v14 (https://github.com/datalab-org/datalab/issues/1289)
+        shard: [1, 2, 3]
+
+    services:
+      mongo:
+        # Should match `env.MONGO_IMAGE_TAG` (`env` is not available in `services`)
+        image: mongo:8.0.20-noble
+        ports:
+          - 27017:27017
+
+    env:
+      # Instrument the app and collect its coverage (see `webapp/babel.config.js`)
+      DATALAB_E2E_COVERAGE: "true"
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        env:
+          FORCE_COLOR: 0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # Caching the installed dependencies (and the Cypress binary) rather than the yarn
+      # download cache skips the ~40 s install entirely. Like the webpack cache below, this is
+      # only saved on `main`, so PRs changing `yarn.lock` don't fill the shared 10 GB cache.
+      - name: Restore web app dependencies
+        id: node-modules
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            webapp/node_modules
+            !webapp/node_modules/.cache
+            ~/.cache/Cypress
+          key: e2e-node-modules-${{ runner.os }}-node${{ env.NODE_VERSION }}-${{ hashFiles('webapp/yarn.lock', 'webapp/package.json') }}
+
+      - name: Install web app
+        if: steps.node-modules.outputs.cache-hit != 'true'
+        working-directory: ./webapp
+        run: yarn install --frozen-lockfile
+
+      - name: Save web app dependencies
+        if: >-
+          steps.node-modules.outputs.cache-hit != 'true' && github.ref == 'refs/heads/main'
+          && matrix.browser-backend == 'electron' && matrix.shard == 1
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            webapp/node_modules
+            !webapp/node_modules/.cache
+            ~/.cache/Cypress
+          key: ${{ steps.node-modules.outputs.cache-primary-key }}
+
+      - name: Restore webpack cache
+        uses: actions/cache/restore@v6
+        with:
+          path: webapp/node_modules/.cache/webpack
+          key: e2e-webpack-${{ runner.os }}-${{ github.sha }}
+          restore-keys: e2e-webpack-${{ runner.os }}-
+
+      # Started first, so that the other steps run while webpack compiles the app
+      - name: Start web app
+        working-directory: ./webapp
+        env:
+          # `.env.test_e2e` sets `production`, which also minifies the app (~30 s)
+          NODE_ENV: development
+          DATALAB_WEBPACK_CACHE: "true"
+        run: nohup yarn serve --mode test_e2e > "$RUNNER_TEMP/app.log" 2>&1 &
+
+      - name: Set up minimum Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.MIN_PYTHON_VERSION }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          working-directory: "./pydatalab"
+          enable-cache: true
+
+      - name: Install API
+        working-directory: ./pydatalab
+        run: |
+          uv sync --locked --all-extras --dev
+          # Enable the tags feature (the frontend flag is in `.env.test_e2e`), and point
+          # login redirects at the dev server
+          echo "PYDATALAB_ENABLE_TAGS=true" >> .env
+          echo "PYDATALAB_APP_URL=http://localhost:8080" >> .env
+
+      - name: Start API
+        working-directory: ./pydatalab
+        # Logged to a file rather than the test output; errors are shown below
+        run: nohup uv run invoke dev.serve --testing --no-reload > "$RUNNER_TEMP/api.log" 2>&1 &
+
+      # Chrome 155 (runner image 20261012) makes the e2e tests very flaky with Cypress 13,
+      # so pin the previous major version until Cypress can be upgraded
+      - name: Install pinned Chrome
+        if: matrix.browser-backend == 'chrome'
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          chrome-version: "154"
+
+      - name: Select specs for this shard
+        id: specs
+        working-directory: ./webapp
+        run: |
+          # Balanced by their run times (~2.5 min each); new specs must be added to a shard
+          declare -A SHARDS=(
+            [1]="batchSampleFeature shareItem loginRedirect"
+            [2]="sampleTablePage authenticatedSampleTests collectionPage startingMaterial"
+            [3]="editPage equipment navbarResponsive tagsManagement"
+          )
+          for f in cypress/e2e/*.cy.js; do
+            if ! echo " ${SHARDS[*]} " | grep -qF " $(basename "$f" .cy.js) "; then
+              echo "::error::$f is not in any e2e shard; add it to SHARDS in ci.yml"
+              exit 1
+            fi
+          done
+          specs=$(printf "cypress/e2e/%s.cy.js," ${SHARDS[${{ matrix.shard }}]})
+          echo "specs=${specs%,}" >> "$GITHUB_OUTPUT"
+
+      - name: Run end-to-end tests
+        uses: cypress-io/github-action@v7
+        with:
+          working-directory: ./webapp
+          install: false
+          spec: ${{ steps.specs.outputs.specs }}
+          wait-on: "http://localhost:8080, http://localhost:5001/healthcheck/is_ready"
+          wait-on-timeout: 300
+          record: ${{ github.repository == 'datalab-org/datalab' }}
+          browser: ${{ matrix.browser-backend == 'chrome' && steps.setup-chrome.outputs.chrome-path || matrix.browser-backend }}
+          group: "End-to-end tests (${{ matrix.browser-backend }}, ${{ matrix.shard }}/3)"
+        env:
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+
+      - name: Show API errors
+        if: always()
+        # Only the errors (with any tracebacks that follow them), as the full log is long;
+        # shown on passing runs too, as unhandled errors do not always fail a test
+        run: grep -E -A 30 "ERROR|CRIT|Traceback" "$RUNNER_TEMP/api.log" || echo "No API errors logged"
+
+      - name: Show web app log
+        if: failure()
+        run: tail -n 100 "$RUNNER_TEMP/app.log"
+
+      # One job on `main` saves the webpack cache (restored by prefix, so PRs use the latest
+      # from `main`); the dev server writes it shortly after its first compile
+      - name: Save webpack cache
+        if: github.ref == 'refs/heads/main' && matrix.browser-backend == 'electron' && matrix.shard == 1
+        uses: actions/cache/save@v6
+        with:
+          path: webapp/node_modules/.cache/webpack
+          key: e2e-webpack-${{ runner.os }}-${{ github.sha }}
+
+      # The raw coverage of this shard, merged with the others in `e2e-coverage`
+      - name: Upload e2e coverage data
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-coverage-${{ matrix.browser-backend }}-${{ matrix.shard }}
+          path: webapp/.nyc_output/out.json
+          if-no-files-found: warn
+
+  e2e-result:
+    # Reports the result of the shards under the names that are required checks on `main`
+    name: e2e tests (${{ matrix.browser-backend }})
+    needs: [e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        browser-backend: ["electron", "chrome"]
+    steps:
+      - name: Check that all shards passed
+        # `needs` only gives the result of the whole matrix, which covers both browsers
+        run: |
+          echo "e2e shards: ${{ needs.e2e.result }}"
+          [ "${{ needs.e2e.result }}" = "success" ]
+
+  e2e-coverage:
+    name: e2e coverage report
+    needs: [e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download the coverage of each shard
+        uses: actions/download-artifact@v8
+        with:
+          pattern: e2e-coverage-*
+          path: coverage-shards
+
+      - name: Merge the coverage of all shards and browsers
+        working-directory: ./webapp
+        run: |
+          mkdir -p .nyc_output
+          for d in ../coverage-shards/*/; do
+            cp "$d/out.json" ".nyc_output/$(basename "$d").json"
+          done
+          # Reports as configured in `.nycrc.json`
+          npx --yes nyc@15.1.0 report
+
+      - name: Upload e2e coverage report
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-coverage-report
+          path: webapp/coverage/e2e/
+
+  e2e-production:
+    # The e2e suite against the production images, which can catch problems that only
+    # appear in the production build or server setup. Only on `main`, as building the
+    # images adds ~3 min, so these are caught after merging rather than in the PR.
+    name: e2e tests (production images)
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v7
@@ -280,15 +625,23 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
+        with:
+          # Removing the builder (and its GBs of build cache) takes ~25 s, which is
+          # pointless on a runner that is thrown away after the job
+          cleanup: false
 
       - name: Set some environment variables for CI containers pre-build
         run: |
           cp webapp/.env.test_e2e .env
-          echo "PYDATALAB_TESTING=true" >> .env
-          echo "PYDATALAB_TESTING=true" >> pydatalab/.env
-          # Enable the tags feature for the e2e backend (frontend flag is in .env.test_e2e).
-          echo "PYDATALAB_ENABLE_TAGS=true" >> .env
-          echo "PYDATALAB_ENABLE_TAGS=true" >> pydatalab/.env
+          # An explicit secret key, so that the login tokens minted by `dev.seed-e2e-users`
+          # inside the API container are signed with the same key as the server uses
+          secret_key=$(openssl rand -hex 32)
+          for f in .env pydatalab/.env; do
+            echo "PYDATALAB_TESTING=true" >> $f
+            echo "PYDATALAB_SECRET_KEY=$secret_key" >> $f
+            # Enable the tags feature for the e2e backend (frontend flag is in .env.test_e2e).
+            echo "PYDATALAB_ENABLE_TAGS=true" >> $f
+          done
 
       - name: Build Docker images
         uses: docker/bake-action@v7
@@ -298,15 +651,12 @@ jobs:
           source: .
           targets: "app,api,database"
           set: |
-            app.cache-from=type=gha,scope=${{ github.ref_name }}-build-app
-            app.cache-from=type=gha,scope=main-build-app
-            api.cache-from=type=gha,scope=${{ github.ref_name }}-build-api
-            api.cache-from=type=gha,scope=main-build-api
-            database.cache-from=type=gha,scope=${{ github.ref_name }}-build-database
-            database.cache-from=type=gha,scope=main-build-database
-            api.cache-to=type=gha,scope=${{ github.ref_name }}-build-api,mode=max
-            app.cache-to=type=gha,scope=${{ github.ref_name }}-build-app,mode=max
-            database.cache-to=type=gha,scope=${{ github.ref_name }}-build-database,mode=max
+            app.cache-from=type=gha,scope=build-app
+            api.cache-from=type=gha,scope=build-api
+            database.cache-from=type=gha,scope=build-database
+            app.cache-to=type=gha,scope=build-app,mode=max
+            api.cache-to=type=gha,scope=build-api,mode=max
+            database.cache-to=type=gha,scope=build-database,mode=max
             api.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0+ci
             api.args.WEB_CONCURRENCY=1
             app.args.VUE_APP_GIT_VERSION=0.0.0+ci
@@ -326,20 +676,17 @@ jobs:
             exit 1
           fi
 
-      - name: Create the test admin user
-        # The first admin cannot be created over the API, so create one directly.
-        run: docker compose exec -T api uv run invoke dev.seed-e2e-admin
-
       - name: Run end-to-end tests
         uses: cypress-io/github-action@v7
         with:
           config: baseUrl=http://localhost:8081
           working-directory: ./webapp
           record: ${{ github.repository == 'datalab-org/datalab' }}
-          browser: ${{ matrix.browser-backend }}
-          group: "End-to-end tests (${{ matrix.browser-backend }})"
+          group: "End-to-end tests (production images)"
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+          # Create the e2e test users and mint their login tokens inside the API container
+          DATALAB_E2E_SEED_COMMAND: docker compose -f ../docker-compose.yml exec -T api uv run --no-sync invoke dev.seed-e2e-users
 
   component:
     # Cypress component tests don't need the datalab stack — they exercise Vue

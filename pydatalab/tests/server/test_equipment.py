@@ -165,3 +165,46 @@ def test_delete_equipment(admin_client, default_equipment_dict):
         f"/get-item-data/{default_equipment_dict['item_id']}",
     )
     assert response.status_code == 404
+
+
+def test_copy_equipment(client):
+    """Copying a piece of equipment carries over its fields, with the provided
+    item_id and name taking precedence."""
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "equipment",
+                "item_id": "equipment_copy_source",
+                "name": "original",
+                "manufacturer": "science inc.",
+                "serial_numbers": "1, 2a",
+                "contact": "test@example.com",
+                "location": "SR1 room 22",
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "equipment",
+                "item_id": "equipment_copy_target",
+                "name": "copy",
+            },
+            "copy_from_item_id": "equipment_copy_source",
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.get("/get-item-data/equipment_copy_target")
+    assert response.status_code == 200, response.json
+    item_data = response.json["item_data"]
+    assert item_data["type"] == "equipment"
+    assert item_data["name"] == "copy"
+    assert item_data["manufacturer"] == "science inc."
+    assert item_data["serial_numbers"] == "1, 2a"
+    assert item_data["contact"] == "test@example.com"
+    assert item_data["location"] == "SR1 room 22"

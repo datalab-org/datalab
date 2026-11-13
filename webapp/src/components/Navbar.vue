@@ -1,15 +1,10 @@
 <template>
   <div
-    v-if="logo_url != null"
+    v-if="logo_url"
     class="pt-3"
     style="display: flex; justify-content: center; align-items: center"
   >
-    <a
-      v-if="homepage_url != null"
-      :href="homepage_url"
-      style="display: inline-block"
-      target="_blank"
-    >
+    <a v-if="homepage_url" :href="homepage_url" style="display: inline-block" target="_blank">
       <img class="logo-banner" :width="logo_width + 'px'" :src="logo_url" />
     </a>
     <img v-else class="logo-banner" :width="logo_width + 'px'" :src="logo_url" />
@@ -25,7 +20,9 @@
   <div id="nav" data-testid="navbar-navigation">
     <router-link to="/about">About</router-link> |
     <router-link to="/samples">Samples</router-link> |
-    <router-link to="/collections">Collections</router-link> |
+    <template v-if="!hideCollections">
+      <router-link to="/collections">Collections</router-link> |
+    </template>
     <router-link to="/starting-materials">Inventory</router-link> |
     <router-link to="/equipment">Equipment</router-link> |
     <router-link to="/item-graph"
@@ -93,7 +90,7 @@
 </template>
 
 <script>
-import { API_URL, LOGO_URL, LOGO_WIDTH, HOMEPAGE_URL } from "@/resources.js";
+import { API_URL, LOGO_URL, LOGO_WIDTH, HOMEPAGE_URL, HIDE_COLLECTIONS } from "@/resources.js";
 import LoginDetails from "@/components/LoginDetails.vue";
 import { vOnClickOutside } from "@vueuse/components";
 import { loadToolCatalog } from "@/tool_catalog.js";
@@ -113,6 +110,7 @@ export default {
       logo_url: LOGO_URL,
       logo_width: LOGO_WIDTH,
       homepage_url: HOMEPAGE_URL,
+      hideCollections: HIDE_COLLECTIONS,
       user: null,
       tools: [],
       toolsLoaded: false,

@@ -1,15 +1,5 @@
 {
   "$defs": {
-    "AccountStatus": {
-      "description": "A string enum representing the account status.",
-      "enum": [
-        "active",
-        "unverified",
-        "deactivated"
-      ],
-      "title": "AccountStatus",
-      "type": "string"
-    },
     "CollectionReference": {
       "additionalProperties": true,
       "description": "A reference to a collection, used for inlining collection info within other models.",
@@ -409,7 +399,7 @@
           "anyOf": [
             {
               "items": {
-                "$ref": "#/$defs/Person"
+                "$ref": "#/$defs/PersonReference"
               },
               "type": "array"
             },
@@ -435,7 +425,7 @@
           "anyOf": [
             {
               "items": {
-                "$ref": "#/$defs/Group"
+                "$ref": "#/$defs/GroupReference"
               },
               "type": "array"
             },
@@ -706,8 +696,8 @@
       "title": "FileChecksums",
       "type": "object"
     },
-    "Group": {
-      "description": "A model that describes a group of users, for the sake\nof applying group permissions.\n\nEach `Person` can point to multiple groups.\n\nRelationships between groups can be described via the `relationships`\nfield inherited from `Entry`.",
+    "GroupReference": {
+      "description": "A reference to a group, containing only the information needed to display it\nalongside the entries it has access to.",
       "properties": {
         "type": {
           "const": "groups",
@@ -727,31 +717,9 @@
             }
           ],
           "default": null,
-          "description": "The immutable database ID of the entry.",
+          "description": "The immutable database ID of the group.",
           "format": "uuid",
           "title": "Immutable ID"
-        },
-        "last_modified": {
-          "anyOf": [
-            {
-              "format": "datetime",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The timestamp at which the entry was last modified.",
-          "title": "Last Modified"
-        },
-        "relationships": {
-          "description": "A list of related entries and their types.",
-          "items": {
-            "$ref": "#/$defs/TypedRelationship"
-          },
-          "title": "Relationships",
-          "type": "array"
         },
         "group_id": {
           "anyOf": [
@@ -769,15 +737,6 @@
           "description": "A short, locally-unique ID for the group.",
           "title": "Group Id"
         },
-        "members": {
-          "description": "A list of people that belong to this group; stored on the user objects.",
-          "items": {
-            "additionalProperties": true,
-            "type": "object"
-          },
-          "title": "Members",
-          "type": "array"
-        },
         "display_name": {
           "anyOf": [
             {
@@ -790,99 +749,12 @@
             }
           ],
           "default": null,
-          "description": "The chosen display name for the group",
-          "title": "Display Name"
-        },
-        "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "A description of the group",
-          "title": "Description"
-        },
-        "managers": {
-          "description": "A list of user IDs that can manage this group; stored in db as list of IDs.",
-          "items": {
-            "anyOf": [
-              {
-                "format": "objectid",
-                "type": "string"
-              },
-              {
-                "additionalProperties": true,
-                "type": "object"
-              }
-            ]
-          },
-          "title": "Managers",
-          "type": "array"
-        }
-      },
-      "title": "Group",
-      "type": "object"
-    },
-    "Identity": {
-      "description": "A model for identities that can be provided by external systems\nand associated with a given user.",
-      "properties": {
-        "identity_type": {
-          "$ref": "#/$defs/IdentityType",
-          "description": "The type or provider of the identity."
-        },
-        "identifier": {
-          "description": "The identifier for the identity, e.g., an email address, an ORCID, a GitHub user ID.",
-          "title": "Identifier",
-          "type": "string"
-        },
-        "name": {
-          "description": "The name associated with the identity to be exposed in free-text searches over people, e.g., an institutional username, a GitHub username.",
-          "title": "Name",
-          "type": "string"
-        },
-        "verified": {
-          "default": false,
-          "description": "Whether the identity has been verified (by some means, e.g., OAuth2 or email)",
-          "title": "Verified",
-          "type": "boolean"
-        },
-        "display_name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The user's display name associated with the identity, also to be exposed in free text searches.",
+          "description": "The chosen display name for the group.",
           "title": "Display Name"
         }
       },
-      "required": [
-        "identity_type",
-        "identifier",
-        "name"
-      ],
-      "title": "Identity",
+      "title": "GroupReference",
       "type": "object"
-    },
-    "IdentityType": {
-      "description": "A string enum representing the supported verifiable identity types.",
-      "enum": [
-        "email",
-        "orcid",
-        "github",
-        "google",
-        "microsoft"
-      ],
-      "title": "IdentityType",
-      "type": "string"
     },
     "InlineSubstance": {
       "properties": {
@@ -909,8 +781,8 @@
       "title": "InlineSubstance",
       "type": "object"
     },
-    "Person": {
-      "description": "A model that describes an individual and their digital identities.",
+    "PersonReference": {
+      "description": "A reference to a person, containing only the non-sensitive information needed\nto display them, e.g., as the creator of an entry.\n\nAny other fields provided (e.g., identities or contact details) are discarded.",
       "properties": {
         "type": {
           "const": "people",
@@ -930,39 +802,9 @@
             }
           ],
           "default": null,
-          "description": "The immutable database ID of the entry.",
+          "description": "The immutable database ID of the person.",
           "format": "uuid",
           "title": "Immutable ID"
-        },
-        "last_modified": {
-          "anyOf": [
-            {
-              "format": "datetime",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The timestamp at which the entry was last modified.",
-          "title": "Last Modified"
-        },
-        "relationships": {
-          "description": "A list of related entries and their types.",
-          "items": {
-            "$ref": "#/$defs/TypedRelationship"
-          },
-          "title": "Relationships",
-          "type": "array"
-        },
-        "identities": {
-          "description": "A list of identities attached to this person, e.g., email addresses, OAuth accounts.",
-          "items": {
-            "$ref": "#/$defs/Identity"
-          },
-          "title": "Identities",
-          "type": "array"
         },
         "display_name": {
           "anyOf": [
@@ -976,22 +818,8 @@
             }
           ],
           "default": null,
-          "description": "The user-chosen display name.",
+          "description": "The person's chosen display name.",
           "title": "Display Name"
-        },
-        "contact_email": {
-          "anyOf": [
-            {
-              "format": "email",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "In the case of multiple *verified* email identities, this email will be used as the primary contact.",
-          "title": "Contact Email"
         },
         "gravatar_hash": {
           "anyOf": [
@@ -1005,51 +833,9 @@
           "default": null,
           "description": "MD5 hash used by the frontend to fetch a Gravatar avatar without exposing the raw email.",
           "title": "Gravatar Hash"
-        },
-        "managers": {
-          "anyOf": [
-            {
-              "items": {
-                "format": "objectid",
-                "type": "string"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "A list of user IDs that can manage this person's items.",
-          "title": "Managers"
-        },
-        "role": {
-          "$ref": "#/$defs/UserRole",
-          "default": "user",
-          "description": "The role assigned to this person."
-        },
-        "groups": {
-          "anyOf": [
-            {
-              "items": {
-                "$ref": "#/$defs/Group"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "A list of groups that this person belongs to.",
-          "title": "Groups"
-        },
-        "account_status": {
-          "$ref": "#/$defs/AccountStatus",
-          "default": "unverified",
-          "description": "The status of the user's account."
         }
       },
-      "title": "Person",
+      "title": "PersonReference",
       "type": "object"
     },
     "RelationshipType": {
@@ -1164,15 +950,6 @@
       ],
       "title": "TypedRelationship",
       "type": "object"
-    },
-    "UserRole": {
-      "enum": [
-        "user",
-        "admin",
-        "manager"
-      ],
-      "title": "UserRole",
-      "type": "string"
     }
   },
   "description": "A model for representing a starting material, i.e., a chemical or precursor held\nin the lab's inventory, from which samples are made.\n\nThe model mixes container-level and substance-level information and can be used to\nrepresent either depending on preference.",
@@ -1186,6 +963,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "A string representation of the chemical formula or composition associated with this sample.\n\nThe representation is relatively free-form; clients are expected parse and interpret HTML markup for subscripts\nand accept unicode characters for greek letters.",
       "examples": [
@@ -1206,6 +984,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "A SMILES string representation of the chemical structure associated with this sample.",
       "title": "Smiles"
@@ -1219,6 +998,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": false,
       "default": null,
       "description": "An International Chemical Identifier (InChI) string representation of chemicals/molecules associated with this sample.",
       "title": "Inchi"
@@ -1232,6 +1012,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "A unique key derived from the InChI.",
       "title": "Inchi Key"
@@ -1245,6 +1026,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "A string describing any GHS hazard codes associated with this item. See https://pubchem.ncbi.nlm.nih.gov/ghs/ for code definitions.",
       "examples": [
@@ -1262,6 +1044,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "Mass per formula unit, in g/mol.",
       "title": "Molar Mass"
@@ -1275,6 +1058,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "The CAS Registry Number for the substance described by this entry.",
       "title": "Cas"
@@ -1343,6 +1127,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "The place where the item is located.",
       "title": "Location"
@@ -1413,7 +1198,7 @@
       "anyOf": [
         {
           "items": {
-            "$ref": "#/$defs/Person"
+            "$ref": "#/$defs/PersonReference"
           },
           "type": "array"
         },
@@ -1439,7 +1224,7 @@
       "anyOf": [
         {
           "items": {
-            "$ref": "#/$defs/Group"
+            "$ref": "#/$defs/GroupReference"
           },
           "type": "array"
         },
@@ -1506,11 +1291,13 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "A globally unique immutable ID comprised of the deployment prefix (e.g., `grey`) and a locally unique string, ideally created with some consistent scheme.",
       "title": "Refcode"
     },
     "item_id": {
+      "datalab_include_field_in_summary": true,
       "description": "A locally unique, human-readable identifier for the entry. This ID is mutable.",
       "maxLength": 40,
       "minLength": 1,
@@ -1541,6 +1328,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "The date the item was acquired",
       "title": "Date"
@@ -1554,12 +1342,14 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "The name of the substance in the container.",
       "title": "Name"
     },
     "status": {
       "$ref": "#/$defs/StartingMaterialsStatus",
+      "datalab_include_field_in_summary": true,
       "default": "available",
       "description": "The status of the starting materials, indicating its current state."
     },
@@ -1572,6 +1362,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "A unique barcode provided by an external source, e.g., cheminventory.",
       "title": "Barcode"
@@ -1586,6 +1377,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": false,
       "default": null,
       "description": "The date the item was opened",
       "title": "Date Opened"
@@ -1599,6 +1391,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "The chemical purity of this container with regards to the defined substance.",
       "title": "Chemical Purity"
@@ -1612,6 +1405,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": false,
       "default": null,
       "description": "The amount of the defined substance remaining in the container, expressed as a percentage.",
       "title": "Full Percent"
@@ -1625,6 +1419,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": false,
       "default": null,
       "description": "The total size of the container, in units of `size_unit`.",
       "title": "Size"
@@ -1638,6 +1433,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": false,
       "default": null,
       "description": "Units for the 'size' field.",
       "title": "Size Unit"
@@ -1651,6 +1447,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": true,
       "default": null,
       "description": "Supplier or manufacturer of the chemical.",
       "title": "Supplier"
@@ -1664,6 +1461,7 @@
           "type": "null"
         }
       ],
+      "datalab_include_field_in_summary": false,
       "default": null,
       "description": "Any additional comments or notes about the container.",
       "title": "Comment"

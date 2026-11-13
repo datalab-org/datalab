@@ -13,7 +13,13 @@ import { getEquipmentList } from "@/server_fetch_utils.js";
 
 import Creators from "@/components/Creators";
 
-import { ITEM_ID_COLUMN, STATUS_COLUMN, NAME_COLUMN, DATE_COLUMN } from "@/utils/tableColumns";
+import {
+  ITEM_ID_COLUMN,
+  STATUS_COLUMN,
+  NAME_COLUMN,
+  DATE_COLUMN,
+  INVENTORY_ACCESS_COLUMN,
+} from "@/utils/tableColumns";
 
 export default {
   components: { DynamicDataTable },
@@ -48,6 +54,7 @@ export default {
             }),
           },
         },
+        INVENTORY_ACCESS_COLUMN,
       ],
     };
   },
@@ -57,10 +64,18 @@ export default {
         return null;
       }
 
-      return this.$store.state.equipment_list;
+      return this.$store.state.equipment_list.map((item) => ({
+        ...item,
+        creatorsAndGroups: [
+          ...(item.creators || []).map((c) => ({ ...c, type: "creator" })),
+          ...(item.groups || []).map((g) => ({ ...g, type: "group" })),
+        ],
+      }));
     },
   },
-  mounted() {
+  // The Equipment view is kept alive (see App.vue), so re-fetch whenever it is shown again,
+  // not just on first mount; `activated` also fires on the initial mount.
+  activated() {
     this.getEquipment();
   },
   methods: {

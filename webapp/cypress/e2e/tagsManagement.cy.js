@@ -1,14 +1,12 @@
 // E2e tests for the tag management page (/tags). Needs the dev server + API (:5001) running
-// with testing auth AND the tags feature enabled (PYDATALAB_ENABLE_TAGS).
+// in testing mode AND with the tags feature enabled (PYDATALAB_ENABLE_TAGS).
 //
 // Tags have two scopes: "global" (admin-managed, usable by everyone) and "user" (user-defined,
-// owned and managed by a single user). admin-user@example.com is an admin by the same
-// convention as authenticatedSampleTests.cy.js.
+// owned and managed by a single user).
 
-// Role is determined server-side by the email (see authenticatedSampleTests.cy.js):
-// `admin-user@example.com` is an admin, `test-user@example.com` is a plain user.
-const adminEmail = "admin-user@example.com";
-const userEmail = "test-user@example.com"; // a non-admin user
+// Roles are set by `invoke dev.seed-e2e-users` (see `E2E_TEST_USERS` in pydatalab/tasks.py).
+const adminEmail = "admin-user@datalab.test";
+const userEmail = "test-user@datalab.test"; // a non-admin user
 
 describe("Tag management page (admin, global tags)", () => {
   // Names must not be substrings of each other: cy.contains matches substrings, so a

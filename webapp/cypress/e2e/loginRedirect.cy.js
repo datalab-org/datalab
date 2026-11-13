@@ -1,4 +1,3 @@
-// This file was edited with the assistance of an AI model and requires human review from the contributor.
 // E2E coverage for the router's login guard: unauthenticated users are sent to
 // the login page, except when opening an item page with an access token (`at`).
 
@@ -9,7 +8,7 @@ let refcode;
 let accessToken;
 
 before(() => {
-  cy.loginViaTestMagicLink("test-user@example.com", "user");
+  cy.loginViaTestMagicLink("test-user@datalab.test");
   cy.request({
     method: "POST",
     url: API_URL + "/delete-sample/",
@@ -32,7 +31,7 @@ before(() => {
 });
 
 after(() => {
-  cy.loginViaTestMagicLink("test-user@example.com", "user");
+  cy.loginViaTestMagicLink("test-user@datalab.test");
   cy.request({
     method: "POST",
     url: API_URL + "/delete-sample/",

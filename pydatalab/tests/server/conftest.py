@@ -71,7 +71,7 @@ def app_config(secret_key, files_directory):
             "MAIL_USE_TLS": True,
             "MAIL_DEFAULT_SENDER": "test@example.org",
         },
-        "EMAIL_DOMAIN_ALLOW_LIST": ["example.org", "ml-evs.science"],
+        "EMAIL_DOMAIN_ALLOW_LIST": ["example.org", "datalab-org.io"],
         "MAIL_DEBUG": True,
         "MAIL_SUPPRESS_SEND": True,
         "MAIL_PASSWORD": "test",

@@ -5,13 +5,17 @@ services:
     build:
       context: .
       dockerfile: .docker/app/Dockerfile
+      additional_contexts:
+        plugin_environment: service:api
     restart: unless-stopped
     environment:
       - VUE_APP_GIT_VERSION
       - VUE_APP_API_URL
       - VUE_APP_LOGO_URL
+      - VUE_APP_LOGO_WIDTH
       - VUE_APP_HOMEPAGE_URL
       - VUE_APP_EDITABLE_INVENTORY
+      - VUE_APP_HIDE_COLLECTIONS
       - VUE_APP_WEBSITE_TITLE
       - VUE_APP_QR_CODE_RESOLVER_URL
       - VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT
@@ -59,6 +63,8 @@ services:
     build:
       context: .
       dockerfile: .docker/mongo/Dockerfile
+      args:
+        - MONGO_IMAGE_TAG=${MONGO_IMAGE_TAG:-8-noble}
     volumes:
       - /data/logs:/var/logs/mongod
       - /data/db:/data/db
@@ -77,6 +83,8 @@ services:
     build:
       context: .
       dockerfile: .docker/mongo/Dockerfile
+      args:
+        - MONGO_IMAGE_TAG=${MONGO_IMAGE_TAG:-8-noble}
     volumes:
       - datalab-dev-dbdata:/data/db
     ports:
@@ -116,6 +124,9 @@ services:
       - DATALAB_JUPYTER_PUBLIC_URL
       - DATALAB_JUPYTER_CLIENT_ID
       - DATALAB_JUPYTER_CLIENT_SECRET
+      # Passed through from the host env or `.env` when set (e.g., `PYDATALAB_TESTING=true`
+      # for running the e2e tests against this stack), and omitted entirely when not.
+      - PYDATALAB_TESTING
 
   app-dev:
     profiles: ["dev"]
@@ -123,6 +134,8 @@ services:
       context: .
       dockerfile: .docker/app/Dockerfile
       target: dev
+      additional_contexts:
+        plugin_environment: service:api-dev
     volumes:
       - ./webapp:/app
     ports:

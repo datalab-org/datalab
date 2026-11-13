@@ -4,7 +4,6 @@ from bson import ObjectId
 from flask_login import current_user
 from werkzeug.exceptions import Forbidden
 
-from pydatalab.config import CONFIG
 from pydatalab.models.tags import TagAccessScope
 from pydatalab.mongo import flask_mongo
 
@@ -61,10 +60,6 @@ def authorize_added_tags(tags, existing_tag_ids: set[str]) -> None:
     A user may add global tags and their own user-defined tags; any other
     reference (including to a tag that does not exist) is rejected.
     """
-    # In testing an unauthenticated "public" user can write.
-    if CONFIG.TESTING and not current_user.is_authenticated:
-        return
-
     added_ids = tag_immutable_ids(tags) - existing_tag_ids
     if not added_ids:
         return

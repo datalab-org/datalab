@@ -7,6 +7,8 @@ import {
   SAMPLE_TABLE_TYPES,
   INVENTORY_TABLE_TYPES,
   EQUIPMENT_TABLE_TYPES,
+  registerDynamicItemType,
+  itemTypes,
 } from "@/resources.js";
 
 import { DialogService } from "@/services/DialogService";
@@ -288,7 +290,11 @@ export function createNewItem(
         getEquipmentList();
       }
     }
-    return "success";
+    // Custom/plugin types are surfaced in the samples table for now.
+    if (itemTypes[response_json.sample_list_entry.type]?.isDynamic) {
+      store.commit("prependToSampleList", response_json.sample_list_entry);
+    }
+    return response_json.sample_list_entry.item_id;
   });
 }
 
@@ -302,11 +308,14 @@ export function createNewSamples(
     new_sample_datas: newSampleDatas,
     generate_ids_automatically: generateIDsAutomatically,
   }).then(function (response_json) {
-    response_json.responses.forEach((response) => {
-      if (response.status == "success") {
-        store.commit("prependToSampleList", response.sample_list_entry);
-      }
-    });
+    // Prepend all new entries in one go (reversed to match the previous one-at-a-time order),
+    // rather than copying the whole frozen list once per new item
+    const created = response_json.responses
+      .filter((response) => response.status == "success")
+      .map((response) => response.sample_list_entry);
+    if (created.length) {
+      store.commit("prependManyToSampleList", created.reverse());
+    }
 
     return response_json.responses;
   });
@@ -337,18 +346,32 @@ export async function createNewCollection(
   });
 }
 
-export async function getStats() {
-  return fetch_get(`${API_URL}/info/stats`)
-    .then(function (response_json) {
-      return response_json.counts;
-    })
-    .catch((error) => {
-      if (error === "UNAUTHORIZED") {
-        return null;
-      } else {
+let statsHistoryPromise = null;
+
+export function getStatsHistory() {
+  // Fetched at most once per session, unless the server was still updating the stats
+  if (store.state.statsHistory) {
+    return Promise.resolve(store.state.statsHistory);
+  }
+  if (!statsHistoryPromise) {
+    statsHistoryPromise = fetch_get(`${API_URL}/info/stats/history`)
+      .then(function (response_json) {
+        if (response_json.data.updating) {
+          statsHistoryPromise = null;
+        } else {
+          store.commit("setStatsHistory", response_json.data);
+        }
+        return response_json.data;
+      })
+      .catch((error) => {
+        statsHistoryPromise = null;
+        if (error === "UNAUTHORIZED") {
+          return null;
+        }
         throw error;
-      }
-    });
+      });
+  }
+  return statsHistoryPromise;
 }
 
 export async function getInfo() {
@@ -404,10 +427,20 @@ export function toolApiPost(path, body = {}) {
   return fetch_post(resolveToolApiPath(path), body);
 }
 
+// Commit a fetched item list only if it differs from the stored one, so that re-fetching on
+// returning to a (kept-alive) table does not force the whole table to be rebuilt for
+// identical data.
+function commitListIfChanged(mutation, current, incoming) {
+  if (current && JSON.stringify(current) === JSON.stringify(incoming)) {
+    return;
+  }
+  store.commit(mutation, incoming);
+}
+
 export function getSampleList() {
   return fetch_get(`${API_URL}/samples/`)
     .then(function (response_json) {
-      store.commit("setSampleList", response_json.samples);
+      commitListIfChanged("setSampleList", store.state.sample_list, response_json.samples);
     })
     .catch((error) => {
       if (error === "UNAUTHORIZED") {
@@ -435,7 +468,7 @@ export function getCollectionSampleList(collection_id) {
 export function getCollectionList() {
   return fetch_get(`${API_URL}/collections`)
     .then(function (response_json) {
-      store.commit("setCollectionList", response_json.data);
+      commitListIfChanged("setCollectionList", store.state.collection_list, response_json.data);
     })
     .catch((error) => {
       if (error === "UNAUTHORIZED") {
@@ -554,7 +587,11 @@ export function removeUserFromGroup(groupId, userId) {
 export function getStartingMaterialList() {
   return fetch_get(`${API_URL}/starting-materials/`)
     .then(function (response_json) {
-      store.commit("setStartingMaterialList", response_json.items);
+      commitListIfChanged(
+        "setStartingMaterialList",
+        store.state.starting_material_list,
+        response_json.items,
+      );
     })
     .catch((error) => {
       if (error === "UNAUTHORIZED") {
@@ -568,7 +605,7 @@ export function getStartingMaterialList() {
 export function getEquipmentList() {
   return fetch_get(`${API_URL}/equipment/`)
     .then(function (response_json) {
-      store.commit("setEquipmentList", response_json.items);
+      commitListIfChanged("setEquipmentList", store.state.equipment_list, response_json.items);
     })
     .catch((error) => {
       if (error === "UNAUTHORIZED") {
@@ -675,10 +712,10 @@ export function searchTags(query, nresults = 100) {
   });
 }
 
-export function searchGroups(query, nresults = 100) {
+export function searchGroups(query, nresults = 100, memberOnly = false) {
   // construct a url with parameters:
   var url = new URL(`${API_URL}/search/groups`);
-  var params = { query: query, nresults: nresults };
+  var params = { query: query, nresults: nresults, member_only: memberOnly };
   Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
   return fetch_get(url).then(function (response_json) {
     return response_json.data;
@@ -740,10 +777,11 @@ export function invalidateCurrentUserCache() {
   store.commit("setAdminSuperUserMode", false);
 }
 
-export async function requestMagicLink(email_address) {
+export async function requestMagicLink(email_address, remember = false) {
   return fetch_post(`${API_URL}/login/magic-link`, {
     email: email_address,
     referrer: window.location.origin,
+    remember: remember,
   })
     .then((response_json) => {
       return response_json;
@@ -1179,6 +1217,16 @@ export function saveUser(user_id, user) {
     });
 }
 
+export function deleteUser(user_id, expunge = false) {
+  const url = `${API_URL}/users/${user_id}` + (expunge ? "?expunge=true" : "");
+  return fetch_delete(url).then(function (response_json) {
+    if (response_json.status !== "success") {
+      throw new Error(response_json.message || response_json.detail || "User deletion failed");
+    }
+    return response_json;
+  });
+}
+
 export function saveRole(user_id, role) {
   return fetch_patch(`${API_URL}/roles/${user_id}`, role)
     .then(function (response_json) {
@@ -1288,9 +1336,16 @@ export async function addRemoteFileToSample(file_entry, item_id) {
  * @param {string|null} options.item_id - The item ID to fetch graph for
  * @param {string|null} options.collection_id - The collection ID to filter by
  * @param {number} options.max_depth - Maximum depth for related items (default: 1)
+ * @param {boolean} options.show_collections - Include collections as nodes linked to their
+ *   items (default: false; ignored when filtering by collection)
  * @returns {Promise<Object>} Returns graph data ({ nodes, edges })
  */
-export async function getItemGraph({ item_id = null, collection_id = null, max_depth = 1 } = {}) {
+export async function getItemGraph({
+  item_id = null,
+  collection_id = null,
+  max_depth = 1,
+  show_collections = false,
+} = {}) {
   // Short-circuit and do not send request if user is not logged in
   if (!(await waitForUserAuth())) return;
 
@@ -1305,6 +1360,9 @@ export async function getItemGraph({ item_id = null, collection_id = null, max_d
   }
   if (max_depth != null && max_depth > 1) {
     params.append("max_depth", max_depth.toString());
+  }
+  if (show_collections) {
+    params.append("hide_collections", "false");
   }
   if (params.toString()) {
     url = url + "?" + params.toString();
@@ -1465,6 +1523,18 @@ export async function loadItemSchemas() {
   // in the Vuex store.
   try {
     const supportedTypes = await getSupportedSchemasList();
+    // Register any server-side types not hardcoded in the frontend registry
+    // (custom/plugin types) so they are recognised across the app.
+    supportedTypes.forEach((typeInfo) =>
+      registerDynamicItemType(typeInfo.id, {
+        title: typeInfo.attributes?.title,
+        base_type: typeInfo.attributes?.base_type,
+        hidden_fields: typeInfo.attributes?.hidden_fields,
+        ui_color: typeInfo.attributes?.ui_color,
+        available: typeInfo.attributes?.available,
+        block_type_allow_list: typeInfo.attributes?.block_type_allow_list,
+      }),
+    );
     await Promise.all(supportedTypes.map((typeInfo) => ensureItemSchema(typeInfo.id)));
   } catch (error) {
     console.error("Failed to get supported schemas list:", error);

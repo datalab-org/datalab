@@ -19,7 +19,7 @@
               :class="{ 'is-invalid': showValidation && (isValidGroupId || !group_id) }"
               required
             />
-            <!-- eslint-disable-next-line vue/no-v-html -->
+            <!-- eslint-disable-next-line vue/no-v-html -- only renders validateEntryID/validateGroupID output, whose sole HTML is an <a> link built from a charset-validated ID -->
             <div v-if="isValidGroupId" class="form-error" v-html="isValidGroupId"></div>
             <div v-if="showValidation && !group_id" class="invalid-feedback">
               Group ID is required.

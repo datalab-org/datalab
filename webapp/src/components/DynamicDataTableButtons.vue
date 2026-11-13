@@ -18,299 +18,380 @@
       </div>
     </div>
 
-    <div class="button-bar">
-      <div v-if="dataType === 'samples'" class="btn-action-group">
+    <div class="button-bar row mx-n1 align-items-center">
+      <div
+        v-if="hasActionButtons"
+        class="btn-action-group d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center px-1"
+        :class="
+          dataType === 'samples'
+            ? 'col-12 col-xl-auto mb-2 mb-xl-0'
+            : 'col-12 col-lg-auto mb-2 mb-lg-0'
+        "
+      >
+        <template v-if="dataType === 'samples'">
+          <span
+            class="btn-action-wrapper"
+            :title="
+              !canCreateSingleItem
+                ? 'No item types are available for single-item creation on this deployment'
+                : !isLoggedIn
+                  ? 'Log in to add items'
+                  : adminSuperUserMode
+                    ? 'Disabled in super-user mode'
+                    : null
+            "
+          >
+            <button
+              data-testid="add-item-button"
+              class="btn btn-default btn-action"
+              :disabled="!isLoggedIn || adminSuperUserMode || !canCreateSingleItem"
+              @click="$emit('open-create-item-modal')"
+            >
+              Add an item
+            </button>
+          </span>
+          <span
+            class="btn-action-wrapper"
+            :title="
+              !canBatchCreateItems
+                ? 'No item types are available for batch creation on this deployment'
+                : !isLoggedIn
+                  ? 'Log in to add items'
+                  : adminSuperUserMode
+                    ? 'Disabled in super-user mode'
+                    : null
+            "
+          >
+            <button
+              data-testid="batch-item-button"
+              class="btn btn-default btn-action"
+              :disabled="!isLoggedIn || adminSuperUserMode || !canBatchCreateItems"
+              @click="$emit('open-batch-create-item-modal')"
+            >
+              Add batch of items
+            </button>
+          </span>
+          <button
+            data-testid="scan-qr-button"
+            class="btn btn-default btn-action"
+            aria-label="Scan QR code"
+            title="Scan QR code"
+            @click="$emit('open-qr-scanner-modal')"
+          >
+            <font-awesome-icon icon="qrcode" /> Scan QR code
+          </button>
+        </template>
         <button
-          data-testid="add-item-button"
+          v-if="!hideCollections && dataType === 'collections'"
+          data-testid="add-collection-button"
           class="btn btn-default btn-action"
-          :disabled="!isLoggedIn || adminSuperUserMode"
-          :title="
-            !isLoggedIn
-              ? 'Log in to add items'
-              : adminSuperUserMode
-                ? 'Disabled in super-user mode'
-                : ''
-          "
-          @click="$emit('open-create-item-modal')"
+          @click="$emit('open-create-collection-modal')"
         >
-          Add an item
+          Create new collection
         </button>
-        <button
-          data-testid="batch-item-button"
-          class="btn btn-default btn-action"
-          :disabled="!isLoggedIn || adminSuperUserMode"
+        <span
+          v-if="dataType === 'startingMaterials' && editableInventory"
+          class="btn-action-wrapper"
           :title="
-            !isLoggedIn
-              ? 'Log in to add items'
-              : adminSuperUserMode
-                ? 'Disabled in super-user mode'
-                : ''
+            canCreateStartingMaterial
+              ? null
+              : 'The starting material item type is not available on this deployment'
           "
-          @click="$emit('open-batch-create-item-modal')"
         >
-          Add batch of items
-        </button>
+          <button
+            data-testid="add-starting-material-button"
+            class="btn btn-default btn-action"
+            :disabled="!canCreateStartingMaterial"
+            @click="$emit('open-create-item-modal')"
+          >
+            Add a starting material
+          </button>
+        </span>
+        <span
+          v-if="dataType === 'equipment'"
+          class="btn-action-wrapper"
+          :title="
+            canCreateEquipment
+              ? null
+              : 'The equipment item type is not available on this deployment'
+          "
+        >
+          <button
+            data-testid="add-equipment-button"
+            class="btn btn-default btn-action"
+            :disabled="!canCreateEquipment"
+            @click="$emit('open-create-equipment-modal')"
+          >
+            Add equipment
+          </button>
+        </span>
         <button
-          data-testid="scan-qr-button"
+          v-if="dataType === 'tags' && isLoggedIn"
+          data-testid="add-tag-button"
           class="btn btn-default btn-action"
-          aria-label="Scan QR code"
-          title="Scan QR code"
-          @click="$emit('open-qr-scanner-modal')"
+          @click="$emit('open-create-tag-modal')"
         >
-          <font-awesome-icon icon="qrcode" /> Scan QR code
+          Create new tag
         </button>
       </div>
-      <button
-        v-if="dataType === 'collections'"
-        data-testid="add-collection-button"
-        class="btn btn-default"
-        @click="$emit('open-create-collection-modal')"
-      >
-        Create new collection
-      </button>
-      <button
-        v-if="dataType === 'startingMaterials' && editableInventory"
-        data-testid="add-starting-material-button"
-        class="btn btn-default"
-        @click="$emit('open-create-item-modal')"
-      >
-        Add a starting material
-      </button>
-      <button
-        v-if="dataType === 'equipment'"
-        data-testid="add-equipment-button"
-        class="btn btn-default"
-        @click="$emit('open-create-equipment-modal')"
-      >
-        Add an item
-      </button>
-      <button
-        v-if="dataType === 'tags' && isLoggedIn"
-        data-testid="add-tag-button"
-        class="btn btn-default"
-        @click="$emit('open-create-tag-modal')"
-      >
-        Create new tag
-      </button>
 
-      <div class="button-bar-spacer"></div>
-
-      <div class="search-settings-group">
-        <IconField class="search-field">
-          <InputIcon>
-            <font-awesome-icon icon="search" />
-          </InputIcon>
-          <InputText
-            v-model="localFilters.global.value"
-            data-testid="search-input"
-            class="search-input"
-            placeholder="Search"
-          />
-        </IconField>
-
-        <div v-on-click-outside="() => (isSettingsDropdownVisible = false)" class="dropdown">
-          <button
-            data-testid="table-settings-button"
-            class="btn btn-default"
-            type="button"
-            aria-label="Table settings"
-            title="Table settings"
-            aria-haspopup="true"
-            :aria-expanded="isSettingsDropdownVisible"
-            @click="isSettingsDropdownVisible = !isSettingsDropdownVisible"
-          >
-            <font-awesome-icon icon="cog" />
-          </button>
+      <div
+        class="table-tools d-flex align-items-stretch px-1"
+        :class="
+          dataType === 'samples'
+            ? 'col-12 col-xl flex-column flex-lg-row align-items-lg-center ml-lg-auto'
+            : hasActionButtons
+              ? 'col-12 col-lg flex-column flex-lg-row align-items-lg-center ml-lg-auto'
+              : 'col-12 col-md flex-column flex-md-row align-items-md-center ml-md-auto'
+        "
+      >
+        <div
+          class="selection-controls d-flex flex-nowrap align-items-center justify-content-between"
+          :class="
+            hasActionButtons
+              ? 'justify-content-lg-start ml-lg-auto'
+              : 'justify-content-md-start ml-md-auto'
+          "
+        >
           <div
-            v-show="isSettingsDropdownVisible"
-            data-testid="table-settings-menu"
-            class="dropdown-menu dropdown-menu-right settings-dropdown"
-            style="display: block"
+            data-testid="selection-summary"
+            class="selection-summary form-control-plaintext w-auto"
           >
-            <div class="dropdown-item-text">
-              <label class="mb-1 font-weight-bold">Columns</label>
-              <!-- Compare columns by field: the default deep comparison can fail on column
-                   definitions holding components. -->
-              <MultiSelect
-                :model-value="selectedColumns"
-                :options="availableColumns"
-                :option-label="columnLabel"
-                append-to="self"
-                data-key="field"
-                placeholder="Select column(s) to display"
-                display="chip"
-                class="column-select-dropdown"
-                @update:model-value="$emit('update:selected-columns', $event)"
+            <font-awesome-icon
+              :icon="itemsSelected.length > 0 ? 'check-square' : 'stream'"
+              class="mr-1"
+            />
+            <span v-if="itemsSelected.length > 0">
+              {{ itemsSelected.length }} {{ itemLabel(itemsSelected.length) }} selected
+            </span>
+            <span v-else>Number of {{ itemLabel(2) }}: {{ displayedItemCount }}</span>
+          </div>
+
+          <div
+            v-if="itemsSelected.length > 0"
+            v-on-click-outside="() => (isSelectedDropdownVisible = false)"
+            class="dropdown"
+          >
+            <button
+              id="selected-actions-dropdown"
+              data-testid="selected-dropdown"
+              class="btn btn-default dropdown-toggle"
+              type="button"
+              aria-label="Actions"
+              title="Actions"
+              data-toggle="dropdown"
+              aria-haspopup="true"
+              :aria-expanded="isSelectedDropdownVisible"
+              @click="toggleSelectedDropdown"
+            >
+              Actions
+            </button>
+            <div
+              v-show="isSelectedDropdownVisible"
+              class="dropdown-menu dropdown-menu-right"
+              style="display: block"
+              aria-labelledby="selected-actions-dropdown"
+            >
+              <a
+                v-if="
+                  !hideCollections &&
+                  !['collections', 'collectionItems', 'users', 'tokens', 'groups', 'tags'].includes(
+                    dataType,
+                  )
+                "
+                data-testid="add-to-collection-button"
+                class="dropdown-item"
+                @click="handleAddToCollection"
               >
-                <template #value="{ value }">
-                  <span v-if="value && value.length == availableColumns.length" class="text-muted"
-                    >All columns</span
-                  >
-                  <span v-else>{{ value.length }} columns</span>
-                </template>
-              </MultiSelect>
+                Add to collection
+              </a>
+              <button
+                v-for="{ action, tool } in tableSelectionActions"
+                :key="`${tool.id}:${action.id}`"
+                :data-testid="`tool-action-${tool.id}-${action.id}`"
+                class="dropdown-item"
+                type="button"
+                :disabled="Boolean(toolActionDisabledReason(action))"
+                :title="toolActionDisabledReason(action)"
+                @click="openTableSelectionAction(tool, action)"
+              >
+                <font-awesome-icon :icon="toolIcon(tool)" fixed-width class="mr-2" />
+                {{ action.label }}
+              </button>
+              <span
+                v-if="supportsTableSelectionActions && toolActionsLoading"
+                class="dropdown-item-text small text-muted"
+              >
+                Loading tool actions...
+              </span>
+              <span
+                v-else-if="supportsTableSelectionActions && toolActionsError"
+                class="dropdown-item-text small text-danger"
+              >
+                Tool actions are unavailable.
+              </span>
+              <a
+                v-if="!hideCollections && dataType === 'collectionItems'"
+                data-testid="remove-from-collection-dropdown"
+                class="dropdown-item"
+                @click="confirmRemoveFromCollection"
+              >
+                Remove from collection
+              </a>
+              <a
+                v-if="
+                  !['collections', 'collectionItems', 'users', 'tokens', 'groups', 'tags'].includes(
+                    dataType,
+                  )
+                "
+                data-testid="batch-share-button"
+                class="dropdown-item"
+                @click="handleBatchShare"
+              >
+                Batch share
+              </a>
+              <a
+                v-if="!['collectionItems', 'users', 'tokens', 'groups'].includes(dataType)"
+                data-testid="delete-selected-button"
+                class="dropdown-item"
+                @click="confirmDeletion"
+              >
+                Delete items
+              </a>
+              <a
+                v-if="dataType === 'users'"
+                data-testid="bulk-change-role-button"
+                class="dropdown-item"
+                @click="
+                  showBulkChangeRoleModal = true;
+                  isSelectedDropdownVisible = false;
+                "
+              >
+                Change role
+              </a>
+              <a
+                v-if="dataType === 'users'"
+                data-testid="bulk-add-to-group-button"
+                class="dropdown-item"
+                @click="
+                  showBulkAddToGroupModal = true;
+                  isSelectedDropdownVisible = false;
+                "
+              >
+                Add to group
+              </a>
+              <a
+                v-if="dataType === 'users'"
+                data-testid="bulk-change-managers-button"
+                class="dropdown-item"
+                @click="
+                  showBulkChangeManagersModal = true;
+                  isSelectedDropdownVisible = false;
+                "
+              >
+                Add manager(s)
+              </a>
+              <a
+                v-if="dataType === 'users'"
+                data-testid="bulk-activate-users-button"
+                class="dropdown-item"
+                @click="handleBulkActivateUsers"
+              >
+                Activate selected users
+              </a>
+              <a
+                v-if="dataType === 'users'"
+                data-testid="bulk-deactivate-users-button"
+                class="dropdown-item"
+                @click="handleBulkDeactivateUsers"
+              >
+                Deactivate selected users
+              </a>
+              <a
+                v-if="dataType === 'tokens'"
+                data-testid="bulk-invalidate-tokens-button"
+                class="dropdown-item"
+                @click="handleBulkInvalidateTokens"
+              >
+                Invalidate selected tokens
+              </a>
+              <a
+                v-if="dataType === 'groups'"
+                data-testid="bulk-delete-groups-button"
+                class="dropdown-item"
+                @click="handleBulkDeleteGroups"
+              >
+                Delete selected groups
+              </a>
             </div>
-            <div class="dropdown-divider"></div>
-            <a data-testid="reset-table-button" class="dropdown-item" @click="resetTable">
-              <font-awesome-icon icon="redo" class="mr-2" /> Reset table settings
-            </a>
+          </div>
+        </div>
+
+        <div class="search-settings-group d-flex flex-nowrap">
+          <IconField class="search-field">
+            <InputIcon>
+              <font-awesome-icon icon="search" />
+            </InputIcon>
+            <InputText
+              v-model="localFilters.global.value"
+              data-testid="search-input"
+              class="search-input"
+              placeholder="Search"
+            />
+          </IconField>
+
+          <div v-on-click-outside="() => (isSettingsDropdownVisible = false)" class="dropdown">
+            <button
+              data-testid="table-settings-button"
+              class="btn btn-default"
+              type="button"
+              aria-label="Table settings"
+              title="Table settings"
+              aria-haspopup="true"
+              :aria-expanded="isSettingsDropdownVisible"
+              @click="isSettingsDropdownVisible = !isSettingsDropdownVisible"
+            >
+              <font-awesome-icon icon="cog" />
+            </button>
+            <div
+              v-show="isSettingsDropdownVisible"
+              data-testid="table-settings-menu"
+              class="dropdown-menu dropdown-menu-right settings-dropdown"
+              style="display: block"
+            >
+              <div class="dropdown-item-text">
+                <label class="mb-1 font-weight-bold">Columns</label>
+                <!-- Compare columns by field: the default deep comparison can fail on column
+                     definitions holding components. -->
+                <MultiSelect
+                  :model-value="selectedColumns"
+                  :options="availableColumns"
+                  :option-label="columnLabel"
+                  append-to="self"
+                  data-key="field"
+                  placeholder="Select column(s) to display"
+                  display="chip"
+                  class="column-select-dropdown"
+                  @update:model-value="$emit('update:selected-columns', $event)"
+                >
+                  <template #value="{ value }">
+                    <span v-if="value && value.length == availableColumns.length" class="text-muted"
+                      >All columns</span
+                    >
+                    <span v-else>{{ value.length }} columns</span>
+                  </template>
+                </MultiSelect>
+              </div>
+              <div class="dropdown-divider"></div>
+              <a data-testid="reset-table-button" class="dropdown-item" @click="resetTable">
+                <font-awesome-icon icon="redo" class="mr-2" /> Reset table settings
+              </a>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div v-if="itemsSelected.length > 0" class="d-flex justify-content-end align-items-center mt-2">
-      <div v-on-click-outside="() => (isSelectedDropdownVisible = false)" class="dropdown">
-        <button
-          data-testid="selected-dropdown"
-          class="btn btn-default dropdown-toggle"
-          type="button"
-          data-toggle="dropdown"
-          aria-haspopup="true"
-          aria-expanded="false"
-          @click="toggleSelectedDropdown"
-        >
-          {{ itemsSelected.length }} selected...
-        </button>
-        <div
-          v-show="isSelectedDropdownVisible"
-          class="dropdown-menu"
-          style="display: block"
-          aria-labelledby="dropdownMenuButton"
-        >
-          <a
-            v-if="
-              !['collections', 'collectionItems', 'users', 'tokens', 'groups', 'tags'].includes(
-                dataType,
-              )
-            "
-            data-testid="add-to-collection-button"
-            class="dropdown-item"
-            @click="handleAddToCollection"
-          >
-            Add to collection
-          </a>
-          <button
-            v-for="{ action, tool } in tableSelectionActions"
-            :key="`${tool.id}:${action.id}`"
-            :data-testid="`tool-action-${tool.id}-${action.id}`"
-            class="dropdown-item"
-            type="button"
-            :disabled="Boolean(toolActionDisabledReason(action))"
-            :title="toolActionDisabledReason(action)"
-            @click="openTableSelectionAction(tool, action)"
-          >
-            <font-awesome-icon :icon="toolIcon(tool)" fixed-width class="mr-2" />
-            {{ action.label }}
-          </button>
-          <span
-            v-if="supportsTableSelectionActions && toolActionsLoading"
-            class="dropdown-item-text small text-muted"
-          >
-            Loading tool actions...
-          </span>
-          <span
-            v-else-if="supportsTableSelectionActions && toolActionsError"
-            class="dropdown-item-text small text-danger"
-          >
-            Tool actions are unavailable.
-          </span>
-          <a
-            v-if="dataType === 'collectionItems'"
-            data-testid="remove-from-collection-dropdown"
-            class="dropdown-item"
-            @click="confirmRemoveFromCollection"
-          >
-            Remove from collection
-          </a>
-          <a
-            v-if="
-              !['collections', 'collectionItems', 'users', 'tokens', 'groups', 'tags'].includes(
-                dataType,
-              )
-            "
-            data-testid="batch-share-button"
-            class="dropdown-item"
-            @click="handleBatchShare"
-          >
-            Batch share
-          </a>
-          <a
-            v-if="!['collectionItems', 'users', 'tokens', 'groups'].includes(dataType)"
-            data-testid="delete-selected-button"
-            class="dropdown-item"
-            @click="confirmDeletion"
-          >
-            Delete selected
-          </a>
-          <a
-            v-if="dataType === 'users'"
-            data-testid="bulk-change-role-button"
-            class="dropdown-item"
-            @click="
-              showBulkChangeRoleModal = true;
-              isSelectedDropdownVisible = false;
-            "
-          >
-            Change role
-          </a>
-          <a
-            v-if="dataType === 'users'"
-            data-testid="bulk-add-to-group-button"
-            class="dropdown-item"
-            @click="
-              showBulkAddToGroupModal = true;
-              isSelectedDropdownVisible = false;
-            "
-          >
-            Add to group
-          </a>
-          <a
-            v-if="dataType === 'users'"
-            data-testid="bulk-change-managers-button"
-            class="dropdown-item"
-            @click="
-              showBulkChangeManagersModal = true;
-              isSelectedDropdownVisible = false;
-            "
-          >
-            Add manager(s)
-          </a>
-          <a
-            v-if="dataType === 'users'"
-            data-testid="bulk-activate-users-button"
-            class="dropdown-item"
-            @click="handleBulkActivateUsers"
-          >
-            Activate selected users
-          </a>
-          <a
-            v-if="dataType === 'users'"
-            data-testid="bulk-deactivate-users-button"
-            class="dropdown-item"
-            @click="handleBulkDeactivateUsers"
-          >
-            Deactivate selected users
-          </a>
-          <a
-            v-if="dataType === 'tokens'"
-            data-testid="bulk-invalidate-tokens-button"
-            class="dropdown-item"
-            @click="handleBulkInvalidateTokens"
-          >
-            Invalidate selected tokens
-          </a>
-          <a
-            v-if="dataType === 'groups'"
-            data-testid="bulk-delete-groups-button"
-            class="dropdown-item"
-            @click="handleBulkDeleteGroups"
-          >
-            Delete selected groups
-          </a>
-        </div>
-      </div>
-    </div>
     <BulkChangeRoleModal
       v-model="showBulkChangeRoleModal"
       :selected-users="itemsSelected"
@@ -343,12 +424,15 @@ import { vOnClickOutside } from "@vueuse/components";
 import BulkChangeRoleModal from "@/components/BulkChangeRoleModal.vue";
 import BulkAddToGroupModal from "@/components/BulkAddToGroupModal.vue";
 import BulkChangeManagersModal from "@/components/BulkChangeManagersModal.vue";
+import { itemTypes, SAMPLE_TABLE_TYPES, HIDE_COLLECTIONS } from "@/resources.js";
 import { loadToolCatalog } from "@/tool_catalog.js";
 import {
   itemTableSelectionActions,
   openToolForItemSelection,
   toolIcon,
 } from "@/tool_launch_utils.js";
+
+const SEARCH_DEBOUNCE_MS = 200;
 
 import {
   deleteSample,
@@ -386,6 +470,11 @@ export default {
     itemsSelected: {
       type: Array,
       required: true,
+    },
+    displayedItemCount: {
+      type: Number,
+      required: false,
+      default: 0,
     },
     filters: {
       type: Object,
@@ -451,12 +540,37 @@ export default {
       showBulkChangeRoleModal: false,
       showBulkAddToGroupModal: false,
       showBulkChangeManagersModal: false,
+      hideCollections: HIDE_COLLECTIONS,
       tools: null,
       toolActionsLoading: false,
       toolActionsError: null,
     };
   },
   computed: {
+    hasActionButtons() {
+      return (
+        ["samples", "collections", "equipment"].includes(this.dataType) ||
+        (this.dataType === "startingMaterials" && this.editableInventory) ||
+        (this.dataType === "tags" && this.isLoggedIn)
+      );
+    },
+    canCreateSingleItem() {
+      return (
+        SAMPLE_TABLE_TYPES.some((type) => itemTypes[type]?.available !== false) ||
+        Object.values(itemTypes).some(
+          (entry) => entry.isDynamic && entry.isCreateable && entry.available !== false,
+        )
+      );
+    },
+    canBatchCreateItems() {
+      return SAMPLE_TABLE_TYPES.some((type) => itemTypes[type]?.available !== false);
+    },
+    canCreateStartingMaterial() {
+      return itemTypes.starting_materials?.available !== false;
+    },
+    canCreateEquipment() {
+      return itemTypes.equipment?.available !== false;
+    },
     adminSuperUserMode() {
       return this.$store.getters.isAdminSuperUserModeActive;
     },
@@ -479,8 +593,16 @@ export default {
       }
     },
     "localFilters.global.value"(newValue) {
-      this.$emit("update:filters", { ...this.filters, global: { value: newValue } });
+      // Debounce the search so the table is only re-filtered (and re-rendered) once typing
+      // pauses, rather than on every keystroke.
+      clearTimeout(this.searchDebounceTimer);
+      this.searchDebounceTimer = setTimeout(() => {
+        this.$emit("update:filters", { ...this.filters, global: { value: newValue } });
+      }, SEARCH_DEBOUNCE_MS);
     },
+  },
+  beforeUnmount() {
+    clearTimeout(this.searchDebounceTimer);
   },
   methods: {
     async toggleSelectedDropdown() {
@@ -531,6 +653,21 @@ export default {
           message: error instanceof Error ? error.message : String(error),
         });
       }
+    },
+    itemLabel(count) {
+      const labels = {
+        samples: ["item", "items"],
+        collections: ["collection", "collections"],
+        equipment: ["equipment item", "equipment items"],
+        startingMaterials: ["starting material", "starting materials"],
+        collectionItems: ["item", "items"],
+        users: ["user", "users"],
+        tokens: ["token", "tokens"],
+        groups: ["group", "groups"],
+        tags: ["tag", "tags"],
+      };
+      const [singular, plural] = labels[this.dataType] || ["item", "items"];
+      return count === 1 ? singular : plural;
     },
     async confirmDeletion() {
       const isTags = this.dataType === "tags";
@@ -1089,9 +1226,26 @@ export default {
   white-space: nowrap;
 }
 
-.button-bar-spacer {
-  flex: 1 1 auto;
+.btn-action-wrapper {
+  display: flex;
+  flex: 1;
+}
+
+.table-tools {
+  gap: 0.5rem;
   min-width: 0;
+}
+
+.selection-controls {
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.selection-summary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .search-settings-group {
@@ -1102,9 +1256,8 @@ export default {
 }
 
 .search-field {
-  flex: 1 1 80px;
+  flex: 1 1 200px;
   min-width: 80px;
-  max-width: 200px;
 }
 
 .search-field :deep(.p-inputtext) {

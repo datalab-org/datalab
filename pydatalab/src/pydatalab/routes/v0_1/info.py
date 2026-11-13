@@ -16,16 +16,65 @@ from pydantic import (
 )
 
 from pydatalab import __version__
-from pydatalab.apps import BLOCK_TYPES
+from pydatalab.apps import BLOCK_TYPES, is_block_type_available
 from pydatalab.config import CONFIG
+from pydatalab.deployment_stats import (
+    STATS_REFRESH_INTERVAL,
+    build_stats_summary,
+    stats_are_stale,
+    update_deployment_stats,
+)
 from pydatalab.feature_flags import FEATURE_FLAGS, FeatureFlags
-from pydatalab.models import ITEM_SCHEMAS, Person
+from pydatalab.logger import LOGGER
+from pydatalab.models import (
+    BUILTIN_ITEM_TYPES,
+    ITEM_MODELS,
+    ITEM_SCHEMAS,
+    Item,
+    Person,
+    get_item_block_type_allow_list,
+    is_item_type_available,
+)
+from pydatalab.models.schema_hints import DatalabModelExtra
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only
+from pydatalab.scheduler import task_scheduler
 
 from ._version import __api_version__
 
 INFO = Blueprint("info", __name__)
+
+
+_app = None
+
+_pending_stats_update = None
+"""The background stats update queued by this worker, if any, so that concurrent
+requests for stale stats do not queue duplicate updates."""
+
+
+def _update_stats():
+    try:
+        with _app.app_context():
+            update_deployment_stats(flask_mongo.db)
+    except Exception:
+        LOGGER.exception("Failed to update deployment stats")
+
+
+@INFO.record_once
+def _register_stats_job(state):
+    """Keep the deployment stats (and their monthly snapshots) up to date even if
+    no one visits the stats page, by updating them daily at a fixed time;
+    requests for stale stats also queue an update in the background."""
+    global _app
+    _app = state.app
+
+    task_scheduler.add_cron_job(
+        func=_update_stats,
+        job_id="deployment_stats_update",
+        hour=3,
+        jitter=30 * 60,
+    )
+    LOGGER.info("Registered daily deployment stats update job")
 
 
 class Attributes(BaseModel):
@@ -137,6 +186,34 @@ def get_stats():
     )
 
 
+@INFO.route("/info/stats/history", methods=["GET"])
+@active_users_or_get_only
+def get_stats_history():
+    """Returns monthly histograms of new entries (items by type, users, files,
+    collections, active users and item saves) across the lifetime of the deployment,
+    alongside the current totals and a breakdown of block types in use.
+
+    The histograms are stored in the `deployment_stats` collection, alongside a
+    snapshot of the current totals. If they are stale, an incremental update is
+    queued in the background and the stored stats are returned immediately with
+    `updating` set; on a fresh deployment these will be empty until it finishes.
+
+    """
+    global _pending_stats_update
+    updating = stats_are_stale(flask_mongo.db)
+    if updating and (_pending_stats_update is None or _pending_stats_update.done()):
+        _pending_stats_update = task_scheduler.add_job(
+            func=_update_stats, args=[], job_id="deployment_stats_update"
+        )
+
+    summary = build_stats_summary(flask_mongo.db)
+    summary["updating"] = updating
+    response = jsonify({"status": "success", "data": summary})
+    max_age = int(STATS_REFRESH_INTERVAL.total_seconds())
+    response.headers["Cache-Control"] = "no-store" if updating else f"private, max-age={max_age}"
+    return response, 200
+
+
 @INFO.route("/info/blocks", methods=["GET"])
 def list_block_types():
     """Returns a list of all blocks implemented in this server."""
@@ -152,6 +229,7 @@ def list_block_types():
                         "version": getattr(block, "version", __version__),
                         "accepted_file_extensions": getattr(block, "accepted_file_extensions", []),
                         "multi_file": getattr(block, "multi_file", False),
+                        "available": is_block_type_available(block_type),
                     },
                 )
                 for block_type, block in BLOCK_TYPES.items()
@@ -159,6 +237,63 @@ def list_block_types():
             meta=Meta(query=request.query_string.decode() if request.query_string else ""),
         ).model_dump(mode="json")
     )
+
+
+def _get_base_item_model(item_type: str) -> tuple[str | None, type[Item] | None]:
+    """Return the UI base type/model for a custom item type.
+
+    ``items`` is a virtual UI base for models derived directly from :class:`Item`;
+    it is deliberately not added to ``ITEM_MODELS`` because ``Item`` itself is not
+    a registered, creatable resource type. For subclasses of a concrete built-in,
+    the most-derived matching built-in base is returned.
+    """
+    model = ITEM_MODELS.get(item_type)
+    if model is None or item_type in BUILTIN_ITEM_TYPES:
+        return None, None
+
+    best_type = "items"
+    best_model: type[Item] = Item
+    for builtin_type, builtin_model in ITEM_MODELS.items():
+        if builtin_type not in BUILTIN_ITEM_TYPES:
+            continue
+        if issubclass(model, builtin_model):
+            # Prefer the most specific (most-derived) built-in base.
+            if issubclass(builtin_model, best_model):
+                best_type = builtin_type
+                best_model = builtin_model
+    return best_type, best_model
+
+
+def _get_model_schema_extra(item_type: str) -> dict:
+    """Return the `json_schema_extra` dict declared on the model's config, if any."""
+    model = ITEM_MODELS.get(item_type)
+    if model is None:
+        return {}
+    extra = model.model_config.get("json_schema_extra") or {}
+    if callable(extra):
+        # Pydantic supports callables here, but they do not expose static Datalab hints.
+        return {}
+    return extra
+
+
+def _type_attributes(item_type: str, schema: dict) -> dict:
+    """Build the attributes dict for a single item type in the /info/types response."""
+    extra = DatalabModelExtra(
+        **{k: v for k, v in _get_model_schema_extra(item_type).items() if k.startswith("datalab_")}
+    )
+    base_type, base_model = _get_base_item_model(item_type)
+    return {
+        "version": __version__,
+        "api_version": __api_version__,
+        "schema": schema,
+        "title": schema.get("title"),
+        "base_type": base_type,
+        "base_fields": list(base_model.model_fields) if base_model is not None else [],
+        "hidden_fields": extra.datalab_ui_hidden_fields or [],
+        "ui_color": extra.datalab_ui_color,
+        "available": is_item_type_available(item_type),
+        "block_type_allow_list": get_item_block_type_allow_list(item_type),
+    }
 
 
 @INFO.route("/info/types", methods=["GET"])
@@ -171,11 +306,7 @@ def list_supported_types():
                 Data(
                     id=item_type,
                     type="item_type",
-                    attributes={
-                        "version": __version__,
-                        "api_version": __api_version__,
-                        "schema": schema,
-                    },
+                    attributes=_type_attributes(item_type, schema),
                 )
                 for item_type, schema in ITEM_SCHEMAS.items()
             ],
@@ -197,11 +328,7 @@ def get_schema_type(item_type):
             data=Data(
                 id=item_type,
                 type="item_type",
-                attributes={
-                    "version": __version__,
-                    "api_version": __api_version__,
-                    "schema": ITEM_SCHEMAS[item_type],
-                },
+                attributes=_type_attributes(item_type, ITEM_SCHEMAS[item_type]),
             ),
             meta=Meta(query=request.query_string.decode() if request.query_string else ""),
         ).model_dump(mode="json")

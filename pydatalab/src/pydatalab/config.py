@@ -3,9 +3,10 @@ import json
 import logging
 import os
 import platform
+from collections import Counter
 from ipaddress import ip_address
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import (
     AnyUrl,
@@ -19,12 +20,14 @@ from pydantic import (
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from pydatalab.models import Person
+from pydatalab.models.people import IdentityType
 from pydatalab.models.utils import RandomAlphabeticalRefcodeFactory, RefCodeFactory
 
 __all__ = (
     "CONFIG",
     "ServerConfig",
     "DeploymentMetadata",
+    "ItemTypeAllowListEntry",
     "RemoteFilesystem",
     "ToolsSettings",
     "is_loopback_host",
@@ -134,6 +137,15 @@ class RemoteFilesystem(BaseModel):
     path: Path = Field(description="The path to the base of the filesystem to include.")
 
 
+class ItemTypeAllowListEntry(BaseModel):
+    """An item type and the block types that may be added to it."""
+
+    type: str
+    block_type_allow_list: list[str] | None
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class SMTPSettings(BaseModel):
     """Configuration for specifying SMTP settings for sending emails."""
 
@@ -190,7 +202,8 @@ class ServerConfig(BaseSettings):
     )
 
     TESTING: bool = Field(
-        False, description="Whether to run the server in testing mode, i.e., without user auth."
+        False,
+        description="Whether to run the server in testing mode, i.e., with a deterministic secret key and backups disabled. This does not disable authentication, but allows test users (with an `@datalab.test` email) to log in with tokens minted by invoke tasks (see `dev.list-test-users` and `dev.seed-e2e-users`).",
     )
 
     SECRET_KEY: str | None = Field(
@@ -204,7 +217,7 @@ class ServerConfig(BaseSettings):
     )
     SESSION_LIFETIME: int = Field(
         7 * 24,
-        description="The lifetime of each authenticated session, in hours.",
+        description='The lifetime of authenticated sessions for users who select "remember me" at login, in hours. Other sessions end when the browser is closed.',
     )
 
     FILE_DIRECTORY: str | Path = Field(
@@ -282,6 +295,11 @@ class ServerConfig(BaseSettings):
         description="A dictionary containing SMTP settings for sending emails for account registration.",
     )
 
+    LOGIN_ONLY_AUTH_METHODS: list[IdentityType] = Field(
+        [],
+        description='A list of authentication methods (from `email`, `github`, `orcid`, `google`, `microsoft`) that can only be used to log in to existing accounts, or to connect to an account that is already logged in, but not to register new accounts. For example, setting `["email", "github", "google", "microsoft"]` requires users to first register with their ORCID before connecting any other accounts.',
+    )
+
     DISABLE_MAGIC_LINK_AUTH: bool = Field(
         False,
         description="Whether to disable magic-link email authentication while retaining SMTP-backed notification emails.",
@@ -306,6 +324,16 @@ its importance when deploying a datalab instance.""",
         description="Whether to enable the (experimental) item tags feature and its `/tags` API routes.",
     )
 
+    UNGROUPED_INVENTORY: Literal["none", "warn", "error"] = Field(
+        "none",
+        description="""How to handle inventory items (starting materials and equipment) that are not assigned to any groups, as such items are visible to and editable by all users of the deployment.
+
+- `"none"`: allow ungrouped inventory items without comment.
+- `"warn"`: ask users to confirm in the UI before creating an ungrouped inventory item.
+- `"error"`: refuse to create inventory items without groups, or to remove all groups from an existing one.
+""",
+    )
+
     ASYNC_BLOCK_TYPES: list[str] = Field(
         [],
         description="A list of block type slugs (e.g. ['cycle', 'xrd']) that should be processed asynchronously via the task queue. Defaults to no blocks.",
@@ -314,6 +342,16 @@ its importance when deploying a datalab instance.""",
     TOOLS: ToolsSettings = Field(
         default_factory=ToolsSettings,
         description="Configuration for built-in and installed tools.",
+    )
+
+    BLOCK_TYPE_ALLOW_LIST: list[str] | None = Field(
+        None,
+        description="A list of block type slugs that users may add. Setting the value to `None` allows every installed block type, while an empty list prevents adding any new blocks.",
+    )
+
+    ITEM_TYPE_ALLOW_LIST: list[ItemTypeAllowListEntry] | None = Field(
+        None,
+        description="A list of item types users may create. A string permits all globally available blocks; an object requires `type` and `block_type_allow_list`, where `None` also permits all. A top-level `None` permits all registered item types; an empty list permits none.",
     )
 
     CUSTOM_ITEM_MODELS: list[str] = Field(
@@ -364,6 +402,37 @@ its importance when deploying a datalab instance.""",
                 f"The maximum cache age must be greater than the minimum cache age: min {min_age=}, max {max_age=}"
             )
         return self
+
+    @field_validator("ITEM_TYPE_ALLOW_LIST", mode="before")
+    @classmethod
+    def validate_item_type_allow_list(cls, value):
+        """Normalize string entries into typed entries."""
+        if value is None:
+            return value
+
+        normalized_entries = []
+        for entry in value:
+            if isinstance(entry, str):
+                entry = ItemTypeAllowListEntry(type=entry, block_type_allow_list=None)
+            normalized_entries.append(entry)
+        return normalized_entries
+
+    @field_validator("ITEM_TYPE_ALLOW_LIST")
+    @classmethod
+    def validate_unique_item_types(cls, value):
+        """Reject duplicate entries with ambiguous block policies."""
+        if value is None:
+            return value
+
+        item_types = [entry.type for entry in value]
+        duplicates = sorted(
+            item_type for item_type, count in Counter(item_types).items() if count > 1
+        )
+        if duplicates:
+            raise ValueError(
+                "ITEM_TYPE_ALLOW_LIST contains duplicate item types: " + ", ".join(duplicates)
+            )
+        return value
 
     @field_validator("SECRET_KEY", mode="before")
     @classmethod

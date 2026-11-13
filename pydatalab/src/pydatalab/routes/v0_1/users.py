@@ -11,7 +11,7 @@ from werkzeug.exceptions import BadRequest, Forbidden, Unauthorized
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.login import is_tool_access_token_user
-from pydatalab.models.people import Person
+from pydatalab.models.people import AccountStatus, Person
 from pydatalab.mongo import (
     USERS_FTS_FIELDS,
     build_search_pipeline,
@@ -42,14 +42,22 @@ def save_user(user_id):
         contact_email = request_json.get("contact_email", False)
         account_status = request_json.get("account_status", None)
 
-    if not current_user.is_authenticated and not CONFIG.TESTING:
+    if not current_user.is_authenticated:
         raise Unauthorized("No user authenticated.")
 
-    if current_user.is_authenticated and is_tool_access_token_user(current_user):
+    if is_tool_access_token_user(current_user):
         raise Forbidden("Tool access tokens cannot edit account profiles.")
 
-    if not CONFIG.TESTING and current_user.id != user_id and current_user.role != "admin":
+    if current_user.id != user_id and current_user.role != "admin":
         raise Forbidden("Current user not allowed to edit this profile.")
+
+    if account_status == AccountStatus.DELETED:
+        raise BadRequest("Accounts must be deleted via the dedicated admin endpoint.")
+
+    if flask_mongo.db.users.find_one(
+        {"_id": ObjectId(user_id), "account_status": AccountStatus.DELETED}, {"_id": 1}
+    ):
+        raise BadRequest("Deleted accounts cannot be modified.")
 
     update = {}
 
@@ -220,7 +228,12 @@ def search_users():
     if not query:
         return jsonify({"status": "error", "message": "No query provided."}), 400
 
-    pipeline = build_search_pipeline(query, USERS_FTS_FIELDS, permissions=None)
+    # Deleted accounts cannot be given access to anything, so are never offered as results
+    pipeline = build_search_pipeline(
+        query,
+        USERS_FTS_FIELDS,
+        permissions={"account_status": {"$ne": AccountStatus.DELETED}},
+    )
     pipeline.append({"$limit": nresults})
     pipeline.append(
         {

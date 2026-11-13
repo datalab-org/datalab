@@ -29,6 +29,7 @@ import {
   FILES_COLUMN,
   LAST_MODIFIED_COLUMN,
 } from "@/utils/tableColumns";
+import { HIDE_COLLECTIONS } from "@/resources.js";
 
 export default {
   components: { DynamicDataTable },
@@ -50,7 +51,7 @@ export default {
         { ...NAME_COLUMN, label: "Sample name" },
         CHEMFORM_COLUMN,
         { ...DATE_COLUMN, filter: DATE_RANGE_FILTER },
-        COLLECTIONS_COLUMN,
+        ...(HIDE_COLLECTIONS ? [] : [COLLECTIONS_COLUMN]),
         CREATORS_AND_GROUPS_COLUMN,
         BLOCKS_COLUMN,
         FILES_COLUMN,
@@ -128,7 +129,9 @@ export default {
       getInfo();
     }
   },
-  mounted() {
+  // The Samples view is kept alive (see App.vue), so re-fetch whenever it is shown again,
+  // not just on first mount; `activated` also fires on the initial mount.
+  activated() {
     this.getSamples();
   },
   methods: {

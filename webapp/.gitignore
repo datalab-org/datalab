@@ -29,3 +29,7 @@ pnpm-debug.log*
 *.sw?
 
 cypress_examples/
+
+# Cypress e2e coverage (see .nycrc.json)
+/.nyc_output
+/coverage

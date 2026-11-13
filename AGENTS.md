@@ -145,7 +145,7 @@ Plugins extend the server with new `DataBlock` classes via a Python entry point,
 
 ### Python
 - Formatting: ruff (line length 100) via pre-commit
-- Type hints: Required, using Pydantic v2 models
+- Type hints: Required, using Pydantic models
 - Logging: Use `pydatalab.logger.LOGGER`
 - Tests: pytest with fixtures in `conftest.py` files
 
@@ -160,4 +160,4 @@ Plugins extend the server with new `DataBlock` classes via a Python entry point,
 Key environment variables (can also be set in config.json):
 - `PYDATALAB_MONGO_URI` - MongoDB connection string
 - `PYDATALAB_CONFIG_FILE` - Path to JSON config file (default: /app/config.json)
-- `PYDATALAB_TESTING` - Disable auth when set to "true"
+- `PYDATALAB_TESTING` - Testing mode (deterministic secret key, backups disabled); does not disable auth

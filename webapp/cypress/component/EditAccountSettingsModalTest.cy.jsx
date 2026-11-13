@@ -1,4 +1,3 @@
-// This file was edited with the assistance of an AI model and requires human review from the contributor.
 import store from "@/store/index.js";
 import EditAccountSettingsModal from "@/components/EditAccountSettingsModal.vue";
 import { invalidateCurrentUserCache } from "@/server_fetch_utils.js";

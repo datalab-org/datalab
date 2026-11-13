@@ -73,20 +73,6 @@ export default {
       return `${this.groups.length} groups`;
     },
   },
-  watch: {
-    groups: {
-      immediate: true,
-      handler(val) {
-        console.log("Creators component - groups prop:", val);
-      },
-    },
-    creators: {
-      immediate: true,
-      handler(val) {
-        console.log("Creators component - creators prop:", val);
-      },
-    },
-  },
 };
 </script>
 

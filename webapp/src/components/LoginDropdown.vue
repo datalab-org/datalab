@@ -1,5 +1,5 @@
 <template>
-  <GetEmailModal v-model="emailModalIsOpen" />
+  <GetEmailModal v-model="emailModalIsOpen" :remember="remember" />
   <span v-if="!authMechanismsLoaded" class="dropdown-item text-muted">
     <font-awesome-icon :icon="['fa', 'spinner']" spin /> Loading…
   </span>
@@ -61,6 +61,11 @@ export default {
       type: String,
       default: null,
     },
+    // Whether the resulting session should persist beyond the browser session
+    remember: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
@@ -90,7 +95,14 @@ export default {
   },
   methods: {
     loginUrl(provider) {
-      const query = this.next ? `?next=${encodeURIComponent(this.next)}` : "";
+      const params = new URLSearchParams();
+      if (this.next) {
+        params.set("next", this.next);
+      }
+      if (this.remember) {
+        params.set("remember", "1");
+      }
+      const query = params.toString() ? `?${params.toString()}` : "";
       return `${this.apiUrl}/login/${provider}${query}`;
     },
   },

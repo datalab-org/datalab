@@ -35,11 +35,17 @@ def _module_from_path(pathname: str) -> str:
 class LogContextFilter(logging.Filter):
     """Stamps each record with the current request/task ID (blank outside of
     any request, padded to the width of the generated 8-character IDs) and
-    a concise 'module:function:lineno' source location."""
+    a concise 'module:function:lineno' source location (unless the record
+    carries a `source_override`)."""
 
     def filter(self, record: logging.LogRecord) -> bool:
         record.request_id = (request_id_var.get() or "").ljust(8)
-        record.source = f"{_module_from_path(record.pathname)}:{record.funcName}:{record.lineno}"
+        # Callers can supply `extra={"source_override": ...}` to attribute the
+        # record to somewhere other than the line that emitted it (e.g., the
+        # matched route for access logs)
+        record.source = getattr(record, "source_override", None) or (
+            f"{_module_from_path(record.pathname)}:{record.funcName}:{record.lineno}"
+        )
         return True
 
 
