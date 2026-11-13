@@ -33,9 +33,9 @@ module.exports = defineConfig({
     baseUrl: "http://localhost:8080",
     apiUrl: "http://localhost:5001",
     defaultCommandTimeout: 10000,
-    env: {
+    expose: {
       // Collect coverage only from an app built with `DATALAB_E2E_COVERAGE=true` (see
-      // `babel.config.js`), as `@cypress/code-coverage` warns on every test otherwise
+      // `vite.config.mjs`), as `@cypress/code-coverage` warns on every test otherwise
       coverage: process.env.DATALAB_E2E_COVERAGE === "true",
     },
     setupNodeEvents(on, config) {
@@ -59,8 +59,8 @@ module.exports = defineConfig({
       });
     },
     devServer: {
-      framework: "vue-cli",
-      bundler: "webpack",
+      framework: "vue",
+      bundler: "vite",
     },
   },
 });

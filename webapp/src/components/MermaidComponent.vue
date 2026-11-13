@@ -14,6 +14,7 @@
 <script>
 import { NodeViewWrapper } from "@tiptap/vue-3";
 import { DialogService } from "@/services/DialogService";
+import { loadMermaid } from "@/utils/mermaid.js";
 
 export default {
   components: { NodeViewWrapper },
@@ -59,13 +60,10 @@ export default {
       container.innerHTML = "";
       this.error = false;
 
-      let attempts = 0;
-      while (!window.mermaid && attempts < 10) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        attempts++;
-      }
-
-      if (!window.mermaid) {
+      let mermaid;
+      try {
+        mermaid = await loadMermaid();
+      } catch {
         this.error = true;
         DialogService.error("Mermaid library not loaded");
         return;
@@ -76,21 +74,12 @@ export default {
       try {
         const graphDefinition = this.node.attrs.code || "graph TD; A[Start] --> B[End];";
 
-        if (!window.mermaid._initialized) {
-          window.mermaid.initialize({
-            startOnLoad: false,
-            theme: "default",
-            securityLevel: "sandbox",
-          });
-          window.mermaid._initialized = true;
-        }
-
         const mermaidDiv = document.createElement("div");
         mermaidDiv.id = this.renderId;
         mermaidDiv.textContent = graphDefinition;
         container.appendChild(mermaidDiv);
 
-        await window.mermaid.init(undefined, mermaidDiv);
+        await mermaid.run({ nodes: [mermaidDiv] });
       } catch {
         this.error = true;
         const errorDiv = document.createElement("div");
