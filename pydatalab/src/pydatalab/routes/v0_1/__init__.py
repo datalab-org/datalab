@@ -14,6 +14,7 @@ from .info import INFO
 from .items import ITEMS
 from .remotes import REMOTES
 from .tags import TAGS
+from .tools import TOOLS
 from .users import USERS
 
 BLUEPRINTS: tuple[Blueprint, ...] = (
@@ -31,6 +32,7 @@ BLUEPRINTS: tuple[Blueprint, ...] = (
     GRAPHS,
     EXPORT,
     TAGS,
+    TOOLS,
 )
 
 __all__ = ("BLUEPRINTS", "OAUTH", "__api_version__", "OAUTH_PROXIES")

@@ -4,6 +4,7 @@ nav:
     - User guide: https://guide.datalab-org.io
     - Reference:
         - Data models: schemas
+        - Tools: tools.md
     - Development:
         - Contributing: CONTRIBUTING.md
         - Code of conduct: CODE_OF_CONDUCT.md

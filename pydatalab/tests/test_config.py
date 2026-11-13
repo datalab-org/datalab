@@ -1,6 +1,21 @@
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
+
+from pydatalab.config import ToolsSettings
+
+
+def test_tools_settings_use_native_collections_and_reject_duplicate_order():
+    settings = ToolsSettings.model_validate(
+        {"order": ["first-tool", "second-tool"], "disabled": ["second-tool"]}
+    )
+
+    assert settings.ORDER == ["first-tool", "second-tool"]
+    assert settings.DISABLED == {"second-tool"}
+
+    with pytest.raises(ValidationError, match="must not contain duplicate"):
+        ToolsSettings.model_validate({"order": ["first-tool", "first-tool"]})
 
 
 def test_default_settings():

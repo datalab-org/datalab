@@ -10,6 +10,7 @@ from werkzeug.exceptions import BadRequest, Forbidden, Unauthorized
 
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
+from pydatalab.login import is_tool_access_token_user
 from pydatalab.models.people import AccountStatus, Person
 from pydatalab.mongo import (
     USERS_FTS_FIELDS,
@@ -43,6 +44,9 @@ def save_user(user_id):
 
     if not current_user.is_authenticated:
         raise Unauthorized("No user authenticated.")
+
+    if is_tool_access_token_user(current_user):
+        raise Forbidden("Tool access tokens cannot edit account profiles.")
 
     if current_user.id != user_id and current_user.role != "admin":
         raise Forbidden("Current user not allowed to edit this profile.")

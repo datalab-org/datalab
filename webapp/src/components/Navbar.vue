@@ -28,6 +28,46 @@
     <router-link to="/item-graph"
       ><font-awesome-icon icon="project-diagram" />&nbsp;Graph View</router-link
     >
+    |
+    <span v-on-click-outside="closeToolsMenu" class="dropdown d-inline-block">
+      <button
+        class="btn btn-link dropdown-toggle border-0 p-0 align-baseline"
+        type="button"
+        :aria-expanded="toolsMenuOpen"
+        aria-haspopup="true"
+        data-testid="tools-menu-toggle"
+        @click.stop="toggleToolsMenu"
+      >
+        <font-awesome-icon icon="laptop-code" />&nbsp;Tools
+      </button>
+      <div v-show="toolsMenuOpen" class="dropdown-menu show" role="menu">
+        <span v-if="toolsLoading" class="dropdown-item-text text-muted">Loading tools...</span>
+        <span v-else-if="toolsError" class="dropdown-item-text text-danger">
+          {{ toolsError }}
+        </span>
+        <span v-else-if="tools.length === 0" class="dropdown-item-text text-muted">
+          No tools available.
+        </span>
+        <template v-else>
+          <button
+            v-for="tool in tools"
+            :key="tool.id"
+            class="dropdown-item"
+            type="button"
+            role="menuitem"
+            :disabled="launchingToolId === tool.id || !isSupportedTool(tool)"
+            @click="openTool(tool)"
+          >
+            <font-awesome-icon :icon="toolIcon(tool)" fixed-width class="mr-1" />
+            {{ tool.name }}
+          </button>
+        </template>
+        <div class="dropdown-divider"></div>
+        <router-link class="dropdown-item" to="/tools" role="menuitem" @click="closeToolsMenu">
+          All tools
+        </router-link>
+      </div>
+    </span>
   </div>
   <div v-if="!isLoggedIn" class="container">
     <div class="alert alert-info col-md-6 col-lg-4 text-center mx-auto info-banner">
@@ -52,9 +92,15 @@
 <script>
 import { API_URL, LOGO_URL, LOGO_WIDTH, HOMEPAGE_URL, HIDE_COLLECTIONS } from "@/resources.js";
 import LoginDetails from "@/components/LoginDetails.vue";
+import { vOnClickOutside } from "@vueuse/components";
+import { loadToolCatalog } from "@/tool_catalog.js";
+import { isSupportedTool, openTool, toolIcon } from "@/tool_launch_utils.js";
 
 export default {
   name: "Navbar",
+  directives: {
+    onClickOutside: vOnClickOutside,
+  },
   components: {
     LoginDetails,
   },
@@ -66,6 +112,12 @@ export default {
       homepage_url: HOMEPAGE_URL,
       hideCollections: HIDE_COLLECTIONS,
       user: null,
+      tools: [],
+      toolsLoaded: false,
+      toolsLoading: false,
+      toolsError: null,
+      toolsMenuOpen: false,
+      launchingToolId: null,
     };
   },
   computed: {
@@ -77,9 +129,56 @@ export default {
     },
   },
   methods: {
+    closeToolsMenu() {
+      this.toolsMenuOpen = false;
+    },
     disableSuperUserMode() {
       this.$store.commit("setAdminSuperUserMode", false);
       window.location.reload();
+    },
+    async loadTools() {
+      if (this.toolsLoaded || this.toolsLoading) {
+        return;
+      }
+
+      this.toolsLoading = true;
+      this.toolsError = null;
+
+      try {
+        this.tools = await loadToolCatalog();
+        this.toolsLoaded = true;
+      } catch (error) {
+        this.tools = [];
+        this.toolsError = error instanceof Error ? error.message : String(error);
+      } finally {
+        this.toolsLoading = false;
+      }
+    },
+    async toggleToolsMenu() {
+      this.toolsMenuOpen = !this.toolsMenuOpen;
+      if (this.toolsMenuOpen) {
+        await this.loadTools();
+      }
+    },
+    isSupportedTool(tool) {
+      return isSupportedTool(tool);
+    },
+    toolIcon(tool) {
+      return toolIcon(tool);
+    },
+    async openTool(tool) {
+      this.launchingToolId = tool.id;
+
+      try {
+        await openTool(tool, this.$router);
+        this.closeToolsMenu();
+      } catch (error) {
+        this.toolsError = `Unable to open ${tool.name}: ${
+          error instanceof Error ? error.message : String(error)
+        }`;
+      } finally {
+        this.launchingToolId = null;
+      }
     },
   },
 };

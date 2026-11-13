@@ -1,0 +1,5 @@
+title: Plugin development
+nav:
+    - index.md
+    - standalone-tool-plugin.md
+    - in-app-tool-plugin.md
