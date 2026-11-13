@@ -70,9 +70,9 @@ yarn lint
 # Run component tests
 yarn test:component
 
-# Run e2e tests (requires backend at localhost:5001)
+# Run e2e tests (requires the dev server at localhost:8080 and backend at localhost:5001)
 yarn test:e2e
-yarn test:e2e --headless
+yarn test:e2e:headless
 ```
 
 ### Pre-commit Hooks
