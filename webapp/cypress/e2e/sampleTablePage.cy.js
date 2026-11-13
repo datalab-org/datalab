@@ -266,7 +266,7 @@ describe("Advanced sample creation features", () => {
       expect(response.body).to.have.property("status", "success");
     });
     cy.findByText("Home").click();
-    cy.location("pathname").should("equal", "/");
+    cy.location("pathname").should("equal", "/samples");
   });
 
   it("copies the second sample", () => {

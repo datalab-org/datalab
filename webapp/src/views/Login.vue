@@ -139,7 +139,7 @@ export default {
       const isLocalPath =
         next != null && next.startsWith("/") && !next.startsWith("//") && !next.includes("\\");
       // Full page load so that App.vue runs the startup fetches it skips on the login route
-      window.location.href = this.$router.resolve(isLocalPath ? next : { name: "samples" }).href;
+      window.location.href = this.$router.resolve(isLocalPath ? next : { name: "home" }).href;
     },
   },
 };

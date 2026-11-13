@@ -18,16 +18,13 @@
   </div>
 
   <div id="nav" data-testid="navbar-navigation">
-    <router-link to="/about">About</router-link> |
-    <router-link to="/samples">Samples</router-link> |
-    <template v-if="!hideCollections">
-      <router-link to="/collections">Collections</router-link> |
+    <template v-for="(entry, index) in navigationEntries" :key="entry.view">
+      <span v-if="index > 0" class="nav-separator" aria-hidden="true"> | </span>
+      <router-link :to="{ name: entry.routeName }" :data-testid="`navbar-link-${entry.view}`">
+        <font-awesome-icon v-if="entry.icon" :icon="entry.icon" />
+        <span v-if="entry.icon">&nbsp;</span>{{ entry.label }}
+      </router-link>
     </template>
-    <router-link to="/starting-materials">Inventory</router-link> |
-    <router-link to="/equipment">Equipment</router-link> |
-    <router-link to="/item-graph"
-      ><font-awesome-icon icon="project-diagram" />&nbsp;Graph View</router-link
-    >
   </div>
   <div v-if="!isLoggedIn" class="container">
     <div class="alert alert-info col-md-6 col-lg-4 text-center mx-auto info-banner">
@@ -50,8 +47,9 @@
 </template>
 
 <script>
-import { API_URL, LOGO_URL, LOGO_WIDTH, HOMEPAGE_URL, HIDE_COLLECTIONS } from "@/resources.js";
+import { API_URL, LOGO_URL, LOGO_WIDTH, HOMEPAGE_URL } from "@/resources.js";
 import LoginDetails from "@/components/LoginDetails.vue";
+import { resolveNavigation } from "@/navigation.js";
 
 export default {
   name: "Navbar",
@@ -64,11 +62,13 @@ export default {
       logo_url: LOGO_URL,
       logo_width: LOGO_WIDTH,
       homepage_url: HOMEPAGE_URL,
-      hideCollections: HIDE_COLLECTIONS,
       user: null,
     };
   },
   computed: {
+    navigationEntries() {
+      return resolveNavigation(this.$store.state.serverInfo);
+    },
     isLoggedIn() {
       return Boolean(this.$store.state.currentUserDisplayName);
     },

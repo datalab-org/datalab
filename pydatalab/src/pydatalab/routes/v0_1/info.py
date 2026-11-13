@@ -17,7 +17,7 @@ from pydantic import (
 
 from pydatalab import __version__
 from pydatalab.apps import BLOCK_TYPES, is_block_type_available
-from pydatalab.config import CONFIG
+from pydatalab.config import CONFIG, NavigationEntry
 from pydatalab.deployment_stats import (
     STATS_REFRESH_INTERVAL,
     build_stats_summary,
@@ -125,6 +125,7 @@ class Info(Attributes, Meta):
     identifier_prefix: str
     features: FeatureFlags | None = None
     max_upload_bytes: int
+    navigation: list[NavigationEntry]
 
     @field_validator("maintainer", mode="before")
     @classmethod
@@ -147,6 +148,7 @@ def _get_deployment_metadata_once() -> dict:
             "identifier_prefix": identifier_prefix,
             "max_upload_bytes": CONFIG.MAX_CONTENT_LENGTH,
             "features": FEATURE_FLAGS,
+            "navigation": CONFIG.NAVIGATION,
         }
     )
     return metadata

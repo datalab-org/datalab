@@ -99,3 +99,55 @@ def test_info_endpoint_includes_max_upload_bytes(client, app):
     assert isinstance(attributes["max_upload_bytes"], int)
     assert attributes["max_upload_bytes"] > 0
     assert attributes["max_upload_bytes"] == 10 * 1000 * 1000
+
+
+def test_info_endpoint_includes_navigation(client):
+    response = client.get("/info")
+
+    assert response.status_code == 200
+    assert response.json["data"]["attributes"]["navigation"] == [
+        {"view": "about", "label": None, "icon": None, "default": False},
+        {"view": "samples", "label": None, "icon": None, "default": True},
+        {"view": "collections", "label": None, "icon": None, "default": False},
+        {"view": "starting-materials", "label": None, "icon": None, "default": False},
+        {"view": "equipment", "label": None, "icon": None, "default": False},
+        {
+            "view": "item-graph",
+            "label": None,
+            "icon": "project-diagram",
+            "default": False,
+        },
+    ]
+
+
+def test_info_endpoint_includes_custom_navigation(client, monkeypatch):
+    from pydatalab.config import CONFIG
+    from pydatalab.routes.v0_1.info import _get_deployment_metadata_once
+
+    # Temporarily replace the global navigation configuration for this test.
+    monkeypatch.setattr(
+        CONFIG,
+        "NAVIGATION",
+        [
+            {"view": "equipment"},
+            {"view": "starting-materials", "label": "Materials", "default": True},
+        ],
+    )
+    # `/info` metadata is process-cached. Clear it on both sides to isolate this test.
+    _get_deployment_metadata_once.cache_clear()
+
+    try:
+        response = client.get("/info")
+    finally:
+        _get_deployment_metadata_once.cache_clear()
+
+    assert response.status_code == 200
+    assert response.json["data"]["attributes"]["navigation"] == [
+        {"view": "equipment", "label": None, "icon": None, "default": False},
+        {
+            "view": "starting-materials",
+            "label": "Materials",
+            "icon": None,
+            "default": True,
+        },
+    ]
