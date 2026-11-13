@@ -52,6 +52,25 @@
       "title": "DatalabQuantity",
       "type": "object"
     },
+    "DatalabRelationship": {
+      "additionalProperties": false,
+      "description": "The relationship created for every item referenced in a field.",
+      "properties": {
+        "relation": {
+          "$ref": "#/$defs/RelationshipType",
+          "default": "parent",
+          "description": "The type of relationship from the item holding the field to the referenced item."
+        },
+        "description": {
+          "default": "Is referenced by",
+          "description": "The description stored on the relationship. Together with `relation`, it identifies\nthe relationships that belong to the field.",
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "title": "DatalabRelationship",
+      "type": "object"
+    },
     "DatalabUnitTransform": {
       "additionalProperties": false,
       "description": "Affine conversion from a display unit to a field's canonical unit.",
@@ -72,6 +91,19 @@
       },
       "title": "DatalabUnitTransform",
       "type": "object"
+    },
+    "RelationshipType": {
+      "description": "An enumeration of the possible types of relationship between two entries.\n\n```mermaid\nclassDiagram\nclass entryC\nentryC --|> entryA: parent\nentryC ..|> entryD\nentryA <..> entryD: sibling\nentryA --|> entryB : child\n```",
+      "enum": [
+        "parent",
+        "child",
+        "sibling",
+        "is_part_of",
+        "other",
+        "collections"
+      ],
+      "title": "RelationshipType",
+      "type": "string"
     }
   },
   "additionalProperties": false,
@@ -144,6 +176,18 @@
       "default": null,
       "description": "Render an item-reference widget restricted to these item types.",
       "title": "Datalab Ref Types"
+    },
+    "datalab_relationship": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DatalabRelationship"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Create a relationship to every item referenced in this field, at any depth, and\nremove it when the reference is cleared."
     },
     "datalab_quantity": {
       "anyOf": [

@@ -193,6 +193,7 @@ annotations on the field:
 | `datalab_hidden` | store the field but don't render it directly |
 | `datalab_quantity` | declare canonical storage plus plugin-defined display-unit conversions for a floating-point field |
 | `datalab_ref_types` | render as an item-search selector restricted to these item types — i.e. a link to another item (built-in *or* custom) |
+| `datalab_relationship` | also store the referenced items as relationships of the item (see below) |
 | `datalab_section` | group this field into its own titled card |
 | `datalab_multiline` | render a string as a multi-line text area |
 
@@ -264,11 +265,21 @@ canonical = displayed * scale + offset
 The optional `display_unit_field` stores only the user's display-unit preference. It must name a
 companion string `Literal` whose possible values exactly match the keys in `display_units`.
 
-Item references in the fields a custom type adds (here `solute` and `solvent`), including nested
-ones such as the `item` of a `Constituent`, become parent relationships of the item in the item
-graph; clearing a reference removes its relationship. Other parent relationships and built-in
-fields keep their usual behaviour. References need a `refcode` or an `item_id`.
-`datalab_ref_types` only filters the UI selector; the server accepts any item type.
+To also store the items referenced in a field as relationships of the item, add
+`datalab_relationship` with the `relation` (default `parent`) and a `description`:
+
+```python
+    solute: EntryReference | None = Field(
+        None,
+        json_schema_extra={
+            "datalab_ref_types": ["starting_materials", "samples"],
+            "datalab_relationship": {"relation": "parent", "description": "Is the solute of"},
+        },
+    )
+```
+
+The relationships are rebuilt from the field on every save, so clearing a reference removes its
+relationship. `datalab_ref_types` only filters the UI selector; the server accepts any item type.
 
 ### Custom panels (full control)
 

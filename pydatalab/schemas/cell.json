@@ -957,19 +957,6 @@
           "default": null,
           "description": "The refcode of the entry that is related to this entry.",
           "title": "Refcode"
-        },
-        "managed_by": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The mechanism that created this relationship and keeps it in sync, if any\n(e.g., `\"custom_reference\"` for the parent relationships derived from item references\nin the fields of a custom item type). Only relationships carrying a given marker are\nremoved by the mechanism that owns it; unmarked relationships are never removed by it.",
-          "title": "Managed By"
         }
       },
       "required": [

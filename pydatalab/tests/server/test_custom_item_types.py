@@ -820,14 +820,12 @@ def test_partial_save_updates_custom_reference_relationships(
     assert _stored_relationships() == ([], [collection_id])
 
 
-def test_custom_reference_cleanup_keeps_unmanaged_parents(client, database, custom_item_models):
-    """Clearing a custom reference only removes the parent relationships created for
-    custom references: an unrelated parent is kept, and an existing unmarked parent to
-    the referenced item is reused (not duplicated) and kept."""
+def test_custom_reference_cleanup_keeps_other_parents(client, database, custom_item_models):
+    """Clearing a reference only removes the relationships that belong to its field:
+    parents with another description are kept, including one to the referenced item."""
     for item_type, item_id in (
-        ("equipment", "unmanaged-equipment"),
-        ("samples", "unmanaged-src"),
-        ("samples", "unmanaged-component"),
+        ("equipment", "other-parent-equipment"),
+        ("samples", "other-parent-src"),
     ):
         response = client.post(
             "/new-sample/", json={"new_sample_data": {"type": item_type, "item_id": item_id}}
@@ -836,14 +834,13 @@ def test_custom_reference_cleanup_keeps_unmanaged_parents(client, database, cust
 
     response = client.post(
         "/new-sample/",
-        json={"new_sample_data": {"type": "example:items", "item_id": "unmanaged-holder"}},
+        json={"new_sample_data": {"type": "example:items", "item_id": "other-parent-holder"}},
     )
     assert response.status_code == 201, response.json
 
-    # Parent relationships not created for a custom reference, e.g. added by another
-    # mechanism, carry no `managed_by` marker
+    # Parent relationships that do not come from a field of the item
     database.items.update_one(
-        {"item_id": "unmanaged-holder"},
+        {"item_id": "other-parent-holder"},
         {
             "$push": {
                 "relationships": {
@@ -851,9 +848,14 @@ def test_custom_reference_cleanup_keeps_unmanaged_parents(client, database, cust
                         {
                             "relation": "parent",
                             "type": "equipment",
-                            "item_id": "unmanaged-equipment",
+                            "item_id": "other-parent-equipment",
                         },
-                        {"relation": "parent", "type": "samples", "item_id": "unmanaged-src"},
+                        {
+                            "relation": "parent",
+                            "type": "samples",
+                            "item_id": "other-parent-src",
+                            "description": "Added by hand",
+                        },
                     ]
                 }
             }
@@ -861,49 +863,161 @@ def test_custom_reference_cleanup_keeps_unmanaged_parents(client, database, cust
     )
 
     def _stored_parents():
-        item = database.items.find_one({"item_id": "unmanaged-holder"})
+        item = database.items.find_one({"item_id": "other-parent-holder"})
         return sorted(
-            (r["item_id"], r.get("managed_by"))
+            (r["item_id"], r.get("description"))
             for r in item["relationships"]
             if r["relation"] == "parent"
         )
 
-    unmanaged = [("unmanaged-equipment", None), ("unmanaged-src", None)]
+    others = [("other-parent-equipment", None), ("other-parent-src", "Added by hand")]
 
     response = client.post(
         "/save-item/",
         json={
-            "item_id": "unmanaged-holder",
-            "data": {"source": {"item_id": "unmanaged-src", "type": "samples"}},
+            "item_id": "other-parent-holder",
+            "data": {"source": {"item_id": "other-parent-src", "type": "samples"}},
         },
     )
     assert response.status_code == 200, response.json
-    assert _stored_parents() == unmanaged
+    assert _stored_parents() == sorted([("other-parent-src", "Is referenced by"), *others])
 
     response = client.post(
-        "/save-item/", json={"item_id": "unmanaged-holder", "data": {"source": None}}
+        "/save-item/", json={"item_id": "other-parent-holder", "data": {"source": None}}
     )
     assert response.status_code == 200, response.json
-    assert _stored_parents() == unmanaged
+    assert _stored_parents() == others
 
-    # A parent created for a custom reference is marked, and removed once cleared
+
+def test_reference_without_relationship_hint_creates_no_relationship(client, custom_item_models):
+    """A reference field without a `datalab_relationship` hint is filled in from the
+    referenced item but creates no relationship."""
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {"type": "samples", "item_id": "no-hint-source", "name": "No hint"}
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "example:items",
+                "item_id": "no-hint-holder",
+                "related_item": {"item_id": "no-hint-source", "type": "samples"},
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.get("/get-item-data/no-hint-holder")
+    item_data = response.json["item_data"]
+    assert item_data["related_item"]["name"] == "No hint"
+    assert item_data["relationships"] == []
+    assert response.json["parent_items"] == []
+
+
+def test_relationship_hint_sets_relation_and_description(client, custom_item_models):
+    """The relationship takes the `relation` and `description` of the field's hint, and
+    several fields can each hold their own relationship to the same item."""
+    for item_type, item_id in (("equipment", "hint-box"), ("samples", "hint-sample")):
+        response = client.post(
+            "/new-sample/", json={"new_sample_data": {"type": item_type, "item_id": item_id}}
+        )
+        assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "example:items",
+                "item_id": "hint-holder",
+                "container": {"item_id": "hint-box", "type": "equipment"},
+                "source": {"item_id": "hint-sample", "type": "samples"},
+                "components": [
+                    {"item": {"item_id": "hint-sample", "type": "samples"}, "quantity": 1},
+                    {"item": {"item_id": "hint-sample", "type": "samples"}, "quantity": 2},
+                ],
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    def _relationships():
+        item_data = client.get("/get-item-data/hint-holder").json["item_data"]
+        return sorted(
+            (r["relation"], r["description"], r["item_id"]) for r in item_data["relationships"]
+        )
+
+    assert _relationships() == [
+        ("is_part_of", "Is stored in", "hint-box"),
+        ("parent", "Is a component of", "hint-sample"),
+        ("parent", "Is referenced by", "hint-sample"),
+    ]
+
+    # Saving again without changes does not duplicate the relationships
+    item_data = client.get("/get-item-data/hint-holder").json["item_data"]
+    response = client.post("/save-item/", json={"item_id": "hint-holder", "data": item_data})
+    assert response.status_code == 200, response.json
+    assert len(_relationships()) == 3
+
+    response = client.post(
+        "/save-item/", json={"item_id": "hint-holder", "data": {"container": None, "source": None}}
+    )
+    assert response.status_code == 200, response.json
+    assert _relationships() == [("parent", "Is a component of", "hint-sample")]
+
+
+def test_field_parent_and_synthesis_constituent_to_same_item(client, custom_item_models):
+    """An item that is both a synthesis constituent and referenced by a field keeps a
+    parent relationship while either of the two remains."""
+    response = client.post(
+        "/new-sample/", json={"new_sample_data": {"type": "samples", "item_id": "both-source"}}
+    )
+    assert response.status_code == 201, response.json
+
+    constituents = [{"item": {"item_id": "both-source", "type": "samples"}, "quantity": 1.0}]
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "example:samples",
+                "item_id": "both-holder",
+                "precursor": {"item_id": "both-source", "type": "samples"},
+                "synthesis_constituents": constituents,
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    def _parent_descriptions():
+        item_data = client.get("/get-item-data/both-holder").json["item_data"]
+        return sorted(
+            r["description"] for r in item_data["relationships"] if r["relation"] == "parent"
+        )
+
+    assert _parent_descriptions() == ["Is a constituent of", "Is a precursor of"]
+
+    response = client.post(
+        "/save-item/", json={"item_id": "both-holder", "data": {"precursor": None}}
+    )
+    assert response.status_code == 200, response.json
+    assert _parent_descriptions() == ["Is a constituent of"]
+
     response = client.post(
         "/save-item/",
         json={
-            "item_id": "unmanaged-holder",
+            "item_id": "both-holder",
             "data": {
-                "components": [{"item": {"item_id": "unmanaged-component", "type": "samples"}}]
+                "precursor": {"item_id": "both-source", "type": "samples"},
+                "synthesis_constituents": [],
             },
         },
     )
     assert response.status_code == 200, response.json
-    assert _stored_parents() == sorted([("unmanaged-component", "custom_reference"), *unmanaged])
-
-    response = client.post(
-        "/save-item/", json={"item_id": "unmanaged-holder", "data": {"components": []}}
-    )
-    assert response.status_code == 200, response.json
-    assert _stored_parents() == unmanaged
+    assert _parent_descriptions() == ["Is a precursor of"]
 
 
 def test_immutable_id_only_custom_reference_rejected(client, database, custom_item_models):

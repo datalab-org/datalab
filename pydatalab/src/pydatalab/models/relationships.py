@@ -61,12 +61,6 @@ class TypedRelationship(BaseModel):
     refcode: Refcode | None = None
     """The refcode of the entry that is related to this entry."""
 
-    managed_by: str | None = None
-    """The mechanism that created this relationship and keeps it in sync, if any
-    (e.g., `"custom_reference"` for the parent relationships derived from item references
-    in the fields of a custom item type). Only relationships carrying a given marker are
-    removed by the mechanism that owns it; unmarked relationships are never removed by it."""
-
     @field_validator("type")
     @classmethod
     def check_known_type(cls, v):

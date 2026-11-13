@@ -19,10 +19,6 @@ from pydatalab.models.utils import (
     iter_item_references,
 )
 
-CUSTOM_REFERENCE_MANAGER = "custom_reference"
-"""The `managed_by` marker of the parent relationships derived from the item references
-in the fields of a custom item type (see `Item.add_missing_reference_relationships`)."""
-
 
 class Item(
     Entry,
@@ -90,87 +86,71 @@ class Item(
 
         return v
 
-    @model_validator(mode="after")
-    def add_missing_reference_relationships(self):
-        """Add a parent relationship for every item referenced in a custom field (see
-        `custom_item_fields`), and remove the parent relationships it created to items
-        that are no longer referenced. Built-in types are left untouched.
+    @model_validator(mode="before")
+    @classmethod
+    def remove_field_relationships(cls, data):
+        """Remove the relationships that belong to the fields carrying a
+        `datalab_relationship` hint, so that `add_field_relationships` rebuilds them from
+        the current content of these fields.
 
-        Relationships created here are marked with `managed_by="custom_reference"`, and
-        only marked relationships are removed. An existing unmarked parent relationship
-        to a referenced item is reused as is, and is kept when the reference is cleared.
-
+        A relationship belongs to a field when it has the `relation` and `description`
+        of the field's hint.
         """
-        from pydatalab.models import custom_item_fields
-        from pydatalab.models.relationships import RelationshipType, TypedRelationship
+        from pydatalab.models.schema_hints import relationship_hints
 
-        fields = custom_item_fields(self.type)
-        if not fields:
-            return self
+        hints = relationship_hints(cls)
+        if not hints or not isinstance(data, dict) or not data.get("relationships"):
+            return data
 
-        references = list(iter_item_references([getattr(self, field) for field in fields]))
+        owned = {(hint.relation, hint.description) for hint in hints.values()}
 
-        # Index by refcode *and* item_id so a stored relationship carrying an
-        # item_id still matches a refcode-enriched reference (and vice-versa).
-        existing_relationships = {
-            identifier: relationship
-            for relationship in self.relationships
-            if relationship.relation == RelationshipType.PARENT
-            for identifier in (relationship.refcode, relationship.item_id)
-            if identifier
+        def _key(relationship):
+            if isinstance(relationship, dict):
+                return relationship.get("relation"), relationship.get("description")
+            return (
+                getattr(relationship, "relation", None),
+                getattr(relationship, "description", None),
+            )
+
+        return {
+            **data,
+            "relationships": [rel for rel in data["relationships"] if _key(rel) not in owned],
         }
 
-        for reference in references:
-            refcode = reference.refcode
-            item_id = reference.item_id
-            if not (refcode or item_id):
-                raise ValueError(
-                    f"References to items in the fields of {self.type!r} must provide a "
-                    f"`refcode` or an `item_id`, not only an `immutable_id`: {reference!r}"
+    @model_validator(mode="after")
+    def add_field_relationships(self):
+        """Add a relationship for every item referenced, at any depth, in a field carrying
+        a `datalab_relationship` hint, with the `relation` and `description` of the hint.
+
+        The relationships of these fields are removed before validation (see
+        `remove_field_relationships`) and added again here, so clearing a reference also
+        removes its relationship. Other relationships are left untouched.
+        """
+        from pydatalab.models.relationships import TypedRelationship
+        from pydatalab.models.schema_hints import relationship_hints
+
+        added: dict[tuple, set[str]] = {}
+        for field, hint in relationship_hints(type(self)).items():
+            identifiers = added.setdefault((hint.relation, hint.description), set())
+            for reference in iter_item_references(getattr(self, field)):
+                refcode = reference.refcode
+                item_id = reference.item_id
+                if not (refcode or item_id):
+                    raise ValueError(
+                        f"References to items in {field!r} must provide a `refcode` or an "
+                        f"`item_id`, not only an `immutable_id`: {reference!r}"
+                    )
+                if refcode in identifiers or item_id in identifiers:
+                    continue
+                identifiers.update(i for i in (refcode, item_id) if i)
+                self.relationships.append(
+                    TypedRelationship(
+                        relation=hint.relation,
+                        refcode=refcode,
+                        item_id=item_id,
+                        type=reference.type,
+                        description=hint.description,
+                    )
                 )
-
-            relationship = existing_relationships.get(refcode) or existing_relationships.get(
-                item_id
-            )
-            if relationship is None:
-                relationship = TypedRelationship(
-                    relation=RelationshipType.PARENT,
-                    refcode=refcode,
-                    item_id=item_id,
-                    type=reference.type,
-                    description="Is referenced by",
-                    managed_by=CUSTOM_REFERENCE_MANAGER,
-                )
-                self.relationships.append(relationship)
-            else:
-                relationship.refcode = relationship.refcode or refcode
-                relationship.item_id = relationship.item_id or item_id
-
-            for identifier in (relationship.refcode, relationship.item_id):
-                if identifier:
-                    existing_relationships[identifier] = relationship
-
-        # Rebuild the list without the relationships created here to items that are no
-        # longer referenced, so that clearing a reference field also removes its
-        # relationship. A relationship created here may since have been reused for a
-        # synthesis constituent (see `HasSynthesisInfo`), so synthesis constituents
-        # also count as references.
-        references.extend(iter_item_references(getattr(self, "synthesis_constituents", [])))
-        referenced = {
-            identifier
-            for reference in references
-            for identifier in (reference.refcode, reference.item_id)
-            if identifier
-        }
-        self.relationships = [
-            rel
-            for rel in self.relationships
-            if not (
-                rel.relation == RelationshipType.PARENT
-                and rel.managed_by == CUSTOM_REFERENCE_MANAGER
-                and rel.refcode not in referenced
-                and rel.item_id not in referenced
-            )
-        ]
 
         return self

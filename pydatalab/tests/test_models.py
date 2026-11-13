@@ -898,3 +898,13 @@ def test_iter_item_references_in_tuples_and_sets():
         "in-set",
         "in-tuple",
     ]
+
+
+def test_datalab_relationship_hint():
+    from pydatalab.models.schema_hints import DatalabFieldExtra
+
+    hint = DatalabFieldExtra(datalab_relationship={}).datalab_relationship
+    assert (hint.relation, hint.description) == ("parent", "Is referenced by")
+
+    with pytest.raises(pydantic.ValidationError):
+        DatalabFieldExtra(datalab_relationship={"relation": "unknown"})
