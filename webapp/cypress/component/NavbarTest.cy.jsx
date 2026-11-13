@@ -219,7 +219,8 @@ describe("Navbar", () => {
       .find("font-awesome-icon")
       .should("have.attr", "icon", "laptop-code");
     cy.contains("a", "All tools").should("have.attr", "href", "/tools");
-    cy.get('[data-testid="navbar-navigation"]').click();
+    cy.get('[data-testid="navbar-logindetails"]').click("topLeft");
+    cy.get('[data-testid="tools-menu-toggle"]').should("have.attr", "aria-expanded", "false");
     cy.contains("button", "Example tool").should("not.be.visible");
   });
 });
