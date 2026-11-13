@@ -12,6 +12,7 @@ types into other test modules.
 """
 
 import copy
+import json
 
 import pytest
 
@@ -602,6 +603,521 @@ def test_refresh_item_models_ignores_custom_types(custom_item_models):
     assert "example:samples" in ITEM_SCHEMAS
     assert "example:items" in ITEM_MODELS
     assert "example:items" in ITEM_SCHEMAS
+
+
+def _parent_item_ids(item_data: dict) -> list[str]:
+    return sorted(
+        relationship["item_id"]
+        for relationship in item_data["relationships"]
+        if relationship["relation"] == "parent"
+    )
+
+
+def test_custom_reference_field_creates_parent_relationship(client, custom_item_models):
+    """An item reference stored in a custom field becomes a parent relationship,
+    is filled in from the referenced item, and is removed again when cleared."""
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "samples",
+                "item_id": "custom-ref-source",
+                "name": "Referenced sample",
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "example:items",
+                "item_id": "custom-ref-holder",
+                "source": {"item_id": "custom-ref-source", "type": "samples"},
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.get("/get-item-data/custom-ref-holder")
+    assert response.status_code == 200, response.json
+    item_data = response.json["item_data"]
+    assert _parent_item_ids(item_data) == ["custom-ref-source"]
+    assert response.json["parent_items"] == ["custom-ref-source"]
+    assert item_data["source"]["name"] == "Referenced sample"
+    assert item_data["source"]["refcode"].startswith("test:")
+
+    response = client.get("/get-item-data/custom-ref-source")
+    assert "custom-ref-holder" in response.json["child_items"]
+
+    item_data["source"] = None
+    response = client.post("/save-item/", json={"item_id": "custom-ref-holder", "data": item_data})
+    assert response.status_code == 200, response.json
+
+    response = client.get("/get-item-data/custom-ref-holder")
+    assert _parent_item_ids(response.json["item_data"]) == []
+    response = client.get("/get-item-data/custom-ref-source")
+    assert "custom-ref-holder" not in response.json["child_items"]
+
+
+def test_nested_custom_references_create_parent_relationships(client, custom_item_models):
+    """References nested inside custom fields (here `Constituent.item`) also
+    become parent relationships, while inline substances are skipped."""
+    for item_id in ("custom-nested-a", "custom-nested-b"):
+        response = client.post(
+            "/new-sample/",
+            json={"new_sample_data": {"type": "samples", "item_id": item_id, "name": item_id}},
+        )
+        assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "example:items",
+                "item_id": "custom-nested-holder",
+                "components": [
+                    {"item": {"item_id": "custom-nested-a", "type": "samples"}, "quantity": 1},
+                    {"item": {"item_id": "custom-nested-b", "type": "samples"}, "quantity": 2},
+                    {"item": {"name": "inline solvent"}, "quantity": 3},
+                ],
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.get("/get-item-data/custom-nested-holder")
+    item_data = response.json["item_data"]
+    assert _parent_item_ids(item_data) == ["custom-nested-a", "custom-nested-b"]
+    assert [c["item"]["name"] for c in item_data["components"]] == [
+        "custom-nested-a",
+        "custom-nested-b",
+        "inline solvent",
+    ]
+
+    item_data["components"] = item_data["components"][1:]
+    response = client.post(
+        "/save-item/", json={"item_id": "custom-nested-holder", "data": item_data}
+    )
+    assert response.status_code == 200, response.json
+
+    response = client.get("/get-item-data/custom-nested-holder")
+    assert _parent_item_ids(response.json["item_data"]) == ["custom-nested-b"]
+
+
+def test_custom_reference_and_synthesis_constituent_coexist(client, custom_item_models):
+    """On a sample-derived custom type, a custom reference field and the
+    synthesis constituents each keep their own parent relationship, and removing
+    one does not drop the other."""
+    for item_id in ("custom-coexist-precursor", "custom-coexist-constituent"):
+        response = client.post(
+            "/new-sample/",
+            json={"new_sample_data": {"type": "samples", "item_id": item_id}},
+        )
+        assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "example:samples",
+                "item_id": "custom-coexist-holder",
+                "precursor": {"item_id": "custom-coexist-precursor", "type": "samples"},
+                "synthesis_constituents": [
+                    {
+                        "item": {"item_id": "custom-coexist-constituent", "type": "samples"},
+                        "quantity": 1.0,
+                    }
+                ],
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    item_data = client.get("/get-item-data/custom-coexist-holder").json["item_data"]
+    assert item_data["synthesis_constituents"][0]["item"]["refcode"].startswith("test:")
+    assert item_data["precursor"]["refcode"].startswith("test:")
+    assert _parent_item_ids(item_data) == [
+        "custom-coexist-constituent",
+        "custom-coexist-precursor",
+    ]
+
+    item_data["synthesis_constituents"] = []
+    response = client.post(
+        "/save-item/", json={"item_id": "custom-coexist-holder", "data": item_data}
+    )
+    assert response.status_code == 200, response.json
+    item_data = client.get("/get-item-data/custom-coexist-holder").json["item_data"]
+    assert _parent_item_ids(item_data) == ["custom-coexist-precursor"]
+
+    item_data["precursor"] = None
+    item_data["synthesis_constituents"] = [
+        {"item": {"item_id": "custom-coexist-constituent", "type": "samples"}, "quantity": 1.0}
+    ]
+    response = client.post(
+        "/save-item/", json={"item_id": "custom-coexist-holder", "data": item_data}
+    )
+    assert response.status_code == 200, response.json
+    item_data = client.get("/get-item-data/custom-coexist-holder").json["item_data"]
+    assert _parent_item_ids(item_data) == ["custom-coexist-constituent"]
+
+
+def test_partial_save_updates_custom_reference_relationships(
+    client, database, default_collection, custom_item_models
+):
+    """A `/save-item/` payload that only carries a custom reference field (and no
+    `collections` key) still adds and removes the matching parent relationship,
+    while the item's collection membership is left untouched."""
+    collection_dict = json.loads(default_collection.model_dump_json())
+    collection_dict["collection_id"] = "custom-partial-collection"
+    response = client.put("/collections", json={"data": collection_dict})
+    assert response.status_code == 201, response.json
+    collection_id = database.collections.find_one({"collection_id": "custom-partial-collection"})[
+        "_id"
+    ]
+
+    response = client.post(
+        "/new-sample/",
+        json={"new_sample_data": {"type": "samples", "item_id": "custom-partial-source"}},
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "example:items",
+                "item_id": "custom-partial-holder",
+                "collections": [{"collection_id": "custom-partial-collection"}],
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    def _stored_relationships():
+        item = database.items.find_one({"item_id": "custom-partial-holder"})
+        parents = [r["item_id"] for r in item["relationships"] if r["relation"] == "parent"]
+        collections = [
+            r["immutable_id"] for r in item["relationships"] if r["type"] == "collections"
+        ]
+        return parents, collections
+
+    response = client.post(
+        "/save-item/",
+        json={
+            "item_id": "custom-partial-holder",
+            "data": {"source": {"item_id": "custom-partial-source", "type": "samples"}},
+        },
+    )
+    assert response.status_code == 200, response.json
+    assert _stored_relationships() == (["custom-partial-source"], [collection_id])
+
+    response = client.post(
+        "/save-item/", json={"item_id": "custom-partial-holder", "data": {"source": None}}
+    )
+    assert response.status_code == 200, response.json
+    assert _stored_relationships() == ([], [collection_id])
+
+
+def test_custom_reference_cleanup_keeps_other_parents(client, database, custom_item_models):
+    """Clearing a reference only removes the relationships that belong to its field:
+    parents with another description are kept, including one to the referenced item."""
+    for item_type, item_id in (
+        ("equipment", "other-parent-equipment"),
+        ("samples", "other-parent-src"),
+    ):
+        response = client.post(
+            "/new-sample/", json={"new_sample_data": {"type": item_type, "item_id": item_id}}
+        )
+        assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={"new_sample_data": {"type": "example:items", "item_id": "other-parent-holder"}},
+    )
+    assert response.status_code == 201, response.json
+
+    # Parent relationships that do not come from a field of the item
+    database.items.update_one(
+        {"item_id": "other-parent-holder"},
+        {
+            "$push": {
+                "relationships": {
+                    "$each": [
+                        {
+                            "relation": "parent",
+                            "type": "equipment",
+                            "item_id": "other-parent-equipment",
+                        },
+                        {
+                            "relation": "parent",
+                            "type": "samples",
+                            "item_id": "other-parent-src",
+                            "description": "Added by hand",
+                        },
+                    ]
+                }
+            }
+        },
+    )
+
+    def _stored_parents():
+        item = database.items.find_one({"item_id": "other-parent-holder"})
+        return sorted(
+            (r["item_id"], r.get("description"))
+            for r in item["relationships"]
+            if r["relation"] == "parent"
+        )
+
+    others = [("other-parent-equipment", None), ("other-parent-src", "Added by hand")]
+
+    response = client.post(
+        "/save-item/",
+        json={
+            "item_id": "other-parent-holder",
+            "data": {"source": {"item_id": "other-parent-src", "type": "samples"}},
+        },
+    )
+    assert response.status_code == 200, response.json
+    assert _stored_parents() == sorted([("other-parent-src", "Is referenced by"), *others])
+
+    response = client.post(
+        "/save-item/", json={"item_id": "other-parent-holder", "data": {"source": None}}
+    )
+    assert response.status_code == 200, response.json
+    assert _stored_parents() == others
+
+
+def test_reference_without_relationship_hint_creates_no_relationship(client, custom_item_models):
+    """A reference field without a `datalab_relationship` hint is filled in from the
+    referenced item but creates no relationship."""
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {"type": "samples", "item_id": "no-hint-source", "name": "No hint"}
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "example:items",
+                "item_id": "no-hint-holder",
+                "related_item": {"item_id": "no-hint-source", "type": "samples"},
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.get("/get-item-data/no-hint-holder")
+    item_data = response.json["item_data"]
+    assert item_data["related_item"]["name"] == "No hint"
+    assert item_data["relationships"] == []
+    assert response.json["parent_items"] == []
+
+
+def test_relationship_hint_sets_relation_and_description(client, custom_item_models):
+    """The relationship takes the `relation` and `description` of the field's hint, and
+    several fields can each hold their own relationship to the same item."""
+    for item_type, item_id in (("equipment", "hint-box"), ("samples", "hint-sample")):
+        response = client.post(
+            "/new-sample/", json={"new_sample_data": {"type": item_type, "item_id": item_id}}
+        )
+        assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "example:items",
+                "item_id": "hint-holder",
+                "container": {"item_id": "hint-box", "type": "equipment"},
+                "source": {"item_id": "hint-sample", "type": "samples"},
+                "components": [
+                    {"item": {"item_id": "hint-sample", "type": "samples"}, "quantity": 1},
+                    {"item": {"item_id": "hint-sample", "type": "samples"}, "quantity": 2},
+                ],
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    def _relationships():
+        item_data = client.get("/get-item-data/hint-holder").json["item_data"]
+        return sorted(
+            (r["relation"], r["description"], r["item_id"]) for r in item_data["relationships"]
+        )
+
+    assert _relationships() == [
+        ("is_part_of", "Is stored in", "hint-box"),
+        ("parent", "Is a component of", "hint-sample"),
+        ("parent", "Is referenced by", "hint-sample"),
+    ]
+
+    # Saving again without changes does not duplicate the relationships
+    item_data = client.get("/get-item-data/hint-holder").json["item_data"]
+    response = client.post("/save-item/", json={"item_id": "hint-holder", "data": item_data})
+    assert response.status_code == 200, response.json
+    assert len(_relationships()) == 3
+
+    response = client.post(
+        "/save-item/", json={"item_id": "hint-holder", "data": {"container": None, "source": None}}
+    )
+    assert response.status_code == 200, response.json
+    assert _relationships() == [("parent", "Is a component of", "hint-sample")]
+
+
+def test_field_parent_and_synthesis_constituent_to_same_item(client, custom_item_models):
+    """An item that is both a synthesis constituent and referenced by a field keeps a
+    parent relationship while either of the two remains."""
+    response = client.post(
+        "/new-sample/", json={"new_sample_data": {"type": "samples", "item_id": "both-source"}}
+    )
+    assert response.status_code == 201, response.json
+
+    constituents = [{"item": {"item_id": "both-source", "type": "samples"}, "quantity": 1.0}]
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "example:samples",
+                "item_id": "both-holder",
+                "precursor": {"item_id": "both-source", "type": "samples"},
+                "synthesis_constituents": constituents,
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    def _parent_descriptions():
+        item_data = client.get("/get-item-data/both-holder").json["item_data"]
+        return sorted(
+            r["description"] for r in item_data["relationships"] if r["relation"] == "parent"
+        )
+
+    assert _parent_descriptions() == ["Is a constituent of", "Is a precursor of"]
+
+    response = client.post(
+        "/save-item/", json={"item_id": "both-holder", "data": {"precursor": None}}
+    )
+    assert response.status_code == 200, response.json
+    assert _parent_descriptions() == ["Is a constituent of"]
+
+    response = client.post(
+        "/save-item/",
+        json={
+            "item_id": "both-holder",
+            "data": {
+                "precursor": {"item_id": "both-source", "type": "samples"},
+                "synthesis_constituents": [],
+            },
+        },
+    )
+    assert response.status_code == 200, response.json
+    assert _parent_descriptions() == ["Is a precursor of"]
+
+
+def test_immutable_id_only_custom_reference_rejected(client, database, custom_item_models):
+    """A custom reference that only gives an `immutable_id` cannot be turned into a
+    parent relationship, so it is rejected rather than silently stored."""
+    response = client.post(
+        "/new-sample/",
+        json={"new_sample_data": {"type": "samples", "item_id": "immutable-ref-source"}},
+    )
+    assert response.status_code == 201, response.json
+    source_id = database.items.find_one({"item_id": "immutable-ref-source"})["_id"]
+
+    response = client.post(
+        "/new-sample/",
+        json={"new_sample_data": {"type": "example:items", "item_id": "immutable-ref-holder"}},
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/save-item/",
+        json={
+            "item_id": "immutable-ref-holder",
+            "data": {"source": {"immutable_id": str(source_id), "type": "samples"}},
+        },
+    )
+    assert response.status_code == 400, response.json
+    assert "refcode" in response.json["message"]
+    assert database.items.find_one({"item_id": "immutable-ref-holder"}).get("source") is None
+
+
+def test_restore_legacy_snapshot_adds_custom_reference_relationships(
+    client, database, default_collection, custom_item_models
+):
+    """Restoring a snapshot that holds a custom reference but not its parent
+    relationship (as saved before these relationships existed) stores the
+    relationship, and keeps the snapshot's collection membership."""
+    collection_dict = json.loads(default_collection.model_dump_json())
+    collection_dict["collection_id"] = "custom-restore-collection"
+    response = client.put("/collections", json={"data": collection_dict})
+    assert response.status_code == 201, response.json
+    collection_id = database.collections.find_one({"collection_id": "custom-restore-collection"})[
+        "_id"
+    ]
+
+    response = client.post(
+        "/new-sample/",
+        json={"new_sample_data": {"type": "samples", "item_id": "custom-restore-source"}},
+    )
+    assert response.status_code == 201, response.json
+
+    response = client.post(
+        "/new-sample/",
+        json={
+            "new_sample_data": {
+                "type": "example:items",
+                "item_id": "custom-restore-holder",
+                "source": {"item_id": "custom-restore-source", "type": "samples"},
+                "collections": [{"collection_id": "custom-restore-collection"}],
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+    refcode = database.items.find_one({"item_id": "custom-restore-holder"})["refcode"]
+    short_refcode = refcode.split(":")[1]
+
+    response = client.post(f"/items/{short_refcode}/save-version/")
+    assert response.status_code == 200, response.json
+    version_id = client.get(f"/items/{short_refcode}/versions/").json["versions"][0]["_id"]
+
+    # Turn the snapshot into a legacy one, without the derived parent relationship
+    version = database.item_versions.find_one({"refcode": refcode})
+    database.item_versions.update_one(
+        {"_id": version["_id"]},
+        {
+            "$set": {
+                "data.relationships": [
+                    r for r in version["data"]["relationships"] if r["relation"] != "parent"
+                ]
+            }
+        },
+    )
+
+    response = client.post(
+        "/save-item/", json={"item_id": "custom-restore-holder", "data": {"source": None}}
+    )
+    assert response.status_code == 200, response.json
+
+    response = client.post(
+        f"/items/{short_refcode}/restore-version/", json={"version_id": version_id}
+    )
+    assert response.status_code == 200, response.json
+
+    item = database.items.find_one({"item_id": "custom-restore-holder"})
+    assert item["source"]["item_id"] == "custom-restore-source"
+    assert [r["item_id"] for r in item["relationships"] if r["relation"] == "parent"] == [
+        "custom-restore-source"
+    ]
+    assert [r["immutable_id"] for r in item["relationships"] if r["type"] == "collections"] == [
+        collection_id
+    ]
 
 
 def test_unconnected_custom_items_in_graph(client, custom_item_models):

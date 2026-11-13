@@ -215,6 +215,42 @@ def constituent_item_types() -> set[str]:
     }
 
 
+def get_base_item_model(item_type: str) -> tuple[str | None, type[Item] | None]:
+    """Return the UI base type/model for a custom item type.
+
+    ``items`` is a virtual UI base for models derived directly from :class:`Item`;
+    it is deliberately not added to ``ITEM_MODELS`` because ``Item`` itself is not
+    a registered, creatable resource type. For subclasses of a concrete built-in,
+    the most-derived matching built-in base is returned.
+    """
+    model = ITEM_MODELS.get(item_type)
+    if model is None or item_type in BUILTIN_ITEM_TYPES:
+        return None, None
+
+    best_type = "items"
+    best_model: type[Item] = Item
+    for builtin_type, builtin_model in ITEM_MODELS.items():
+        if builtin_type not in BUILTIN_ITEM_TYPES:
+            continue
+        if issubclass(model, builtin_model):
+            # Prefer the most specific (most-derived) built-in base.
+            if issubclass(builtin_model, best_model):
+                best_type = builtin_type
+                best_model = builtin_model
+    return best_type, best_model
+
+
+def custom_item_fields(item_type: str) -> list[str]:
+    """Return the fields that a custom item type adds on top of its base model
+    (see `get_base_item_model`), or an empty list for built-in or unknown types."""
+    _, base_model = get_base_item_model(item_type)
+    if base_model is None:
+        return []
+    return [
+        name for name in ITEM_MODELS[item_type].model_fields if name not in base_model.model_fields
+    ]
+
+
 def flagged_summary_fields(types) -> list[str]:
     """Return the field names flagged with ``datalab_include_field_in_summary``
     in the schemas of the given item types.
@@ -281,4 +317,6 @@ __all__ = (
     "load_custom_item_models",
     "flagged_summary_fields",
     "constituent_item_types",
+    "get_base_item_model",
+    "custom_item_fields",
 )
