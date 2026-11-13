@@ -35,6 +35,11 @@ export default {
 </script>
 
 <style>
+/* `@import` rules must come first, otherwise they are ignored */
+@import url("https://fonts.googleapis.com/css?family=Figtree");
+@import url("https://fonts.googleapis.com/css?family=Libre+Barcode+39+Text");
+@import url("https://fonts.googleapis.com/css?family=Roboto+Mono");
+
 body {
   margin: 0rem !important; /* for some reason, tinymce sets margin 1rem globally :o */
   font-family: var(--font-primary) !important;
@@ -43,10 +48,6 @@ body {
 * {
   scroll-margin-top: 3.5rem;
 }
-
-@import url("https://fonts.googleapis.com/css?family=Figtree");
-@import url("https://fonts.googleapis.com/css?family=Libre+Barcode+39+Text");
-@import url("https://fonts.googleapis.com/css?family=Roboto+Mono");
 
 :root {
   --font-primary: var(--custom-font-family, Figtree), Figtree, Avenir, Arial, sans-serif;
