@@ -65,7 +65,6 @@ jobs:
 
     strategy:
       fail-fast: false
-      max-parallel: 2
       matrix:
         python-version: ["3.11"]
 
@@ -381,7 +380,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser-backend: ["electron", "chrome"] # , "firefox"]  # Temporarily disable Firefox until migration to Cypress v14 (https://github.com/datalab-org/datalab/issues/1289)
+        browser-backend: ["electron", "chrome" , "firefox"]
         shard: [1, 2, 3]
 
     services:
@@ -471,14 +470,6 @@ jobs:
         # Logged to a file rather than the test output; errors are shown below
         run: nohup uv run invoke dev.serve --testing --no-reload > "$RUNNER_TEMP/api.log" 2>&1 &
 
-      # Chrome 155 (runner image 20261012) makes the e2e tests very flaky with Cypress 13,
-      # so pin the previous major version until Cypress can be upgraded
-      - name: Install pinned Chrome
-        if: matrix.browser-backend == 'chrome'
-        id: setup-chrome
-        uses: browser-actions/setup-chrome@v2
-        with:
-          chrome-version: "154"
 
       - name: Select specs for this shard
         id: specs
@@ -679,9 +670,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: 2
       matrix:
-        browser-backend: ["electron", "chrome"]
+        browser-backend: ["electron", "chrome", "firefox"]
 
     steps:
       - uses: actions/checkout@v7
