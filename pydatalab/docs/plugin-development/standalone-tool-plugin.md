@@ -51,6 +51,12 @@ tool_id = hello-standalone
 distribution_name = datalab-hello-standalone-tool
 tool_ui_kind = standalone
 tool_open_mode = new_tab
+add_item_table_action = true
+item_table_action_id = open-selected
+item_table_action_label = Open selected
+item_table_action_tables = samples, inventory, collection-items
+item_table_action_min_items = 1
+item_table_action_max_items = 20
 ```
 
 The important files are:
@@ -76,6 +82,21 @@ Its `launch()` method issues a *tool launch grant*:
 code = grants.issue(TOOL_ID)
 return f"{base_url}index.html#datalab_launch_code={code}"
 ```
+
+The example also advertises **Open selected** for Samples, Inventory, and
+items within a collection. datalab validates the selection and binds it to the
+same single-use launch grant. After the exchange, the provider returns it to
+the page alongside the tool access token:
+
+```python
+if result.selection is not None:
+    response_data["selection"] = {
+        "action": result.selection.action_id,
+        "items": list(result.selection.item_refcodes),
+    }
+```
+
+A launch from the Tools menu has no selection.
 
 The exchange route consumes the code for the same browser user:
 

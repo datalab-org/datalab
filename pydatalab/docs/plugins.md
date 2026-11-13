@@ -65,7 +65,7 @@ The template repository is hosted at
 
 The template asks for the tool name, its stable ID, its Python distribution
 name, the UI type, and whether it opens in the same browser tab or a new one.
-For an in-app tool it can also generate an optional selected-items table
+For either UI type it can also generate an optional selected-items table
 action. It derives the Python package and provider class names automatically.
 
 ### Provider contract and discovery
