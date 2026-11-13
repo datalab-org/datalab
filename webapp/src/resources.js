@@ -1,27 +1,60 @@
 // Resources for the application
 
-import { defineAsyncComponent, reactive } from "vue";
+import { defineAsyncComponent, markRaw, reactive } from "vue";
 
 import { CONFIG } from "@/config.js";
 
-import DataBlockBase from "@/components/datablocks/DataBlockBase";
-import MediaBlock from "@/components/datablocks/MediaBlock";
-import CycleBlock from "@/components/datablocks/CycleBlock";
-import NMRBlock from "@/components/datablocks/NMRBlock";
-import UVVisBlock from "@/components/datablocks/UVVisBlock";
-
-import SampleInformation from "@/components/SampleInformation";
-import StartingMaterialInformation from "@/components/StartingMaterialInformation";
-import CellInformation from "@/components/CellInformation";
-import CollectionInformation from "@/components/CollectionInformation";
-import EquipmentInformation from "@/components/EquipmentInformation";
-import ItemInformation from "@/components/ItemInformation";
-
 import { PLUGIN_BLOCKS, PLUGIN_PANELS } from "./plugins/index.js";
 
-import SampleCreateModalAddon from "@/components/itemCreateModalAddons/SampleCreateModalAddon";
-import CellCreateModalAddon from "@/components/itemCreateModalAddons/CellCreateModalAddon";
-import StartingMaterialCreateModalAddon from "./components/itemCreateModalAddons/StartingMaterialCreateModalAddon.vue";
+// The components below are loaded lazily, as many of the components they use import the
+// constants in this module. Importing them directly creates import cycles, which fail with
+// "Cannot access 'X' before initialization" errors when the app is loaded as native ES
+// modules (e.g., by the Vite dev server), depending on which module is imported first.
+// They are only rendered with `<component :is="...">`, which handles async components.
+// `markRaw` keeps them from being made reactive when stored in `itemTypes`, and each keeps the
+// name of the component it wraps, e.g., for Vue warnings and devtools.
+const lazy = (name, loader) => markRaw(Object.assign(defineAsyncComponent(loader), { name }));
+
+const DataBlockBase = lazy(
+  "DataBlockBase",
+  () => import("@/components/datablocks/DataBlockBase.vue"),
+);
+const MediaBlock = lazy("MediaBlock", () => import("@/components/datablocks/MediaBlock.vue"));
+const CycleBlock = lazy("CycleBlock", () => import("@/components/datablocks/CycleBlock.vue"));
+const NMRBlock = lazy("NMRBlock", () => import("@/components/datablocks/NMRBlock.vue"));
+const UVVisBlock = lazy("UVVisBlock", () => import("@/components/datablocks/UVVisBlock.vue"));
+
+const SampleInformation = lazy(
+  "SampleInformation",
+  () => import("@/components/SampleInformation.vue"),
+);
+const StartingMaterialInformation = lazy(
+  "StartingMaterialInformation",
+  () => import("@/components/StartingMaterialInformation.vue"),
+);
+const CellInformation = lazy("CellInformation", () => import("@/components/CellInformation.vue"));
+const CollectionInformation = lazy(
+  "CollectionInformation",
+  () => import("@/components/CollectionInformation.vue"),
+);
+const EquipmentInformation = lazy(
+  "EquipmentInformation",
+  () => import("@/components/EquipmentInformation.vue"),
+);
+const ItemInformation = lazy("ItemInformation", () => import("@/components/ItemInformation.vue"));
+
+const SampleCreateModalAddon = lazy(
+  "SampleCreateModalAddon",
+  () => import("@/components/itemCreateModalAddons/SampleCreateModalAddon.vue"),
+);
+const CellCreateModalAddon = lazy(
+  "CellCreateModalAddon",
+  () => import("@/components/itemCreateModalAddons/CellCreateModalAddon.vue"),
+);
+const StartingMaterialCreateModalAddon = lazy(
+  "StartingMaterialCreateModalAddon",
+  () => import("@/components/itemCreateModalAddons/StartingMaterialCreateModalAddon.vue"),
+);
 
 export const API_URL = CONFIG.API_URL;
 

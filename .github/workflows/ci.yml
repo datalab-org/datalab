@@ -223,7 +223,7 @@ jobs:
           curl -s http://localhost:5001/api/info/blocks | jq -e '.data | any(.id == "chat")'
           # Test that the whinchat panel was compiled into the app bundle; `markdown-it` is
           # only a dependency of the panel, so this also checks plugin JS deps were installed
-          docker compose exec -T app sh -c 'grep -q "markdown-it" /app/dist/js/*.js'
+          docker compose exec -T app sh -c 'grep -q "markdown-it" /app/dist/assets/*.js'
 
       - name: Add static custom files
         run: |
@@ -259,9 +259,9 @@ jobs:
             }
           ' custom-files-build.log
 
-          step="$(grep -m1 -E '^#[0-9]+ \[.*\] RUN .*vue-cli-service build' custom-files-build.log | cut -d' ' -f1)"
+          step="$(grep -m1 -E '^#[0-9]+ \[.*\] RUN .*vite build' custom-files-build.log | cut -d' ' -f1)"
           if [ -z "$step" ]; then
-            echo "::error::Could not find the vue-cli-service build step in the build log; has the Dockerfile changed?"
+            echo "::error::Could not find the vite build step in the build log; has the Dockerfile changed?"
             exit 1
           fi
           if ! grep -qx "$step CACHED" custom-files-build.log; then
@@ -353,7 +353,7 @@ jobs:
       - name: Start dev services
         run: |
           # Boot the hot-reloading dev profile and block on healthchecks
-          # (webpack dev server compiled, API answering /healthcheck/is_ready).
+          # (Vite dev server up, API answering /healthcheck/is_ready).
           docker compose --profile dev up --no-build --force-recreate -d --wait
 
       - name: Check the dev API and app respond
@@ -392,7 +392,7 @@ jobs:
           - 27017:27017
 
     env:
-      # Instrument the app and collect its coverage (see `webapp/babel.config.js`)
+      # Instrument the app and collect its coverage (see `webapp/vite.config.mjs`)
       DATALAB_E2E_COVERAGE: "true"
 
     steps:
@@ -409,8 +409,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       # Caching the installed dependencies (and the Cypress binary) rather than the yarn
-      # download cache skips the ~40 s install entirely. Like the webpack cache below, this is
-      # only saved on `main`, so PRs changing `yarn.lock` don't fill the shared 10 GB cache.
+      # download cache skips the ~40 s install entirely. This is only saved on `main`, so PRs
+      # changing `yarn.lock` don't fill the shared 10 GB cache.
       - name: Restore web app dependencies
         id: node-modules
         uses: actions/cache/restore@v6
@@ -438,20 +438,12 @@ jobs:
             ~/.cache/Cypress
           key: ${{ steps.node-modules.outputs.cache-primary-key }}
 
-      - name: Restore webpack cache
-        uses: actions/cache/restore@v6
-        with:
-          path: webapp/node_modules/.cache/webpack
-          key: e2e-webpack-${{ runner.os }}-${{ github.sha }}
-          restore-keys: e2e-webpack-${{ runner.os }}-
-
-      # Started first, so that the other steps run while webpack compiles the app
+      # Started first, so that the other steps run while Vite starts up
       - name: Start web app
         working-directory: ./webapp
         env:
-          # `.env.test_e2e` sets `production`, which also minifies the app (~30 s)
+          # `.env.test_e2e` sets `production`, which is not supported by the dev server
           NODE_ENV: development
-          DATALAB_WEBPACK_CACHE: "true"
         run: nohup yarn serve --mode test_e2e > "$RUNNER_TEMP/app.log" 2>&1 &
 
       - name: Set up minimum Python
@@ -530,15 +522,6 @@ jobs:
       - name: Show web app log
         if: failure()
         run: tail -n 100 "$RUNNER_TEMP/app.log"
-
-      # One job on `main` saves the webpack cache (restored by prefix, so PRs use the latest
-      # from `main`); the dev server writes it shortly after its first compile
-      - name: Save webpack cache
-        if: github.ref == 'refs/heads/main' && matrix.browser-backend == 'electron' && matrix.shard == 1
-        uses: actions/cache/save@v6
-        with:
-          path: webapp/node_modules/.cache/webpack
-          key: e2e-webpack-${{ runner.os }}-${{ github.sha }}
 
       # The raw coverage of this shard, merged with the others in `e2e-coverage`
       - name: Upload e2e coverage data

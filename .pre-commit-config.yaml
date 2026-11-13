@@ -45,13 +45,8 @@ repos:
           - eslint-config-prettier@8.10.2
           - eslint-plugin-prettier@5.5.6
           - eslint-plugin-vue@8.7.1
-          - "@vue/cli-plugin-babel@5.0.9"
           - "@vue/eslint-config-prettier@8.0.0"
           - eslint-plugin-cypress@3.6.0
-          - "@babel/core@7.29.7"
-          - "@babel/eslint-parser@7.29.9"
-          - "@babel/plugin-transform-export-namespace-from@7.29.7"
-          - "@babel/plugin-transform-class-static-block@7.29.7"
         types: [file]
         files: \.(js|jsx|ts|tsx|vue)$
         args: [--fix]

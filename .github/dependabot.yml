@@ -83,7 +83,6 @@ updates:
       versions: [ ">=3" ]
     # ESLint tooling is pinned to the legacy (eslintrc) setup; never bump it automatically
     - dependency-name: "eslint*"
-    - dependency-name: "@babel/eslint-parser"
     - dependency-name: "@vue/eslint-config-*"
 - package-ecosystem: docker
   directories:

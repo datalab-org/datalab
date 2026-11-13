@@ -16,4 +16,4 @@ while IFS= read -r -d '' generated_path; do
   cp -a "${generated_path}" "${PANEL_DESTINATION}/"
 done < <(find "${PANEL_SOURCE}" -mindepth 1 -maxdepth 1 ! -name index.js -print0)
 
-exec /node_modules/.bin/vue-cli-service serve --host 0.0.0.0 --port 8081
+exec /node_modules/.bin/vite --host 0.0.0.0 --port 8081
