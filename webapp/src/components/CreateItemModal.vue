@@ -1,11 +1,12 @@
 <template>
-  <form class="modal-enclosure" data-testid="create-item-form" @submit.prevent="submitForm">
+  <form class="modal-enclosure" data-testid="create-item-form" @submit.prevent>
     <Modal
       :model-value="modelValue"
       :disable-submit="
         !item_type || Boolean(isValidEntryID) || (!generateIDAutomatically && !Boolean(item_id))
       "
       @update:model-value="$emit('update:modelValue', $event)"
+      @submit="submitForm"
     >
       <template #header> Add new item </template>
 

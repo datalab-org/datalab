@@ -1,9 +1,10 @@
 <template>
-  <form class="modal-enclosure" data-testid="bulk-change-role-form" @submit.prevent="submitForm">
+  <form class="modal-enclosure" data-testid="bulk-change-role-form" @submit.prevent>
     <Modal
       :model-value="modelValue"
       :disable-submit="!selectedRole"
       @update:model-value="handleClose"
+      @submit="submitForm"
     >
       <template #header> Change User Roles </template>
 

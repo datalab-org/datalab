@@ -1,9 +1,10 @@
 <template>
-  <form class="modal-enclosure" data-testid="tag-form" @submit.prevent="submitForm">
+  <form class="modal-enclosure" data-testid="tag-form" @submit.prevent>
     <Modal
       :model-value="modelValue"
       :disable-submit="!isFormValid"
       @update:model-value="$emit('update:modelValue', $event)"
+      @submit="submitForm"
     >
       <template #header>{{ isEditing ? "Edit tag" : "Create new tag" }}</template>
 
