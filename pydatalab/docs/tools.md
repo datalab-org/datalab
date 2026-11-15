@@ -24,7 +24,9 @@ datalab supports two kinds of tool user interface:
 An in-app tool can use datalab's frontend integration to request data as the
 signed-in user. A standalone tool can receive temporary access to the datalab
 API for that user. In both cases, normal datalab permissions determine which
-data the user can access.
+data the user can access. A standalone tool token retains the user's identity,
+ownership, and group-based access, but never delegates role-based administrator
+elevation.
 
 Tool plugins are trusted extensions. In particular, an in-app tool runs
 administrator-approved JavaScript inside the signed-in datalab application.
@@ -60,22 +62,7 @@ Installed plugins use the same Tools menu and selected-items integration.
 **JupyterLab** is provided by the companion
 [`datalab-jupyter`](https://github.com/Matgenix/datalab-jupyter) plugin. It is a
 standalone tool that can use the Compose-managed JupyterHub image or a compatible
-external JupyterHub.
-
-When JupyterLab is opened from the Tools menu, it opens normally. When it is
-opened with **Open in notebook** after selecting 1–20 rows in Samples,
-Inventory, Equipment, or a collection's item table, it creates a new notebook
-for that selection. The notebook contains a visible initialization cell that:
-
-- stores the selected refcodes in `selected_item_refcodes`;
-- loads accessible item dictionaries into `selected_items`; and
-- records inaccessible or deleted refcodes in `selected_item_errors`.
-
-The cell runs automatically once when the notebook is created. It remains
-editable and can be rerun after restarting its kernel or reopening the notebook
-with a fresh kernel. Other notebooks and consoles continue to preload only
-`datalab` and `current_user`.
-
-See [server configuration](config.md#tools) for installation settings and
-[JupyterHub deployment](deployment.md#optional-jupyterhub-tool) for deployment
-and security details.
+external JupyterHub. It supports normal launches and an **Open in notebook**
+selected-items action. Its repository documents installation, notebook
+behavior, deployment, and security; the generic tool ordering and disabling
+settings remain in [server configuration](config.md#tools).

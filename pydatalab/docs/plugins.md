@@ -246,6 +246,13 @@ client. A successful exchange atomically consumes it and returns a temporary
 tool access token. The standalone application uses that token only with normal
 datalab API endpoints, which apply the current user's permissions.
 
+A tool access token retains the user's identity, ownership, and group-based
+access, but its effective role is always `user`. Even when an administrator
+launches the tool, the delegated token cannot activate `?sudo=1`, modify other
+users' objects merely because the account is an administrator, or pass direct
+administrator-role checks. The launch exchange reports this effective delegated
+role.
+
 Keep launch codes in URL fragments rather than query parameters where possible,
 remove them from the address bar immediately, and never put the resulting tool
 access token in URLs, persistent browser storage, notebooks, files, analytics,
@@ -257,6 +264,14 @@ protection. Its administrator owns its authentication, isolation, storage, and
 data-retention policy. If it requires a callback hosted by datalab, the
 installed provider must expose that callback through a service-authenticated
 provider blueprint.
+
+Installing the provider package registers the Datalab integration; it does not
+start a separate application. The plugin repository should own its versioned
+service artifacts and deployment instructions, and administrators should opt
+in to those artifacts explicitly. In production, pin the provider and service
+artifacts, use HTTPS, isolate the service from Datalab's database and secrets,
+and review any privileged host resources it receives. See the standalone tool
+tutorial's [deployment boundary](plugin-development/standalone-tool-plugin.md#deployment-boundary).
 
 ### Tool plugin development tutorials
 

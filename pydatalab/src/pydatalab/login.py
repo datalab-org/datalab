@@ -95,7 +95,7 @@ class LoginUser(UserMixin):
         """Reconstruct the user object from their database entry, to be used when,
         e.g., a new identity has been associated with them.
         """
-        user = get_by_id(self.id)
+        user = get_by_id(self.id, auth_method=self.auth_method)
         if user:
             self.person = user.person
             self.role = user.role
@@ -153,10 +153,15 @@ def get_by_id(
     else:
         role = role["role"]
 
+    stored_role = UserRole(role)
+    # Delegated tool sessions keep the account identity and permissions, but never its
+    # role-based elevation. Browser sessions and permanent API keys use the stored role.
+    effective_role = UserRole.USER if auth_method is AuthMethod.TOOL_ACCESS_TOKEN else stored_role
+
     return LoginUser(
         _id=str(user_id),
         data=Person(**user),
-        role=UserRole(role),
+        role=effective_role,
         auth_method=auth_method,
     )
 

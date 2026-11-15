@@ -149,7 +149,14 @@ def register_tool_blueprints(app: "Flask", registry: ToolRegistry) -> None:
     @app.before_request
     def authenticate_tool_blueprint_request():
         """Apply the provider's route policy before dispatching its blueprint."""
-        provider = route_providers.get(request.blueprint or "")
+        provider = next(
+            (
+                route_providers[blueprint_name]
+                for blueprint_name in request.blueprints
+                if blueprint_name in route_providers
+            ),
+            None,
+        )
         if provider is None:
             return None
         if not registry.is_enabled(provider.id):
@@ -192,12 +199,14 @@ def register_tool_blueprints(app: "Flask", registry: ToolRegistry) -> None:
                 api_prefix = f"{CONFIG.ROOT_PATH}{version}".rstrip("/")
                 prefix = f"{api_prefix}/tools/plugins/{provider.id}"
                 registration_name = f"{version}/tool-plugin-{provider.id}"
+                # Flask registration is non-transactional, so record ownership first to ensure
+                # any route installed before a later callback fails remains guarded.
+                route_providers[registration_name] = provider
                 app.register_blueprint(
                     provider.blueprint,
                     url_prefix=prefix,
                     name=registration_name,
                 )
-                route_providers[registration_name] = provider
         except Exception:
             LOGGER.exception("Unable to register routes for tool provider %r", provider.id)
             registry.mark_failed(provider.id)

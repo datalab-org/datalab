@@ -10,7 +10,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from flask import current_app, has_app_context
 
-from pydatalab.login import get_by_id
+from pydatalab.login import AuthMethod, get_by_id
 from pydatalab.models.people import AccountStatus
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import Key
@@ -293,7 +293,12 @@ def exchange_launch_code(
     if grant is None:
         return None
 
-    user = get_by_id(grant.user_id)
+    # Resolve the delegated identity so the exchange context reports the same effective
+    # role as the tool access token issued below.
+    user = get_by_id(
+        grant.user_id,
+        auth_method=AuthMethod.TOOL_ACCESS_TOKEN,
+    )
     if user is None or user.account_status != AccountStatus.ACTIVE:
         return None
 

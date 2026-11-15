@@ -4,6 +4,8 @@ import pytest
 from flask.testing import FlaskClient
 
 from pydatalab.config import CONFIG
+from pydatalab.login import AuthMethod, get_by_api_key, get_by_id
+from pydatalab.models.utils import UserRole
 from pydatalab.permissions import get_default_permissions
 from pydatalab.tools import (
     ItemSelection,
@@ -137,6 +139,107 @@ def test_launch_and_selection_grants_are_single_use(app, user_id, tool_registry)
             )
             is None
         )
+
+
+def test_admin_tool_token_uses_restricted_effective_role(
+    app,
+    admin_user_id,
+    admin_api_key,
+    tool_registry,
+):
+    with app.app_context():
+        issuer = BoundToolLaunchGrantIssuer(
+            tool_id="example-tool",
+            user_id=str(admin_user_id),
+        )
+        exchange = exchange_launch_code(
+            issuer.issue("example-client"),
+            "example-tool",
+            "example-client",
+        )
+
+        assert exchange is not None
+        assert exchange.context.role == "user"
+
+        delegated_user = get_by_api_key(exchange.tool_session.tool_access_token)
+        assert delegated_user is not None
+        assert delegated_user.auth_method is AuthMethod.TOOL_ACCESS_TOKEN
+        assert delegated_user.role is UserRole.USER
+
+        delegated_user.refresh()
+        assert delegated_user.auth_method is AuthMethod.TOOL_ACCESS_TOKEN
+        assert delegated_user.role is UserRole.USER
+
+        browser_user = get_by_id(admin_user_id)
+        assert browser_user is not None
+        assert browser_user.auth_method is AuthMethod.BROWSER_SESSION
+        assert browser_user.role is UserRole.ADMIN
+        browser_user.refresh()
+        assert browser_user.auth_method is AuthMethod.BROWSER_SESSION
+        assert browser_user.role is UserRole.ADMIN
+
+        api_key_user = get_by_api_key(admin_api_key)
+        assert api_key_user is not None
+        assert api_key_user.auth_method is AuthMethod.PERMANENT_API_KEY
+        assert api_key_user.role is UserRole.ADMIN
+        api_key_user.refresh()
+        assert api_key_user.auth_method is AuthMethod.PERMANENT_API_KEY
+        assert api_key_user.role is UserRole.ADMIN
+
+    app.test_client_class = FlaskClient
+    response = app.test_client().get(
+        "/get-current-user/",
+        headers={"DATALAB-API-KEY": exchange.tool_session.tool_access_token},
+    )
+    assert response.status_code == 200
+    assert response.json["role"] == "user"
+
+
+def test_admin_tool_token_has_no_implicit_admin_permissions(
+    app,
+    client,
+    admin_user_id,
+    tool_registry,
+):
+    response = client.post(
+        "/new-sample/",
+        json={"type": "samples", "item_id": "admin-tool-token-private-sample"},
+    )
+    assert response.status_code == 201
+    refcode = response.json["sample_list_entry"]["refcode"]
+
+    with app.app_context():
+        issuer = BoundToolLaunchGrantIssuer(
+            tool_id="example-tool",
+            user_id=str(admin_user_id),
+        )
+        exchange = exchange_launch_code(
+            issuer.issue("example-client"),
+            "example-tool",
+            "example-client",
+        )
+        assert exchange is not None
+
+    tool_headers = {"DATALAB-API-KEY": exchange.tool_session.tool_access_token}
+    app.test_client_class = FlaskClient
+    tool_client = app.test_client()
+
+    response = tool_client.get(f"/items/{refcode}?sudo=1", headers=tool_headers)
+    assert response.status_code == 404
+
+    response = tool_client.patch(
+        f"/items/{refcode}/permissions",
+        json={"creators": [{"immutable_id": str(admin_user_id)}]},
+        headers=tool_headers,
+    )
+    assert response.status_code == 401
+
+    response = tool_client.put(
+        "/tags",
+        json={"data": {"name": "admin-tool-token-global", "scope": "global"}},
+        headers=tool_headers,
+    )
+    assert response.status_code == 403
 
 
 def test_tool_catalog_and_launch_use_browser_session(session_client, tool_registry):

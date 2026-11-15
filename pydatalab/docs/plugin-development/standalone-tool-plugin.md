@@ -144,7 +144,28 @@ fetch(`${apiPrefix}/samples/`, {
 
 Do not store *tool access tokens* in local storage, session storage, notebooks,
 persistent files, URLs, analytics, or logs. The token is short-lived, but while
-it is valid it carries the user's normal datalab permissions.
+it is valid it carries the user's identity, ownership, and group-based access.
+Its effective role is always `user`, so an administrator's delegated token
+cannot activate `?sudo=1`, modify other users' objects based on the account's
+administrator role, or pass direct administrator-role checks. The role returned
+by the launch exchange is this effective delegated role.
+
+## Deployment boundary
+
+Installing a standalone provider in the Datalab API registers the tool and its
+launch flow. It does not start a separately hosted application targeted by
+`launch()`. The plugin repository should own that application's code, versioned
+artifacts, configuration reference, and deployment instructions. Any supplied
+Compose override must be explicitly included and must not change the core
+Datalab deployment when omitted.
+
+For production, administrators should review and pin both the provider package
+and the service artifact, use HTTPS, and give the service dedicated
+credentials. Keep it off the database network and away from Datalab server
+secrets; document its health checks, storage and retention, resource limits,
+and any privileged host resources it receives. Do not log launch codes or tool
+tokens. Local development may build an explicitly selected checkout, but that
+mutable path should remain clearly separate from production instructions.
 
 ## Install and run
 

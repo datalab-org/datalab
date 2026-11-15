@@ -63,26 +63,11 @@ list follow in alphabetical ID order. Unknown, unavailable, disabled, or
 uninstalled IDs are ignored, allowing the same partial order to be shared by
 deployments with different plugin sets. Duplicate IDs are invalid.
 
-JupyterLab is supplied by the separately installed
-[`datalab-jupyter`](https://github.com/Matgenix/datalab-jupyter) tool plugin.
-Its settings are owned by that package rather than `ServerConfig`:
-
-```shell
-export DATALAB_JUPYTER_CLIENT_ID=datalab-jupyter
-export DATALAB_JUPYTER_CLIENT_SECRET="$(openssl rand -hex 32)"
-```
-
-For a Compose `.env` file, run `openssl rand -hex 32` separately and paste its
-literal output as the value; dotenv files do not execute shell substitutions.
-
-Set `DATALAB_JUPYTER_EXTERNAL_URL` to the browser-facing URL of an independently
-managed Hub. `DATALAB_JUPYTER_PUBLIC_URL` optionally overrides the co-deployed
-Hub URL. The client secret must contain at least 32 characters and be shared
-only with the corresponding Hub. Installation enables the plugin; use the
-generic `TOOLS.DISABLED` setting to disable it.
-See [Tools](tools.md) for a general introduction and
-[JupyterHub deployment](deployment.md#optional-jupyterhub-tool) for runtime,
-network, and security details.
+Plugin-specific settings are owned and documented by each plugin rather than
+`ServerConfig`. For example, see the
+[`datalab-jupyter` README](https://github.com/Matgenix/datalab-jupyter) for its
+credentials, URLs, and deployment settings. The generic `TOOLS.DISABLED` and
+`TOOLS.ORDER` settings still apply to installed tool plugins.
 
 ## Mandatory settings
 
