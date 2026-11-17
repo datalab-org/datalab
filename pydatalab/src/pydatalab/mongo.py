@@ -509,6 +509,21 @@ def create_default_indices(
         name="expire delegated tool sessions",
         background=background,
     )
+    ret += db.tool_sessions.create_index(
+        "hash",
+        unique=True,
+        name="unique delegated tool session hash",
+        background=background,
+    )
+    ret += db.tool_sessions.create_index(
+        [
+            ("user", pymongo.ASCENDING),
+            ("tool_id", pymongo.ASCENDING),
+            ("type", pymongo.ASCENDING),
+        ],
+        name="delegated tool session owner and provider",
+        background=background,
+    )
     # Block storage indexes. `block_id` is only effectively unique (random,
     # historically unique within a single item), so is not a unique index.
     ret += db.blocks.create_index("block_id", name="block ID", background=background)

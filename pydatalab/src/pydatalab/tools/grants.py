@@ -24,6 +24,7 @@ MAX_TOOL_SESSION_LIFETIME_SECONDS = DEFAULT_TOOL_SESSION_LIFETIME_SECONDS
 TOOL_SELECTION_LIFETIME_SECONDS = 10 * 60
 _TOOL_LAUNCH_PURPOSE = "tool-launch"
 _TOOL_SELECTION_PURPOSE = "tool-selection"
+_TOOL_SESSION_ID_DOMAIN = b"datalab:delegated-tool-session:v1\0"
 
 
 class _DelegatedToolAccessToken(Key):
@@ -37,6 +38,15 @@ class _DelegatedToolAccessToken(Key):
 
 def _hash_secret(value: str) -> str:
     return sha512(value.encode("utf-8")).hexdigest()
+
+
+def _delegated_tool_session_id(user_id: ObjectId, tool_id: str) -> str:
+    """Return the canonical document ID for one user's provider session."""
+    digest = sha512(_TOOL_SESSION_ID_DOMAIN)
+    digest.update(user_id.binary)
+    digest.update(b"\0")
+    digest.update(tool_id.encode("utf-8"))
+    return digest.hexdigest()
 
 
 def _now() -> datetime:
@@ -221,11 +231,13 @@ def create_delegated_tool_session(
             f"{MAX_TOOL_SESSION_LIFETIME_SECONDS} seconds"
         )
 
+    stored_user_id = ObjectId(user_id)
+    session_id = _delegated_tool_session_id(stored_user_id, tool_id)
     created_at = _now()
     expires_at = created_at + timedelta(seconds=lifetime_seconds)
     tool_access_token = secrets.token_urlsafe(48)
     stored_token = _DelegatedToolAccessToken(
-        user=ObjectId(user_id),
+        user=stored_user_id,
         tool_id=tool_id,
         client_id=client_id,
         hash=_hash_secret(tool_access_token),
@@ -233,7 +245,22 @@ def create_delegated_tool_session(
         expires_at=expires_at,
         version=1,
     )
-    flask_mongo.db.tool_sessions.insert_one(stored_token.model_dump())
+    session_query = {
+        "user": stored_user_id,
+        "tool_id": tool_id,
+        "type": "tool_access_token",
+    }
+    flask_mongo.db.tool_sessions.delete_many(
+        {
+            **session_query,
+            "_id": {"$ne": session_id},
+        }
+    )
+    flask_mongo.db.tool_sessions.replace_one(
+        {"_id": session_id},
+        {"_id": session_id, **stored_token.model_dump()},
+        upsert=True,
+    )
     return DelegatedToolSession(
         tool_access_token=tool_access_token,
         expires_at=expires_at,
@@ -264,20 +291,15 @@ def get_tool_access_token_user_id(tool_access_token: str) -> str | None:
     return str(session["user"])
 
 
-def exchange_launch_code(
+def _exchange_launch_code(
     code: str,
     tool_id: str,
     client_id: str,
     tool_session_lifetime_seconds: int = DEFAULT_TOOL_SESSION_LIFETIME_SECONDS,
-    expected_user_id: str | None = None,
+    *,
+    expected_user_id: str | None,
 ) -> ToolLaunchExchange | None:
-    """Consume a launch code and issue a delegated tool session for an active user.
-
-    A provider-owned exchange route must authenticate its remote client before
-    calling this function. Browser-authenticated routes should pass the current
-    immutable user ID as ``expected_user_id`` so another user's code is never
-    consumed.
-    """
+    """Implement bound and service launch-code exchanges."""
     if not 1 <= tool_session_lifetime_seconds <= MAX_TOOL_SESSION_LIFETIME_SECONDS:
         raise ValueError(
             "Delegated tool sessions must expire within "
@@ -319,4 +341,44 @@ def exchange_launch_code(
         context=context,
         tool_session=tool_session,
         selection=grant.selection,
+    )
+
+
+def exchange_launch_code(
+    code: str,
+    tool_id: str,
+    client_id: str,
+    tool_session_lifetime_seconds: int = DEFAULT_TOOL_SESSION_LIFETIME_SECONDS,
+    *,
+    expected_user_id: str,
+) -> ToolLaunchExchange | None:
+    """Exchange a launch code bound to the authenticated browser user."""
+    if not isinstance(expected_user_id, str) or not expected_user_id.strip():
+        raise ValueError("Expected user ID must not be empty")
+    return _exchange_launch_code(
+        code,
+        tool_id,
+        client_id,
+        tool_session_lifetime_seconds,
+        expected_user_id=expected_user_id,
+    )
+
+
+def exchange_service_launch_code(
+    code: str,
+    tool_id: str,
+    client_id: str,
+    tool_session_lifetime_seconds: int = DEFAULT_TOOL_SESSION_LIFETIME_SECONDS,
+) -> ToolLaunchExchange | None:
+    """Exchange a launch code without browser-user binding.
+
+    This function does not authenticate its caller. It may only be called after
+    a confidential service client has been authenticated.
+    """
+    return _exchange_launch_code(
+        code,
+        tool_id,
+        client_id,
+        tool_session_lifetime_seconds,
+        expected_user_id=None,
     )

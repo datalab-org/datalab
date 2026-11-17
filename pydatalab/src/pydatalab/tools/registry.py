@@ -174,6 +174,15 @@ def register_tool_blueprints(app: "Flask", registry: ToolRegistry) -> None:
                     jsonify({"status": "error", "message": "A browser session is required"}),
                     403,
                 )
+            groups = current_user.groups or []
+            context = ToolContext(
+                user_id=str(current_user.person.immutable_id),
+                display_name=current_user.display_name,
+                role=current_user.role.value,
+                group_ids=tuple(str(group.immutable_id) for group in groups),
+            )
+            if registry.available_provider(provider.id, context) is None:
+                return jsonify({"status": "error", "message": "Tool not available"}), 404
             if request.method not in {"GET", "HEAD"} and not request_origin_is_allowed():
                 return jsonify({"status": "error", "message": "Untrusted request origin"}), 403
             return None

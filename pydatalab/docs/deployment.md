@@ -198,6 +198,16 @@ installation, managed and external JupyterHub deployment, image, networking, and
 instructions. Unless its provider and companion Compose file are explicitly included, the normal
 Datalab deployment creates no Hub container, tools network, Jupyter volume, or Docker-socket mount.
 
+The companion's managed Compose profile applies non-root execution, CPU, memory, PID, capability,
+and server-lifetime controls to user containers. It remains a trusted-user deployment: user
+servers share a bridge network, and Docker local named volumes do not provide portable per-user
+storage quotas. Production operators must put Docker's user-volume storage on a dedicated,
+size-bounded or quota-backed filesystem or volume driver, monitor free space, and explicitly accept
+the remaining shared-storage and shared-network risk. Mutually untrusted notebook users require an
+external JupyterHub or orchestrator with enforceable per-user storage quotas and network policy.
+The managed Hub itself receives the Docker socket and therefore has effective host-root access, so
+its image must remain reviewed and pinned by digest as required by the companion documentation.
+
 ## General server administration
 
 Currently most administration tasks must be handled directly inside the Python API container.

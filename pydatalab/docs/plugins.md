@@ -83,7 +83,7 @@ provider declares immutable `ToolMetadata` and may implement:
 - `launch(context, grants)`, which returns `None` for an in-app tool or an
   HTTP(S) URL for a standalone tool;
 - `is_available(context)`, which controls whether the current user can see and
-  launch the tool; and
+  launch the tool and can access its browser-authenticated provider routes; and
 - a Flask `Blueprint` containing provider-owned routes.
 
 datalab discovers providers once at API startup. A provider that fails to load
@@ -98,9 +98,16 @@ datalab. The framework mounts them below
 authenticates every route:
 
 - the default browser policy requires an active datalab browser session and
-  validates the origin of non-safe requests;
+  provider availability, and validates the origin of non-safe requests;
 - the service policy is for machine-to-machine integrations and requires the
   provider to implement `authenticate_service_request()`.
+
+`is_available(context)` is evaluated at request time for catalog visibility,
+launch permission, and every browser-authenticated provider route. Exceptions
+deny access. It is not called for service-authenticated routes because those
+requests have no browser `ToolContext`; service providers must enforce
+client-specific authorization in `authenticate_service_request()` and their
+handler logic.
 
 Automatic route authentication determines who may enter a route. It does not
 automatically filter arbitrary database queries. Plugins should retrieve data
@@ -113,7 +120,7 @@ The route ownership boundary is:
 |---|---|---|
 | Core catalog and launch endpoints | datalab | Current user and provider availability |
 | Provider callbacks such as `launch()` and `is_available()` | Called by protected core routes; they are not routes themselves | Restricted provider context |
-| Routes in `ToolProvider.blueprint` | Provider's browser or service policy, applied by datalab | Normal API calls or explicit permission-aware server queries |
+| Routes in `ToolProvider.blueprint` | Provider availability and browser session, or the provider's service policy, applied by datalab | Normal API calls or explicit permission-aware server queries |
 | Routes on an external tool service | External service | Calls to the datalab API with a temporary tool access token |
 
 Directly registering routes on the Flask app or modifying core blueprints is
@@ -246,12 +253,42 @@ client. A successful exchange atomically consumes it and returns a temporary
 tool access token. The standalone application uses that token only with normal
 datalab API endpoints, which apply the current user's permissions.
 
+A browser-authenticated provider route must bind the exchange to the current
+user's immutable ID:
+
+```python
+result = exchange_launch_code(
+    code,
+    TOOL_ID,
+    CLIENT_ID,
+    expected_user_id=str(current_user.person.immutable_id),
+)
+```
+
+The `expected_user_id` argument is required and keyword-only. For a confidential
+service integration, first authenticate the service client through a
+`ToolRouteAuth.SERVICE` provider route, then call
+`exchange_service_launch_code(code, TOOL_ID, CLIENT_ID)`. The service helper
+does not authenticate its caller and deliberately performs no browser-user
+binding; never use it from a browser-authenticated route.
+
 A tool access token retains the user's identity, ownership, and group-based
 access, but its effective role is always `user`. Even when an administrator
 launches the tool, the delegated token cannot activate `?sudo=1`, modify other
 users' objects merely because the account is an administrator, or pass direct
 administrator-role checks. The launch exchange reports this effective delegated
 role.
+
+Each user has at most one delegated session per tool provider. A successful
+relaunch replaces that user's previous token for the same provider, including
+when the provider uses a different `client_id`. Tool clients must treat HTTP 401
+as an expired or replaced credential and ask the user to relaunch; concurrent
+launches do not retain independent credentials.
+
+Standalone tool access is deliberately temporary and cannot be used to create
+long-lived credentials or change account settings. See the standalone-tool
+tutorial's [temporary access restrictions](plugin-development/standalone-tool-plugin.md#temporary-access-restrictions)
+for the full rules.
 
 Keep launch codes in URL fragments rather than query parameters where possible,
 remove them from the address bar immediately, and never put the resulting tool
@@ -264,6 +301,11 @@ protection. Its administrator owns its authentication, isolation, storage, and
 data-retention policy. If it requires a callback hosted by datalab, the
 installed provider must expose that callback through a service-authenticated
 provider blueprint.
+
+Standalone launch URLs must use HTTPS in production. Plain HTTP is accepted
+only for explicit loopback hosts such as `localhost`, `*.localhost`,
+`127.0.0.0/8`, and `::1` during local development. Private-LAN and other
+non-loopback HTTP URLs are intentionally rejected.
 
 Installing the provider package registers the Datalab integration; it does not
 start a separate application. The plugin repository should own its versioned

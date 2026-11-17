@@ -1,9 +1,12 @@
 """Current-user catalog and launch routes for tools."""
 
+from urllib.parse import urlsplit
+
 from flask import Blueprint, current_app, jsonify, request
 from flask_login import current_user
 from pydantic import AnyHttpUrl, TypeAdapter, ValidationError
 
+from pydatalab.config import is_loopback_host
 from pydatalab.logger import LOGGER
 from pydatalab.login import is_browser_session_user, is_tool_access_token_user
 from pydatalab.models.people import AccountStatus
@@ -24,6 +27,20 @@ from pydatalab.tools.registry import TOOL_REGISTRY_EXTENSION, ToolRegistry
 from .info import Attributes, Data, JSONAPIResponse, Meta
 
 TOOLS = Blueprint("tools", __name__)
+HTTP_URL_ADAPTER = TypeAdapter(AnyHttpUrl)
+
+
+def _validated_launch_url(value: str) -> str:
+    """Return a safe standalone-tool launch URL."""
+    validated_url = str(HTTP_URL_ADAPTER.validate_python(value))
+    parsed_url = urlsplit(validated_url)
+    if parsed_url.username is not None or parsed_url.password is not None:
+        raise ValueError("Standalone tool launch URLs cannot contain credentials")
+    if parsed_url.scheme == "https":
+        return validated_url
+    if parsed_url.scheme == "http" and is_loopback_host(parsed_url.hostname):
+        return validated_url
+    raise ValueError("Standalone tool launch URLs must use HTTPS except on loopback hosts")
 
 
 def _active_tool_context() -> ToolContext | None:
@@ -146,7 +163,7 @@ def launch_tool(tool_id: str):
         if isinstance(provider.metadata.ui, StandaloneToolUI):
             if not isinstance(result, str):
                 raise TypeError("Standalone tool launches must return an HTTP(S) URL")
-            launch_data["url"] = str(TypeAdapter(AnyHttpUrl).validate_python(result))
+            launch_data["url"] = _validated_launch_url(result)
         elif result is not None:
             raise TypeError("In-app tool launches must return None")
     except Exception:

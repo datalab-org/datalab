@@ -194,7 +194,11 @@ class ToolProvider:
     route_auth: ClassVar[ToolRouteAuth] = ToolRouteAuth.BROWSER
 
     def is_available(self, context: ToolContext) -> bool:
-        """Return whether this provider is catalogued and launchable for ``context``."""
+        """Authorize catalog, launch, and browser-route access for ``context``.
+
+        This callback is not used for ``ToolRouteAuth.SERVICE`` routes, which
+        authorize requests through ``authenticate_service_request()`` instead.
+        """
         return True
 
     def authenticate_service_request(self) -> bool:

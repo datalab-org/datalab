@@ -83,6 +83,11 @@ code = grants.issue(TOOL_ID)
 return f"{base_url}index.html#datalab_launch_code={code}"
 ```
 
+Production standalone tools must return an HTTPS launch URL. HTTP is reserved
+for local development on explicit loopback hosts (`localhost`,
+`*.localhost`, `127.0.0.0/8`, or `::1`); private-LAN HTTP URLs are rejected.
+The URL must not contain embedded username or password credentials.
+
 The example also advertises **Open selected** for Samples, Inventory, and
 items within a collection. datalab validates the selection and binds it to the
 same single-use launch grant. After the exchange, the provider returns it to
@@ -113,7 +118,15 @@ There is no login helper or decorator in this provider. Because its blueprint
 uses the default `ToolRouteAuth.BROWSER` policy, datalab authenticates every
 route before calling it and rejects *tool access token* issuance requests from untrusted
 origins. `expected_user_id` separately ensures that the *tool launch grant* belongs to
-that authenticated browser user.
+that authenticated browser user. This required, keyword-only argument must be a
+non-empty immutable user ID; omitting it is an error rather than an unbound
+exchange.
+
+Confidential services use a separate API. After datalab has authenticated the
+client through a `ToolRouteAuth.SERVICE` provider route, the handler can call
+`exchange_service_launch_code(code, TOOL_ID, CLIENT_ID)`. That helper performs
+no browser-user binding and does not authenticate the caller, so it must never
+be used by this browser-authenticated pattern.
 
 ## Level 3: access details
 
@@ -142,6 +155,12 @@ fetch(`${apiPrefix}/samples/`, {
 });
 ```
 
+A successful relaunch replaces the user's previous tool access token for that
+provider, even if the new launch uses a different `client_id`. A tool must
+handle HTTP 401 by asking the user to relaunch. Two concurrent launches of the
+same provider for one user do not retain independent credentials; only the
+last stored session remains valid.
+
 Do not store *tool access tokens* in local storage, session storage, notebooks,
 persistent files, URLs, analytics, or logs. The token is short-lived, but while
 it is valid it carries the user's identity, ownership, and group-based access.
@@ -149,6 +168,14 @@ Its effective role is always `user`, so an administrator's delegated token
 cannot activate `?sudo=1`, modify other users' objects based on the account's
 administrator role, or pass direct administrator-role checks. The role returned
 by the launch exchange is this effective delegated role.
+
+### Temporary access restrictions
+
+Access given to a standalone tool is temporary. A tool cannot turn this into
+long-lived access by creating API keys or item access tokens. It also cannot
+change the user's profile or sign-in methods. If an item access token is
+needed, e.g. for a QR code on a physical sample, the user must create it
+from datalab in their browser.
 
 ## Deployment boundary
 

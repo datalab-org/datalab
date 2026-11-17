@@ -12,7 +12,7 @@ from .base import (
     ToolProvider,
     ToolRouteAuth,
 )
-from .grants import exchange_launch_code, issue_tool_selection_code
+from .grants import exchange_launch_code, exchange_service_launch_code, issue_tool_selection_code
 
 __all__ = (
     "BaseToolUI",
@@ -26,5 +26,6 @@ __all__ = (
     "ToolProvider",
     "ToolRouteAuth",
     "exchange_launch_code",
+    "exchange_service_launch_code",
     "issue_tool_selection_code",
 )

@@ -19,6 +19,7 @@ from pydatalab.blocks import store as block_store
 from pydatalab.config import CONFIG
 from pydatalab.feature_flags import FEATURE_FLAGS
 from pydatalab.logger import LOGGER
+from pydatalab.login import is_tool_access_token_user
 from pydatalab.models import (
     BUILTIN_ITEM_TYPES,
     ITEM_MODELS,
@@ -1040,6 +1041,11 @@ def issue_physical_token(refcode: str):
     physical labels to attach to a container.
 
     """
+
+    if is_tool_access_token_user(current_user):
+        raise Forbidden(
+            "A tool's temporary access cannot be used to create long-lived access to an item."
+        )
 
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"

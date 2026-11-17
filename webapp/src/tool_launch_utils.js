@@ -8,12 +8,32 @@ const ITEM_TABLE_IDS = Object.freeze({
   collectionItems: "collection-items",
 });
 
+function isLoopbackHost(hostname) {
+  let normalizedHost = hostname.toLowerCase().replace(/\.+$/, "");
+  if (normalizedHost.startsWith("[") && normalizedHost.endsWith("]")) {
+    normalizedHost = normalizedHost.slice(1, -1);
+  }
+  if (normalizedHost === "localhost" || normalizedHost.endsWith(".localhost")) {
+    return true;
+  }
+  if (normalizedHost === "::1") {
+    return true;
+  }
+  const ipv4Parts = normalizedHost.split(".");
+  return (
+    ipv4Parts.length === 4 &&
+    ipv4Parts[0] === "127" &&
+    ipv4Parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255)
+  );
+}
+
 export function parseToolLaunchUrl(url) {
   const parsedUrl = new URL(url, window.location.origin);
   if (
     !["http:", "https:"].includes(parsedUrl.protocol) ||
     parsedUrl.username ||
-    parsedUrl.password
+    parsedUrl.password ||
+    (parsedUrl.protocol === "http:" && !isLoopbackHost(parsedUrl.hostname))
   ) {
     throw new Error("The tool returned an unsafe launch URL.");
   }

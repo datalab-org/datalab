@@ -28,6 +28,17 @@ data the user can access. A standalone tool token retains the user's identity,
 ownership, and group-based access, but never delegates role-based administrator
 elevation.
 
+A user has one delegated session per standalone provider. Relaunching the same
+provider replaces its earlier token, so clients must handle HTTP 401 by asking
+the user to relaunch and must not assume concurrent launches keep independent
+credentials.
+
+Access given to a standalone tool is temporary. Item access tokens, including
+those used for QR codes on physical samples, must be created by the user in
+datalab. See the standalone-tool tutorial's
+[temporary access restrictions](plugin-development/standalone-tool-plugin.md#temporary-access-restrictions)
+for details.
+
 Tool plugins are trusted extensions. In particular, an in-app tool runs
 administrator-approved JavaScript inside the signed-in datalab application.
 Deployment administrators must review a plugin and its dependencies before
