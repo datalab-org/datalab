@@ -1,11 +1,15 @@
-# Developing a standalone Tool plugin
+# Developing a standalone tool plugin
 
 This tutorial follows the
 [standalone example plugin](https://github.com/Matgenix/datalab-standalone-tool-plugin-example),
 a minimal tool that opens in a new tab and prints one message using datalab
 data.
 
-## Level 1: layman's overview
+Read the shared [tool plugin development guide](tool-plugin.md) first for the
+project workflow, provider contract, testing, and release checklist. This page
+focuses on the standalone launch and credential flow.
+
+## How it works
 
 The *standalone tool* is like giving a visitor a short-lived badge at reception.
 datalab checks that the user is signed in, creates a *launch code*, and
@@ -33,13 +37,13 @@ sequenceDiagram
 
 The example displays one sentence: `Hello <user>. You can access <N> sample(s).`
 
-## Level 2: create and inspect the plugin
+## Walk through the example
 
 The example is equivalent to generating a standalone package from the *Copier*
 template:
 
 ```shell
-uvx copier copy https://github.com/Matgenix/datalab-tool-plugin-template \
+uvx copier copy --trust https://github.com/Matgenix/datalab-tool-plugin-template \
   datalab-standalone-tool-plugin-example
 ```
 
@@ -128,7 +132,7 @@ client through a `ToolRouteAuth.SERVICE` provider route, the handler can call
 no browser-user binding and does not authenticate the caller, so it must never
 be used by this browser-authenticated pattern.
 
-## Level 3: access details
+## Access and credential details
 
 The *launch code* and *tool access token* are different objects:
 
@@ -177,26 +181,9 @@ change the user's profile or sign-in methods. If an item access token is
 needed, e.g. for a QR code on a physical sample, the user must create it
 from datalab in their browser.
 
-## Deployment boundary
-
-Installing a standalone provider in the Datalab API registers the tool and its
-launch flow. It does not start a separately hosted application targeted by
-`launch()`. The plugin repository should own that application's code, versioned
-artifacts, configuration reference, and deployment instructions. Any supplied
-Compose override must be explicitly included and must not change the core
-Datalab deployment when omitted.
-
-For production, administrators should review and pin both the provider package
-and the service artifact, use HTTPS, and give the service dedicated
-credentials. Keep it off the database network and away from Datalab server
-secrets; document its health checks, storage and retention, resource limits,
-and any privileged host resources it receives. Do not log launch codes or tool
-tokens. Local development may build an explicitly selected checkout, but that
-mutable path should remain clearly separate from production instructions.
-
 ## Install and run
 
-Add the plugin to the root `plugins.toml`:
+Add the plugin to the datalab checkout's root `plugins.toml`:
 
 ```toml
 dependencies = ["datalab-hello-standalone-tool"]
@@ -219,6 +206,10 @@ docker compose --profile dev up --build
 ```
 
 Open datalab, click **Tools**, and choose **Hello standalone**.
+The example repository's [installation guide](https://github.com/Matgenix/datalab-standalone-tool-plugin-example/blob/main/INSTALL.md)
+is the source for its exact setup commands. If a real tool launches a separate
+service, document and deploy it according to the
+[standalone-service boundary](../deployment.md#plugin-provided-standalone-services).
 
 ## Common errors
 

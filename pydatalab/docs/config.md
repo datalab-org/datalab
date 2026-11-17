@@ -65,8 +65,8 @@ deployments with different plugin sets. Duplicate IDs are invalid.
 
 Plugin-specific settings are owned and documented by each plugin rather than
 `ServerConfig`. For example, see the
-[`datalab-jupyter` README](https://github.com/Matgenix/datalab-jupyter) for its
-credentials, URLs, and deployment settings. The generic `TOOLS.DISABLED` and
+[`datalab-jupyter` installation guide](https://github.com/Matgenix/datalab-jupyter/blob/main/INSTALL.md)
+for its credentials, URLs, and deployment settings. The generic `TOOLS.DISABLED` and
 `TOOLS.ORDER` settings still apply to installed tool plugins.
 
 ## Mandatory settings

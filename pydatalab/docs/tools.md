@@ -1,79 +1,65 @@
-# Tools
+# Using tools
 
 Tools are optional applications for analysing, comparing, or otherwise working
-with data in datalab. Unlike a [data block](blocks/index.md), which displays
-data attached to one item, a tool can work across several items or provide a
-complete working environment.
+with data in datalab. Unlike a [data block](blocks/index.md), which displays data
+attached to one item, a tool can work across several items or provide a complete
+working environment.
 
-Possible tools include:
+This page explains how signed-in users open and use tools. Deployment
+administrators should start with [Installing and maintaining plugins](plugins.md#installing-and-maintaining-plugins),
+and developers with [Developing tool plugins](plugin-development/tool-plugin.md).
 
-- comparing measurements from several samples;
-- summarising the items visible to a user;
-- checking data quality or producing a report; and
-- exploring data programmatically in a notebook.
+## Open a tool
+
+An installed tool can provide either or both of these entry points:
+
+1. To start without a selection, click **Tools** in the main navigation. Choose
+   a tool from the quick list, or choose **All tools** to open the complete
+   catalog.
+2. To start with existing items, select rows in a supported table and choose the
+   tool's action from the selected-items menu. Tools decide which tables and
+   selection sizes they support, so an action may not appear for every table or
+   selection.
+
+If a tool is missing, first clear the current selection and check **All tools**.
+The tool may also be unavailable to your account, disabled for this deployment,
+or not installed; ask the deployment administrator if it is still absent.
+
+Selected-items actions pass only the items' immutable refcodes. The tool then
+loads the current data through permission-aware datalab interfaces. Items you
+cannot access are not exposed to the tool.
 
 ## Tool types
 
-datalab supports two kinds of tool user interface:
-
-| Tool type | Where it appears | Typical use |
+| Type | Where it opens | What to expect |
 |---|---|---|
-| **In-app tool** | Inside the datalab web application, below the normal navigation bar | A focused interface that should feel like part of datalab |
-| **Standalone tool** | In a separate page or application, normally opened in a new browser tab | A complete application or working environment with its own interface |
+| **In-app tool** | Below the normal datalab navigation | A focused interface that behaves like part of datalab |
+| **Standalone tool** | A separate application, usually in a new tab | A complete application or working environment with its own interface |
 
-An in-app tool can use datalab's frontend integration to request data as the
-signed-in user. A standalone tool can receive temporary access to the datalab
-API for that user. In both cases, normal datalab permissions determine which
-data the user can access. A standalone tool token retains the user's identity,
-ownership, and group-based access, but never delegates role-based administrator
-elevation.
+Both types use your current datalab identity and normal data permissions. A
+standalone tool receives temporary, non-administrator access. Its session can
+expire or be replaced when you relaunch the same tool; if it reports an expired
+session or HTTP 401, return to datalab and launch it again.
 
-A user has one delegated session per standalone provider. Relaunching the same
-provider replaces its earlier token, so clients must handle HTTP 401 by asking
-the user to relaunch and must not assume concurrent launches keep independent
-credentials.
+Do not share a standalone tool's launch URL. It can contain a short-lived,
+single-use code intended only for the application you opened. Long-lived item
+access, such as a QR code for a physical sample, must be created in datalab
+rather than through a tool.
 
-Access given to a standalone tool is temporary. Item access tokens, including
-those used for QR codes on physical samples, must be created by the user in
-datalab. See the standalone-tool tutorial's
-[temporary access restrictions](plugin-development/standalone-tool-plugin.md#temporary-access-restrictions)
-for details.
+Tool plugins are trusted extensions selected by the deployment administrator.
+In particular, an in-app tool runs administrator-approved JavaScript inside the
+signed-in datalab application.
 
-Tool plugins are trusted extensions. In particular, an in-app tool runs
-administrator-approved JavaScript inside the signed-in datalab application.
-Deployment administrators must review a plugin and its dependencies before
-installing it.
+## Available tool documentation
 
-## Opening a tool
+The tools installed on an instance vary. The following companion tools document
+their own behavior:
 
-Tools can provide one or both of these entry points:
+- [Item comparison](https://matgenix.github.io/datalab-item-comparison-tool/)
+  compares metadata and data blocks for selected items in datalab.
+- [datalab-jupyter](https://github.com/Matgenix/datalab-jupyter#using-jupyterlab)
+  opens JupyterLab as a standalone tool and can create a notebook for selected
+  items.
 
-- **Tools menu:** click **Tools** in the main navigation for a quick list, or
-  choose **All tools** for the complete catalog. This is useful for tools that
-  start without a particular item selection.
-- **Selected-items action:** select one or more rows in a supported table, then
-  choose the tool's action from the selected-items menu. The tool receives the
-  selected items' immutable refcodes and loads the current data through
-  permission-aware API routes.
-
-Selected-items actions use the same ordered list of immutable refcodes for
-in-app and standalone tools. A tool chooses which tables and selection sizes it
-supports; it does not appear in tables for which it has not opted in.
-
-Deployment administrators can configure one consistent tool order for the
-navigation menu, Tools page, and selected-items actions with `TOOLS.ORDER`.
-Tools omitted from that list follow alphabetically by stable tool ID. See
-[server configuration](config.md#tools) for the configuration syntax.
-
-## Tool plugins
-
-A tool is installed as a [tool plugin](plugins.md#writing-a-tool-plugin).
-Installed plugins use the same Tools menu and selected-items integration.
-
-**JupyterLab** is provided by the companion
-[`datalab-jupyter`](https://github.com/Matgenix/datalab-jupyter) plugin. It is a
-standalone tool that can use the Compose-managed JupyterHub image or a compatible
-external JupyterHub. It supports normal launches and an **Open in notebook**
-selected-items action. Its repository documents installation, notebook
-behavior, deployment, and security; the generic tool ordering and disabling
-settings remain in [server configuration](config.md#tools).
+For another tool, follow the documentation linked by its maintainers or contact
+the administrator who installed it.

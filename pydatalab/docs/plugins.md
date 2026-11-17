@@ -27,312 +27,12 @@ At present, a *datalab* plugin is a Python package that registers one or more [d
 Data blocks ingest a file (or set of files) attached to an item and render an interactive view of the parsed data, e.g. an NMR spectrum, an electrochemistry cycler trace, or an XRD pattern.
 Plugins (and deployments) can also register **custom item types**, new top-level item models served through the generic item endpoints (see [below](#custom-item-types)).
 Plugins can ship Vue components for their blocks and item types (see [below](#webapp-components)).
-Tool plugins add in-app or standalone tools through the dedicated tool framework described below.
+Tool plugins add in-app or standalone tools through the dedicated framework
+described in [Developing tool plugins](plugin-development/tool-plugin.md).
 Further plugin types, e.g., ingestion hooks, are planned in the future (see [roadmap.md](roadmap.md)); please reach out if you have a specific use case.
 *datalab* discovers them at server startup by enumerating the relevant entry point group, with no changes required to the core code.
 
-## Writing a plugin
-
-The recommended starting point is the [Copier](https://copier.readthedocs.io/) template at [datalab-org/datalab-app-plugin-template](https://github.com/datalab-org/datalab-app-plugin-template), which scaffolds a minimal data block plugin together with the packaging boilerplate (entry point declaration, test scaffolding, and a working `pyproject.toml`).
-Rather than forking the repository, you should use it directly with Copier to
-generate a new plugin repository; see the README in the [datalab-org/datalab-app-plugin-template](https://github.com/datalab-org/datalab-app-plugin-template) repository for full instructions.
-
-The [Data Blocks documentation](blocks/index.md) explains the block lifecycle,
-events, rendering, and asynchronous processing in more detail.
-
-For custom item types, use the
-[`Matgenix/datalab-item-plugin-template`](https://github.com/Matgenix/datalab-item-plugin-template).
-Its generated repositories retain `.copier-answers.yml`, so template improvements can be applied
-later with `uvx copier update`. Two worked repositories demonstrate the supported rendering paths:
-
-- [`datalab-item-plugin-example`](https://github.com/Matgenix/datalab-item-plugin-example)
-  uses schema annotations and requires no plugin JavaScript.
-- [`datalab-item-plugin-example-custom-vue`](https://github.com/Matgenix/datalab-item-plugin-example-custom-vue)
-  provides a custom Vue panel and references the first example's `solutions` items.
-
-## Writing a Tool plugin
-
-A Tool plugin registers a provider through the `pydatalab.tools` entry-point
-group. Start from the Copier template:
-
-```shell
-uvx copier copy https://github.com/Matgenix/datalab-tool-plugin-template \
-  ../my-datalab-tool
-```
-
-The template repository is hosted at
-[Matgenix/datalab-tool-plugin-template](https://github.com/Matgenix/datalab-tool-plugin-template).
-
-The template asks for the tool name, its stable ID, its Python distribution
-name, the UI type, and whether it opens in the same browser tab or a new one.
-For either UI type it can also generate an optional selected-items table
-action. It derives the Python package and provider class names automatically.
-
-### Provider contract and discovery
-
-The package exposes a zero-argument `ToolProvider` subclass:
-
-```toml
-[project.entry-points."pydatalab.tools"]
-example-tool = "example_tool.provider:ExampleToolProvider"
-```
-
-The entry-point name must match the provider's lowercase, hyphenated `id`. The
-provider declares immutable `ToolMetadata` and may implement:
-
-- `launch(context, grants)`, which returns `None` for an in-app tool or an
-  HTTP(S) URL for a standalone tool;
-- `is_available(context)`, which controls whether the current user can see and
-  launch the tool and can access its browser-authenticated provider routes; and
-- a Flask `Blueprint` containing provider-owned routes.
-
-datalab discovers providers once at API startup. A provider that fails to load
-is logged and skipped without preventing the server from starting. Duplicate
-IDs are rejected. Installing or removing a plugin therefore requires an API
-restart. An administrator can disable an installed provider by adding its ID to
-`TOOLS.DISABLED`.
-
-Provider blueprints are the only supported way for a plugin to add routes to
-datalab. The framework mounts them below
-`/tools/plugins/<tool-id>/` for every supported API alias and automatically
-authenticates every route:
-
-- the default browser policy requires an active datalab browser session and
-  provider availability, and validates the origin of non-safe requests;
-- the service policy is for machine-to-machine integrations and requires the
-  provider to implement `authenticate_service_request()`.
-
-`is_available(context)` is evaluated at request time for catalog visibility,
-launch permission, and every browser-authenticated provider route. Exceptions
-deny access. It is not called for service-authenticated routes because those
-requests have no browser `ToolContext`; service providers must enforce
-client-specific authorization in `authenticate_service_request()` and their
-handler logic.
-
-Automatic route authentication determines who may enter a route. It does not
-automatically filter arbitrary database queries. Plugins should retrieve data
-through the normal datalab API or explicitly use permission-aware datalab
-services for server-side processing.
-
-The route ownership boundary is:
-
-| Interface | Authentication | Data permissions |
-|---|---|---|
-| Core catalog and launch endpoints | datalab | Current user and provider availability |
-| Provider callbacks such as `launch()` and `is_available()` | Called by protected core routes; they are not routes themselves | Restricted provider context |
-| Routes in `ToolProvider.blueprint` | Provider availability and browser session, or the provider's service policy, applied by datalab | Normal API calls or explicit permission-aware server queries |
-| Routes on an external tool service | External service | Calls to the datalab API with a temporary tool access token |
-
-Directly registering routes on the Flask app or modifying core blueprints is
-unsupported and bypasses the tool framework's guarantees.
-
-The canonical API endpoints are:
-
-- `GET /v0.1/info/tools` for the current-user catalog;
-- `POST /v0.1/tools/<tool-id>/launch` to launch either UI type; and
-- `/v0.1/tools/plugins/<tool-id>/...` for provider-owned routes.
-
-### In-app tools
-
-An in-app tool renders below the normal datalab navigation:
-
-```python
-metadata = ToolMetadata(
-    name="Example analysis",
-    description="Analyse data without leaving datalab.",
-    ui=InAppToolUI(),
-)
-```
-
-The provider serves one compiled frontend entrypoint from its blueprint. The
-bundle registers its component synchronously:
-
-```javascript
-window.datalabToolSdk.register(ToolView);
-```
-
-The versioned frontend SDK supplies the host runtime, authenticated API helpers,
-navigation helpers, selected datalab components, and the standard dialog
-service. An in-app tool should use these supported interfaces rather than the
-webapp's private store or internal source paths.
-
-The template's Vite project builds one classic JavaScript bundle, externalising
-the frontend runtime supplied by datalab. Build it before packaging the Python
-distribution:
-
-```shell
-cd frontend
-yarn install
-yarn build
-```
-
-Commit and review the dependency lockfile and compiled bundle. Loading a bundle
-into the webapp is an administrator trust decision, not a browser sandbox.
-
-### Selected-items table actions
-
-A tool may add an action to selected-items menus:
-
-```python
-metadata = ToolMetadata(
-    name="Example comparison",
-    description="Compare selected items.",
-    ui=InAppToolUI(),
-    launch_actions=(
-        ItemTableSelectionAction(
-            id="compare-selected",
-            label="Compare selected",
-            tables=("samples", "inventory", "collection-items"),
-            min_items=2,
-            max_items=20,
-        ),
-    ),
-)
-```
-
-The supported table identifiers are `samples`, `inventory`, `equipment`, and
-`collection-items`. Selection limits must satisfy
-`1 <= min_items <= max_items <= 100`.
-
-When the user chooses an in-app action, datalab opens the normal tool host with
-ordered, deduplicated item refcodes:
-
-```text
-/tools/example-comparison?action=compare-selected&items=test%3AABC&items=test%3ADEF
-```
-
-The frontend reads them through the SDK:
-
-```javascript
-const { actionId, itemRefcodes } = sdk.selection.current();
-```
-
-Only immutable refcodes are passed—not item names, blocks, database IDs, or
-complete table rows. Query parameters are untrusted input, so the plugin must
-load current item data through permission-aware API routes.
-
-A standalone tool can declare the same action metadata. datalab validates the
-selection and sends it through the normal launch request:
-
-```json
-{
-  "action": "open-in-notebook",
-  "items": ["test:ABC", "test:DEF"]
-}
-```
-
-The ordered selection is bound to the provider's single-use launch grant and is
-returned by `exchange_launch_code`. A provider that declares several actions
-uses `selection.action_id` to distinguish them. A launch from the Tools menu
-has no selection.
-
-The
-[datalab item comparison tool](https://github.com/Matgenix/datalab-item-comparison-tool)
-demonstrates this integration for Samples, Inventory, and items within a
-collection.
-
-### Standalone tools
-
-A standalone tool owns its user interface and normally opens separately:
-
-```python
-metadata = ToolMetadata(
-    name="Example tool",
-    description="A separate application.",
-    ui=StandaloneToolUI(),
-)
-
-
-def launch(self, context, grants):
-    code = grants.issue("example-tool")
-    return f"https://tool.example/#datalab_launch_code={code}"
-```
-
-The launch code is short-lived, single-use, and bound to the user, tool, and
-client. A successful exchange atomically consumes it and returns a temporary
-tool access token. The standalone application uses that token only with normal
-datalab API endpoints, which apply the current user's permissions.
-
-A browser-authenticated provider route must bind the exchange to the current
-user's immutable ID:
-
-```python
-result = exchange_launch_code(
-    code,
-    TOOL_ID,
-    CLIENT_ID,
-    expected_user_id=str(current_user.person.immutable_id),
-)
-```
-
-The `expected_user_id` argument is required and keyword-only. For a confidential
-service integration, first authenticate the service client through a
-`ToolRouteAuth.SERVICE` provider route, then call
-`exchange_service_launch_code(code, TOOL_ID, CLIENT_ID)`. The service helper
-does not authenticate its caller and deliberately performs no browser-user
-binding; never use it from a browser-authenticated route.
-
-A tool access token retains the user's identity, ownership, and group-based
-access, but its effective role is always `user`. Even when an administrator
-launches the tool, the delegated token cannot activate `?sudo=1`, modify other
-users' objects merely because the account is an administrator, or pass direct
-administrator-role checks. The launch exchange reports this effective delegated
-role.
-
-Each user has at most one delegated session per tool provider. A successful
-relaunch replaces that user's previous token for the same provider, including
-when the provider uses a different `client_id`. Tool clients must treat HTTP 401
-as an expired or replaced credential and ask the user to relaunch; concurrent
-launches do not retain independent credentials.
-
-Standalone tool access is deliberately temporary and cannot be used to create
-long-lived credentials or change account settings. See the standalone-tool
-tutorial's [temporary access restrictions](plugin-development/standalone-tool-plugin.md#temporary-access-restrictions)
-for the full rules.
-
-Keep launch codes in URL fragments rather than query parameters where possible,
-remove them from the address bar immediately, and never put the resulting tool
-access token in URLs, persistent browser storage, notebooks, files, analytics,
-or logs. Tool access tokens must not be confused with users' permanent datalab
-API keys.
-
-A separately hosted application is outside datalab's automatic route
-protection. Its administrator owns its authentication, isolation, storage, and
-data-retention policy. If it requires a callback hosted by datalab, the
-installed provider must expose that callback through a service-authenticated
-provider blueprint.
-
-Standalone launch URLs must use HTTPS in production. Plain HTTP is accepted
-only for explicit loopback hosts such as `localhost`, `*.localhost`,
-`127.0.0.0/8`, and `::1` during local development. Private-LAN and other
-non-loopback HTTP URLs are intentionally rejected.
-
-Installing the provider package registers the Datalab integration; it does not
-start a separate application. The plugin repository should own its versioned
-service artifacts and deployment instructions, and administrators should opt
-in to those artifacts explicitly. In production, pin the provider and service
-artifacts, use HTTPS, isolate the service from Datalab's database and secrets,
-and review any privileged host resources it receives. See the standalone tool
-tutorial's [deployment boundary](plugin-development/standalone-tool-plugin.md#deployment-boundary).
-
-### Tool plugin development tutorials
-
-The tutorials build two deliberately small plugins:
-
-- [Developing a standalone Tool plugin](plugin-development/standalone-tool-plugin.md),
-  accompanied by the
-  [standalone example repository](https://github.com/Matgenix/datalab-standalone-tool-plugin-example),
-  opens in a new tab and displays the signed-in user's accessible sample count.
-- [Developing an in-app Tool plugin](plugin-development/in-app-tool-plugin.md),
-  accompanied by the
-  [in-app example repository](https://github.com/Matgenix/datalab-in-app-tool-plugin-example),
-  renders inside datalab and displays the same small piece of API-backed data.
-
-Start with the
-[plugin development tutorial overview](plugin-development/index.md) for a
-side-by-side explanation of discovery and current-user access.
-
-## Installing plugins
+## Installing and maintaining plugins
 
 Plugins are declared in a `plugins.toml` file at the root of the repository (alongside `pydatalab/` and `webapp/`).
 The format mirrors the relevant fragments of `pyproject.toml`, and a generated JSON Schema describing the expected structure is checked in at `pydatalab/schemas/plugin_config.json`:
@@ -351,7 +51,14 @@ datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-
 my-local-plugin = { path = "../my-local-plugin", editable = true }
 ```
 
-To install *datalab* together with the declared plugins:
+Use the exact distribution name and any required extras from the plugin's own
+installation guide. Preserve existing entries when adding another plugin. Pin
+production Git sources to a reviewed tag or commit; use editable path sources
+only for local development.
+
+Before installation or upgrade, review the plugin's source, dependencies,
+frontend assets, release provenance, configuration, and any companion service
+artifacts. Then install *datalab* together with the declared plugins:
 
 ```shell
 cd pydatalab
@@ -369,11 +76,53 @@ Pass `--no-dev` to skip dev dependencies (used by the production Docker build).
 
 If no `plugins.toml` is present, the task falls back to installing the base `pyproject.toml` — so it is safe to run unconditionally.
 
+For a native installation, restart the datalab API after installation so it
+discovers the plugin entry points. For Docker Compose, rebuild and recreate the
+API and webapp images using the normal deployment profile; the Docker builds run
+the same installation task and collect plugin frontend assets automatically.
+The [datalab Ansible role](https://github.com/datalab-org/datalab-ansible-terraform)
+also uses this task when a `plugins.toml` is provided.
+If a standalone tool owns a separate service, deploy that service explicitly as
+described in [Plugin-provided standalone services](deployment.md#plugin-provided-standalone-services).
+
+After the restart, confirm that the tool or other plugin feature appears and
+test it as a non-administrator user. Tool plugins are enabled by default;
+[server configuration](config.md#tools) is the single reference for disabling
+or ordering them. Plugin-specific settings remain in the plugin repository.
+
+To upgrade a plugin, review the new release, change its pinned source or version,
+rerun the installation or image build, restart the API, and repeat the check.
+Keep the previous pin so the deployment can be rolled back by restoring it and
+rebuilding.
+
+To remove a plugin, delete its dependency and source entry from `plugins.toml`,
+rerun the same installation or image build, and restart. Check the plugin's own
+guide first: removing a provider stops its code from loading, but does not
+necessarily remove plugin-owned stored data or a separately deployed service.
+
 To revert to the locked core dependencies without any plugins, run:
 
 ```shell
 uv sync --all-extras --dev
 ```
+
+## Developing plugins
+
+Use the template for the extension type rather than adding domain-specific code
+to datalab core:
+
+- For a data block, start from
+  [`datalab-app-plugin-template`](https://github.com/datalab-org/datalab-app-plugin-template)
+  and read the [Data Blocks documentation](blocks/index.md).
+- For a custom item type, start from
+  [`datalab-item-plugin-template`](https://github.com/Matgenix/datalab-item-plugin-template).
+  The [schema-driven example](https://github.com/Matgenix/datalab-item-plugin-example)
+  and [custom-Vue example](https://github.com/Matgenix/datalab-item-plugin-example-custom-vue)
+  demonstrate the two supported rendering paths.
+- For an in-app or standalone tool, follow
+  [Developing tool plugins](plugin-development/tool-plugin.md). That guide owns
+  the provider contract, selected-items actions, testing, packaging, and release
+  workflow; the UI-specific tutorials build complete minimal examples.
 
 ## Custom item types
 
@@ -684,8 +433,3 @@ must be shared with the webapp (`vue`, `vuex`, `vue-router`, `primevue`, `@prime
   "peerDependencies": { "vue": "^3.5.0" }
 }
 ```
-
-## Deployment integration
-
-The same `invoke dev.install` task is used by both Docker API images (`.docker/server/Dockerfile`): a `plugins.toml` at the repository root is picked up automatically at build time, and both frontend profiles collect panels from the corresponding plugin-enabled API image. Plugins can therefore be baked into a complete deployment without modifying either Dockerfile.
-It will also be invoked from the [*datalab* Ansible role](https://github.com/datalab-org/datalab-ansible-terraform) to provision plugins on a deployed server when a `plugins.toml` is provided; see the role documentation for details.

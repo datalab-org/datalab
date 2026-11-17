@@ -1,11 +1,15 @@
-# Developing an in-app Tool plugin
+# Developing an in-app tool plugin
 
 This tutorial follows the
 [in-app example plugin](https://github.com/Matgenix/datalab-in-app-tool-plugin-example),
 a minimal tool that renders inside datalab and prints one message using the
 frontend SDK.
 
-## Level 1: layman's overview
+Read the shared [tool plugin development guide](tool-plugin.md) first for the
+project workflow, provider contract, testing, and release checklist. This page
+focuses on the in-app implementation.
+
+## How it works
 
 The *in-app tool* is more like adding a trusted panel to the datalab webapp than
 opening a separate application. datalab loads the plugin's compiled JavaScript
@@ -30,13 +34,13 @@ sequenceDiagram
 
 The example displays one sentence: `Hello <user>. You can access <N> sample(s).`
 
-## Level 2: create and inspect the plugin
+## Walk through the example
 
 The example is equivalent to generating an in-app package from the *Copier*
 template:
 
 ```shell
-uvx copier copy https://github.com/Matgenix/datalab-tool-plugin-template \
+uvx copier copy --trust https://github.com/Matgenix/datalab-tool-plugin-template \
   datalab-in-app-tool-plugin-example
 ```
 
@@ -108,7 +112,7 @@ Only ordered immutable *item refcodes* are passed. Fetch current item data
 through the normal *permission-aware API*, because URL input never proves that
 the current user may access an item.
 
-## Level 3: access and trust model
+## Access and trust model
 
 An in-app plugin does not exchange a *launch code* for a *tool access token*. It is
 already running inside the signed-in datalab web application, so it uses the SDK
@@ -147,11 +151,11 @@ Build the frontend bundle:
 
 ```shell
 cd datalab-in-app-tool-plugin-example/frontend
-yarn install
-yarn build
+corepack yarn install --frozen-lockfile
+corepack yarn build
 ```
 
-Add the plugin to the root `plugins.toml`:
+Add the plugin to the datalab checkout's root `plugins.toml`:
 
 ```toml
 dependencies = ["datalab-hello-in-app-tool"]
@@ -175,6 +179,8 @@ docker compose --profile dev up --build
 
 Open datalab, click **Tools**, and choose **Hello in-app**. It will
 open at `/tools/hello-in-app` with the normal datalab navigation still visible.
+The example repository's [installation guide](https://github.com/Matgenix/datalab-in-app-tool-plugin-example/blob/main/INSTALL.md)
+is the source for its exact setup commands.
 
 ## Common errors
 

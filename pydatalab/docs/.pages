@@ -10,6 +10,7 @@ nav:
         - Code of conduct: CODE_OF_CONDUCT.md
         - INSTALL.md
         - plugins.md
+        - Tool plugins: plugin-development
         - Writing data blocks: blocks
         - roadmap.md
     - Deployment:
