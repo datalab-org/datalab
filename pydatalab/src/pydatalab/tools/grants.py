@@ -15,7 +15,7 @@ from pydatalab.models.people import AccountStatus
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import Key
 
-from .base import ItemSelection, ToolContext, ToolLaunchGrantIssuer
+from .base import ItemSelection, ToolContext, ToolLaunchGrantIssuer, ToolSessionPolicy
 
 DEFAULT_LAUNCH_LIFETIME_SECONDS = 60
 DEFAULT_TOOL_SESSION_LIFETIME_SECONDS = 24 * 60 * 60
@@ -25,6 +25,7 @@ TOOL_SELECTION_LIFETIME_SECONDS = 10 * 60
 _TOOL_LAUNCH_PURPOSE = "tool-launch"
 _TOOL_SELECTION_PURPOSE = "tool-selection"
 _TOOL_SESSION_ID_DOMAIN = b"datalab:delegated-tool-session:v1\0"
+_MAX_CANDIDATE_TOOL_ACCESS_TOKEN_LENGTH = 4096
 
 
 class _DelegatedToolAccessToken(Key):
@@ -68,6 +69,7 @@ class ToolLaunchExchange:
     context: ToolContext
     tool_session: DelegatedToolSession
     selection: ItemSelection | None
+    session_reused: bool = False
 
 
 @dataclass(frozen=True)
@@ -76,6 +78,7 @@ class _ConsumedLaunchGrant:
 
     user_id: str
     selection: ItemSelection | None
+    session_policy: ToolSessionPolicy
 
 
 @dataclass(frozen=True)
@@ -90,14 +93,20 @@ class BoundToolLaunchGrantIssuer(ToolLaunchGrantIssuer):
         self,
         client_id: str,
         lifetime_seconds: int = DEFAULT_LAUNCH_LIFETIME_SECONDS,
+        *,
+        session_policy: ToolSessionPolicy = ToolSessionPolicy.REPLACE,
     ) -> str:
         """Create a hashed, expiring tool launch grant and return its raw code."""
-        if not client_id.strip():
+        if not isinstance(client_id, str) or not client_id.strip():
             raise ValueError("Launch-grant client ID must not be empty")
-        if not 1 <= lifetime_seconds <= MAX_LAUNCH_LIFETIME_SECONDS:
+        if type(lifetime_seconds) is not int or not (
+            1 <= lifetime_seconds <= MAX_LAUNCH_LIFETIME_SECONDS
+        ):
             raise ValueError(
                 f"Tool launch grants must expire within {MAX_LAUNCH_LIFETIME_SECONDS} seconds"
             )
+        if not isinstance(session_policy, ToolSessionPolicy):
+            raise ValueError("Unsupported tool session policy")
 
         created_at = _now()
         code = secrets.token_urlsafe(32)
@@ -108,6 +117,7 @@ class BoundToolLaunchGrantIssuer(ToolLaunchGrantIssuer):
                 "tool_id": self.tool_id,
                 "client_id": client_id,
                 "purpose": _TOOL_LAUNCH_PURPOSE,
+                "session_policy": session_policy.value,
                 "selection": self.selection.model_dump() if self.selection else None,
                 "created_at": created_at,
                 "expires_at": created_at + timedelta(seconds=lifetime_seconds),
@@ -145,9 +155,20 @@ def _consume_launch_code(
     try:
         selection_data = grant.get("selection")
         selection = ItemSelection.model_validate(selection_data) if selection_data else None
+        if "session_policy" not in grant:
+            session_policy = ToolSessionPolicy.REPLACE
+        else:
+            stored_policy = grant["session_policy"]
+            if not isinstance(stored_policy, str):
+                return None
+            session_policy = ToolSessionPolicy(stored_policy)
     except (TypeError, ValueError):
         return None
-    return _ConsumedLaunchGrant(user_id=str(grant["user_id"]), selection=selection)
+    return _ConsumedLaunchGrant(
+        user_id=str(grant["user_id"]),
+        selection=selection,
+        session_policy=session_policy,
+    )
 
 
 def issue_tool_selection_code(
@@ -267,6 +288,109 @@ def create_delegated_tool_session(
     )
 
 
+def _create_independent_delegated_tool_session(
+    user_id: str,
+    tool_id: str,
+    client_id: str,
+    lifetime_seconds: int,
+) -> DelegatedToolSession:
+    """Issue a delegated session without replacing another provider session."""
+    stored_user_id = ObjectId(user_id)
+    created_at = _now()
+    expires_at = created_at + timedelta(seconds=lifetime_seconds)
+    tool_access_token = secrets.token_urlsafe(48)
+    stored_token = _DelegatedToolAccessToken(
+        user=stored_user_id,
+        tool_id=tool_id,
+        client_id=client_id,
+        hash=_hash_secret(tool_access_token),
+        created_at=created_at,
+        expires_at=expires_at,
+        version=1,
+    )
+    flask_mongo.db.tool_sessions.insert_one(stored_token.model_dump())
+    return DelegatedToolSession(
+        tool_access_token=tool_access_token,
+        expires_at=expires_at,
+    )
+
+
+def _bson_utc_now() -> datetime:
+    """Return the current UTC time at MongoDB's millisecond precision."""
+    now = _now().astimezone(timezone.utc)
+    return now.replace(microsecond=(now.microsecond // 1000) * 1000)
+
+
+def _normalise_stored_datetime(value: object) -> datetime | None:
+    """Normalise a MongoDB datetime, treating a naive value as UTC."""
+    if not isinstance(value, datetime):
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def _reuse_delegated_tool_session(
+    user_id: str,
+    tool_id: str,
+    client_id: str,
+    candidate_tool_access_token: str | None,
+    lifetime_seconds: int,
+    minimum_reuse_lifetime_seconds: int,
+) -> DelegatedToolSession | None:
+    """Return an eligible exact canonical candidate without changing storage."""
+    if candidate_tool_access_token is None:
+        return None
+
+    stored_user_id = ObjectId(user_id)
+    session_id = _delegated_tool_session_id(stored_user_id, tool_id)
+    decision_time = _bson_utc_now()
+    stored = flask_mongo.db.tool_sessions.find_one(
+        {
+            "_id": session_id,
+            "user": stored_user_id,
+            "tool_id": tool_id,
+            "client_id": client_id,
+            "hash": _hash_secret(candidate_tool_access_token),
+            "type": "tool_access_token",
+            "version": 1,
+            "expires_at": {"$gt": decision_time},
+        }
+    )
+    if stored is None:
+        return None
+
+    created_at = _normalise_stored_datetime(stored.get("created_at"))
+    expires_at = _normalise_stored_datetime(stored.get("expires_at"))
+    if (
+        created_at is None
+        or expires_at is None
+        or created_at > decision_time
+        or expires_at <= created_at
+        or expires_at > decision_time + timedelta(seconds=lifetime_seconds)
+        or expires_at < decision_time + timedelta(seconds=minimum_reuse_lifetime_seconds)
+    ):
+        return None
+
+    sibling = flask_mongo.db.tool_sessions.find_one(
+        {
+            "_id": {"$ne": session_id},
+            "user": stored_user_id,
+            "tool_id": tool_id,
+            "type": "tool_access_token",
+            "expires_at": {"$gt": decision_time},
+        },
+        projection={"_id": 1},
+    )
+    if sibling is not None:
+        return None
+
+    return DelegatedToolSession(
+        tool_access_token=candidate_tool_access_token,
+        expires_at=expires_at,
+    )
+
+
 def get_tool_access_token_user_id(tool_access_token: str) -> str | None:
     """Return the user bound to an unexpired tool access token."""
     session = flask_mongo.db.tool_sessions.find_one(
@@ -298,13 +422,28 @@ def _exchange_launch_code(
     tool_session_lifetime_seconds: int = DEFAULT_TOOL_SESSION_LIFETIME_SECONDS,
     *,
     expected_user_id: str | None,
+    candidate_tool_access_token: str | None,
+    minimum_reuse_lifetime_seconds: int,
 ) -> ToolLaunchExchange | None:
     """Implement bound and service launch-code exchanges."""
-    if not 1 <= tool_session_lifetime_seconds <= MAX_TOOL_SESSION_LIFETIME_SECONDS:
+    if type(tool_session_lifetime_seconds) is not int or not (
+        1 <= tool_session_lifetime_seconds <= MAX_TOOL_SESSION_LIFETIME_SECONDS
+    ):
         raise ValueError(
             "Delegated tool sessions must expire within "
             f"{MAX_TOOL_SESSION_LIFETIME_SECONDS} seconds"
         )
+    if type(minimum_reuse_lifetime_seconds) is not int or not (
+        0 <= minimum_reuse_lifetime_seconds <= tool_session_lifetime_seconds
+    ):
+        raise ValueError(
+            "Minimum reuse lifetime must be between zero and the delegated session lifetime"
+        )
+    if candidate_tool_access_token is not None and (
+        not isinstance(candidate_tool_access_token, str)
+        or len(candidate_tool_access_token) > _MAX_CANDIDATE_TOOL_ACCESS_TOKEN_LENGTH
+    ):
+        raise ValueError("Candidate tool access token is invalid")
 
     grant = _consume_launch_code(
         code,
@@ -331,16 +470,43 @@ def _exchange_launch_code(
         role=user.role.value,
         group_ids=tuple(str(group.immutable_id) for group in groups),
     )
-    tool_session = create_delegated_tool_session(
-        user_id=grant.user_id,
-        tool_id=tool_id,
-        client_id=client_id,
-        lifetime_seconds=tool_session_lifetime_seconds,
-    )
+    session_reused = False
+    if grant.session_policy is ToolSessionPolicy.REUSE_OR_REPLACE:
+        tool_session = _reuse_delegated_tool_session(
+            user_id=grant.user_id,
+            tool_id=tool_id,
+            client_id=client_id,
+            candidate_tool_access_token=candidate_tool_access_token,
+            lifetime_seconds=tool_session_lifetime_seconds,
+            minimum_reuse_lifetime_seconds=minimum_reuse_lifetime_seconds,
+        )
+        session_reused = tool_session is not None
+        if tool_session is None:
+            tool_session = create_delegated_tool_session(
+                user_id=grant.user_id,
+                tool_id=tool_id,
+                client_id=client_id,
+                lifetime_seconds=tool_session_lifetime_seconds,
+            )
+    elif grant.session_policy is ToolSessionPolicy.INDEPENDENT:
+        tool_session = _create_independent_delegated_tool_session(
+            user_id=grant.user_id,
+            tool_id=tool_id,
+            client_id=client_id,
+            lifetime_seconds=tool_session_lifetime_seconds,
+        )
+    else:
+        tool_session = create_delegated_tool_session(
+            user_id=grant.user_id,
+            tool_id=tool_id,
+            client_id=client_id,
+            lifetime_seconds=tool_session_lifetime_seconds,
+        )
     return ToolLaunchExchange(
         context=context,
         tool_session=tool_session,
         selection=grant.selection,
+        session_reused=session_reused,
     )
 
 
@@ -351,8 +517,15 @@ def exchange_launch_code(
     tool_session_lifetime_seconds: int = DEFAULT_TOOL_SESSION_LIFETIME_SECONDS,
     *,
     expected_user_id: str,
+    candidate_tool_access_token: str | None = None,
+    minimum_reuse_lifetime_seconds: int = 0,
 ) -> ToolLaunchExchange | None:
-    """Exchange a launch code bound to the authenticated browser user."""
+    """Exchange a launch code bound to the authenticated browser user.
+
+    A candidate is considered only for a grant bound to ``REUSE_OR_REPLACE``
+    and must retain at least ``minimum_reuse_lifetime_seconds``. Any reuse miss
+    follows that policy's replacement path.
+    """
     if not isinstance(expected_user_id, str) or not expected_user_id.strip():
         raise ValueError("Expected user ID must not be empty")
     return _exchange_launch_code(
@@ -361,6 +534,8 @@ def exchange_launch_code(
         client_id,
         tool_session_lifetime_seconds,
         expected_user_id=expected_user_id,
+        candidate_tool_access_token=candidate_tool_access_token,
+        minimum_reuse_lifetime_seconds=minimum_reuse_lifetime_seconds,
     )
 
 
@@ -369,11 +544,18 @@ def exchange_service_launch_code(
     tool_id: str,
     client_id: str,
     tool_session_lifetime_seconds: int = DEFAULT_TOOL_SESSION_LIFETIME_SECONDS,
+    *,
+    candidate_tool_access_token: str | None = None,
+    minimum_reuse_lifetime_seconds: int = 0,
 ) -> ToolLaunchExchange | None:
     """Exchange a launch code without browser-user binding.
 
     This function does not authenticate its caller. It may only be called after
     a confidential service client has been authenticated.
+
+    A candidate is considered only for a grant bound to ``REUSE_OR_REPLACE``
+    and must retain at least ``minimum_reuse_lifetime_seconds``. Any reuse miss
+    follows that policy's replacement path.
     """
     return _exchange_launch_code(
         code,
@@ -381,4 +563,6 @@ def exchange_service_launch_code(
         client_id,
         tool_session_lifetime_seconds,
         expected_user_id=None,
+        candidate_tool_access_token=candidate_tool_access_token,
+        minimum_reuse_lifetime_seconds=minimum_reuse_lifetime_seconds,
     )

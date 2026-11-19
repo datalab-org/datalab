@@ -87,6 +87,11 @@ code = grants.issue(TOOL_ID)
 return f"{base_url}index.html#datalab_launch_code={code}"
 ```
 
+The provider chooses how the resulting delegated session is stored when it
+issues the grant. The default is `ToolSessionPolicy.REPLACE`, which replaces
+the user's other sessions for the same provider. The selected policy is bound
+to the launch grant; an exchange client cannot choose or upgrade it.
+
 Production standalone tools must return an HTTPS launch URL. HTTP is reserved
 for local development on explicit loopback hosts (`localhost`,
 `*.localhost`, `127.0.0.0/8`, or `::1`); private-LAN HTTP URLs are rejected.
@@ -159,11 +164,70 @@ fetch(`${apiPrefix}/samples/`, {
 });
 ```
 
-A successful relaunch replaces the user's previous tool access token for that
-provider, even if the new launch uses a different `client_id`. A tool must
-handle HTTP 401 by asking the user to relaunch. Two concurrent launches of the
-same provider for one user do not retain independent credentials; only the
-last stored session remains valid.
+A provider that needs another lifecycle can opt in explicitly:
+
+```python
+from pydatalab.tools import ToolSessionPolicy
+
+code = grants.issue(TOOL_ID, session_policy=ToolSessionPolicy.INDEPENDENT)
+```
+
+The three policies are:
+
+| Policy | Sequential behavior |
+|---|---|
+| `REPLACE` | Issue a new canonical token and revoke other sessions for this user and provider. This is the default. |
+| `REUSE_OR_REPLACE` | Reuse the exact eligible canonical candidate supplied by the trusted application, or perform `REPLACE` on any miss. |
+| `INDEPENDENT` | Issue another token without revoking existing sessions. |
+
+The **canonical session** is the single deterministic session record maintained
+for one user and provider by `REPLACE`. Only its token can be reused by
+`REUSE_OR_REPLACE`; independently issued sessions use separate records and are
+not reuse candidates.
+
+For `REUSE_OR_REPLACE`, pass the token already held by the trusted application
+as `candidate_tool_access_token` and, if needed, require a minimum remaining
+lifetime:
+
+```python
+code = grants.issue(
+    CLIENT_ID,
+    session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
+)
+
+# Later, in the authenticated service exchange route:
+result = exchange_service_launch_code(
+    code,
+    TOOL_ID,
+    CLIENT_ID,
+    candidate_tool_access_token=existing_token,
+    minimum_reuse_lifetime_seconds=10 * 60,
+)
+```
+
+`result.session_reused` is true only when the returned raw token is exactly the
+candidate. Reuse preserves its existing expiry; it does not extend the session.
+A missing, expired, near-expiry, or wrongly bound candidate safely falls back
+to replacement. The exchange rejects a non-string or excessively long
+candidate before consuming the grant. Reuse also falls back when the candidate
+would live longer than the lifetime requested by the provider or when another
+active independent session exists.
+
+Independent tokens have the same provider-level authority for the user. They
+do not create isolated processes, filesystems, item scopes, or permissions.
+Use them only when the provider is prepared to manage concurrent credentials.
+A later `REPLACE` or unsuccessful `REUSE_OR_REPLACE` collapses those sessions
+back to one canonical token.
+
+These guarantees are sequential. Concurrent replacements remain
+last-writer-wins, and a token returned by reuse can be revoked immediately by a
+later exchange. datalab stores only token hashes in the existing
+`tool_sessions` collection; enabling these policies requires neither raw-token
+storage nor a database migration or new index.
+
+With the default policy, a successful relaunch replaces the user's previous
+tool access token for that provider, even if the new launch uses a different
+`client_id`. A tool must handle HTTP 401 by asking the user to relaunch.
 
 Do not store *tool access tokens* in local storage, session storage, notebooks,
 persistent files, URLs, analytics, or logs. The token is short-lived, but while

@@ -11,6 +11,7 @@ from .base import (
     ToolMetadata,
     ToolProvider,
     ToolRouteAuth,
+    ToolSessionPolicy,
 )
 from .grants import exchange_launch_code, exchange_service_launch_code, issue_tool_selection_code
 
@@ -25,6 +26,7 @@ __all__ = (
     "ToolMetadata",
     "ToolProvider",
     "ToolRouteAuth",
+    "ToolSessionPolicy",
     "exchange_launch_code",
     "exchange_service_launch_code",
     "issue_tool_selection_code",

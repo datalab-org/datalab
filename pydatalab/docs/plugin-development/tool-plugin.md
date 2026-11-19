@@ -177,6 +177,11 @@ relaunch behavior, and browser-versus-service authentication rules are security
 critical; implement them exactly as shown in the
 [standalone tutorial](standalone-tool-plugin.md).
 
+Trusted provider code can bind a delegated-session policy to each launch grant.
+The default policy replaces other sessions for the same user and provider;
+exchange clients cannot choose the policy. See the standalone tutorial for
+canonical reuse and independent-session semantics and their concurrency limits.
+
 ## Test and run locally
 
 Keep provider tests independent of a running datalab instance where possible.

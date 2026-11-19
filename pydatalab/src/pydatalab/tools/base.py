@@ -101,6 +101,14 @@ class ToolRouteAuth(str, Enum):
     SERVICE = "service"
 
 
+class ToolSessionPolicy(str, Enum):
+    """Persistence policy for delegated sessions issued from a launch grant."""
+
+    REPLACE = "replace"
+    REUSE_OR_REPLACE = "reuse_or_replace"
+    INDEPENDENT = "independent"
+
+
 class BaseToolUI(_ImmutableToolModel):
     """Shared configuration for a tool's user interface."""
 
@@ -181,7 +189,13 @@ class ToolContext:
 class ToolLaunchGrantIssuer(Protocol):
     """Capability offered to a provider for issuing current-user tool launch grants."""
 
-    def issue(self, client_id: str, lifetime_seconds: int = 60) -> str:
+    def issue(
+        self,
+        client_id: str,
+        lifetime_seconds: int = 60,
+        *,
+        session_policy: ToolSessionPolicy = ToolSessionPolicy.REPLACE,
+    ) -> str:
         """Create and return a raw, single-use launch code."""
 
 
