@@ -116,9 +116,10 @@ Cypress.Commands.add("deleteSampleViaAPI", (item_id) => {
 });
 
 Cypress.Commands.add("createTagViaAPI", (data) => {
-  // data: { name, description?, color?, scope? }. `scope` defaults to "user"
+  // data: { name, description?, color?, scope?, owner? }. `scope` defaults to "user"
   // (a user-defined tag owned by the logged-in user); pass scope: "global" (as an
-  // admin) for a tag every user can use. Returns the new tag's id.
+  // admin) for a tag every user can use, or scope: "group" with `owner` set to a group's
+  // immutable_id (as an admin or a manager of that group). Returns the new tag's id.
   return cy
     .request({
       method: "PUT",
@@ -140,6 +141,40 @@ Cypress.Commands.add("deleteTagByNameViaAPI", (name) => {
           cy.request({
             method: "DELETE",
             url: API_URL + "/tags/" + tag.immutable_id,
+            failOnStatusCode: false,
+          });
+        });
+    },
+  );
+});
+
+Cypress.Commands.add("getCurrentUserIdViaAPI", () => {
+  // The immutable_id of the logged-in user.
+  return cy
+    .request({ method: "GET", url: API_URL + "/get-current-user/" })
+    .then((response) => response.body.immutable_id);
+});
+
+Cypress.Commands.add("createGroupViaAPI", (data) => {
+  // data: { group_id, display_name, description?, managers? } (managers: user immutable_ids).
+  // Requires admin auth. Returns the new group's immutable_id.
+  return cy
+    .request({ method: "PUT", url: API_URL + "/groups", body: data })
+    .then((response) => response.body.group_immutable_id);
+});
+
+Cypress.Commands.add("deleteGroupByGroupIdViaAPI", (groupId) => {
+  // Best-effort cleanup: delete the group with this (human-readable) group_id, which also
+  // deletes its tags. Requires admin auth.
+  cy.request({ method: "GET", url: API_URL + "/groups", failOnStatusCode: false }).then(
+    (response) => {
+      const groups = response.body?.data ?? [];
+      groups
+        .filter((group) => group.group_id === groupId)
+        .forEach((group) => {
+          cy.request({
+            method: "DELETE",
+            url: API_URL + "/groups/" + (group.immutable_id || group._id),
             failOnStatusCode: false,
           });
         });

@@ -242,6 +242,23 @@ def test_tag_scope_owner_consistency():
         Tag(name="bad", scope="global", owner=owner)
 
 
+def test_tag_group_scope_owner_consistency():
+    """A group-scoped tag must have an owner, which holds the owning group's ID."""
+    from pydatalab.models.tags import Tag, TagAccessScope
+
+    group_id = ObjectId()
+
+    group_tag = Tag(name="team", scope="group", owner=group_id)
+    assert group_tag.scope == TagAccessScope.GROUP
+    assert group_tag.owner == group_id
+    assert isinstance(group_tag.model_dump(exclude_none=True)["owner"], ObjectId)
+    assert json.loads(group_tag.model_dump_json())["owner"] == str(group_id)
+
+    # A group-scoped tag without an owning group is rejected.
+    with pytest.raises(pydantic.ValidationError):
+        Tag(name="bad", scope="group")
+
+
 def test_item_tags_coercion():
     """The `HasTags` mixin coerces references and de-duplicates tags on items."""
     from pydatalab.models.samples import Sample

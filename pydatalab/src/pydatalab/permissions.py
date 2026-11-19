@@ -316,6 +316,54 @@ def _get_base_permissions(
     return null_perm
 
 
+def is_admin() -> bool:
+    """Whether the current user is an authenticated administrator."""
+    return bool(current_user.is_authenticated and current_user.role == UserRole.ADMIN)
+
+
+def is_admin_sudo_request() -> bool:
+    """Whether the current request is a GET by an active administrator in super-user mode
+    (`?sudo=1`), as for the item and collection listings (see `_get_base_permissions`).
+    """
+    return bool(
+        is_admin()
+        and current_user.account_status == AccountStatus.ACTIVE
+        and request.method == "GET"
+        and request.args.get("sudo") == "1"
+    )
+
+
+def current_user_id() -> ObjectId | None:
+    """The immutable ID of the current user, or None if unauthenticated."""
+    if current_user.is_authenticated and current_user.person is not None:
+        return current_user.person.immutable_id
+    return None
+
+
+def current_user_group_ids() -> list[ObjectId]:
+    """The IDs of the groups the current user is a member of."""
+    if current_user.is_authenticated and current_user.person is not None:
+        return [group.immutable_id for group in current_user.person.groups or []]
+    return []
+
+
+def get_managed_group_ids(user_id: ObjectId | None) -> list[ObjectId]:
+    """The IDs of the groups that list the given user among their `managers`."""
+    if user_id is None:
+        return []
+    return [doc["_id"] for doc in flask_mongo.db.groups.find({"managers": user_id}, {"_id": 1})]
+
+
+def is_group_manager(group_id: ObjectId, user_id: ObjectId | None) -> bool:
+    """Whether the given user is one of the `managers` of the given group."""
+    if user_id is None:
+        return False
+    return (
+        flask_mongo.db.groups.find_one({"_id": group_id, "managers": user_id}, {"_id": 1})
+        is not None
+    )
+
+
 def can_assign_groups(group_ids: list[ObjectId]) -> bool:
     """Whether the current user can restrict an inventory item to the given groups,
     i.e., whether they are an admin or a member of all of the groups.

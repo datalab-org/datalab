@@ -41,6 +41,11 @@ export default {
       isDeleting: false,
     };
   },
+  computed: {
+    tagsEnabled() {
+      return this.$store.state.serverInfo?.features?.tags ?? false;
+    },
+  },
   methods: {
     handleEdit() {
       this.$emit("edit-group", this.group);
@@ -48,7 +53,12 @@ export default {
     async handleDelete() {
       const confirmed = await DialogService.confirm({
         title: "Delete Group",
-        message: `Are you sure you want to delete the group "${this.group.display_name}"?<br><br>This action cannot be undone.`,
+        message:
+          `Are you sure you want to delete the group "${this.group.display_name}"?` +
+          (this.tagsEnabled
+            ? "<br><br>Any tags belonging to this group will also be deleted and removed from the items using them."
+            : "") +
+          "<br><br>This action cannot be undone.",
         type: "error",
         confirmButtonText: "Delete Group",
         cancelButtonText: "Cancel",

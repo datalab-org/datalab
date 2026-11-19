@@ -8,7 +8,7 @@
         :style="tagStyle"
         @click="onClick"
       >
-        <font-awesome-icon v-if="isUserDefined" :icon="['fas', 'user']" size="xs" class="mr-1" />{{
+        <font-awesome-icon v-if="scopeIcon" :icon="['fas', scopeIcon]" size="xs" class="mr-1" />{{
           tag.name
         }}
       </span>
@@ -16,7 +16,7 @@
     <template #content>
       <!-- Prefer the tag's description; otherwise fall back to its name. -->
       {{ tag.description || tag.name }}
-      <span v-if="isUserDefined" class="font-italic">(user-defined tag)</span>
+      <span v-if="scopeNote" class="font-italic">({{ scopeNote }})</span>
     </template>
   </StyledTooltip>
 </template>
@@ -44,9 +44,21 @@ export default {
   },
   emits: ["tag-click"],
   computed: {
-    // A user-defined tag is marked with a small user icon to distinguish from a global tag.
-    isUserDefined() {
-      return this.tag.scope === "user";
+    // User-defined and group tags are marked with a small icon to distinguish them from
+    // global tags.
+    scopeIcon() {
+      return { user: "user", group: "users" }[this.tag.scope] || null;
+    },
+    // Tooltip note naming the owner (display-only `owner_name`) of user-defined and group tags.
+    scopeNote() {
+      const owner = this.tag.owner_name;
+      if (this.tag.scope === "user") {
+        return owner ? `user-defined tag of ${owner}` : "user-defined tag";
+      }
+      if (this.tag.scope === "group") {
+        return owner ? `group tag of ${owner}` : "group tag";
+      }
+      return null;
     },
     tagStyle() {
       // When a tag has a color, use it as the badge background with a readable

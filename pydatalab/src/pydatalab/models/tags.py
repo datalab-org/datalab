@@ -12,6 +12,7 @@ class TagAccessScope(str, Enum):
 
     GLOBAL = "global"
     USER = "user"
+    GROUP = "group"
 
 
 class Tag(Entry):
@@ -22,9 +23,17 @@ class Tag(Entry):
     - `TagAccessScope.GLOBAL`: available to (and usable by) everyone; created and
       managed by administrators only. Global tags have no `owner`.
     - `TagAccessScope.USER`: a user-defined tag owned by exactly one user; only that
-      user can list, use, edit and delete it.
+      user can use it, and only that user and administrators can list, edit and
+      delete it.
+    - `TagAccessScope.GROUP`: a tag owned by exactly one group; members of that group
+      can list and use it, while the group's managers and administrators can create,
+      edit and delete it.
 
-    Names are only required to be unique within a scope.
+    Whatever the scope, a tag applied to an item is displayed to everyone who can view
+    that item.
+
+    Names are only required to be unique within a scope (and, for user and group tags,
+    within the same owner).
     """
 
     type: Literal["tags"] = "tags"
@@ -42,13 +51,16 @@ class Tag(Entry):
     """The scope controlling who can list, use and manage this tag (required)."""
 
     owner: PyObjectId | None = None
-    """The database ID of the user that owns this tag."""
+    """The database ID of the owner of this tag: a user for `user`-scoped tags, a group
+    for `group`-scoped tags, and `None` for global tags."""
 
     @model_validator(mode="after")
     def _check_scope_owner_consistency(self):
         """Ensure `scope` and `owner` are mutually consistent."""
         if self.scope == TagAccessScope.USER and self.owner is None:
             raise ValueError("A user-scoped tag must have an owner.")
+        if self.scope == TagAccessScope.GROUP and self.owner is None:
+            raise ValueError("A group-scoped tag must have an owning group.")
         if self.scope == TagAccessScope.GLOBAL and self.owner is not None:
             raise ValueError("A global tag cannot have an owner.")
         return self

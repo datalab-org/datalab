@@ -1,8 +1,9 @@
 // E2e tests for the tag management page (/tags). Needs the dev server + API (:5001) running
 // in testing mode AND with the tags feature enabled (PYDATALAB_ENABLE_TAGS).
 //
-// Tags have two scopes: "global" (admin-managed, usable by everyone) and "user" (user-defined,
-// owned and managed by a single user).
+// Tags have three scopes: "global" (admin-managed, usable by everyone), "user" (user-defined,
+// owned and managed by a single user) and "group" (owned by a group, usable by its members,
+// managed by admins and the group's managers).
 
 // Roles are set by `invoke dev.seed-e2e-users` (see `E2E_TEST_USERS` in pydatalab/tasks.py).
 const adminEmail = "admin-user@datalab.test";
@@ -102,6 +103,115 @@ describe("Tag management page (user, user-defined tags)", () => {
     cy.contains("tr", renamedTag).find('button[title="Delete tag"]').click();
     cy.get('[data-testid="dialog-modal-confirm-button"]').click();
     cy.get('[data-testid="tags-table"]').contains(".badge", renamedTag).should("not.exist");
+  });
+});
+
+describe("Tag management page (group manager, group tags)", () => {
+  const groupId = "e2e-tag-group";
+  const groupName = "E2E Tag Group";
+  const tagName = "e2e-group-tag";
+
+  before(() => {
+    // `test-user` manages (but is not a member of) a fresh group.
+    cy.loginViaTestMagicLink(userEmail);
+    cy.getCurrentUserIdViaAPI().then((managerId) => {
+      cy.loginViaTestMagicLink(adminEmail);
+      cy.deleteGroupByGroupIdViaAPI(groupId);
+      cy.createGroupViaAPI({ group_id: groupId, display_name: groupName, managers: [managerId] });
+    });
+  });
+
+  after(() => {
+    // Deleting the group also deletes its tags.
+    cy.loginViaTestMagicLink(adminEmail);
+    cy.deleteGroupByGroupIdViaAPI(groupId);
+  });
+
+  it("lets a group manager create and delete a group tag that other users cannot list", () => {
+    cy.loginViaTestMagicLink(userEmail);
+    cy.visit("/tags");
+
+    // Create: a manager can pick the "group" scope; their only group is preselected.
+    cy.get('[data-testid="add-tag-button"]').click();
+    cy.get('[data-testid="tag-scope-select"]').select("group");
+    cy.get('[data-testid="tag-group-select"] option:selected').should("contain.text", groupName);
+    cy.get("#tag-name").type(tagName);
+    cy.get(".modal-footer input[type=submit]:visible").click();
+
+    cy.get('[data-testid="tags-table"]')
+      .contains("tr", tagName)
+      .find('[data-testid="tag-scope-badge"]')
+      .should("contain.text", `Group: ${groupName}`);
+
+    // Another user, neither member nor manager of the group, does not see it.
+    cy.loginViaTestMagicLink("user1@datalab.test");
+    cy.visit("/tags");
+    cy.get('[data-testid="tags-table"]').should("exist");
+    cy.get('[data-testid="tags-table"]').contains("tr", tagName).should("not.exist");
+
+    // The manager can delete it.
+    cy.loginViaTestMagicLink(userEmail);
+    cy.visit("/tags");
+    cy.contains("tr", tagName).find('button[title="Delete tag"]').click();
+    cy.get('[data-testid="dialog-modal-confirm-button"]').click();
+    cy.get('[data-testid="tags-table"]').contains(".badge", tagName).should("not.exist");
+  });
+});
+
+describe("Tag management page (admin, promoting a user's tag)", () => {
+  const tagName = "e2e-promoted-tag";
+
+  function cleanUp() {
+    // The tag is the user's own before promotion and global afterwards.
+    cy.loginViaTestMagicLink(userEmail);
+    cy.deleteTagByNameViaAPI(tagName);
+    cy.loginViaTestMagicLink(adminEmail);
+    cy.deleteTagByNameViaAPI(tagName);
+  }
+
+  before(() => {
+    cleanUp();
+    cy.loginViaTestMagicLink(userEmail);
+    cy.createTagViaAPI({ name: tagName });
+  });
+
+  after(cleanUp);
+
+  it("lets an admin in super-user mode promote a user's tag to a global tag", () => {
+    cy.loginViaTestMagicLink(adminEmail);
+    // Super-user mode (as toggled from the user menu) lists every user's tags.
+    cy.visit("/tags", {
+      onBeforeLoad(win) {
+        win.sessionStorage.setItem("adminSuperUserMode", "true");
+      },
+    });
+
+    cy.get('[data-testid="tags-table"]')
+      .contains("tr", tagName)
+      .find('[data-testid="tag-scope-badge"]')
+      .should("contain.text", `User-defined: ${userEmail}`);
+
+    // Change the scope in the edit form, which warns that the owner loses access.
+    cy.contains("tr", tagName).find('button[title="Edit tag"]').click();
+    cy.get('[data-testid="tag-scope-select"]').select("global");
+    cy.get('[data-testid="tag-scope-warning"]').should(
+      "contain",
+      `${userEmail} will no longer be able to edit or delete this tag`,
+    );
+    cy.get(".modal-footer input[type=submit]:visible").click();
+
+    cy.get('[data-testid="tags-table"]')
+      .contains("tr", tagName)
+      .find('[data-testid="tag-scope-badge"]')
+      .should("contain.text", "Global");
+
+    // The former owner still sees the tag, now global, but can no longer manage it.
+    cy.loginViaTestMagicLink(userEmail);
+    cy.visit("/tags");
+    cy.contains("tr", tagName).within(() => {
+      cy.get('[data-testid="tag-scope-badge"]').should("contain.text", "Global");
+      cy.get('button[title="Edit tag"]').should("not.exist");
+    });
   });
 });
 

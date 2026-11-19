@@ -31,6 +31,7 @@ __all__ = (
     "groups_lookup",
     "files_lookup",
     "resolve_tags_for_docs",
+    "inline_tag_owner_display",
 )
 
 flask_mongo = PyMongo()
@@ -78,13 +79,49 @@ def files_lookup() -> dict:
     }
 
 
+def inline_tag_owner_display(tag_docs: list[dict]) -> None:
+    """Inline a human-readable `owner_name` onto user- and group-scoped tags, in place.
+
+    The name is the owning user's or group's `display_name`, depending on the tag's
+    `scope`. Each tag document must carry its `scope` and `owner` (as an `ObjectId` or
+    its string form). Owners are looked up with one query per collection; a tag whose
+    owner no longer exists gets `owner_name=None`. Global tags are left untouched.
+    """
+    owner_collections = {"user": "users", "group": "groups"}
+
+    owner_ids: dict[str, set[ObjectId]] = {scope: set() for scope in owner_collections}
+    for doc in tag_docs:
+        scope = doc.get("scope")
+        if scope in owner_collections and doc.get("owner") is not None:
+            owner_ids[scope].add(ObjectId(str(doc["owner"])))
+
+    owner_names: dict[str, dict[ObjectId, str | None]] = {}
+    for scope, ids in owner_ids.items():
+        owner_names[scope] = (
+            {
+                owner["_id"]: owner.get("display_name")
+                for owner in flask_mongo.db[owner_collections[scope]].find(
+                    {"_id": {"$in": list(ids)}}, projection={"_id": 1, "display_name": 1}
+                )
+            }
+            if ids
+            else {}
+        )
+
+    for doc in tag_docs:
+        scope = doc.get("scope")
+        if scope in owner_collections and doc.get("owner") is not None:
+            doc["owner_name"] = owner_names[scope].get(ObjectId(str(doc["owner"])))
+
+
 def resolve_tags_for_docs(docs: list[dict]) -> None:
     """Inline tag details into each doc's `tags` field, in place.
 
     Tag references (mappings carrying an `immutable_id`) are resolved against
     the `tags` collection with no permission filter: display access is gated
     by the parent entry itself, so every tag on a viewable entry resolves.
-    References to deleted tags are dropped.
+    References to deleted tags are dropped. User and group tags also carry the
+    `owner_name` of their owning user or group (see `inline_tag_owner_display`).
     """
     tag_ids: set[ObjectId] = set()
     for doc in docs:
@@ -99,9 +136,17 @@ def resolve_tags_for_docs(docs: list[dict]) -> None:
         tag_doc["_id"]: tag_doc
         for tag_doc in flask_mongo.db.tags.find(
             {"_id": {"$in": list(tag_ids)}},
-            projection={"_id": 1, "name": 1, "description": 1, "color": 1, "scope": 1},
+            projection={
+                "_id": 1,
+                "name": 1,
+                "description": 1,
+                "color": 1,
+                "scope": 1,
+                "owner": 1,
+            },
         )
     }
+    inline_tag_owner_display(list(resolved.values()))
 
     for doc in docs:
         tags = doc.get("tags")
@@ -113,17 +158,18 @@ def resolve_tags_for_docs(docs: list[dict]) -> None:
                 match = resolved.get(ObjectId(tag["immutable_id"]))
                 # Referenced tag no longer exists: drop it silently.
                 if match is not None:
-                    resolved_tags.append(
-                        {
-                            "type": "tags",
-                            "immutable_id": str(match["_id"]),
-                            "name": match.get("name"),
-                            "description": match.get("description"),
-                            "color": match.get("color"),
-                            # `scope` lets the UI mark user-defined tags distinctly.
-                            "scope": match.get("scope"),
-                        }
-                    )
+                    resolved_tag = {
+                        "type": "tags",
+                        "immutable_id": str(match["_id"]),
+                        "name": match.get("name"),
+                        "description": match.get("description"),
+                        "color": match.get("color"),
+                        # `scope` lets the UI mark user-defined and group tags distinctly.
+                        "scope": match.get("scope"),
+                    }
+                    if "owner_name" in match:
+                        resolved_tag["owner_name"] = match["owner_name"]
+                    resolved_tags.append(resolved_tag)
         doc["tags"] = resolved_tags
 
 
