@@ -46,10 +46,10 @@ def get_usable_tags_filter(
 def get_listable_tags_filter(managed_group_ids: Iterable[ObjectId]) -> dict:
     """The Mongo filter for the tags the current user may list on the tag management page.
 
-    This is the tags they may use (see `get_usable_tags_filter`) plus the group tags
-    they may manage without being a member of the group: those of the groups they
-    manage or, for administrators, all group tags. Administrators in super-user mode
-    (`?sudo=1`) list all tags, including other users' user-defined tags.
+    This is the tags they may use (see `get_usable_tags_filter`) plus the tags of the
+    groups they manage without being a member. Like for items, administrators are
+    treated as normal users unless in super-user mode (`?sudo=1`), where they list all
+    tags, including other users' user-defined tags and all group tags.
 
     Parameters:
         managed_group_ids: The IDs of the groups managed by the current user (see
@@ -62,17 +62,11 @@ def get_listable_tags_filter(managed_group_ids: Iterable[ObjectId]) -> dict:
     user_id = current_user_id()
     usable = get_usable_tags_filter(user_id, current_user_group_ids())
 
-    if user_id is None:
+    managed_group_ids = list(managed_group_ids)
+    if user_id is None or not managed_group_ids:
         return usable
 
-    if is_admin():
-        manageable: dict = {"scope": TagAccessScope.GROUP.value}
-    else:
-        managed_group_ids = list(managed_group_ids)
-        if not managed_group_ids:
-            return usable
-        manageable = {"scope": TagAccessScope.GROUP.value, "owner": {"$in": managed_group_ids}}
-
+    manageable = {"scope": TagAccessScope.GROUP.value, "owner": {"$in": managed_group_ids}}
     return {"$or": [usable, manageable]}
 
 

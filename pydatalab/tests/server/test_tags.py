@@ -509,8 +509,8 @@ def test_group_tag_visibility(
         "immutable_id"
     ]
 
-    def listed(c):
-        return {t["immutable_id"]: t for t in c.get("/tags").json["data"]}
+    def listed(c, **query):
+        return {t["immutable_id"]: t for t in c.get("/tags", query_string=query).json["data"]}
 
     def searched(c):
         response = c.get("/search-tags", query_string={"query": "other-team"})
@@ -530,8 +530,10 @@ def test_group_tag_visibility(
     assert tag_id not in listed(client)
     assert tag_id not in searched(client)
 
-    # A non-member administrator lists it (and can manage it), but cannot find it.
-    admin_listing = listed(admin_client)
+    # A non-member administrator lists it (and can manage it) only in super-user mode,
+    # like other users' tags, and cannot find it.
+    assert tag_id not in listed(admin_client)
+    admin_listing = listed(admin_client, sudo=1)
     assert admin_listing[tag_id]["can_manage"] is True
     assert tag_id not in searched(admin_client)
 
@@ -892,7 +894,10 @@ def test_admin_promotes_user_tag(
     # user -> group
     response = _change_scope(admin_client, tag_id, "group", owner=group_id)
     assert response.status_code == 200, response.json
-    admin_listing = {t["immutable_id"]: t for t in admin_client.get("/tags").json["data"]}
+    admin_listing = {
+        t["immutable_id"]: t
+        for t in admin_client.get("/tags", query_string={"sudo": 1}).json["data"]
+    }
     assert admin_listing[tag_id]["scope"] == "group"
     assert admin_listing[tag_id]["owner"] == str(group_id)
     assert admin_listing[tag_id]["owner_name"] == "Demo Group"

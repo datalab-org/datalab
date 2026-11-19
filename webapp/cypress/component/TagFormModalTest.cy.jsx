@@ -129,6 +129,8 @@ describe("TagFormModal.vue", () => {
       cy.get('[data-testid="tag-scope-select"]').select("group", { force: true });
       // With a single manageable group, it is preselected.
       cy.get('[data-testid="tag-group-select"]').should("have.value", "g1");
+      // The super-user-mode hint is for admins only.
+      cy.get('[data-testid="tag-group-admin-hint"]').should("not.exist");
 
       cy.get("#tag-name").type("team", { force: true });
       cy.get('input[type="submit"]').click({ force: true });
@@ -151,6 +153,7 @@ describe("TagFormModal.vue", () => {
       });
       cy.get('[data-testid="tag-scope-select"]').select("group", { force: true });
       cy.get("#tag-name").type("team", { force: true });
+      cy.get('[data-testid="tag-group-admin-hint"]').should("contain", "super-user mode");
 
       // No group chosen yet: the form cannot be submitted.
       cy.get('input[type="submit"]').should("be.disabled");

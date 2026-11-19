@@ -34,6 +34,15 @@
         {{ group.display_name }}
       </option>
     </select>
+    <!-- Admins can pick any group, but only see the group tags of their own groups (like
+         normal users) unless in super-user mode. -->
+    <small
+      v-if="scope === 'group' && isAdmin"
+      class="form-text text-muted"
+      data-testid="tag-group-admin-hint"
+    >
+      Tags of groups you are not a member or manager of are only listed in super-user mode.
+    </small>
   </div>
 </template>
 

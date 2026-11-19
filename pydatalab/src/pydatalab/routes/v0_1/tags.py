@@ -158,9 +158,8 @@ def get_tags():
     """Return the tags the current user may list.
 
     These are the tags they may use (global tags, their own user-defined tags and the
-    tags of the groups they belong to) plus the group tags they may manage without
-    being a member (those of the groups they manage, or all of them for
-    administrators). Administrators in super-user mode (`?sudo=1`) get all tags.
+    tags of the groups they belong to) plus the tags of the groups they manage without
+    being a member. Administrators in super-user mode (`?sudo=1`) get all tags.
 
     Each tag carries `can_manage` (whether the current user may edit and delete it)
     and, for user and group tags, the `owner_name` of the owning user or group.
