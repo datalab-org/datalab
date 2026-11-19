@@ -78,6 +78,27 @@ class DataBlockResponse(BaseModel):
     experimental acquisition parameters."""
 
 
+class Section(BaseModel):
+    """A named, collapsible grouping of blocks.
+
+    A section appears as an entry in `HasBlocks.display_order` in place of a
+    block ID. It groups every block ID that follows it in that list, up to the
+    next section (or the end of the list), under itself; it does not carry its
+    own list of block IDs.
+    """
+
+    type: Literal["section"] = "section"
+
+    section_id: str
+    """A shorthand random ID for the section, used as its key in the DOM."""
+
+    title: str
+    """The title of the section."""
+
+    description: str | None = None
+    """An optional freeform description of the section."""
+
+
 # Here to avoid circular import
 class HasBlocks(BaseModel):
     """Trait mixin for models that can have data blocks attached to them."""
@@ -85,8 +106,9 @@ class HasBlocks(BaseModel):
     blocks_obj: dict[str, DataBlockResponse] = Field({})
     """A mapping from block ID to block data."""
 
-    display_order: list[str] = Field([])
-    """The order in which to display block data in the UI."""
+    display_order: list[str | Section] = Field([])
+    """The order in which to display block data in the UI, as a flat list of
+    block IDs interspersed with `Section` markers."""
 
 
 class Block(Entry, HasOwner, HasRevisionControl):
