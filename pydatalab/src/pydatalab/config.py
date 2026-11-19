@@ -4,6 +4,7 @@ import logging
 import os
 import platform
 from collections import Counter
+from ipaddress import ip_address
 from pathlib import Path
 from typing import Any, Literal
 
@@ -28,9 +29,24 @@ __all__ = (
     "DeploymentMetadata",
     "ItemTypeAllowListEntry",
     "RemoteFilesystem",
+    "ToolsSettings",
+    "is_loopback_host",
 )
 
 config_logger = logging.getLogger("pydatalab.config")
+
+
+def is_loopback_host(host: str | None) -> bool:
+    """Return whether a URL host is explicitly local to this machine."""
+    if host is None:
+        return False
+    normalized_host = str(host).rstrip(".").lower()
+    if normalized_host == "localhost" or normalized_host.endswith(".localhost"):
+        return True
+    try:
+        return ip_address(normalized_host).is_loopback
+    except ValueError:
+        return False
 
 
 def config_file_settings(settings_cls: type[BaseSettings] | None = None) -> dict[str, Any]:
@@ -143,6 +159,33 @@ class SMTPSettings(BaseModel):
     MAIL_DEFAULT_SENDER: str = Field(
         "", description="The email address to use as the sender for emails."
     )
+
+
+class ToolsSettings(BaseModel):
+    """Configuration shared by installed tool plugins."""
+
+    model_config = ConfigDict(
+        alias_generator=str.lower,
+        populate_by_name=True,
+        extra="forbid",
+    )
+
+    ORDER: list[str] = Field(
+        default_factory=list,
+        description="Tool plugin IDs in their preferred display order.",
+    )
+    DISABLED: set[str] = Field(
+        default_factory=set,
+        description="Installed tool plugin IDs disabled for this deployment.",
+    )
+
+    @field_validator("ORDER")
+    @classmethod
+    def ordered_tool_ids_are_unique(cls, value):
+        """Reject ambiguous configured positions for the same tool ID."""
+        if len(value) != len(set(value)):
+            raise ValueError("TOOLS.ORDER must not contain duplicate tool IDs")
+        return value
 
 
 class ServerConfig(BaseSettings):
@@ -294,6 +337,11 @@ its importance when deploying a datalab instance.""",
     ASYNC_BLOCK_TYPES: list[str] = Field(
         [],
         description="A list of block type slugs (e.g. ['cycle', 'xrd']) that should be processed asynchronously via the task queue. Defaults to no blocks.",
+    )
+
+    TOOLS: ToolsSettings = Field(
+        default_factory=ToolsSettings,
+        description="Configuration for built-in and installed tools.",
     )
 
     BLOCK_TYPE_ALLOW_LIST: list[str] | None = Field(
@@ -488,6 +536,7 @@ its importance when deploying a datalab instance.""",
 
     model_config = SettingsConfigDict(
         env_prefix="PYDATALAB_",
+        env_nested_delimiter="__",
         extra="allow",
         env_file=".env",
         env_file_encoding="utf-8",

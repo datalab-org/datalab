@@ -178,6 +178,31 @@ docker compose --file docker-compose.prod.yml --profile prod build
 docker compose --file docker-compose.prod.yml --profile prod up
 ```
 
+## Plugin-provided standalone services
+
+Installing a standalone tool provider registers discovery and launch integration
+in the datalab API. It does not deploy a separately hosted application. Core
+datalab Compose files do not start plugin-owned services; include a companion
+service only when the plugin's deployment guide explicitly requires it.
+
+For each standalone service:
+
+1. Review and pin both the provider package and service artifact.
+2. Use HTTPS and dedicated service credentials. Keep the service away from the
+   datalab database, server secrets, and unrelated deployment networks.
+3. Define health checks, backups, storage and retention, resource limits, and
+   upgrade and rollback procedures.
+4. Identify privileged host resources, such as the Docker socket, and expose
+   them only to reviewed immutable code.
+5. Disable request logging for launch codes and tool-token exchange bodies, then
+   verify the behavior through the production proxy.
+
+The plugin repository is the source of truth for service-specific settings,
+artifacts, Compose overlays, and security limitations. For example,
+[`datalab-jupyter` installation](https://github.com/Matgenix/datalab-jupyter/blob/main/INSTALL.md)
+documents its managed and external JupyterHub deployment. A normal datalab
+deployment creates none of its Hub, network, volume, or Docker-socket resources
+unless an administrator explicitly includes them.
 
 ## General server administration
 

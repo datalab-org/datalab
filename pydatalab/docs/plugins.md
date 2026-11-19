@@ -6,39 +6,33 @@ particular:
 - New data block types, which render interactive views of attached files in item
   detail pages.
 - Custom item types, which are served through the same generic endpoints as the built-in `samples`, `cells`, `starting_materials` and `equipment` types.
+- Tool plugins, which add [in-app or standalone tools](tools.md).
 
 Some self-declared plugins can be found via the [`datalab-plugin` topic on GitHub](https://github.com/topics/datalab-plugin), in lieu of a formal registry at this time.
 Plugins can also be kept private and installed from e.g., a private git repository, or a local path on the host, using the same installation described below.
 
 !!! warning "Only install plugins you trust"
-    Plugins are installed into the same Python environment as the *datalab* server and run with full server privileges. Only install plugins from sources you trust.
+    A plugin runs inside the datalab API process with the same privileges as
+    the server. An in-app tool plugin also runs JavaScript inside each signed-in
+    user's datalab page.
+
+    The deployment administrator is responsible for reviewing and trusting the
+    plugin's source, dependencies, compiled frontend assets, maintainers, and
+    update process. Framework validation catches accidental incompatibilities;
+    it does not isolate deliberately malicious installed code.
 
 ## What a plugin is
 
-At present, a *datalab* plugin is a Python package that registers one or more [data block](blocks/index.md) classes or item types via a Python entry point.
+At present, a *datalab* plugin is a Python package that registers one or more [data block](blocks/index.md) classes, item types, or tool providers via a Python entry point.
 Data blocks ingest a file (or set of files) attached to an item and render an interactive view of the parsed data, e.g. an NMR spectrum, an electrochemistry cycler trace, or an XRD pattern.
 Plugins (and deployments) can also register **custom item types**, new top-level item models served through the generic item endpoints (see [below](#custom-item-types)).
 Plugins can ship Vue components for their blocks and item types (see [below](#webapp-components)).
+Tool plugins add in-app or standalone tools through the dedicated framework
+described in [Developing tool plugins](plugin-development/tool-plugin.md).
 Further plugin types, e.g., ingestion hooks, are planned in the future (see [roadmap.md](roadmap.md)); please reach out if you have a specific use case.
 *datalab* discovers them at server startup by enumerating the relevant entry point group, with no changes required to the core code.
 
-## Writing a plugin
-
-The recommended starting point is the [Copier](https://copier.readthedocs.io/) template at [datalab-org/datalab-app-plugin-template](https://github.com/datalab-org/datalab-app-plugin-template), which scaffolds a minimal data block plugin together with the packaging boilerplate (entry point declaration, test scaffolding, and a working `pyproject.toml`).
-Rather than forking the repository, you should use it directly with Copier to
-generate a new plugin repository; see the README in the [datalab-org/datalab-app-plugin-template](https://github.com/datalab-org/datalab-app-plugin-template) repository for full instructions.
-
-For custom item types, use the
-[`Matgenix/datalab-item-plugin-template`](https://github.com/Matgenix/datalab-item-plugin-template).
-Its generated repositories retain `.copier-answers.yml`, so template improvements can be applied
-later with `uvx copier update`. Two worked repositories demonstrate the supported rendering paths:
-
-- [`datalab-item-plugin-example`](https://github.com/Matgenix/datalab-item-plugin-example)
-  uses schema annotations and requires no plugin JavaScript.
-- [`datalab-item-plugin-example-custom-vue`](https://github.com/Matgenix/datalab-item-plugin-example-custom-vue)
-  provides a custom Vue panel and references the first example's `solutions` items.
-
-## Installing plugins
+## Installing and maintaining plugins
 
 Plugins are declared in a `plugins.toml` file at the root of the repository (alongside `pydatalab/` and `webapp/`).
 The format mirrors the relevant fragments of `pyproject.toml`, and a generated JSON Schema describing the expected structure is checked in at `pydatalab/schemas/plugin_config.json`:
@@ -57,7 +51,14 @@ datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-
 my-local-plugin = { path = "../my-local-plugin", editable = true }
 ```
 
-To install *datalab* together with the declared plugins:
+Use the exact distribution name and any required extras from the plugin's own
+installation guide. Preserve existing entries when adding another plugin. Pin
+production Git sources to a reviewed tag or commit; use editable path sources
+only for local development.
+
+Before installation or upgrade, review the plugin's source, dependencies,
+frontend assets, release provenance, configuration, and any companion service
+artifacts. Then install *datalab* together with the declared plugins:
 
 ```shell
 cd pydatalab
@@ -75,11 +76,53 @@ Pass `--no-dev` to skip dev dependencies (used by the production Docker build).
 
 If no `plugins.toml` is present, the task falls back to installing the base `pyproject.toml` — so it is safe to run unconditionally.
 
+For a native installation, restart the datalab API after installation so it
+discovers the plugin entry points. For Docker Compose, rebuild and recreate the
+API and webapp images using the normal deployment profile; the Docker builds run
+the same installation task and collect plugin frontend assets automatically.
+The [datalab Ansible role](https://github.com/datalab-org/datalab-ansible-terraform)
+also uses this task when a `plugins.toml` is provided.
+If a standalone tool owns a separate service, deploy that service explicitly as
+described in [Plugin-provided standalone services](deployment.md#plugin-provided-standalone-services).
+
+After the restart, confirm that the tool or other plugin feature appears and
+test it as a non-administrator user. Tool plugins are enabled by default;
+[server configuration](config.md#tools) is the single reference for disabling
+or ordering them. Plugin-specific settings remain in the plugin repository.
+
+To upgrade a plugin, review the new release, change its pinned source or version,
+rerun the installation or image build, restart the API, and repeat the check.
+Keep the previous pin so the deployment can be rolled back by restoring it and
+rebuilding.
+
+To remove a plugin, delete its dependency and source entry from `plugins.toml`,
+rerun the same installation or image build, and restart. Check the plugin's own
+guide first: removing a provider stops its code from loading, but does not
+necessarily remove plugin-owned stored data or a separately deployed service.
+
 To revert to the locked core dependencies without any plugins, run:
 
 ```shell
 uv sync --all-extras --dev
 ```
+
+## Developing plugins
+
+Use the template for the extension type rather than adding domain-specific code
+to datalab core:
+
+- For a data block, start from
+  [`datalab-app-plugin-template`](https://github.com/datalab-org/datalab-app-plugin-template)
+  and read the [Data Blocks documentation](blocks/index.md).
+- For a custom item type, start from
+  [`datalab-item-plugin-template`](https://github.com/Matgenix/datalab-item-plugin-template).
+  The [schema-driven example](https://github.com/Matgenix/datalab-item-plugin-example)
+  and [custom-Vue example](https://github.com/Matgenix/datalab-item-plugin-example-custom-vue)
+  demonstrate the two supported rendering paths.
+- For an in-app or standalone tool, follow
+  [Developing tool plugins](plugin-development/tool-plugin.md). That guide owns
+  the provider contract, selected-items actions, testing, packaging, and release
+  workflow; the UI-specific tutorials build complete minimal examples.
 
 ## Custom item types
 
@@ -390,8 +433,3 @@ must be shared with the webapp (`vue`, `vuex`, `vue-router`, `primevue`, `@prime
   "peerDependencies": { "vue": "^3.5.0" }
 }
 ```
-
-## Deployment integration
-
-The same `invoke dev.install` task is used by both Docker API images (`.docker/server/Dockerfile`): a `plugins.toml` at the repository root is picked up automatically at build time, and both frontend profiles collect panels from the corresponding plugin-enabled API image. Plugins can therefore be baked into a complete deployment without modifying either Dockerfile.
-It will also be invoked from the [*datalab* Ansible role](https://github.com/datalab-org/datalab-ansible-terraform) to provision plugins on a deployed server when a `plugins.toml` is provided; see the role documentation for details.

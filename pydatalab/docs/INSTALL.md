@@ -133,16 +133,11 @@ You could also use the standard library `venv` module, but this will not allow y
 
 ###### Installing with plugins
 
-If you would like to install *datalab* together with one or more plugins (e.g., custom data blocks from a third-party repository or a local checkout), create a `plugins.toml` file at the root of the repository (alongside `pydatalab/` and `webapp/`) declaring the plugin packages and their sources, then run:
-
-```shell
-cd pydatalab
-uv run invoke dev.install
-```
-
-This merges `plugins.toml` into a working copy of `pyproject.toml` under `./build/`, re-locks dependencies, installs everything into the currently active *datalab* virtual environment, and collects any custom Vue panels when the webapp source is present. No separate panel collection command is required. The same task is used by the Docker builds and can be wired into the Ansible deployment role, so the `plugins.toml` you write locally is the same artifact used in production.
-
-See the [plugins documentation](plugins.md) for the `plugins.toml` format and a full description of the install procedure.
+Plugins are optional. Follow
+[Installing and maintaining plugins](plugins.md#installing-and-maintaining-plugins)
+for the `plugins.toml` format, native and Docker behavior, verification,
+upgrades, rollback, and removal. That page is the single source for the plugin
+installation procedure.
 
 ###### Running the development server
 
