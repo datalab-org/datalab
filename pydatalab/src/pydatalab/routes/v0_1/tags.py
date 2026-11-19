@@ -4,22 +4,33 @@ import json
 from bson import ObjectId
 from bson.errors import InvalidId
 from flask import Blueprint, abort, jsonify, request
-from flask_login import current_user
 from pydantic import ValidationError
 from werkzeug.exceptions import BadRequest, Conflict, Forbidden, NotFound, Unauthorized
 
 from pydatalab.feature_flags import FEATURE_FLAGS
 from pydatalab.logger import logged_route
 from pydatalab.models.tags import Tag, TagAccessScope
-from pydatalab.models.utils import UserRole
 from pydatalab.mongo import (
     TAGS_FTS_FIELDS,
     build_search_pipeline,
     flask_mongo,
+    inline_tag_owner_display,
     insert_pydantic_model_fork_safe,
 )
-from pydatalab.permissions import active_users_or_get_only
-from pydatalab.tags import get_usable_tags_filter
+from pydatalab.permissions import (
+    active_users_or_get_only,
+    current_user_group_ids,
+    current_user_id,
+    get_managed_group_ids,
+    is_admin,
+    is_group_manager,
+)
+from pydatalab.tags import (
+    can_manage_tag,
+    delete_tags_and_references,
+    get_listable_tags_filter,
+    get_usable_tags_filter,
+)
 
 TAGS = Blueprint("tags", __name__)
 
@@ -44,18 +55,6 @@ def _parse_object_id(raw: str) -> ObjectId | None:
         return None
 
 
-def _is_admin() -> bool:
-    """Whether the current user is an authenticated administrator."""
-    return bool(current_user.is_authenticated and current_user.role == UserRole.ADMIN)
-
-
-def _current_user_id() -> ObjectId | None:
-    """The immutable ID of the current user, or None if unauthenticated."""
-    if current_user.is_authenticated and current_user.person is not None:
-        return current_user.person.immutable_id
-    return None
-
-
 def _name_conflict_exists(
     name: str,
     scope: TagAccessScope,
@@ -64,10 +63,11 @@ def _name_conflict_exists(
 ) -> bool:
     """Whether a tag with `name` already exists within the given scope.
 
-    The same name may exist across scopes (e.g. a global `x` and a user-defined `x`).
+    The same name may exist across scopes (e.g. a global `x` and a user-defined `x`),
+    and across owners within the user and group scopes.
     """
     query: dict = {"name": name, "scope": scope.value}
-    if scope == TagAccessScope.USER:
+    if scope in (TagAccessScope.USER, TagAccessScope.GROUP):
         query["owner"] = owner
 
     if exclude_id is not None:
@@ -76,15 +76,21 @@ def _name_conflict_exists(
     return flask_mongo.db.tags.find_one(query, {"_id": 1}) is not None
 
 
-def _authorize_tag_write(tag_doc: dict) -> bool:
-    """Whether the current user may edit or delete the given tag document.
-
-    Global tags require an administrator; user-defined tags require the owner.
+def _resolve_group_tag_owner(raw_owner) -> ObjectId:
+    """Validate the owning group requested for a group tag and check that the current
+    user may create tags for it (an administrator or one of its managers).
     """
-    if tag_doc["scope"] == TagAccessScope.USER.value:
-        user_id = _current_user_id()
-        return user_id is not None and tag_doc.get("owner") == user_id
-    return _is_admin()
+    group_id = _parse_object_id(raw_owner) if isinstance(raw_owner, str) else None
+    if group_id is None:
+        raise BadRequest("A group tag requires the ID of its group as `owner`.")
+
+    if flask_mongo.db.groups.find_one({"_id": group_id}, {"_id": 1}) is None:
+        raise BadRequest(f"No group found with ID {raw_owner!r}.")
+
+    if not (is_admin() or is_group_manager(group_id, current_user_id())):
+        raise Forbidden("Only administrators and the group's managers can create group tags.")
+
+    return group_id
 
 
 @TAGS.route("/tags", methods=["PUT"])
@@ -92,7 +98,11 @@ def create_tag():
     """Create a new tag.
 
     Anyone logged in can create a user-defined tag. Only administrators can create
-    global tags.
+    global tags. Group tags can be created by administrators and by the managers of
+    the group, whose ID must be given as `owner`.
+
+    The returned tag carries `can_manage` (always true for its creator) and, for user
+    and group tags, the `owner_name` of the owning user or group.
     """
     request_json = request.get_json()
     data = request_json.get("data", {})
@@ -107,11 +117,15 @@ def create_tag():
         raise BadRequest(f"Invalid tag scope {data.get('scope')!r}.")
 
     if scope == TagAccessScope.GLOBAL:
-        if not _is_admin():
+        if not is_admin():
             raise Forbidden("Only administrators can create global tags.")
         owner = None
+    elif scope == TagAccessScope.GROUP:
+        if current_user_id() is None:
+            raise Unauthorized("You must be logged in to create a group tag.")
+        owner = _resolve_group_tag_owner(data.get("owner"))
     else:
-        owner = _current_user_id()
+        owner = current_user_id()
         if owner is None:
             raise Unauthorized("You must be logged in to create a user-defined tag.")
 
@@ -132,14 +146,60 @@ def create_tag():
 
     tag.immutable_id = insert_pydantic_model_fork_safe(tag, "tags")
 
-    return jsonify({"status": "success", "data": json.loads(tag.model_dump_json())}), 201
+    data = json.loads(tag.model_dump_json())
+    data["can_manage"] = True
+    inline_tag_owner_display([data])
+
+    return jsonify({"status": "success", "data": data}), 201
 
 
 @TAGS.route("/tags", methods=["GET"])
 def get_tags():
-    """Return the tags usable by the current user: global tags plus their own."""
-    tags = flask_mongo.db.tags.find(get_usable_tags_filter(_current_user_id())).sort("name", 1)
-    data = [Tag(**doc).model_dump(mode="json") for doc in tags]
+    """Return the tags the current user may list.
+
+    These are the tags they may use (global tags, their own user-defined tags and the
+    tags of the groups they belong to) plus the group tags they may manage without
+    being a member (those of the groups they manage, or all of them for
+    administrators). Administrators in super-user mode (`?sudo=1`) get all tags.
+
+    Each tag carries `can_manage` (whether the current user may edit and delete it)
+    and, for user and group tags, the `owner_name` of the owning user or group.
+    """
+    managed_group_ids = get_managed_group_ids(current_user_id())
+    tags = flask_mongo.db.tags.find(get_listable_tags_filter(managed_group_ids)).sort("name", 1)
+
+    data = []
+    for doc in tags:
+        tag = Tag(**doc).model_dump(mode="json")
+        tag["can_manage"] = can_manage_tag(doc, managed_group_ids)
+        data.append(tag)
+    inline_tag_owner_display(data)
+
+    return jsonify({"status": "success", "data": data})
+
+
+@TAGS.route("/tags/manageable-groups", methods=["GET"])
+def get_manageable_tag_groups():
+    """Return the groups the current user may create group tags for: the groups they
+    manage, or all groups for administrators.
+    """
+    user_id = current_user_id()
+    if user_id is None:
+        return jsonify({"status": "success", "data": []})
+
+    query = {} if is_admin() else {"managers": user_id}
+    groups = flask_mongo.db.groups.find(
+        query, projection={"_id": 1, "display_name": 1, "group_id": 1}
+    ).sort("display_name", 1)
+
+    data = [
+        {
+            "immutable_id": str(group["_id"]),
+            "display_name": group.get("display_name"),
+            "group_id": group.get("group_id"),
+        }
+        for group in groups
+    ]
     return jsonify({"status": "success", "data": data})
 
 
@@ -153,8 +213,8 @@ def search_tags():
 
     Returns:
         A list of `{type, immutable_id, name, description, color, scope}`
-        dictionaries in order of descending match score, suitable for use as tag
-        references.
+        dictionaries (plus `owner_name` for user and group tags) in order of descending match
+        score, suitable for use as tag references.
     """
     query = request.args.get("query", type=str)
     nresults = request.args.get("nresults", default=100, type=int)
@@ -163,13 +223,21 @@ def search_tags():
         raise BadRequest("No query provided.")
 
     pipeline = build_search_pipeline(
-        query, TAGS_FTS_FIELDS, get_usable_tags_filter(_current_user_id())
+        query,
+        TAGS_FTS_FIELDS,
+        get_usable_tags_filter(current_user_id(), current_user_group_ids()),
     )
     pipeline.append({"$limit": nresults})
-    pipeline.append({"$project": {"_id": 1, "name": 1, "description": 1, "color": 1, "scope": 1}})
+    pipeline.append(
+        {"$project": {"_id": 1, "name": 1, "description": 1, "color": 1, "scope": 1, "owner": 1}}
+    )
 
-    data = [
-        {
+    docs = list(flask_mongo.db.tags.aggregate(pipeline))
+    inline_tag_owner_display(docs)
+
+    data = []
+    for doc in docs:
+        result = {
             "type": "tags",
             "immutable_id": str(doc["_id"]),
             "name": doc.get("name"),
@@ -177,19 +245,56 @@ def search_tags():
             "color": doc.get("color"),
             "scope": doc["scope"],
         }
-        for doc in flask_mongo.db.tags.aggregate(pipeline)
-    ]
+        if "owner_name" in doc:
+            result["owner_name"] = doc["owner_name"]
+        data.append(result)
 
     return jsonify({"status": "success", "data": data}), 200
+
+
+def _requested_scope_change(tag: dict, data: dict) -> tuple[TagAccessScope, ObjectId | None] | None:
+    """The new `(scope, owner)` requested for an existing tag by `data`, or None if
+    `data` does not change them.
+
+    A tag can be moved to the global scope or to a group (whose ID is given as `owner`),
+    but not to the user scope. Raises `BadRequest` for an invalid target.
+    """
+    if "scope" not in data:
+        return None
+
+    try:
+        scope = TagAccessScope(data["scope"])
+    except ValueError:
+        raise BadRequest(f"Invalid tag scope {data['scope']!r}.")
+
+    if scope.value == tag["scope"]:
+        if scope != TagAccessScope.GROUP:
+            return None
+        # Same scope: only moving a group tag to another group is a change.
+        raw_owner = data.get("owner")
+        if raw_owner is None or str(raw_owner) == str(tag.get("owner")):
+            return None
+
+    if scope == TagAccessScope.USER:
+        raise BadRequest("A tag cannot be moved to the user scope.")
+
+    owner = None if scope == TagAccessScope.GLOBAL else _resolve_group_tag_owner(data.get("owner"))
+    return scope, owner
 
 
 @TAGS.route("/tags/<tag_id>", methods=["PATCH"])
 @logged_route
 def save_tag(tag_id):
-    """Update a tag's `name`/`description`/`color`.
+    """Update a tag's `name`/`description`/`color` and, for administrators, its scope.
 
-    Global tags may only be edited by administrators; user-defined tags only by their
-    owner.
+    Administrators may edit any tag; otherwise, user-defined tags may only be edited by
+    their owner and group tags by the group's managers.
+
+    Administrators can also change the tag's scope by giving `scope` (`"global"` or
+    `"group"`) and, for group tags, the group's immutable ID as `owner`, e.g. to promote
+    a user-defined tag. Tags cannot be moved to the user scope. Items reference tags by
+    ID, so tagged items keep the tag. The tag's name must not clash with another tag in
+    the target scope.
     """
     object_id = _parse_object_id(tag_id)
     if object_id is None:
@@ -206,22 +311,30 @@ def save_tag(tag_id):
     if not tag:
         raise NotFound(f"Unable to find a tag with ID {tag_id!r}.")
 
-    if not _authorize_tag_write(tag):
+    if not can_manage_tag(tag, get_managed_group_ids(current_user_id())):
         raise Forbidden("You are not allowed to modify this tag.")
 
-    # Identity, scope and ownership are not editable through this endpoint.
+    # Only administrators can change the scope and ownership.
+    scope_change = _requested_scope_change(tag, updated_data)
+    if scope_change is not None and not is_admin():
+        raise Forbidden("Only administrators can change the scope of a tag.")
+
+    # Identity is not editable; scope and ownership are only set from `scope_change`.
     for key in ("_id", "immutable_id", "type", "scope", "owner"):
         updated_data.pop(key, None)
 
+    if scope_change is not None:
+        updated_data["scope"], updated_data["owner"] = scope_change
+
     updated_data["last_modified"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
-    # Keep names unique within the tag's own scope on rename.
-    if "name" in updated_data:
-        scope = TagAccessScope(tag["scope"])
-        if _name_conflict_exists(
-            updated_data["name"], scope, tag.get("owner"), exclude_id=object_id
-        ):
-            raise Conflict(f"A tag named {updated_data['name']!r} already exists.")
+    # Keep names unique within the tag's (possibly new) scope on rename or scope change.
+    if "name" in updated_data or scope_change is not None:
+        name = updated_data.get("name", tag["name"])
+        scope = TagAccessScope(updated_data.get("scope", tag["scope"]))
+        owner = updated_data["owner"] if "owner" in updated_data else tag.get("owner")
+        if _name_conflict_exists(name, scope, owner, exclude_id=object_id):
+            raise Conflict(f"A tag named {name!r} already exists.")
 
     tag.update(updated_data)
 
@@ -249,8 +362,8 @@ def save_tag(tag_id):
 def delete_tag(tag_id: str):
     """Delete a tag and drop its references from items.
 
-    Global tags may only be deleted by administrators; user-defined tags only by
-    their owner.
+    Administrators may delete any tag; otherwise, user-defined tags may only be
+    deleted by their owner and group tags by the group's managers.
     """
     object_id = _parse_object_id(tag_id)
     if object_id is None:
@@ -261,22 +374,10 @@ def delete_tag(tag_id: str):
     if not tag:
         raise NotFound(f"No tag found with ID {tag_id!r}.")
 
-    if not _authorize_tag_write(tag):
+    if not can_manage_tag(tag, get_managed_group_ids(current_user_id())):
         raise Forbidden("You are not allowed to delete this tag.")
 
-    flask_mongo.db.tags.delete_one({"_id": object_id})
-
-    # Best-effort cleanup: drop references to the deleted tag from items' `tags`
-    # arrays. Like collection deletion, this is a raw update that does NOT go
-    # through the item save route, so it neither bumps `last_modified` nor creates
-    # a new item version.
-    #
-    # This hardcodes `items` as the only `HasTags` collection. Extend it if
-    # `HasTags` is applied to other entities. Note that references are not deleted
-    # from item_versions, so a reference to a deleted tag can survive there.
-    flask_mongo.db.items.update_many(
-        {"tags": {"$elemMatch": {"immutable_id": object_id, "type": "tags"}}},
-        {"$pull": {"tags": {"immutable_id": object_id, "type": "tags"}}},
-    )
+    # Best-effort cleanup: also drops references to the deleted tag from items.
+    delete_tags_and_references([object_id])
 
     return jsonify(status="success"), 200

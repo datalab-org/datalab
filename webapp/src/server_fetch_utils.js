@@ -620,8 +620,9 @@ export function searchCollections(query, nresults = 100) {
 }
 
 export function createTag(data) {
-  // data: { name, description?, color?, scope? }. `scope` is "user" (user-defined,
-  // default) or "global" (admins only). The caller refreshes the list via
+  // data: { name, description?, color?, scope?, owner? }. `scope` is "user" (user-defined,
+  // default), "global" (admins only) or "group" (admins and the group's managers), in which
+  // case `owner` is the group's immutable_id. The caller refreshes the list via
   // getTags(). Rejects with the server message on error (e.g. 409 duplicate name).
   return fetch_put(`${API_URL}/tags`, { data }).then(function (response_json) {
     return response_json.data;
@@ -629,7 +630,8 @@ export function createTag(data) {
 }
 
 export function updateTag(tagId, data) {
-  // Update a tag's metadata (name/description/color). Rejects with the server message (e.g. 409).
+  // Update a tag's metadata (name/description/color) and, for administrators, its scope
+  // (`scope` and, for group tags, `owner`). Rejects with the server message (e.g. 409).
   return fetch_patch(`${API_URL}/tags/${tagId}`, { data });
 }
 
@@ -662,6 +664,14 @@ export function getTags() {
         throw error;
       }
     });
+}
+
+export function getManageableTagGroups() {
+  // The groups the current user may create group tags for: the groups they manage, or all
+  // groups for administrators. Resolves to `[{ immutable_id, display_name, group_id }]`.
+  return fetch_get(`${API_URL}/tags/manageable-groups`).then(function (response_json) {
+    return response_json.data;
+  });
 }
 
 export function searchTags(query, nresults = 100) {

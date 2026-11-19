@@ -38,14 +38,10 @@ export default {
     };
   },
   computed: {
-    // Global tags are managed by administrators; user-defined tags only
-    // by their owner.
+    // Whether the current user may edit and delete the tag is decided by the server
+    // (`can_manage` on each row of GET /tags), which also enforces it.
     canManage() {
-      const isAdmin = this.$store.state.currentUserRole === "admin";
-      if (this.tag.scope === "user") {
-        return this.tag.owner === this.$store.state.currentUserID;
-      }
-      return isAdmin;
+      return Boolean(this.tag.can_manage);
     },
   },
   methods: {

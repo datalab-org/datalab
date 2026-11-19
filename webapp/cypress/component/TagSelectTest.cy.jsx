@@ -68,4 +68,41 @@ describe("TagSelect.vue", () => {
 
     cy.get(".vs__selected").should("contain", "test-tag");
   });
+
+  it("marks group tags with their group's name and keeps it on the reference", () => {
+    const groupTag = {
+      type: "tags",
+      immutable_id: "0123456789ab0123456789ac",
+      name: "team-tag",
+      description: null,
+      color: null,
+      scope: "group",
+      owner_name: "Demo Group",
+    };
+    cy.intercept("GET", "**/search-tags*", {
+      body: { status: "success", data: [groupTag] },
+    }).as("searchGroupTags");
+
+    cy.mount(TagSelect, {
+      props: { modelValue: [], "onUpdate:modelValue": cy.spy().as("update") },
+    });
+
+    cy.get(".vs__search").type("team");
+    cy.wait("@searchGroupTags");
+    cy.get('.vs__dropdown-option [data-testid="tag-scope-badge"]').should(
+      "contain",
+      "group: Demo Group",
+    );
+    cy.get(".vs__dropdown-option").contains("team-tag").click();
+
+    cy.get("@update").should("have.been.calledWith", [
+      {
+        type: "tags",
+        immutable_id: groupTag.immutable_id,
+        name: "team-tag",
+        scope: "group",
+        owner_name: "Demo Group",
+      },
+    ]);
+  });
 });

@@ -1,11 +1,7 @@
 <template>
-  <span
-    class="badge badge-pill"
-    :class="isUserDefined ? 'badge-info' : 'badge-secondary'"
-    data-testid="tag-scope-badge"
-  >
-    <font-awesome-icon v-if="isUserDefined" :icon="['fas', 'user']" class="mr-1" />
-    {{ isUserDefined ? "User-defined" : "Global" }}
+  <span class="badge badge-pill" :class="badgeClass" data-testid="tag-scope-badge">
+    <font-awesome-icon v-if="icon" :icon="['fas', icon]" class="mr-1" />
+    {{ label }}
   </span>
 </template>
 
@@ -13,15 +9,30 @@
 export default {
   name: "TagScopeBadge",
   props: {
-    // A tag row from GET /tags, carrying `scope` ("global" | "user").
+    // A tag row from GET /tags, carrying `scope` ("global" | "user" | "group") and, for
+    // user and group tags, the display-only `owner_name`.
     tag: {
       type: Object,
       required: true,
     },
   },
   computed: {
-    isUserDefined() {
-      return this.tag.scope === "user";
+    badgeClass() {
+      return (
+        {
+          user: "badge-info",
+          group: "badge-dark",
+        }[this.tag.scope] || "badge-secondary"
+      );
+    },
+    icon() {
+      return { user: "user", group: "users" }[this.tag.scope] || null;
+    },
+    label() {
+      const base = { user: "User-defined", group: "Group" }[this.tag.scope] || "Global";
+      return this.tag.owner_name && this.tag.scope !== "global"
+        ? `${base}: ${this.tag.owner_name}`
+        : base;
     },
   },
 };
