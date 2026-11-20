@@ -71,7 +71,10 @@ export default defineConfig(({ mode }) => {
     envPrefix: "VUE_APP_",
     plugins: [
       customComponents(),
-      vue(),
+      // Leave absolute URLs in templates (e.g., `/custom/logo.png`) as plain links (as vue-cli
+      // did previously) rather than resolving them at build time: files in `public/custom/` may only be
+      // added after the build (e.g., in the production Docker stage) and are served as-is
+      vue({ template: { transformAssetUrls: { includeAbsolute: false } } }),
       // The component tests are written in JSX
       vueJsx(),
       htmlSettings(env),
