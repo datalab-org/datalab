@@ -1,8 +1,4 @@
 // Visual check for the EditPage navbar across screen sizes.
-// Screenshots land in cypress/screenshots/navbarResponsive.cy.js/.
-// Run headed to watch it live:  npx cypress open --e2e   (pick this spec)
-// Or headless for the screenshots: npx cypress run --spec cypress/e2e/navbarResponsive.cy.js
-// Needs the dev server (:8080) and API (:5001) running, like the other e2e specs.
 
 const itemId = "navbar_responsive_demo";
 // A deliberately long name so the brand has something to truncate.

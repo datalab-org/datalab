@@ -61,8 +61,10 @@ function htmlSettings(env) {
 export default defineConfig(({ mode }) => {
   // Includes the `VUE_APP_*` variables set in the environment, which take precedence
   const env = loadEnv(mode, process.cwd(), "VUE_APP_");
-  // As with vue-cli, the dev server port can be set with `PORT`, also in `.env` files
-  const port = Number(loadEnv(mode, process.cwd(), "PORT").PORT) || 8080;
+  // The dev server port can be set with `PORT`, also in `.env` files.
+  // The default here matches the Docker setup and avoids 8080, which macOS can take for its parental
+  // controls service (see #2293)
+  const port = Number(loadEnv(mode, process.cwd(), "PORT").PORT) || 8081;
   // Instrument the app for code coverage of the Cypress e2e tests (see `.nycrc.json`)
   const coverage = process.env.DATALAB_E2E_COVERAGE === "true";
 
@@ -91,7 +93,9 @@ export default defineConfig(({ mode }) => {
       // Many imports leave out the `.vue` extension, which vue-cli resolved
       extensions: [".mjs", ".js", ".jsx", ".json", ".vue"],
     },
-    server: { port },
+    // Fail rather than move to the next free port: the API only allows cookie-authenticated
+    // requests from the origin set in its `APP_URL`, so a different port gives CORS errors
+    server: { port, strictPort: true },
     preview: { port },
     build: {
       rolldownOptions: {

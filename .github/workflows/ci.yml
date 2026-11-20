@@ -459,7 +459,7 @@ jobs:
           uv sync --locked --all-extras --dev
           # Enable the tags feature, and point login redirects at the dev server
           echo "PYDATALAB_ENABLE_TAGS=true" >> .env
-          echo "PYDATALAB_APP_URL=http://localhost:8080" >> .env
+          echo "PYDATALAB_APP_URL=http://localhost:8081" >> .env
 
       - name: Start API
         working-directory: ./pydatalab
@@ -492,7 +492,7 @@ jobs:
           working-directory: ./webapp
           install: false
           spec: ${{ steps.specs.outputs.specs }}
-          wait-on: "http://localhost:8080, http://localhost:5001/healthcheck/is_ready"
+          wait-on: "http://localhost:8081, http://localhost:5001/healthcheck/is_ready"
           wait-on-timeout: 300
           record: ${{ github.repository == 'datalab-org/datalab' }}
           browser: ${{ matrix.browser-backend == 'chrome' && steps.setup-chrome.outputs.chrome-path || matrix.browser-backend }}
