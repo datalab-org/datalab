@@ -131,6 +131,47 @@ docker compose --file docker-compose.prod.yml --profile prod build
 docker compose --file docker-compose.prod.yml --profile prod up
 ```
 
+### Using prebuilt images
+
+Images for the API and web app are published to the GitHub Container Registry as `ghcr.io/datalab-org/datalab-server-api` and `ghcr.io/datalab-org/datalab-app`, with the following tags:
+
+| Tag | Contents |
+| --- | --- |
+| `v0.8.0` | A specific release (including prereleases); use this for production deployments. |
+| `latest` | The newest stable release. |
+| `nightly` | The latest commit on `main`, rebuilt daily when there are new commits. |
+| `sha-<12 characters>` | A specific commit that has been built. |
+| `buildcache` | Build cache for rebuilding the images, not a runnable image. |
+
+To use these, replace the `build` sections in your `docker-compose.prod.yml` with `image`.
+No database image is published, so use the upstream MongoDB image with a healthcheck, which the API waits for:
+
+```yaml
+services:
+  app:
+    image: ghcr.io/datalab-org/datalab-app:v0.8.0
+  api:
+    image: ghcr.io/datalab-org/datalab-server-api:v0.8.0
+  database:
+    image: mongo:8-noble
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.runCommand('ping').ok\""]
+      start_period: 180s
+      start_interval: 1s
+```
+
+The images do not contain any deployment configuration:
+
+- Server settings can be passed to the API container as environment variables (e.g., with `env_file`).
+- A server config file must be mounted into the API container at `/app/config.json` (or wherever [`PYDATALAB_CONFIG_FILE`](config.md) points).
+- `VUE_APP_*` settings are read when the app container starts ([`VUE_APP_API_URL`](config.md) is required).
+- Static files, such as logos and CSS, can be mounted at `/app/dist/custom` in the app container.
+
+Plugins and custom Vue components have to be built into the images, so deployments that use them should build the images as described above.
+
+The API image includes GPL-licensed components, such as `datalab-org-galvani` and some of the Debian system packages, in addition to the MIT-licensed *datalab* code.
+Each image has an SBOM attached that lists its contents and their licenses, which can be read with `docker buildx imagetools inspect <image> --format '{{ json .SBOM }}'`.
+
 ### Updating a *datalab* instance
 
 As *datalab* is still under active development, it should be desirable to keep up-to-date with the latest features and fixes.
