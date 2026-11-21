@@ -65,7 +65,6 @@ jobs:
 
     strategy:
       fail-fast: false
-      max-parallel: 2
       matrix:
         python-version: ["3.11"]
 
@@ -223,7 +222,7 @@ jobs:
           curl -s http://localhost:5001/api/info/blocks | jq -e '.data | any(.id == "chat")'
           # Test that the whinchat panel was compiled into the app bundle; `markdown-it` is
           # only a dependency of the panel, so this also checks plugin JS deps were installed
-          docker compose exec -T app sh -c 'grep -q "markdown-it" /app/dist/js/*.js'
+          docker compose exec -T app sh -c 'grep -q "markdown-it" /app/dist/assets/*.js'
 
       - name: Add static custom files
         run: |
@@ -259,9 +258,9 @@ jobs:
             }
           ' custom-files-build.log
 
-          step="$(grep -m1 -E '^#[0-9]+ \[.*\] RUN .*vue-cli-service build' custom-files-build.log | cut -d' ' -f1)"
+          step="$(grep -m1 -E '^#[0-9]+ \[.*\] RUN .*vite build' custom-files-build.log | cut -d' ' -f1)"
           if [ -z "$step" ]; then
-            echo "::error::Could not find the vue-cli-service build step in the build log; has the Dockerfile changed?"
+            echo "::error::Could not find the vite build step in the build log; has the Dockerfile changed?"
             exit 1
           fi
           if ! grep -qx "$step CACHED" custom-files-build.log; then
@@ -353,7 +352,7 @@ jobs:
       - name: Start dev services
         run: |
           # Boot the hot-reloading dev profile and block on healthchecks
-          # (webpack dev server compiled, API answering /healthcheck/is_ready).
+          # (Vite dev server up, API answering /healthcheck/is_ready).
           docker compose --profile dev up --no-build --force-recreate -d --wait
 
       - name: Check the dev API and app respond
@@ -381,7 +380,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser-backend: ["electron", "chrome"] # , "firefox"]  # Temporarily disable Firefox until migration to Cypress v14 (https://github.com/datalab-org/datalab/issues/1289)
+        browser-backend: ["electron", "chrome" , "firefox"]
         shard: [1, 2, 3]
 
     services:
@@ -392,7 +391,7 @@ jobs:
           - 27017:27017
 
     env:
-      # Instrument the app and collect its coverage (see `webapp/babel.config.js`)
+      # Instrument the app and collect its coverage (see `webapp/vite.config.mjs`)
       DATALAB_E2E_COVERAGE: "true"
 
     steps:
@@ -409,8 +408,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       # Caching the installed dependencies (and the Cypress binary) rather than the yarn
-      # download cache skips the ~40 s install entirely. Like the webpack cache below, this is
-      # only saved on `main`, so PRs changing `yarn.lock` don't fill the shared 10 GB cache.
+      # download cache skips the ~40 s install entirely. This is only saved on `main`, so PRs
+      # changing `yarn.lock` don't fill the shared 10 GB cache.
       - name: Restore web app dependencies
         id: node-modules
         uses: actions/cache/restore@v6
@@ -438,21 +437,10 @@ jobs:
             ~/.cache/Cypress
           key: ${{ steps.node-modules.outputs.cache-primary-key }}
 
-      - name: Restore webpack cache
-        uses: actions/cache/restore@v6
-        with:
-          path: webapp/node_modules/.cache/webpack
-          key: e2e-webpack-${{ runner.os }}-${{ github.sha }}
-          restore-keys: e2e-webpack-${{ runner.os }}-
-
-      # Started first, so that the other steps run while webpack compiles the app
+      # Started first, so that the other steps run while Vite starts up
       - name: Start web app
         working-directory: ./webapp
-        env:
-          # `.env.test_e2e` sets `production`, which also minifies the app (~30 s)
-          NODE_ENV: development
-          DATALAB_WEBPACK_CACHE: "true"
-        run: nohup yarn serve --mode test_e2e > "$RUNNER_TEMP/app.log" 2>&1 &
+        run: nohup yarn serve > "$RUNNER_TEMP/app.log" 2>&1 &
 
       - name: Set up minimum Python
         uses: actions/setup-python@v7
@@ -469,24 +457,15 @@ jobs:
         working-directory: ./pydatalab
         run: |
           uv sync --locked --all-extras --dev
-          # Enable the tags feature (the frontend flag is in `.env.test_e2e`), and point
-          # login redirects at the dev server
+          # Enable the tags feature, and point login redirects at the dev server
           echo "PYDATALAB_ENABLE_TAGS=true" >> .env
-          echo "PYDATALAB_APP_URL=http://localhost:8080" >> .env
+          echo "PYDATALAB_APP_URL=http://localhost:8081" >> .env
 
       - name: Start API
         working-directory: ./pydatalab
         # Logged to a file rather than the test output; errors are shown below
         run: nohup uv run invoke dev.serve --testing --no-reload > "$RUNNER_TEMP/api.log" 2>&1 &
 
-      # Chrome 155 (runner image 20261012) makes the e2e tests very flaky with Cypress 13,
-      # so pin the previous major version until Cypress can be upgraded
-      - name: Install pinned Chrome
-        if: matrix.browser-backend == 'chrome'
-        id: setup-chrome
-        uses: browser-actions/setup-chrome@v2
-        with:
-          chrome-version: "154"
 
       - name: Select specs for this shard
         id: specs
@@ -513,7 +492,7 @@ jobs:
           working-directory: ./webapp
           install: false
           spec: ${{ steps.specs.outputs.specs }}
-          wait-on: "http://localhost:8080, http://localhost:5001/healthcheck/is_ready"
+          wait-on: "http://localhost:8081, http://localhost:5001/healthcheck/is_ready"
           wait-on-timeout: 300
           record: ${{ github.repository == 'datalab-org/datalab' }}
           browser: ${{ matrix.browser-backend == 'chrome' && steps.setup-chrome.outputs.chrome-path || matrix.browser-backend }}
@@ -530,15 +509,6 @@ jobs:
       - name: Show web app log
         if: failure()
         run: tail -n 100 "$RUNNER_TEMP/app.log"
-
-      # One job on `main` saves the webpack cache (restored by prefix, so PRs use the latest
-      # from `main`); the dev server writes it shortly after its first compile
-      - name: Save webpack cache
-        if: github.ref == 'refs/heads/main' && matrix.browser-backend == 'electron' && matrix.shard == 1
-        uses: actions/cache/save@v6
-        with:
-          path: webapp/node_modules/.cache/webpack
-          key: e2e-webpack-${{ runner.os }}-${{ github.sha }}
 
       # The raw coverage of this shard, merged with the others in `e2e-coverage`
       - name: Upload e2e coverage data
@@ -632,14 +602,17 @@ jobs:
 
       - name: Set some environment variables for CI containers pre-build
         run: |
-          cp webapp/.env.test_e2e .env
+          # The prod app container requires the API URL, and the API needs the origin
+          # Cypress drives the app from to allow its cookie-authenticated requests (CORS)
+          echo "VUE_APP_API_URL=http://localhost:5001" >> .env
+          echo "PYDATALAB_APP_URL=http://localhost:8081" >> .env
           # An explicit secret key, so that the login tokens minted by `dev.seed-e2e-users`
           # inside the API container are signed with the same key as the server uses
           secret_key=$(openssl rand -hex 32)
           for f in .env pydatalab/.env; do
             echo "PYDATALAB_TESTING=true" >> $f
             echo "PYDATALAB_SECRET_KEY=$secret_key" >> $f
-            # Enable the tags feature for the e2e backend (frontend flag is in .env.test_e2e).
+            # Enable the tags feature for the e2e backend
             echo "PYDATALAB_ENABLE_TAGS=true" >> $f
           done
 
@@ -696,9 +669,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: 2
       matrix:
-        browser-backend: ["electron", "chrome"]
+        browser-backend: ["electron", "chrome", "firefox"]
 
     steps:
       - uses: actions/checkout@v7

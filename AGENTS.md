@@ -58,7 +58,7 @@ cd webapp
 # Install dependencies
 yarn install
 
-# Run development server (serves at localhost:8081)
+# Run development server (serves at localhost:8081 by default)
 yarn serve
 
 # Build for production
@@ -70,9 +70,9 @@ yarn lint
 # Run component tests
 yarn test:component
 
-# Run e2e tests (requires backend at localhost:5001)
+# Run e2e tests (requires the dev server at localhost:8081 and backend at localhost:5001 by default)
 yarn test:e2e
-yarn test:e2e --headless
+yarn test:e2e:headless
 ```
 
 ### Pre-commit Hooks

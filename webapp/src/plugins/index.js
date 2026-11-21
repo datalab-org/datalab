@@ -9,11 +9,9 @@
 // extension points below, keyed by item type and blocktype respectively.
 const PLUGIN_API_VERSION = 1;
 
-let generatedModule = {};
-const generated = require.context(".", false, /panels\.generated\.js$/);
-if (generated.keys().includes("./panels.generated.js")) {
-  generatedModule = generated("./panels.generated.js");
-}
+// A glob, rather than an import, so that the build does not fail when the file is missing
+const generated = import.meta.glob("./panels.generated.js", { eager: true });
+const generatedModule = generated["./panels.generated.js"] || {};
 
 const manifests = [
   ...(generatedModule.PLUGINS || []),

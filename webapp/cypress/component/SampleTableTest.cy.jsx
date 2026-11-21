@@ -1104,6 +1104,10 @@ describe("SampleTable with many messy rows", () => {
         plugins: [store, [PrimeVue, { theme: DatalabPreset }]],
         config: { globalProperties: { $filters: { IsoDatetimeToDate } } },
         components: { UserBubble, StyledTooltip },
+        // Vue Test Utils replaces `<transition>` with a `<transition-stub>` element by default,
+        // so the (empty) transitions that the column filter overlays teleport to <body> would
+        // be counted as elements there, unlike in the app
+        stubs: { transition: false },
       },
     });
     cy.get(".p-datatable-tbody > tr").should("have.length", NUM_ROWS);

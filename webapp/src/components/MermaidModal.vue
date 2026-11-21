@@ -49,6 +49,7 @@
 
 <script>
 import Modal from "@/components/Modal.vue";
+import { loadMermaid } from "@/utils/mermaid.js";
 
 export default {
   components: { Modal },
@@ -101,32 +102,20 @@ export default {
       container.innerHTML = "";
       this.previewError = null;
 
-      let attempts = 0;
-      while (!window.mermaid && attempts < 10) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        attempts++;
-      }
-
-      if (!window.mermaid) {
+      let mermaid;
+      try {
+        mermaid = await loadMermaid();
+      } catch {
         this.previewError = "Mermaid library not loaded";
         return;
       }
 
       try {
-        if (!window.mermaid._initialized) {
-          window.mermaid.initialize({
-            startOnLoad: false,
-            theme: "default",
-            securityLevel: "sandbox",
-          });
-          window.mermaid._initialized = true;
-        }
-
         const div = document.createElement("div");
         div.textContent = this.localCode;
         container.appendChild(div);
 
-        await window.mermaid.init(undefined, div);
+        await mermaid.run({ nodes: [div] });
       } catch {
         this.previewError = "Invalid Mermaid syntax - check your code";
       }

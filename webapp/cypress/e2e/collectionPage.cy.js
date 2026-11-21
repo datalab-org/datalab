@@ -1,5 +1,4 @@
 // Smoke test for the collection page (CollectionPage.vue) and its responsive navbar.
-// Needs the dev server (:8080) and API (:5001) running, like the other e2e specs.
 
 const collectionId = "test_collection_smoke";
 
