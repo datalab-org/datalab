@@ -205,6 +205,7 @@ import { itemTypes, API_URL, customBlockTypes } from "@/resources.js";
 import BokehBlock from "@/components/datablocks/BokehBlock.vue";
 import ErrorBlock from "@/components/datablocks/ErrorBlock.vue";
 import { formatDistanceToNow } from "date-fns";
+import { loadBokeh } from "@/utils/bokeh.js";
 
 import AddBlockDropdown from "@/components/AddBlockDropdown";
 
@@ -388,6 +389,8 @@ export default {
     },
   },
   created() {
+    // Start loading BokehJS alongside the item data, rather than once a plot block renders
+    loadBokeh().catch(() => {});
     this.getBlocksInfo();
     this.getSampleData();
     this.interval = setInterval(() => this.setLastModified(), 30000);

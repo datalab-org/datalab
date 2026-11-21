@@ -159,7 +159,7 @@
 
 <script>
 import Modal from "@/components/Modal";
-import ItemGraph from "@/components/ItemGraph";
+import { ItemGraph } from "@/utils/itemGraph.js";
 import ExportProgressModal from "@/components/ExportProgressModal";
 
 import { startItemExport, createNewCollection, getItemGraph } from "@/server_fetch_utils";
