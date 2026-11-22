@@ -23,7 +23,10 @@ class UserRegistrationForbidden(Forbidden):
 <p>No user data will be stored as a result of this interaction, but you may wish to clear your cookies for this site.</p>
 
 <p>
-The OAuth identity used for registration is not on the allow list.
+The OAuth identity used for registration is not on the allow list,
+or this login method cannot be used to register new accounts on this instance.
+If you already have an account, please log in with a method you have previously
+connected to it, then connect this identity from your account settings.
 If you believe this to be an error, please first verify with the deployment manager
 that you are allowed to make an account.
 </p>

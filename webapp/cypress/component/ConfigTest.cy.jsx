@@ -27,6 +27,11 @@ describe("resolveConfig", () => {
     expect(config.LOGO_WIDTH).to.equal(250);
   });
 
+  it("shows collections by default and parses the hide collections setting", () => {
+    expect(resolveConfig({}, {}).HIDE_COLLECTIONS).to.equal(false);
+    expect(resolveConfig({ HIDE_COLLECTIONS: "TRUE" }, {}).HIDE_COLLECTIONS).to.equal(true);
+  });
+
   it("treats empty values as unset", () => {
     const config = resolveConfig({}, { WEBSITE_TITLE: "", HOMEPAGE_URL: "", API_URL: "" });
     expect(config.WEBSITE_TITLE).to.equal("datalab");

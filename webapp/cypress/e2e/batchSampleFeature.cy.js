@@ -161,6 +161,8 @@ describe("Batch sample creation", () => {
   });
 
   it("modifies some data in the first sample", () => {
+    cy.intercept("POST", "**/save-item/").as("saveItem");
+
     cy.get('[data-testid="search-input"]').type("baseA");
     cy.findByText("baseA").click();
     cy.expandIfCollapsed("[data-testid=synthesis-block]");
@@ -171,10 +173,13 @@ describe("Batch sample creation", () => {
     cy.get(".datablock-content [contenteditable]").first().type("a comment is added here.");
 
     cy.get(".fa-save").click();
+    cy.wait("@saveItem");
     cy.findByText("Home").click();
   });
 
   it("modifies some data in the second sample", () => {
+    cy.intercept("POST", "**/save-item/").as("saveItem");
+
     cy.get('[data-testid="search-input"]').type("baseB");
     cy.findByText("baseB").click();
     cy.expandIfCollapsed("[data-testid=synthesis-block]");
@@ -196,6 +201,7 @@ describe("Batch sample creation", () => {
     cy.get("#synthesis-information tbody tr:nth-of-type(2) input").eq(0).type("100");
 
     cy.get(".fa-save").click();
+    cy.wait("@saveItem");
     cy.findByText("Home").click();
   });
 
@@ -519,7 +525,7 @@ describe("Batch sample creation", () => {
     cy.get("[data-testid=batch-modal-container]").contains("Close").click();
 
     function checkCreatedSample(item_id) {
-      cy.get('[data-testid="search-input"]').type(item_id);
+      cy.get('[data-testid="search-input"]').clear().type(item_id);
       cy.contains(item_id).click();
       cy.contains("this is a description of baseB.");
       cy.get("#synthesis-information table").contains("component3");
@@ -826,7 +832,7 @@ describe("Batch cell creation", () => {
     cy.verifySample("cell_3", "this is the test cell #3", "1980-02-01T23:59");
 
     function checkCreatedCell(item_id) {
-      cy.get('[data-testid="search-input"]').type(item_id);
+      cy.get('[data-testid="search-input"]').clear().type(item_id);
       cy.contains(item_id).click();
       cy.get("#pos-electrode-table").contains("comp1");
       cy.get("#pos-electrode-table").contains("tagged");

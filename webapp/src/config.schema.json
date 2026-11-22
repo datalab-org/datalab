@@ -30,6 +30,12 @@
       "description": "The version to display, overriding the version set when the app was built.",
       "examples": ["v1.2.3"]
     },
+    "HIDE_COLLECTIONS": {
+      "type": "string",
+      "description": "Whether collection pages and controls are hidden in the web app. Only `true` (in any case) enables this. This does not disable collection API routes or alter stored collection data.",
+      "default": "false",
+      "examples": ["true"]
+    },
     "HOMEPAGE_URL": {
       "type": "string",
       "description": "A URL to link to from the web app header and login page, which should include `https://` to link to another site.",

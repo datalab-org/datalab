@@ -49,6 +49,15 @@ module.exports = defineConfig({
   component: {
     // Avoid port 8080's macOS WebSocket issue and the usual local dev-server port, 8081.
     port: 8082,
+    setupNodeEvents(on) {
+      // Lets component tests print to the terminal output, e.g., measured DOM sizes
+      on("task", {
+        log(message) {
+          console.log(message);
+          return null;
+        },
+      });
+    },
     devServer: {
       framework: "vue-cli",
       bundler: "webpack",

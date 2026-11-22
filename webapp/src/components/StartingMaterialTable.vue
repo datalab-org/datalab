@@ -37,6 +37,7 @@ import {
   FILES_COLUMN,
   LAST_MODIFIED_COLUMN,
 } from "@/utils/tableColumns";
+import { HIDE_COLLECTIONS } from "@/resources.js";
 
 export default {
   components: { DynamicDataTable },
@@ -71,7 +72,7 @@ export default {
         NAME_COLUMN,
         CHEMFORM_COLUMN,
         DATE_COLUMN,
-        COLLECTIONS_COLUMN,
+        ...(HIDE_COLLECTIONS ? [] : [COLLECTIONS_COLUMN]),
         INVENTORY_ACCESS_COLUMN,
         {
           field: "supplier",
@@ -118,7 +119,9 @@ export default {
       }));
     },
   },
-  mounted() {
+  // The StartingMaterials view is kept alive (see App.vue), so re-fetch whenever it is shown
+  // again, not just on first mount; `activated` also fires on the initial mount.
+  activated() {
     this.getStartingMaterials();
   },
   methods: {

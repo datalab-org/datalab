@@ -29,36 +29,48 @@
         "
       >
         <template v-if="dataType === 'samples'">
-          <button
-            data-testid="add-item-button"
-            class="btn btn-default btn-action"
-            :disabled="!isLoggedIn || adminSuperUserMode"
+          <span
+            class="btn-action-wrapper"
             :title="
-              !isLoggedIn
-                ? 'Log in to add items'
-                : adminSuperUserMode
-                  ? 'Disabled in super-user mode'
-                  : ''
+              !canCreateSingleItem
+                ? 'No item types are available for single-item creation on this deployment'
+                : !isLoggedIn
+                  ? 'Log in to add items'
+                  : adminSuperUserMode
+                    ? 'Disabled in super-user mode'
+                    : null
             "
-            @click="$emit('open-create-item-modal')"
           >
-            Add an item
-          </button>
-          <button
-            data-testid="batch-item-button"
-            class="btn btn-default btn-action"
-            :disabled="!isLoggedIn || adminSuperUserMode"
+            <button
+              data-testid="add-item-button"
+              class="btn btn-default btn-action"
+              :disabled="!isLoggedIn || adminSuperUserMode || !canCreateSingleItem"
+              @click="$emit('open-create-item-modal')"
+            >
+              Add an item
+            </button>
+          </span>
+          <span
+            class="btn-action-wrapper"
             :title="
-              !isLoggedIn
-                ? 'Log in to add items'
-                : adminSuperUserMode
-                  ? 'Disabled in super-user mode'
-                  : ''
+              !canBatchCreateItems
+                ? 'No item types are available for batch creation on this deployment'
+                : !isLoggedIn
+                  ? 'Log in to add items'
+                  : adminSuperUserMode
+                    ? 'Disabled in super-user mode'
+                    : null
             "
-            @click="$emit('open-batch-create-item-modal')"
           >
-            Add batch of items
-          </button>
+            <button
+              data-testid="batch-item-button"
+              class="btn btn-default btn-action"
+              :disabled="!isLoggedIn || adminSuperUserMode || !canBatchCreateItems"
+              @click="$emit('open-batch-create-item-modal')"
+            >
+              Add batch of items
+            </button>
+          </span>
           <button
             data-testid="scan-qr-button"
             class="btn btn-default btn-action"
@@ -70,29 +82,49 @@
           </button>
         </template>
         <button
-          v-if="dataType === 'collections'"
+          v-if="!hideCollections && dataType === 'collections'"
           data-testid="add-collection-button"
           class="btn btn-default btn-action"
           @click="$emit('open-create-collection-modal')"
         >
           Create new collection
         </button>
-        <button
+        <span
           v-if="dataType === 'startingMaterials' && editableInventory"
-          data-testid="add-starting-material-button"
-          class="btn btn-default btn-action"
-          @click="$emit('open-create-item-modal')"
+          class="btn-action-wrapper"
+          :title="
+            canCreateStartingMaterial
+              ? null
+              : 'The starting material item type is not available on this deployment'
+          "
         >
-          Add a starting material
-        </button>
-        <button
+          <button
+            data-testid="add-starting-material-button"
+            class="btn btn-default btn-action"
+            :disabled="!canCreateStartingMaterial"
+            @click="$emit('open-create-item-modal')"
+          >
+            Add a starting material
+          </button>
+        </span>
+        <span
           v-if="dataType === 'equipment'"
-          data-testid="add-equipment-button"
-          class="btn btn-default btn-action"
-          @click="$emit('open-create-equipment-modal')"
+          class="btn-action-wrapper"
+          :title="
+            canCreateEquipment
+              ? null
+              : 'The equipment item type is not available on this deployment'
+          "
         >
-          Add equipment
-        </button>
+          <button
+            data-testid="add-equipment-button"
+            class="btn btn-default btn-action"
+            :disabled="!canCreateEquipment"
+            @click="$emit('open-create-equipment-modal')"
+          >
+            Add equipment
+          </button>
+        </span>
         <button
           v-if="dataType === 'tags' && isLoggedIn"
           data-testid="add-tag-button"
@@ -162,6 +194,7 @@
             >
               <a
                 v-if="
+                  !hideCollections &&
                   !['collections', 'collectionItems', 'users', 'tokens', 'groups', 'tags'].includes(
                     dataType,
                   )
@@ -173,7 +206,7 @@
                 Add to collection
               </a>
               <a
-                v-if="dataType === 'collectionItems'"
+                v-if="!hideCollections && dataType === 'collectionItems'"
                 data-testid="remove-from-collection-dropdown"
                 class="dropdown-item"
                 @click="confirmRemoveFromCollection"
@@ -366,6 +399,9 @@ import { vOnClickOutside } from "@vueuse/components";
 import BulkChangeRoleModal from "@/components/BulkChangeRoleModal.vue";
 import BulkAddToGroupModal from "@/components/BulkAddToGroupModal.vue";
 import BulkChangeManagersModal from "@/components/BulkChangeManagersModal.vue";
+import { itemTypes, SAMPLE_TABLE_TYPES, HIDE_COLLECTIONS } from "@/resources.js";
+
+const SEARCH_DEBOUNCE_MS = 200;
 
 import {
   deleteSample,
@@ -473,6 +509,7 @@ export default {
       showBulkChangeRoleModal: false,
       showBulkAddToGroupModal: false,
       showBulkChangeManagersModal: false,
+      hideCollections: HIDE_COLLECTIONS,
     };
   },
   computed: {
@@ -482,6 +519,23 @@ export default {
         (this.dataType === "startingMaterials" && this.editableInventory) ||
         (this.dataType === "tags" && this.isLoggedIn)
       );
+    },
+    canCreateSingleItem() {
+      return (
+        SAMPLE_TABLE_TYPES.some((type) => itemTypes[type]?.available !== false) ||
+        Object.values(itemTypes).some(
+          (entry) => entry.isDynamic && entry.isCreateable && entry.available !== false,
+        )
+      );
+    },
+    canBatchCreateItems() {
+      return SAMPLE_TABLE_TYPES.some((type) => itemTypes[type]?.available !== false);
+    },
+    canCreateStartingMaterial() {
+      return itemTypes.starting_materials?.available !== false;
+    },
+    canCreateEquipment() {
+      return itemTypes.equipment?.available !== false;
     },
     adminSuperUserMode() {
       return this.$store.getters.isAdminSuperUserModeActive;
@@ -497,8 +551,16 @@ export default {
       }
     },
     "localFilters.global.value"(newValue) {
-      this.$emit("update:filters", { ...this.filters, global: { value: newValue } });
+      // Debounce the search so the table is only re-filtered (and re-rendered) once typing
+      // pauses, rather than on every keystroke.
+      clearTimeout(this.searchDebounceTimer);
+      this.searchDebounceTimer = setTimeout(() => {
+        this.$emit("update:filters", { ...this.filters, global: { value: newValue } });
+      }, SEARCH_DEBOUNCE_MS);
     },
+  },
+  beforeUnmount() {
+    clearTimeout(this.searchDebounceTimer);
   },
   methods: {
     itemLabel(count) {
@@ -1071,6 +1133,11 @@ export default {
   flex: 1;
   text-align: center;
   white-space: nowrap;
+}
+
+.btn-action-wrapper {
+  display: flex;
+  flex: 1;
 }
 
 .table-tools {

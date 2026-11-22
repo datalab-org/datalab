@@ -19,6 +19,7 @@ const parseBoolean = (value) => value.toLowerCase() === "true";
 const PARSERS = {
   AUTOMATICALLY_GENERATE_ID_DEFAULT: parseBoolean,
   EDITABLE_INVENTORY: parseBoolean,
+  HIDE_COLLECTIONS: parseBoolean,
   LOGO_WIDTH: Number,
 };
 
@@ -28,6 +29,7 @@ const BUILD_CONFIG = {
   AUTOMATICALLY_GENERATE_ID_DEFAULT: process.env.VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT,
   EDITABLE_INVENTORY: process.env.VUE_APP_EDITABLE_INVENTORY,
   GIT_VERSION: process.env.VUE_APP_GIT_VERSION,
+  HIDE_COLLECTIONS: process.env.VUE_APP_HIDE_COLLECTIONS,
   HOMEPAGE_URL: process.env.VUE_APP_HOMEPAGE_URL,
   LOGO_URL: process.env.VUE_APP_LOGO_URL,
   LOGO_WIDTH: process.env.VUE_APP_LOGO_WIDTH,

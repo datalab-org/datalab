@@ -62,6 +62,15 @@ module.exports = {
     config.plugins = [...(config.plugins || []), ...plugins];
   },
   chainWebpack: (config) => {
+    // Component styles are scoped, so the order in which their extracted CSS is combined
+    // does not matter; silence the many "Conflicting order" warnings this otherwise causes,
+    // e.g., in the (production mode) component test build in CI
+    if (config.plugins.has("extract-css")) {
+      config.plugin("extract-css").tap((args) => {
+        args[0] = { ...args[0], ignoreOrder: true };
+        return args;
+      });
+    }
     config.plugin("html").tap((args) => {
       args[0].title = process.env.VUE_APP_WEBSITE_TITLE || SETTINGS.WEBSITE_TITLE.default;
       args[0].meta = {

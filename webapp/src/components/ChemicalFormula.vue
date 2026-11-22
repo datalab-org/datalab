@@ -29,6 +29,11 @@ import { defineAsyncComponent } from "vue";
 import Popover from "primevue/popover";
 import DOMPurify from "dompurify";
 
+// Formatting and sanitising a formula is relatively expensive (several large regexes and
+// a DOMPurify pass) and the same formulae are rendered many times, e.g., across the rows
+// of a table, so cache the result per formula string for all instances.
+const sanitizedFormulaCache = new Map();
+
 export default {
   components: {
     Popover,
@@ -56,13 +61,17 @@ export default {
     sanitizedChemFormula() {
       // Formulae are free text provided by users, and are returned unmodified if they do
       // not match the expected format, so only the formatting tags are allowed through
-      if (!this.chemFormulaFormat) {
-        return "";
+      if (sanitizedFormulaCache.has(this.formula)) {
+        return sanitizedFormulaCache.get(this.formula);
       }
-      return DOMPurify.sanitize(this.chemFormulaFormat, {
-        ALLOWED_TAGS: ["sub", "sup"],
-        ALLOWED_ATTR: [],
-      });
+      const sanitized = this.chemFormulaFormat
+        ? DOMPurify.sanitize(this.chemFormulaFormat, {
+            ALLOWED_TAGS: ["sub", "sup"],
+            ALLOWED_ATTR: [],
+          })
+        : "";
+      sanitizedFormulaCache.set(this.formula, sanitized);
+      return sanitized;
     },
     chemFormulaFormat() {
       // Need to capture several groups, if the overall format doesn't apply, then

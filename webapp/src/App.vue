@@ -1,5 +1,11 @@
 <template>
-  <router-view />
+  <!-- Keep the item tables alive so that navigating back to one from an item page is instant,
+       rather than rebuilding the table for the full list. -->
+  <router-view v-slot="{ Component }">
+    <keep-alive :include="['Samples', 'StartingMaterials', 'Collections', 'Equipment']">
+      <component :is="Component" />
+    </keep-alive>
+  </router-view>
   <DialogContainer />
 </template>
 

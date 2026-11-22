@@ -70,7 +70,7 @@ describe("Edit Page", () => {
     cy.contains("Unsaved changes").should("not.exist");
     cy.findByText("Home").click();
 
-    cy.get('[data-testid="search-input"]').type("editable_sample");
+    cy.get('[data-testid="search-input"]').clear().type("editable_sample");
     cy.findByText("editable_sample");
     cy.findByText("This is a sample name");
     cy.findByText("1990-01-07");
@@ -272,7 +272,7 @@ describe("Edit Page", () => {
     cy.contains("Unsaved changes").should("not.exist");
 
     cy.findByText("Home").click();
-    cy.get('[data-testid="search-input"]').type("editable_sample");
+    cy.get('[data-testid="search-input"]').clear().type("editable_sample");
     cy.getIconColumnIndex("cubes").then((index) => {
       cy.get("[data-testid=sample-table] tr:nth-of-type(1) > td").eq(index).contains(2); // 2 blocks are present
     });

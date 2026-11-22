@@ -2,15 +2,21 @@ import { createStore } from "vuex";
 
 import CreateItemModal from "@/components/CreateItemModal.vue";
 import CustomFieldsPanel from "@/components/custom/CustomFieldsPanel.vue";
-import { itemTypes, registerDynamicItemType } from "@/resources.js";
+import { itemTypes, prettifyType, registerDynamicItemType } from "@/resources.js";
 
-const DIRECT_TYPE = "_component_test_direct_item";
-const EQUIPMENT_TYPE = "_component_test_equipment_item";
+const DIRECT_TYPE = "component-test:direct-item";
+const EQUIPMENT_TYPE = "component-test:equipment-item";
 
 describe("Custom item UI", () => {
   afterEach(() => {
     delete itemTypes[DIRECT_TYPE];
     delete itemTypes[EQUIPMENT_TYPE];
+  });
+
+  it("prettifies custom and core type names", () => {
+    expect(prettifyType("battery:coin-cell")).to.equal("Battery Coin Cell");
+    expect(prettifyType("battery_lab:coin_cell-v2")).to.equal("Battery Lab Coin Cell V2");
+    expect(prettifyType("starting_materials")).to.equal("Starting Materials");
   });
 
   it("offers every dynamic type from Samples but not Inventory", () => {
@@ -36,6 +42,24 @@ describe("Custom item UI", () => {
     expect(samplesTypes).to.deep.equal(["samples", "cells", DIRECT_TYPE, EQUIPMENT_TYPE]);
     expect(inventoryTypes).to.deep.equal(["starting_materials"]);
     expect(itemTypes[DIRECT_TYPE].itemInformationComponent.name).to.equal("ItemInformation");
+  });
+
+  it("omits item types disabled by the deployment", () => {
+    registerDynamicItemType(DIRECT_TYPE, {
+      title: "Direct item",
+      base_type: "items",
+      available: false,
+      block_type_allow_list: [],
+    });
+
+    const types = CreateItemModal.computed.effectiveAllowedTypes.call({
+      allowedTypes: ["samples", "cells"],
+      $store: { state: { schemas: { [DIRECT_TYPE]: {} } } },
+    });
+
+    expect(types).to.deep.equal(["samples", "cells"]);
+    expect(itemTypes[DIRECT_TYPE].available).to.equal(false);
+    expect(itemTypes[DIRECT_TYPE].blockTypeAllowList).to.deep.equal([]);
   });
 
   it("renders only fields added beyond the advertised Item base", () => {

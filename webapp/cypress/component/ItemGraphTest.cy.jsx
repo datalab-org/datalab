@@ -165,6 +165,15 @@ describe("ItemGraph", () => {
     cy.contains("configure").should("be.visible");
   });
 
+  it("hides collection options when configured", () => {
+    mountGraph(twoConnectedNodes, { showOptions: true });
+    cy.then(() => {
+      Cypress.vueWrapper.vm.hideCollections = true;
+      return Cypress.vueWrapper.vm.$nextTick();
+    });
+    cy.contains("Ignore connections to collections:").should("not.exist");
+  });
+
   it("hides options panel when showOptions is false", () => {
     mountGraph(twoConnectedNodes, { showOptions: false });
     cy.contains("configure").should("not.exist");
