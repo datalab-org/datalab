@@ -23,13 +23,13 @@
         @click="updateBlock"
       />
       <font-awesome-icon
-        v-if="displayIndex != 0"
+        v-if="!isBlockTimelineMode() && displayIndex != 0"
         :icon="['fas', 'arrow-up']"
         class="block-header-icon"
         @click="swapUp"
       />
       <font-awesome-icon
-        v-if="displayIndex != displayOrder.length - 1"
+        v-if="!isBlockTimelineMode() && displayIndex != displayOrder.length - 1"
         :icon="['fas', 'arrow-down']"
         class="block-header-icon"
         @click="swapDown"
@@ -221,6 +221,9 @@ export default {
     BlockTooltip,
     MetadataViewer,
     BlockProvenance,
+  },
+  inject: {
+    isBlockTimelineMode: { default: () => () => false },
   },
   props: {
     item_id: {

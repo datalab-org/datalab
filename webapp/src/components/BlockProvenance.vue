@@ -92,7 +92,7 @@ export default {
 
 <style scoped>
 .block-provenance {
-  padding: 0.25rem 0 0.25rem 1rem;
+  padding: 0.25rem 0;
   row-gap: 0.25rem;
 }
 

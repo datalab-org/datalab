@@ -127,7 +127,13 @@
 
     <!-- Display the blocks -->
     <div v-if="blocksLoaded && blockInfoLoaded" class="container block-container">
-      <transition-group name="block-list" tag="div">
+      <BlockOrderToggle v-if="item_data.display_order?.length > 1" v-model="blockOrderMode" />
+      <BlockTimeline
+        v-if="blockOrderMode === 'timeline'"
+        :item_id="item_id"
+        :block-component="getBlockDisplayType"
+      />
+      <transition-group v-else name="block-list" tag="div">
         <div v-for="block_id in item_data.display_order" :key="block_id" class="block-list-item">
           <component :is="getBlockDisplayType(block_id)" :item_id="item_id" :block_id="block_id" />
         </div>
@@ -209,6 +215,8 @@ import { formatDistanceToNow } from "date-fns";
 import AddBlockDropdown from "@/components/AddBlockDropdown";
 
 import ExportDropdown from "@/components/ExportDropdown";
+import BlockOrderToggle from "@/components/BlockOrderToggle.vue";
+import BlockTimeline from "@/components/BlockTimeline.vue";
 
 export default {
   components: {
@@ -223,12 +231,15 @@ export default {
     CustomFieldsPanel,
     AddBlockDropdown,
     ExportDropdown,
+    BlockOrderToggle,
+    BlockTimeline,
   },
   provide() {
     return {
       openSharingModal: () => {
         this.isSharingModalVisible = true;
       },
+      isBlockTimelineMode: () => this.blockOrderMode === "timeline",
     };
   },
   async beforeRouteLeave(to, from, next) {
@@ -264,6 +275,7 @@ export default {
       lastModified: null,
       isVersionHistoryVisible: false,
       isSharingModalVisible: false,
+      blockOrderMode: "manual",
     };
   },
   computed: {
