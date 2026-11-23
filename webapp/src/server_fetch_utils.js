@@ -1298,9 +1298,16 @@ export async function addRemoteFileToSample(file_entry, item_id) {
  * @param {string|null} options.item_id - The item ID to fetch graph for
  * @param {string|null} options.collection_id - The collection ID to filter by
  * @param {number} options.max_depth - Maximum depth for related items (default: 1)
+ * @param {boolean} options.show_collections - Include collections as nodes linked to their
+ *   items (default: false; ignored when filtering by collection)
  * @returns {Promise<Object>} Returns graph data ({ nodes, edges })
  */
-export async function getItemGraph({ item_id = null, collection_id = null, max_depth = 1 } = {}) {
+export async function getItemGraph({
+  item_id = null,
+  collection_id = null,
+  max_depth = 1,
+  show_collections = false,
+} = {}) {
   // Short-circuit and do not send request if user is not logged in
   if (!(await waitForUserAuth())) return;
 
@@ -1315,6 +1322,9 @@ export async function getItemGraph({ item_id = null, collection_id = null, max_d
   }
   if (max_depth != null && max_depth > 1) {
     params.append("max_depth", max_depth.toString());
+  }
+  if (show_collections) {
+    params.append("hide_collections", "false");
   }
   if (params.toString()) {
     url = url + "?" + params.toString();
