@@ -206,12 +206,54 @@ result = exchange_service_launch_code(
 ```
 
 `result.session_reused` is true only when the returned raw token is exactly the
-candidate. Reuse preserves its existing expiry; it does not extend the session.
-A missing, expired, near-expiry, or wrongly bound candidate safely falls back
-to replacement. The exchange rejects a non-string or excessively long
-candidate before consuming the grant. Reuse also falls back when the candidate
-would live longer than the lifetime requested by the provider or when another
-active independent session exists.
+candidate. Ordinary reuse preserves its existing expiry. A missing, expired,
+near-expiry, or wrongly bound candidate safely falls back to replacement. The
+exchange rejects a non-string or excessively long candidate before consuming
+the grant. Reuse also falls back when the candidate would live longer than the
+lifetime requested by the provider or when another active independent session
+exists.
+
+### Explicit session renewal
+
+A trusted provider can additionally authorize an explicit renewal request for
+a `REUSE_OR_REPLACE` grant:
+
+```python
+code = grants.issue(
+    CLIENT_ID,
+    session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
+    allow_session_renewal=True,
+)
+
+result = exchange_service_launch_code(
+    code,
+    TOOL_ID,
+    CLIENT_ID,
+    candidate_tool_access_token=existing_token,
+    minimum_reuse_lifetime_seconds=10 * 60,
+    renew_existing_session=True,
+)
+```
+
+Permission and request are separate: the provider binds
+`allow_session_renewal=True` into the single-use grant, while the trusted
+exchange caller requests renewal with `renew_existing_session=True`. A caller
+cannot add permission during exchange. An unauthorized request consumes the
+grant and changes no session.
+
+A successful renewal preserves the raw token, hash, canonical session ID,
+bindings, and original creation time. It changes only `expires_at`, using the
+earlier of 24 hours from the exchange and seven days from original creation.
+Renewal never revives an expired credential and never applies to independently
+issued sessions. `result.session_renewed` is true only when this exchange's
+conditional update advanced the expiry; it implies `result.session_reused`.
+When another renewal wins the same update, the result can report reused true
+and renewed false with the authoritative stored expiry.
+
+Renewal extends the useful lifetime of every copy of the bearer token,
+including a stolen copy. A provider that exposes it must put the request behind
+an appropriate trusted confirmation or consent boundary. Do not renew from
+ordinary API activity, background timers, or token authentication.
 
 Independent tokens have the same provider-level authority for the user. They
 do not create isolated processes, filesystems, item scopes, or permissions.
@@ -219,11 +261,13 @@ Use them only when the provider is prepared to manage concurrent credentials.
 A later `REPLACE` or unsuccessful `REUSE_OR_REPLACE` collapses those sessions
 back to one canonical token.
 
-These guarantees are sequential. Concurrent replacements remain
-last-writer-wins, and a token returned by reuse can be revoked immediately by a
-later exchange. datalab stores only token hashes in the existing
-`tool_sessions` collection; enabling these policies requires neither raw-token
-storage nor a database migration or new index.
+These guarantees are sequential. Renewal uses one exact conditional update and
+one bounded reread if it loses; it does not provide a distributed lock or make
+launches linearizable. Concurrent replacements remain last-writer-wins, and a
+token returned by reuse or renewal can be revoked immediately by a later
+exchange. datalab stores only token hashes in the existing `tool_sessions`
+collection; enabling these policies requires neither raw-token storage nor a
+database migration or new index.
 
 With the default policy, a successful relaunch replaces the user's previous
 tool access token for that provider, even if the new launch uses a different

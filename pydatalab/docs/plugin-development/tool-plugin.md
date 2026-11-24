@@ -180,7 +180,10 @@ critical; implement them exactly as shown in the
 Trusted provider code can bind a delegated-session policy to each launch grant.
 The default policy replaces other sessions for the same user and provider;
 exchange clients cannot choose the policy. See the standalone tutorial for
-canonical reuse and independent-session semantics and their concurrency limits.
+canonical reuse, independent-session semantics, and optional explicit renewal.
+Renewal requires both grant-bound provider permission and a trusted exchange
+request; retaining a candidate token and presenting any user confirmation are
+responsibilities of the standalone service.
 
 ## Test and run locally
 

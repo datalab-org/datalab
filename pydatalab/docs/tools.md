@@ -41,8 +41,10 @@ standalone tool receives temporary, non-administrator access. Its session can
 expire or be replaced when you relaunch the same tool. A trusted provider may
 instead reuse an eligible existing session or create independent concurrent
 sessions; those sessions still have the same user-level authority and expiry
-limits. If a tool reports an expired session or HTTP 401, return to datalab and
-launch it again.
+limits. With an explicit trusted confirmation, a provider may also extend an
+eligible reused session within datalab's rolling and absolute lifetime limits.
+If a tool reports an expired session or HTTP 401, return to datalab and launch
+it again.
 
 Do not share a standalone tool's launch URL. It can contain a short-lived,
 single-use code intended only for the application you opened. Long-lived item

@@ -9,6 +9,7 @@ from typing import Literal
 from bson import ObjectId
 from bson.errors import InvalidId
 from flask import current_app, has_app_context
+from pymongo import ReturnDocument
 
 from pydatalab.login import AuthMethod, get_by_id
 from pydatalab.models.people import AccountStatus
@@ -21,6 +22,7 @@ DEFAULT_LAUNCH_LIFETIME_SECONDS = 60
 DEFAULT_TOOL_SESSION_LIFETIME_SECONDS = 24 * 60 * 60
 MAX_LAUNCH_LIFETIME_SECONDS = 10 * 60
 MAX_TOOL_SESSION_LIFETIME_SECONDS = DEFAULT_TOOL_SESSION_LIFETIME_SECONDS
+MAX_RENEWABLE_TOOL_SESSION_AGE_SECONDS = 7 * 24 * 60 * 60
 TOOL_SELECTION_LIFETIME_SECONDS = 10 * 60
 _TOOL_LAUNCH_PURPOSE = "tool-launch"
 _TOOL_SELECTION_PURPOSE = "tool-selection"
@@ -70,6 +72,7 @@ class ToolLaunchExchange:
     tool_session: DelegatedToolSession
     selection: ItemSelection | None
     session_reused: bool = False
+    session_renewed: bool = False
 
 
 @dataclass(frozen=True)
@@ -79,6 +82,17 @@ class _ConsumedLaunchGrant:
     user_id: str
     selection: ItemSelection | None
     session_policy: ToolSessionPolicy
+    allow_session_renewal: bool
+
+
+@dataclass(frozen=True)
+class _ReusableToolSession:
+    """Validated canonical candidate and its stored comparison values."""
+
+    session: DelegatedToolSession
+    created_at: datetime
+    stored_created_at: datetime
+    stored_expires_at: datetime
 
 
 @dataclass(frozen=True)
@@ -95,6 +109,7 @@ class BoundToolLaunchGrantIssuer(ToolLaunchGrantIssuer):
         lifetime_seconds: int = DEFAULT_LAUNCH_LIFETIME_SECONDS,
         *,
         session_policy: ToolSessionPolicy = ToolSessionPolicy.REPLACE,
+        allow_session_renewal: bool = False,
     ) -> str:
         """Create a hashed, expiring tool launch grant and return its raw code."""
         if not isinstance(client_id, str) or not client_id.strip():
@@ -107,6 +122,10 @@ class BoundToolLaunchGrantIssuer(ToolLaunchGrantIssuer):
             )
         if not isinstance(session_policy, ToolSessionPolicy):
             raise ValueError("Unsupported tool session policy")
+        if type(allow_session_renewal) is not bool:
+            raise ValueError("Session renewal permission must be a boolean")
+        if allow_session_renewal and session_policy is not ToolSessionPolicy.REUSE_OR_REPLACE:
+            raise ValueError("Session renewal requires the reuse-or-replace policy")
 
         created_at = _now()
         code = secrets.token_urlsafe(32)
@@ -118,6 +137,7 @@ class BoundToolLaunchGrantIssuer(ToolLaunchGrantIssuer):
                 "client_id": client_id,
                 "purpose": _TOOL_LAUNCH_PURPOSE,
                 "session_policy": session_policy.value,
+                "allow_session_renewal": allow_session_renewal,
                 "selection": self.selection.model_dump() if self.selection else None,
                 "created_at": created_at,
                 "expires_at": created_at + timedelta(seconds=lifetime_seconds),
@@ -162,12 +182,21 @@ def _consume_launch_code(
             if not isinstance(stored_policy, str):
                 return None
             session_policy = ToolSessionPolicy(stored_policy)
+        if "allow_session_renewal" not in grant:
+            allow_session_renewal = False
+        else:
+            allow_session_renewal = grant["allow_session_renewal"]
+            if type(allow_session_renewal) is not bool:
+                return None
+        if allow_session_renewal and session_policy is not ToolSessionPolicy.REUSE_OR_REPLACE:
+            return None
     except (TypeError, ValueError):
         return None
     return _ConsumedLaunchGrant(
         user_id=str(grant["user_id"]),
         selection=selection,
         session_policy=session_policy,
+        allow_session_renewal=allow_session_renewal,
     )
 
 
@@ -330,21 +359,18 @@ def _normalise_stored_datetime(value: object) -> datetime | None:
     return value.astimezone(timezone.utc)
 
 
-def _reuse_delegated_tool_session(
+def _find_reusable_tool_session(
     user_id: str,
     tool_id: str,
     client_id: str,
-    candidate_tool_access_token: str | None,
+    candidate_tool_access_token: str,
     lifetime_seconds: int,
-    minimum_reuse_lifetime_seconds: int,
-) -> DelegatedToolSession | None:
-    """Return an eligible exact canonical candidate without changing storage."""
-    if candidate_tool_access_token is None:
-        return None
-
+    decision_time: datetime,
+    minimum_reuse_lifetime_seconds: int | None,
+) -> _ReusableToolSession | None:
+    """Load and validate an exact canonical candidate at one decision time."""
     stored_user_id = ObjectId(user_id)
     session_id = _delegated_tool_session_id(stored_user_id, tool_id)
-    decision_time = _bson_utc_now()
     stored = flask_mongo.db.tool_sessions.find_one(
         {
             "_id": session_id,
@@ -362,13 +388,25 @@ def _reuse_delegated_tool_session(
 
     created_at = _normalise_stored_datetime(stored.get("created_at"))
     expires_at = _normalise_stored_datetime(stored.get("expires_at"))
+    absolute_end = (
+        created_at + timedelta(seconds=MAX_RENEWABLE_TOOL_SESSION_AGE_SECONDS)
+        if created_at is not None
+        else None
+    )
     if (
         created_at is None
         or expires_at is None
         or created_at > decision_time
         or expires_at <= created_at
+        or expires_at <= decision_time
+        or absolute_end is None
+        or decision_time >= absolute_end
+        or expires_at > absolute_end
         or expires_at > decision_time + timedelta(seconds=lifetime_seconds)
-        or expires_at < decision_time + timedelta(seconds=minimum_reuse_lifetime_seconds)
+        or (
+            minimum_reuse_lifetime_seconds is not None
+            and expires_at < decision_time + timedelta(seconds=minimum_reuse_lifetime_seconds)
+        )
     ):
         return None
 
@@ -385,10 +423,122 @@ def _reuse_delegated_tool_session(
     if sibling is not None:
         return None
 
-    return DelegatedToolSession(
-        tool_access_token=candidate_tool_access_token,
-        expires_at=expires_at,
+    return _ReusableToolSession(
+        session=DelegatedToolSession(
+            tool_access_token=candidate_tool_access_token,
+            expires_at=expires_at,
+        ),
+        created_at=created_at,
+        stored_created_at=stored["created_at"],
+        stored_expires_at=stored["expires_at"],
     )
+
+
+def _reuse_delegated_tool_session(
+    user_id: str,
+    tool_id: str,
+    client_id: str,
+    candidate_tool_access_token: str | None,
+    lifetime_seconds: int,
+    minimum_reuse_lifetime_seconds: int,
+) -> DelegatedToolSession | None:
+    """Return an eligible exact canonical candidate without changing storage."""
+    if candidate_tool_access_token is None:
+        return None
+    candidate = _find_reusable_tool_session(
+        user_id=user_id,
+        tool_id=tool_id,
+        client_id=client_id,
+        candidate_tool_access_token=candidate_tool_access_token,
+        lifetime_seconds=lifetime_seconds,
+        decision_time=_bson_utc_now(),
+        minimum_reuse_lifetime_seconds=minimum_reuse_lifetime_seconds,
+    )
+    return candidate.session if candidate is not None else None
+
+
+def _renew_delegated_tool_session(
+    user_id: str,
+    tool_id: str,
+    client_id: str,
+    candidate_tool_access_token: str | None,
+    lifetime_seconds: int,
+    minimum_reuse_lifetime_seconds: int,
+) -> tuple[DelegatedToolSession | None, bool]:
+    """Renew an eligible canonical candidate using one exact compare-and-set."""
+    if candidate_tool_access_token is None:
+        return None, False
+
+    decision_time = _bson_utc_now()
+    candidate = _find_reusable_tool_session(
+        user_id=user_id,
+        tool_id=tool_id,
+        client_id=client_id,
+        candidate_tool_access_token=candidate_tool_access_token,
+        lifetime_seconds=lifetime_seconds,
+        decision_time=decision_time,
+        minimum_reuse_lifetime_seconds=None,
+    )
+    if candidate is None:
+        return None, False
+
+    requested_end = decision_time + timedelta(seconds=lifetime_seconds)
+    absolute_end = candidate.created_at + timedelta(seconds=MAX_RENEWABLE_TOOL_SESSION_AGE_SECONDS)
+    renewal_end = min(requested_end, absolute_end)
+    minimum_end = decision_time + timedelta(seconds=minimum_reuse_lifetime_seconds)
+    if renewal_end < minimum_end:
+        return None, False
+    if renewal_end <= candidate.session.expires_at:
+        # An explicit renewal at the absolute age cap must rotate instead of
+        # returning a credential whose expiry was not extended.
+        if renewal_end == absolute_end:
+            return None, False
+        if candidate.session.expires_at >= minimum_end:
+            return candidate.session, False
+        return None, False
+
+    stored_user_id = ObjectId(user_id)
+    session_id = _delegated_tool_session_id(stored_user_id, tool_id)
+    updated = flask_mongo.db.tool_sessions.find_one_and_update(
+        {
+            "_id": session_id,
+            "user": stored_user_id,
+            "tool_id": tool_id,
+            "client_id": client_id,
+            "hash": _hash_secret(candidate_tool_access_token),
+            "type": "tool_access_token",
+            "version": 1,
+            "created_at": candidate.stored_created_at,
+            "$and": [
+                {"expires_at": candidate.stored_expires_at},
+                {"expires_at": {"$gt": decision_time}},
+            ],
+        },
+        {"$set": {"expires_at": renewal_end}},
+        return_document=ReturnDocument.AFTER,
+    )
+    if updated is not None:
+        expires_at = _normalise_stored_datetime(updated.get("expires_at"))
+        if expires_at is not None:
+            return DelegatedToolSession(candidate_tool_access_token, expires_at), True
+        return None, False
+
+    final_candidate = _find_reusable_tool_session(
+        user_id=user_id,
+        tool_id=tool_id,
+        client_id=client_id,
+        candidate_tool_access_token=candidate_tool_access_token,
+        lifetime_seconds=lifetime_seconds,
+        decision_time=decision_time,
+        minimum_reuse_lifetime_seconds=minimum_reuse_lifetime_seconds,
+    )
+    if (
+        final_candidate is not None
+        and final_candidate.session.expires_at > candidate.session.expires_at
+        and final_candidate.session.expires_at <= renewal_end
+    ):
+        return final_candidate.session, False
+    return None, False
 
 
 def get_tool_access_token_user_id(tool_access_token: str) -> str | None:
@@ -424,6 +574,7 @@ def _exchange_launch_code(
     expected_user_id: str | None,
     candidate_tool_access_token: str | None,
     minimum_reuse_lifetime_seconds: int,
+    renew_existing_session: bool,
 ) -> ToolLaunchExchange | None:
     """Implement bound and service launch-code exchanges."""
     if type(tool_session_lifetime_seconds) is not int or not (
@@ -444,6 +595,8 @@ def _exchange_launch_code(
         or len(candidate_tool_access_token) > _MAX_CANDIDATE_TOOL_ACCESS_TOKEN_LENGTH
     ):
         raise ValueError("Candidate tool access token is invalid")
+    if type(renew_existing_session) is not bool:
+        raise ValueError("Session renewal request must be a boolean")
 
     grant = _consume_launch_code(
         code,
@@ -452,6 +605,8 @@ def _exchange_launch_code(
         expected_user_id=expected_user_id,
     )
     if grant is None:
+        return None
+    if renew_existing_session and not grant.allow_session_renewal:
         return None
 
     # Resolve the delegated identity so the exchange context reports the same effective
@@ -471,15 +626,26 @@ def _exchange_launch_code(
         group_ids=tuple(str(group.immutable_id) for group in groups),
     )
     session_reused = False
+    session_renewed = False
     if grant.session_policy is ToolSessionPolicy.REUSE_OR_REPLACE:
-        tool_session = _reuse_delegated_tool_session(
-            user_id=grant.user_id,
-            tool_id=tool_id,
-            client_id=client_id,
-            candidate_tool_access_token=candidate_tool_access_token,
-            lifetime_seconds=tool_session_lifetime_seconds,
-            minimum_reuse_lifetime_seconds=minimum_reuse_lifetime_seconds,
-        )
+        if renew_existing_session:
+            tool_session, session_renewed = _renew_delegated_tool_session(
+                user_id=grant.user_id,
+                tool_id=tool_id,
+                client_id=client_id,
+                candidate_tool_access_token=candidate_tool_access_token,
+                lifetime_seconds=tool_session_lifetime_seconds,
+                minimum_reuse_lifetime_seconds=minimum_reuse_lifetime_seconds,
+            )
+        else:
+            tool_session = _reuse_delegated_tool_session(
+                user_id=grant.user_id,
+                tool_id=tool_id,
+                client_id=client_id,
+                candidate_tool_access_token=candidate_tool_access_token,
+                lifetime_seconds=tool_session_lifetime_seconds,
+                minimum_reuse_lifetime_seconds=minimum_reuse_lifetime_seconds,
+            )
         session_reused = tool_session is not None
         if tool_session is None:
             tool_session = create_delegated_tool_session(
@@ -507,6 +673,7 @@ def _exchange_launch_code(
         tool_session=tool_session,
         selection=grant.selection,
         session_reused=session_reused,
+        session_renewed=session_renewed,
     )
 
 
@@ -519,12 +686,14 @@ def exchange_launch_code(
     expected_user_id: str,
     candidate_tool_access_token: str | None = None,
     minimum_reuse_lifetime_seconds: int = 0,
+    renew_existing_session: bool = False,
 ) -> ToolLaunchExchange | None:
     """Exchange a launch code bound to the authenticated browser user.
 
     A candidate is considered only for a grant bound to ``REUSE_OR_REPLACE``
     and must retain at least ``minimum_reuse_lifetime_seconds``. Any reuse miss
-    follows that policy's replacement path.
+    follows that policy's replacement path. Renewal additionally requires
+    grant-bound permission and an explicit ``renew_existing_session`` request.
     """
     if not isinstance(expected_user_id, str) or not expected_user_id.strip():
         raise ValueError("Expected user ID must not be empty")
@@ -536,6 +705,7 @@ def exchange_launch_code(
         expected_user_id=expected_user_id,
         candidate_tool_access_token=candidate_tool_access_token,
         minimum_reuse_lifetime_seconds=minimum_reuse_lifetime_seconds,
+        renew_existing_session=renew_existing_session,
     )
 
 
@@ -547,6 +717,7 @@ def exchange_service_launch_code(
     *,
     candidate_tool_access_token: str | None = None,
     minimum_reuse_lifetime_seconds: int = 0,
+    renew_existing_session: bool = False,
 ) -> ToolLaunchExchange | None:
     """Exchange a launch code without browser-user binding.
 
@@ -555,7 +726,8 @@ def exchange_service_launch_code(
 
     A candidate is considered only for a grant bound to ``REUSE_OR_REPLACE``
     and must retain at least ``minimum_reuse_lifetime_seconds``. Any reuse miss
-    follows that policy's replacement path.
+    follows that policy's replacement path. Renewal additionally requires
+    grant-bound permission and an explicit ``renew_existing_session`` request.
     """
     return _exchange_launch_code(
         code,
@@ -565,4 +737,5 @@ def exchange_service_launch_code(
         expected_user_id=None,
         candidate_tool_access_token=candidate_tool_access_token,
         minimum_reuse_lifetime_seconds=minimum_reuse_lifetime_seconds,
+        renew_existing_session=renew_existing_session,
     )

@@ -354,6 +354,596 @@ def test_exact_canonical_candidate_is_reused_without_database_mutation(
         assert database.tool_sessions.find_one({}) == stored_before
 
 
+def test_launch_grant_renewal_permission_is_strict_and_policy_bound(
+    app, database, tool_registry, user_id
+):
+    with app.app_context():
+        issuer = BoundToolLaunchGrantIssuer("example-tool", str(user_id))
+        issuer.issue("example-client")
+        stored_grant = database.tool_launch_grants.find_one({})
+        assert stored_grant["allow_session_renewal"] is False
+
+        for invalid_permission in (None, 0, 1, "true"):
+            with pytest.raises(ValueError, match="renewal permission"):
+                issuer.issue(
+                    "example-client",
+                    session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
+                    allow_session_renewal=invalid_permission,
+                )
+        for policy in (ToolSessionPolicy.REPLACE, ToolSessionPolicy.INDEPENDENT):
+            with pytest.raises(ValueError, match="reuse-or-replace"):
+                issuer.issue(
+                    "example-client",
+                    session_policy=policy,
+                    allow_session_renewal=True,
+                )
+
+        code = issuer.issue(
+            "example-client",
+            session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
+            allow_session_renewal=True,
+        )
+        stored_grant = database.tool_launch_grants.find_one({"_id": tool_grants._hash_secret(code)})
+        assert stored_grant["allow_session_renewal"] is True
+
+
+def test_renewal_request_is_validated_before_grant_consumption(
+    app, database, tool_registry, user_id
+):
+    with app.app_context():
+        issuer = BoundToolLaunchGrantIssuer("example-tool", str(user_id))
+        code = issuer.issue(
+            "example-client",
+            session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
+            allow_session_renewal=True,
+        )
+
+        with pytest.raises(ValueError, match="renewal request"):
+            exchange_launch_code(
+                code,
+                "example-tool",
+                "example-client",
+                expected_user_id=str(user_id),
+                renew_existing_session=1,
+            )
+
+        assert database.tool_launch_grants.count_documents({}) == 1
+        exchange = exchange_launch_code(
+            code,
+            "example-tool",
+            "example-client",
+            expected_user_id=str(user_id),
+        )
+        assert exchange is not None
+
+
+def test_unauthorized_renewal_consumes_grant_without_session_mutation(
+    app, database, tool_registry, user_id
+):
+    with app.app_context():
+        issuer = BoundToolLaunchGrantIssuer("example-tool", str(user_id))
+        candidate = create_delegated_tool_session(
+            str(user_id), "example-tool", "example-client", 300
+        )
+        stored_before = database.tool_sessions.find_one({})
+        code = issuer.issue(
+            "example-client",
+            session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
+        )
+
+        exchange = exchange_launch_code(
+            code,
+            "example-tool",
+            "example-client",
+            300,
+            expected_user_id=str(user_id),
+            candidate_tool_access_token=candidate.tool_access_token,
+            renew_existing_session=True,
+        )
+
+        assert exchange is None
+        assert database.tool_launch_grants.count_documents({}) == 0
+        assert database.tool_sessions.find_one({}) == stored_before
+
+
+@pytest.mark.parametrize("service_exchange", (False, True))
+def test_renewal_preserves_the_candidate_and_advances_only_expiry(
+    app, database, tool_registry, user_id, monkeypatch, service_exchange
+):
+    fixed_now = datetime(2026, 1, 2, 3, 4, 5, 678901, tzinfo=timezone.utc)
+    decision_time = fixed_now.replace(microsecond=678000)
+    monkeypatch.setattr(tool_grants, "_now", lambda: fixed_now)
+
+    with app.app_context():
+        issuer = BoundToolLaunchGrantIssuer("example-tool", str(user_id))
+        candidate = create_delegated_tool_session(
+            str(user_id), "example-tool", "example-client", 60
+        )
+        stored_before = database.tool_sessions.find_one({})
+        code = issuer.issue(
+            "example-client",
+            session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
+            allow_session_renewal=True,
+        )
+
+        exchange_kwargs = {
+            "candidate_tool_access_token": candidate.tool_access_token,
+            "minimum_reuse_lifetime_seconds": 200,
+            "renew_existing_session": True,
+        }
+        if service_exchange:
+            exchange = exchange_service_launch_code(
+                code, "example-tool", "example-client", 300, **exchange_kwargs
+            )
+        else:
+            exchange = exchange_launch_code(
+                code,
+                "example-tool",
+                "example-client",
+                300,
+                expected_user_id=str(user_id),
+                **exchange_kwargs,
+            )
+
+        assert exchange is not None
+        assert exchange.session_reused is True
+        assert exchange.session_renewed is True
+        assert exchange.tool_session.tool_access_token == candidate.tool_access_token
+        assert exchange.tool_session.expires_at == decision_time + timedelta(seconds=300)
+        stored_after = database.tool_sessions.find_one({})
+        assert stored_after["expires_at"] == exchange.tool_session.expires_at.replace(tzinfo=None)
+        assert {key: value for key, value in stored_after.items() if key != "expires_at"} == {
+            key: value for key, value in stored_before.items() if key != "expires_at"
+        }
+
+
+def test_renewal_uses_the_absolute_age_cap_and_replaces_when_minimum_cannot_be_met(
+    app, database, tool_registry, user_id, monkeypatch
+):
+    fixed_now = datetime(2026, 1, 8, 12, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(tool_grants, "_now", lambda: fixed_now)
+
+    with app.app_context():
+        issuer = BoundToolLaunchGrantIssuer("example-tool", str(user_id))
+        candidate = create_delegated_tool_session(
+            str(user_id), "example-tool", "example-client", 60
+        )
+        capped_creation = fixed_now - timedelta(days=7) + timedelta(seconds=100)
+        database.tool_sessions.update_one(
+            {},
+            {
+                "$set": {
+                    "created_at": capped_creation,
+                    "expires_at": fixed_now + timedelta(seconds=20),
+                }
+            },
+        )
+        capped_exchange = exchange_launch_code(
+            issuer.issue(
+                "example-client",
+                session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
+                allow_session_renewal=True,
+            ),
+            "example-tool",
+            "example-client",
+            300,
+            expected_user_id=str(user_id),
+            candidate_tool_access_token=candidate.tool_access_token,
+            minimum_reuse_lifetime_seconds=100,
+            renew_existing_session=True,
+        )
+
+        assert capped_exchange is not None
+        assert capped_exchange.session_reused is True
+        assert capped_exchange.session_renewed is True
+        assert capped_exchange.tool_session.expires_at == capped_creation + timedelta(days=7)
+
+        database.tool_sessions.update_one(
+            {},
+            {
+                "$set": {
+                    "created_at": fixed_now - timedelta(days=7) + timedelta(seconds=50),
+                    "expires_at": fixed_now + timedelta(seconds=20),
+                }
+            },
+        )
+        replacement = exchange_launch_code(
+            issuer.issue(
+                "example-client",
+                session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
+                allow_session_renewal=True,
+            ),
+            "example-tool",
+            "example-client",
+            300,
+            expected_user_id=str(user_id),
+            candidate_tool_access_token=candidate.tool_access_token,
+            minimum_reuse_lifetime_seconds=60,
+            renew_existing_session=True,
+        )
+
+        assert replacement is not None
+        assert replacement.session_reused is False
+        assert replacement.session_renewed is False
+        assert replacement.tool_session.tool_access_token != candidate.tool_access_token
+
+
+def test_renewal_replaces_candidate_already_at_absolute_age_cap(
+    app, database, tool_registry, user_id, monkeypatch
+):
+    fixed_now = datetime(2026, 1, 8, 12, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(tool_grants, "_now", lambda: fixed_now)
+
+    with app.app_context():
+        issuer = BoundToolLaunchGrantIssuer("example-tool", str(user_id))
+        candidate = create_delegated_tool_session(
+            str(user_id), "example-tool", "example-client", 3600
+        )
+        absolute_end = fixed_now + timedelta(minutes=30)
+        database.tool_sessions.update_one(
+            {},
+            {
+                "$set": {
+                    "created_at": absolute_end - timedelta(days=7),
+                    "expires_at": absolute_end,
+                }
+            },
+        )
+
+        exchange = exchange_launch_code(
+            issuer.issue(
+                "example-client",
+                session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
+                allow_session_renewal=True,
+            ),
+            "example-tool",
+            "example-client",
+            3600,
+            expected_user_id=str(user_id),
+            candidate_tool_access_token=candidate.tool_access_token,
+            minimum_reuse_lifetime_seconds=10 * 60,
+            renew_existing_session=True,
+        )
+
+        assert exchange is not None
+        assert exchange.session_reused is False
+        assert exchange.session_renewed is False
+        assert exchange.tool_session.tool_access_token != candidate.tool_access_token
+        assert get_tool_access_token_user_id(candidate.tool_access_token) is None
+
+
+def test_repeated_renewal_uses_a_rolling_horizon_without_stacking(
+    app, database, tool_registry, user_id, monkeypatch
+):
+    clock = [datetime(2026, 1, 2, 3, 4, 5, tzinfo=timezone.utc)]
+    monkeypatch.setattr(tool_grants, "_now", lambda: clock[0])
+
+    with app.app_context():
+        issuer = BoundToolLaunchGrantIssuer("example-tool", str(user_id))
+        candidate = create_delegated_tool_session(
+            str(user_id), "example-tool", "example-client", 60
+        )
+
+        first = exchange_launch_code(
+            issuer.issue(
+                "example-client",
+                session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
+                allow_session_renewal=True,
+            ),
+            "example-tool",
+            "example-client",
+            300,
+            expected_user_id=str(user_id),
+            candidate_tool_access_token=candidate.tool_access_token,
+            renew_existing_session=True,
+        )
+        clock[0] += timedelta(seconds=30)
+        second = exchange_launch_code(
+            issuer.issue(
+                "example-client",
+                session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
+                allow_session_renewal=True,
+            ),
+            "example-tool",
+            "example-client",
+            300,
+            expected_user_id=str(user_id),
+            candidate_tool_access_token=candidate.tool_access_token,
+            renew_existing_session=True,
+        )
+
+        assert first is not None
+        assert second is not None
+        assert first.tool_session.expires_at == clock[0] + timedelta(seconds=270)
+        assert second.tool_session.expires_at == clock[0] + timedelta(seconds=300)
+        assert second.tool_session.tool_access_token == candidate.tool_access_token
+        assert second.session_renewed is True
+
+
+def test_legacy_or_malformed_grant_cannot_authorize_renewal(app, database, tool_registry, user_id):
+    with app.app_context():
+        issuer = BoundToolLaunchGrantIssuer("example-tool", str(user_id))
+        candidate = create_delegated_tool_session(
+            str(user_id), "example-tool", "example-client", 300
+        )
+        stored_before = database.tool_sessions.find_one({})
+
+        legacy_code = issuer.issue(
+            "example-client",
+            session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
+        )
+        database.tool_launch_grants.update_one(
+            {"_id": tool_grants._hash_secret(legacy_code)},
+            {"$unset": {"allow_session_renewal": ""}},
+        )
+        assert (
+            exchange_launch_code(
+                legacy_code,
+                "example-tool",
+                "example-client",
+                300,
+                expected_user_id=str(user_id),
+                candidate_tool_access_token=candidate.tool_access_token,
+                renew_existing_session=True,
+            )
+            is None
+        )
+
+        malformed_code = issuer.issue(
+            "example-client",
+            session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
+            allow_session_renewal=True,
+        )
+        database.tool_launch_grants.update_one(
+            {"_id": tool_grants._hash_secret(malformed_code)},
+            {"$set": {"allow_session_renewal": 1}},
+        )
+        assert (
+            exchange_launch_code(
+                malformed_code,
+                "example-tool",
+                "example-client",
+                expected_user_id=str(user_id),
+            )
+            is None
+        )
+        assert database.tool_sessions.find_one({}) == stored_before
+
+
+@pytest.mark.parametrize(
+    ("created_offset", "expiry_offset"),
+    (
+        (-1, -1),
+        (1, 60),
+        (-1, 301),
+        (-7 * 24 * 60 * 60, 60),
+    ),
+)
+def test_renewal_never_revives_ineligible_timestamps(
+    app,
+    database,
+    tool_registry,
+    user_id,
+    monkeypatch,
+    created_offset,
+    expiry_offset,
+):
+    fixed_now = datetime(2026, 1, 8, 12, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(tool_grants, "_now", lambda: fixed_now)
+
+    with app.app_context():
+        issuer = BoundToolLaunchGrantIssuer("example-tool", str(user_id))
+        candidate = create_delegated_tool_session(
+            str(user_id), "example-tool", "example-client", 60
+        )
+        database.tool_sessions.update_one(
+            {},
+            {
+                "$set": {
+                    "created_at": fixed_now + timedelta(seconds=created_offset),
+                    "expires_at": fixed_now + timedelta(seconds=expiry_offset),
+                }
+            },
+        )
+
+        exchange = exchange_launch_code(
+            issuer.issue(
+                "example-client",
+                session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
+                allow_session_renewal=True,
+            ),
+            "example-tool",
+            "example-client",
+            300,
+            expected_user_id=str(user_id),
+            candidate_tool_access_token=candidate.tool_access_token,
+            renew_existing_session=True,
+        )
+
+        assert exchange is not None
+        assert exchange.session_reused is False
+        assert exchange.session_renewed is False
+        assert exchange.tool_session.tool_access_token != candidate.tool_access_token
+
+
+def test_compare_and_set_loss_rereads_authoritative_expiry_once(
+    app, database, tool_registry, user_id, monkeypatch
+):
+    fixed_now = datetime(2026, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
+    monkeypatch.setattr(tool_grants, "_now", lambda: fixed_now)
+
+    with app.app_context():
+        issuer = BoundToolLaunchGrantIssuer("example-tool", str(user_id))
+        candidate = create_delegated_tool_session(
+            str(user_id), "example-tool", "example-client", 60
+        )
+        collection_type = type(database.tool_sessions)
+        original_find_one_and_update = collection_type.find_one_and_update
+        compare_and_set_calls = 0
+        concurrent_expiry = fixed_now + timedelta(seconds=250)
+
+        def lose_to_concurrent_renewal(collection, query, update, *args, **kwargs):
+            nonlocal compare_and_set_calls
+            if collection.name != "tool_sessions":
+                return original_find_one_and_update(collection, query, update, *args, **kwargs)
+            compare_and_set_calls += 1
+            collection.update_one(
+                {"_id": query["_id"]}, {"$set": {"expires_at": concurrent_expiry}}
+            )
+            return None
+
+        monkeypatch.setattr(
+            collection_type,
+            "find_one_and_update",
+            lose_to_concurrent_renewal,
+        )
+        exchange = exchange_launch_code(
+            issuer.issue(
+                "example-client",
+                session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
+                allow_session_renewal=True,
+            ),
+            "example-tool",
+            "example-client",
+            300,
+            expected_user_id=str(user_id),
+            candidate_tool_access_token=candidate.tool_access_token,
+            minimum_reuse_lifetime_seconds=200,
+            renew_existing_session=True,
+        )
+
+        assert exchange is not None
+        assert compare_and_set_calls == 1
+        assert exchange.session_reused is True
+        assert exchange.session_renewed is False
+        assert exchange.tool_session.tool_access_token == candidate.tool_access_token
+        assert exchange.tool_session.expires_at == concurrent_expiry
+
+
+def test_interleaved_renewals_report_one_compare_and_set_winner(
+    app, database, tool_registry, user_id, monkeypatch
+):
+    fixed_now = datetime(2026, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
+    monkeypatch.setattr(tool_grants, "_now", lambda: fixed_now)
+
+    with app.app_context():
+        issuer = BoundToolLaunchGrantIssuer("example-tool", str(user_id))
+        candidate = create_delegated_tool_session(
+            str(user_id), "example-tool", "example-client", 60
+        )
+        first_code = issuer.issue(
+            "example-client",
+            session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
+            allow_session_renewal=True,
+        )
+        second_code = issuer.issue(
+            "example-client",
+            session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
+            allow_session_renewal=True,
+        )
+        collection_type = type(database.tool_sessions)
+        original_find_one_and_update = collection_type.find_one_and_update
+        interleaving_triggered = False
+        second_exchange: tool_grants.ToolLaunchExchange | None = None
+
+        def interleave_second_renewal(collection, query, update, *args, **kwargs):
+            nonlocal interleaving_triggered, second_exchange
+            if collection.name == "tool_sessions" and not interleaving_triggered:
+                interleaving_triggered = True
+                second_exchange = exchange_launch_code(
+                    second_code,
+                    "example-tool",
+                    "example-client",
+                    300,
+                    expected_user_id=str(user_id),
+                    candidate_tool_access_token=candidate.tool_access_token,
+                    minimum_reuse_lifetime_seconds=200,
+                    renew_existing_session=True,
+                )
+            return original_find_one_and_update(collection, query, update, *args, **kwargs)
+
+        monkeypatch.setattr(
+            collection_type,
+            "find_one_and_update",
+            interleave_second_renewal,
+        )
+        first_exchange = exchange_launch_code(
+            first_code,
+            "example-tool",
+            "example-client",
+            300,
+            expected_user_id=str(user_id),
+            candidate_tool_access_token=candidate.tool_access_token,
+            minimum_reuse_lifetime_seconds=200,
+            renew_existing_session=True,
+        )
+
+        assert interleaving_triggered is True
+        assert first_exchange is not None
+        assert second_exchange is not None
+        assert first_exchange.session_reused is True
+        assert first_exchange.session_renewed is False
+        assert second_exchange.session_reused is True
+        assert second_exchange.session_renewed is True
+        assert first_exchange.tool_session.expires_at == second_exchange.tool_session.expires_at
+
+
+@pytest.mark.parametrize("interleaving", ("replacement", "revocation"))
+def test_concurrent_replacement_or_revocation_never_revives_candidate(
+    app, database, tool_registry, user_id, monkeypatch, interleaving
+):
+    fixed_now = datetime(2026, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
+    monkeypatch.setattr(tool_grants, "_now", lambda: fixed_now)
+
+    with app.app_context():
+        issuer = BoundToolLaunchGrantIssuer("example-tool", str(user_id))
+        candidate = create_delegated_tool_session(
+            str(user_id), "example-tool", "example-client", 60
+        )
+        collection_type = type(database.tool_sessions)
+        original_find_one_and_update = collection_type.find_one_and_update
+        interleaving_triggered = False
+
+        def interleave_session_change(collection, query, update, *args, **kwargs):
+            nonlocal interleaving_triggered
+            if collection.name == "tool_sessions" and not interleaving_triggered:
+                interleaving_triggered = True
+                if interleaving == "replacement":
+                    create_delegated_tool_session(
+                        str(user_id), "example-tool", "replacement-client", 300
+                    )
+                else:
+                    collection.delete_one({"_id": query["_id"]})
+            return original_find_one_and_update(collection, query, update, *args, **kwargs)
+
+        monkeypatch.setattr(
+            collection_type,
+            "find_one_and_update",
+            interleave_session_change,
+        )
+        exchange = exchange_launch_code(
+            issuer.issue(
+                "example-client",
+                session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
+                allow_session_renewal=True,
+            ),
+            "example-tool",
+            "example-client",
+            300,
+            expected_user_id=str(user_id),
+            candidate_tool_access_token=candidate.tool_access_token,
+            renew_existing_session=True,
+        )
+
+        assert interleaving_triggered is True
+        assert exchange is not None
+        assert exchange.session_reused is False
+        assert exchange.session_renewed is False
+        assert exchange.tool_session.tool_access_token != candidate.tool_access_token
+        assert get_tool_access_token_user_id(candidate.tool_access_token) is None
+        assert database.tool_sessions.count_documents({}) == 1
+
+
 @pytest.mark.parametrize(
     ("session_policy", "expected_session_count", "candidate_remains_active"),
     (

@@ -195,6 +195,7 @@ class ToolLaunchGrantIssuer(Protocol):
         lifetime_seconds: int = 60,
         *,
         session_policy: ToolSessionPolicy = ToolSessionPolicy.REPLACE,
+        allow_session_renewal: bool = False,
     ) -> str:
         """Create and return a raw, single-use launch code."""
 
