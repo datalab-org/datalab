@@ -306,6 +306,9 @@ def add_data_block():
         {"item_id": item_id, **get_default_permissions(user_only=True)}, {"display_order": 1}
     )
 
+    # Return the server-side provenance (`created_at`, `creators`) with the new block
+    block.data.update(store.get_block_provenance(block_immutable_id))
+
     return jsonify(
         status="success",
         new_block_obj=block.to_web(),

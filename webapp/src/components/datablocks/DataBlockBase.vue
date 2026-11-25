@@ -46,6 +46,7 @@
       :style="{ 'max-height': contentMaxHeight }"
       class="datablock-content position-relative"
     >
+      <BlockProvenance :item_id="item_id" :block_id="block_id" />
       <!-- Show any warnings or errors reported by the block -->
       <div
         v-if="block.errors"
@@ -210,6 +211,7 @@ import { createComputedSetterForBlockField } from "@/field_utils.js";
 import TiptapInline from "@/components/TiptapInline";
 import BlockTooltip from "@/components/BlockTooltip";
 import MetadataViewer from "@/components/MetadataViewer";
+import BlockProvenance from "@/components/BlockProvenance";
 
 import { deleteBlock, updateBlockFromServer } from "@/server_fetch_utils";
 
@@ -218,6 +220,7 @@ export default {
     TiptapInline,
     BlockTooltip,
     MetadataViewer,
+    BlockProvenance,
   },
   props: {
     item_id: {
