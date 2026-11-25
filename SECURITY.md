@@ -123,7 +123,7 @@ Note the limits of this: it protects against a stolen disk or a leaked snapshot,
 Personal data removed by deleting an account will persist in backups until they expire, so retention periods should be set deliberately and reflected in the deployment's privacy notice.
 - **Remote filesystems.** Scope any configured remote filesystem to the narrowest possible directory, using a dedicated account with read-only access.
 - **Plugins.** Review and pin them; treat additions as deployment changes.
-- **Updates.** Track releases and subscribe to this repository's security advisories.
+- **Updates.** Track releases and subscribe to this repository's security advisories. Draft advisories will be disseminated early in the #deployment channel on the datalab-org Slack (see README for invite link) before being published on GitHub.
 
 There are a series of Ansible roles made available by datalab industries ltd. in [`datalab-ansible-terraform`](https://github.com/datalab-industries/datalab-ansible-terraform) that cover several of these cases automatically.
 For example, certificate provisioning, backup scheduling and retention, monitoring and log ingestion are handled by the playbooks.
