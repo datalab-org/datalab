@@ -69,6 +69,13 @@ def check_feature_flags(app):
     ]
     FEATURE_FLAGS.ungrouped_inventory = CONFIG.UNGROUPED_INVENTORY
 
+    if CONFIG.TOOLS.ALLOW_INSECURE_HTTP:
+        LOGGER.critical(
+            "TOOLS.ALLOW_INSECURE_HTTP is enabled: standalone tools may return plain-HTTP "
+            "launch URLs. This exposes launch codes, tokens, and user data to interception "
+            "and MUST NOT be used in production."
+        )
+
     if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is None:
         LOGGER.warning(
             "No email auth SMTP settings provided, email registration will not be enabled."

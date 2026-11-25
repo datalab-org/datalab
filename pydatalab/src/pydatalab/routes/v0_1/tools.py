@@ -6,7 +6,7 @@ from flask import Blueprint, current_app, jsonify, request
 from flask_login import current_user
 from pydantic import AnyHttpUrl, TypeAdapter, ValidationError
 
-from pydatalab.config import is_loopback_host
+from pydatalab.config import CONFIG, is_loopback_host
 from pydatalab.logger import LOGGER
 from pydatalab.login import is_browser_session_user, is_tool_access_token_user
 from pydatalab.models.people import AccountStatus
@@ -38,7 +38,9 @@ def _validated_launch_url(value: str) -> str:
         raise ValueError("Standalone tool launch URLs cannot contain credentials")
     if parsed_url.scheme == "https":
         return validated_url
-    if parsed_url.scheme == "http" and is_loopback_host(parsed_url.hostname):
+    if parsed_url.scheme == "http" and (
+        is_loopback_host(parsed_url.hostname) or CONFIG.TOOLS.ALLOW_INSECURE_HTTP
+    ):
         return validated_url
     raise ValueError("Standalone tool launch URLs must use HTTPS except on loopback hosts")
 

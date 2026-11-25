@@ -178,6 +178,13 @@ class ToolsSettings(BaseModel):
         default_factory=set,
         description="Installed tool plugin IDs disabled for this deployment.",
     )
+    ALLOW_INSECURE_HTTP: bool = Field(
+        False,
+        description=(
+            "Allow standalone tool launch URLs to use non-loopback HTTP for temporary "
+            "trusted testing deployments. This must not be enabled in production."
+        ),
+    )
 
     @field_validator("ORDER")
     @classmethod

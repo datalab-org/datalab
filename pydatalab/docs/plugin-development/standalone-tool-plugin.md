@@ -92,10 +92,14 @@ issues the grant. The default is `ToolSessionPolicy.REPLACE`, which replaces
 the user's other sessions for the same provider. The selected policy is bound
 to the launch grant; an exchange client cannot choose or upgrade it.
 
-Production standalone tools must return an HTTPS launch URL. HTTP is reserved
-for local development on explicit loopback hosts (`localhost`,
-`*.localhost`, `127.0.0.0/8`, or `::1`); private-LAN HTTP URLs are rejected.
-The URL must not contain embedded username or password credentials.
+Production standalone tools must return an HTTPS launch URL. HTTP is available
+without configuration only on explicit loopback hosts (`localhost`,
+`*.localhost`, `127.0.0.0/8`, or `::1`). A temporary trusted testing deployment
+can set `PYDATALAB_TOOLS__ALLOW_INSECURE_HTTP=true` to accept non-loopback HTTP
+launch URLs from every installed standalone provider. This does not weaken
+authentication, authorization, or token exchange, but HTTP transport can expose
+launch codes, tokens, and user data and must not be used in production. The URL
+must not contain embedded username or password credentials.
 
 The example also advertises **Open selected** for Samples, Inventory, and
 items within a collection. datalab validates the selection and binds it to the

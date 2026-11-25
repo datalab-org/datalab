@@ -63,11 +63,26 @@ list follow in alphabetical ID order. Unknown, unavailable, disabled, or
 uninstalled IDs are ignored, allowing the same partial order to be shared by
 deployments with different plugin sets. Duplicate IDs are invalid.
 
+Standalone tools must return HTTPS launch URLs in production. Explicit
+loopback HTTP URLs remain available for local development. A temporary trusted
+testing deployment that cannot use HTTPS may opt in to non-loopback HTTP for
+all installed standalone tools:
+
+```shell
+PYDATALAB_TOOLS__ALLOW_INSECURE_HTTP=true
+```
+
+This deployment-wide exception affects only final browser launch-URL
+validation; it does not weaken authentication, authorization, or token
+exchange. Plain HTTP can nevertheless expose launch codes, tokens, and user
+data, so never enable it in production.
+
 Plugin-specific settings are owned and documented by each plugin rather than
 `ServerConfig`. For example, see the
 [`datalab-jupyter` installation guide](https://github.com/Matgenix/datalab-jupyter/blob/main/INSTALL.md)
 for its credentials, URLs, and deployment settings. The generic `TOOLS.DISABLED` and
-`TOOLS.ORDER` settings still apply to installed tool plugins.
+`TOOLS.ORDER` settings still apply to installed tool plugins, while
+`TOOLS.ALLOW_INSECURE_HTTP` applies to every standalone provider.
 
 ## Mandatory settings
 

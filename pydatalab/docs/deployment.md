@@ -188,8 +188,11 @@ service only when the plugin's deployment guide explicitly requires it.
 For each standalone service:
 
 1. Review and pin both the provider package and service artifact.
-2. Use HTTPS and dedicated service credentials. Keep the service away from the
-   datalab database, server secrets, and unrelated deployment networks.
+2. Use HTTPS and dedicated service credentials. Explicit loopback HTTP is
+   accepted for local development; non-loopback HTTP requires the temporary,
+   deployment-wide `PYDATALAB_TOOLS__ALLOW_INSECURE_HTTP=true` testing exception
+   and is never suitable for production. Keep the service away from the datalab
+   database, server secrets, and unrelated deployment networks.
 3. Define health checks, backups, storage and retention, resource limits, and
    upgrade and rollback procedures.
 4. Identify privileged host resources, such as the Docker socket, and expose

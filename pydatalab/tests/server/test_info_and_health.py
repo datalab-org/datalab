@@ -31,6 +31,22 @@ def test_magic_link_auth_feature_flag_can_be_disabled(app, monkeypatch):
     assert FEATURE_FLAGS.auth_mechanisms.email is False
 
 
+def test_insecure_tool_launch_urls_emit_critical_startup_warning(app, monkeypatch):
+    from pydatalab import feature_flags
+
+    critical_messages = []
+    monkeypatch.setattr(feature_flags.CONFIG.TOOLS, "ALLOW_INSECURE_HTTP", True)
+    monkeypatch.setattr(
+        feature_flags.LOGGER,
+        "critical",
+        lambda message, *args: critical_messages.append(message % args if args else message),
+    )
+
+    feature_flags.check_feature_flags(app)
+
+    assert any("TOOLS.ALLOW_INSECURE_HTTP is enabled" in message for message in critical_messages)
+
+
 def test_landing_page(unauthenticated_client, client):
     """Check that the rudimentary landing page renders without error for both
     unauthenticated and authenticated users."""

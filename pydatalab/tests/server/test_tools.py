@@ -1814,6 +1814,39 @@ def test_tool_launch_rejects_unsafe_urls_without_disclosure(
     assert "must-not-leak" not in response.get_data(as_text=True)
 
 
+def test_tool_launch_allows_insecure_http_only_for_http_urls_without_credentials(
+    session_client, tool_registry, monkeypatch
+):
+    monkeypatch.setattr(CONFIG.TOOLS, "ALLOW_INSECURE_HTTP", True)
+
+    launch_url = "http://tools.example.test/start"
+    monkeypatch.setattr(ExampleTool, "launch", lambda self, context, grants: launch_url)
+    response = session_client.post(
+        "/tools/example-tool/launch",
+        json={},
+        headers={"Origin": "http://localhost"},
+    )
+    assert response.status_code == 200
+    assert response.json["url"] == launch_url
+
+    for unsafe_url in (
+        "http://user:secret@tools.example.test/start",
+        "ftp://tools.example.test/start",
+    ):
+        monkeypatch.setattr(
+            ExampleTool,
+            "launch",
+            lambda self, context, grants, value=unsafe_url: value,
+        )
+        response = session_client.post(
+            "/tools/example-tool/launch",
+            json={},
+            headers={"Origin": "http://localhost"},
+        )
+        assert response.status_code == 503
+        assert response.json == {"status": "error", "message": "Unable to launch tool"}
+
+
 def test_tool_launch_uses_read_permissions_for_administrators(
     app, admin_user_id, tool_registry, monkeypatch
 ):
