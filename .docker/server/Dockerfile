@@ -44,11 +44,6 @@ ENV UV_LINK_MODE=copy \
     UV_PROJECT_ENVIRONMENT=/opt/.venv \
     UV_PYTHON=python3.11
 
-# Used to fake the version of the package in cases where datalab is only
-# available as a git submodule or worktree
-ARG SETUPTOOLS_SCM_PRETEND_VERSION
-ENV SETUPTOOLS_SCM_PRETEND_VERSION=${SETUPTOOLS_SCM_PRETEND_VERSION}
-
 WORKDIR /app
 COPY ./pydatalab/tasks.py .
 COPY ./pydatalab/pyproject.toml .
@@ -65,7 +60,7 @@ COPY ./pydatalab/plugins/ /pydatalab/plugins/
 # Install the base datalab venv with dev dependencies (to include invoke)
 # then run the datalab custom install script to pick up any plugins and install
 # them in the base venv
-RUN uv sync --extra server --locked && uv run invoke dev.install --no-dev
+RUN uv sync --extra server --locked && uv run invoke dev.install --no-dev && uv cache clean
 
 WORKDIR /app
 
@@ -73,10 +68,19 @@ WORKDIR /app
 COPY ./pydatalab/ ./
 RUN git config --global --add safe.directory /
 
+# Used to fake the version of the package in cases where datalab is only
+# available as a git submodule or worktree. Set after the dependencies are installed,
+# so that a new version does not invalidate those layers.
+ARG SETUPTOOLS_SCM_PRETEND_VERSION
+ENV SETUPTOOLS_SCM_PRETEND_VERSION=${SETUPTOOLS_SCM_PRETEND_VERSION}
+
 # Install editable mode so that the server runs from a sensible place where we can stuff .env files.
 # setuptools-scm gets its version from SETUPTOOLS_SCM_PRETEND_VERSION (build arg above) rather than
-# a `.git` bind mount, so this layer doesn't invalidate on every commit.
-RUN uv pip install --python /opt/.venv/bin/python --no-deps --editable .
+# a `.git` bind mount, so this layer doesn't invalidate on every commit. The package has already been
+# installed above with a placeholder version, so must be explicitly rebuilt to pick up the real one,
+# and the metadata from those builds removed, as it would take precedence when running from /app.
+RUN rm -rf /app/*.egg-info /app/build/*.egg-info \
+    && uv pip install --python /opt/.venv/bin/python --no-deps --reinstall-package datalab-server --refresh-package datalab-server --editable .
 
 
 FROM build AS dev
