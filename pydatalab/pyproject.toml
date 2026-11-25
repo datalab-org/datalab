@@ -17,7 +17,7 @@ classifiers = [
 requires-python = ">= 3.11, < 3.12"
 
 dependencies = [
-    "bokeh ~= 2.4, < 3.0",
+    "bokeh>=2.4,<4.0",
     "matplotlib ~= 3.8",
     "periodictable ~= 2.1",
     "pydantic[email] >= 2.11, < 3.0",
