@@ -369,9 +369,7 @@ def update_collection_permissions(collection_id: str):
 
     # Deleted users cannot be newly added as creators, but any already present are kept
     if creator_ids:
-        found_creator_ids = [
-            d
-            for d in flask_mongo.db.users.find(
+        found_creator_ids = [*flask_mongo.db.users.find(
                 {
                     "_id": {"$in": creator_ids},
                     "$or": [
@@ -394,8 +392,7 @@ def update_collection_permissions(collection_id: str):
             )
 
     if group_ids:
-        found_group_ids = [
-            d for d in flask_mongo.db.groups.find({"_id": {"$in": group_ids}}, {"_id": 1})
+        found_group_ids = [*flask_mongo.db.groups.find({"_id": {"$in": group_ids}}, {"_id": 1})
         ]  # type: ignore
         if len(found_group_ids) != len(group_ids):
             return (
