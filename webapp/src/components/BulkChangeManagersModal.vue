@@ -1,10 +1,11 @@
 <template>
-  <form
-    class="modal-enclosure"
-    data-testid="bulk-change-managers-form"
-    @submit.prevent="submitForm"
-  >
-    <Modal :model-value="modelValue" :disable-submit="!isValid" @update:model-value="handleClose">
+  <form class="modal-enclosure" data-testid="bulk-change-managers-form" @submit.prevent>
+    <Modal
+      :model-value="modelValue"
+      :disable-submit="!isValid"
+      @update:model-value="handleClose"
+      @submit="submitForm"
+    >
       <template #header> Change User Managers </template>
 
       <template #body>

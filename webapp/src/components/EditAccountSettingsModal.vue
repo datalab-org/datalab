@@ -1,6 +1,6 @@
 <template>
-  <form class="modal-enclosure" @submit.prevent="submitForm">
-    <Modal :model-value="modelValue" @update:model-value="resetForm">
+  <form class="modal-enclosure" @submit.prevent>
+    <Modal :model-value="modelValue" @update:model-value="resetForm" @submit="submitForm">
       <template #header> Account settings </template>
 
       <template #body>
@@ -310,12 +310,12 @@
         </div>
       </template>
 
-      <template #footer>
+      <template #footer="{ submitting }">
         <input
           v-if="activeTab === 'profile'"
           type="submit"
           class="btn btn-info"
-          :disabled="submitDisabled"
+          :disabled="submitDisabled || submitting"
           :title="submitDisabled && !hasChanges ? 'No changes to save' : undefined"
           value="Save"
         />

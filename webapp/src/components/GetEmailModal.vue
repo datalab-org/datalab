@@ -1,9 +1,10 @@
 <template>
-  <form class="modal-enclosure" @submit.prevent="submitForm">
+  <form class="modal-enclosure" @submit.prevent>
     <Modal
       :model-value="modelValue"
       :disable-submit="Boolean(successMessage) || !Boolean(emailAddress)"
       @update:model-value="$emit('update:modelValue', $event)"
+      @submit="submitForm"
     >
       <template #body>
         <div class="form-row">
