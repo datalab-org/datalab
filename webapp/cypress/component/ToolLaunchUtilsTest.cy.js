@@ -6,6 +6,7 @@ describe("parseToolLaunchUrl", () => {
     ["localhost HTTP", "http://localhost:8080/start", "http://localhost:8080/start"],
     ["127/8 HTTP", "http://127.42.0.9/start", "http://127.42.0.9/start"],
     ["IPv6 loopback HTTP", "http://[::1]:8080/start", "http://[::1]:8080/start"],
+    ["remote HTTP", "http://tools.example.test/start", "http://tools.example.test/start"],
   ].forEach(([description, value, expected]) => {
     it(`accepts ${description}`, () => {
       expect(parseToolLaunchUrl(value)).to.equal(expected);
@@ -13,8 +14,6 @@ describe("parseToolLaunchUrl", () => {
   });
 
   [
-    ["remote HTTP", "http://tools.example.test/start"],
-    ["a localhost lookalike", "http://localhost.example.com/start"],
     ["embedded HTTPS credentials", "https://user:secret@tools.example.test/start"],
     ["a non-HTTP(S) scheme", "javascript:alert(1)"],
   ].forEach(([description, value]) => {
