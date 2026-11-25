@@ -12,6 +12,7 @@ from pydatalab.logger import LOGGER
 from pydatalab.models.people import AccountStatus, Group, Person
 from pydatalab.mongo import flask_mongo, gravatar_hash_for
 from pydatalab.permissions import admin_only
+from pydatalab.utils import is_truthy_arg_value
 
 
 def check_manager_cycle(user_id: ObjectId, new_manager_id: ObjectId) -> bool:
@@ -321,7 +322,7 @@ def delete_user(user_id: str):
     if not user:
         raise NotFound("User not found.")
 
-    expunge = request.args.get("expunge", "false").lower() in ("1", "true", "yes")
+    expunge = request.args.get("expunge", default=False, type=is_truthy_arg_value)
 
     emails = {
         identity["identifier"]

@@ -407,6 +407,9 @@ def test_inventory_group_membership(
     response = client.get("/search/groups?query=Other&member_only=true")
     assert response.status_code == 200
     assert "other-group" not in {g["group_id"] for g in response.json["data"]}
+    response = client.get("/search/groups?query=Other&member_only=1")
+    assert response.status_code == 200
+    assert "other-group" not in {g["group_id"] for g in response.json["data"]}
     response = admin_client.get("/search/groups?query=Other&member_only=true")
     assert "other-group" in {g["group_id"] for g in response.json["data"]}
 
@@ -648,12 +651,20 @@ def test_admin_super_user_mode(admin_client, client):
     response = admin_client.get(f"/items/{user_refcode}?sudo=1")
     assert response.status_code == 200
 
+    # The standard case-insensitive true value also enables admin super-user mode
+    response = admin_client.get(f"/items/{user_refcode}?sudo=true")
+    assert response.status_code == 200
+
     # Admin can always see their own item (no ?sudo=1 needed)
     response = admin_client.get(f"/items/{admin_refcode}")
     assert response.status_code == 200
 
     # Normal user with ?sudo=1 still cannot see admin's item (param ignored for non-admins)
     response = client.get(f"/items/{admin_refcode}?sudo=1")
+    assert response.status_code == 404
+
+    # The parameter never elevates a non-admin user
+    response = client.get(f"/items/{admin_refcode}?sudo=true")
     assert response.status_code == 404
 
     # Normal user can see their own item
