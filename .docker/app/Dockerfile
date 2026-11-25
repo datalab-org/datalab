@@ -94,7 +94,7 @@ RUN /node_modules/.bin/vite build
 # production target: serves the compiled bundle with nginx, so no Node runtime
 # or node_modules are needed in the final image. The entrypoint script writes
 # the runtime `VUE_APP_*` settings to `config.js` before nginx starts.
-FROM nginx:1.31.8-alpine AS production
+FROM nginx:1.31.9-alpine AS production
 
 EXPOSE 8081
 
