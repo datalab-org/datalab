@@ -9,10 +9,26 @@ Call sites keep writing plain dicts. The field names here match the literal keys
 and the attribute docstrings become the descriptions in the generated schema.
 """
 
+from functools import cache
+
 from pydantic import ConfigDict, ValidationError
 
+from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.units import DatalabQuantity
 from pydatalab.models.utils import BaseModel
+
+
+class DatalabRelationship(BaseModel):
+    """The relationship created for every item referenced in a field."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    relation: RelationshipType = RelationshipType.PARENT
+    """The type of relationship from the item holding the field to the referenced item."""
+
+    description: str = "Is referenced by"
+    """The description stored on the relationship. Together with `relation`, it identifies
+    the relationships that belong to the field."""
 
 
 class DatalabFieldExtra(BaseModel):
@@ -34,6 +50,10 @@ class DatalabFieldExtra(BaseModel):
 
     datalab_ref_types: list[str] | None = None
     """Render an item-reference widget restricted to these item types."""
+
+    datalab_relationship: DatalabRelationship | None = None
+    """Create a relationship to every item referenced in this field, at any depth, and
+    remove it when the reference is cleared."""
 
     datalab_quantity: DatalabQuantity | None = None
     """Render a canonical numeric field with plugin-defined display-unit conversions."""
@@ -67,6 +87,21 @@ def _datalab_hint_keys(extra: dict) -> dict:
     (e.g. ``format``) declared in the same dict are left untouched.
     """
     return {k: v for k, v in extra.items() if k.startswith("datalab_")}
+
+
+@cache
+def relationship_hints(model: type[BaseModel]) -> dict[str, DatalabRelationship]:
+    """Return the ``datalab_relationship`` hint of each field of ``model`` that has one,
+    keyed by field name."""
+    hints: dict[str, DatalabRelationship] = {}
+    for field_name, field in model.model_fields.items():
+        field_extra = field.json_schema_extra
+        if isinstance(field_extra, dict) and field_extra.get("datalab_relationship") is not None:
+            hint = field_extra["datalab_relationship"]
+            hints[field_name] = (
+                hint if isinstance(hint, DatalabRelationship) else DatalabRelationship(**hint)
+            )
+    return hints
 
 
 def _non_null_schema_types(schema: dict) -> set[str]:
