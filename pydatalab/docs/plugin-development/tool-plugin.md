@@ -103,6 +103,13 @@ declared authentication policy:
   implement `authenticate_service_request()` and authorize the client again as
   required by each handler.
 
+Service authentication identifies the confidential provider client, not the
+person operating a browser. A separately hosted service that uses a datalab
+launch to establish its own browser login must use `issue_service_launch()`, the
+core service-launch authorization route, RFC 7636 `S256`, and
+`exchange_authorized_service_launch_code()`. The unbound
+`exchange_service_launch_code()` helper is not a browser login or SSO API.
+
 Automatic route authentication decides who may enter a route; it does not add
 object-level permission filters to arbitrary database queries. Load data through
 the normal datalab API or explicitly use permission-aware server services.

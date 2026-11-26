@@ -3,8 +3,33 @@
 from urllib.parse import urlsplit
 
 from flask import request
+from pydantic import AnyHttpUrl, TypeAdapter
 
 from pydatalab.config import CONFIG, is_loopback_host
+
+HTTP_URL_ADAPTER = TypeAdapter(AnyHttpUrl)
+
+
+def validated_external_tool_url(
+    value: str,
+    *,
+    allow_insecure_http: bool,
+    require_empty_query_and_fragment: bool = False,
+) -> str:
+    """Return a validated browser-facing URL for an external tool handoff."""
+    validated_url = str(HTTP_URL_ADAPTER.validate_python(value))
+    parsed_url = urlsplit(validated_url)
+    if parsed_url.username is not None or parsed_url.password is not None:
+        raise ValueError("External tool URLs cannot contain credentials")
+    if require_empty_query_and_fragment and (parsed_url.query or parsed_url.fragment):
+        raise ValueError("External tool callback URLs cannot contain a query or fragment")
+    if parsed_url.scheme == "https":
+        return validated_url
+    if parsed_url.scheme == "http" and (
+        is_loopback_host(parsed_url.hostname) or allow_insecure_http
+    ):
+        return validated_url
+    raise ValueError("External tool URLs must use HTTPS except on loopback hosts")
 
 
 def _normalized_origin(value: str) -> tuple[str, str, int] | None:

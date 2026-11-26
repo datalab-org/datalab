@@ -199,6 +199,17 @@ class ToolLaunchGrantIssuer(Protocol):
     ) -> str:
         """Create and return a raw, single-use launch code."""
 
+    def issue_service_launch(
+        self,
+        client_id: str,
+        callback_url: str,
+        lifetime_seconds: int = 60,
+        *,
+        session_policy: ToolSessionPolicy = ToolSessionPolicy.REPLACE,
+        allow_session_renewal: bool = False,
+    ) -> str:
+        """Create a service launch request requiring browser authorization."""
+
 
 class ToolProvider:
     """Base class implemented by installed tool providers."""

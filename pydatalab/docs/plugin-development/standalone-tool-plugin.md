@@ -139,7 +139,53 @@ Confidential services use a separate API. After datalab has authenticated the
 client through a `ToolRouteAuth.SERVICE` provider route, the handler can call
 `exchange_service_launch_code(code, TOOL_ID, CLIENT_ID)`. That helper performs
 no browser-user binding and does not authenticate the caller, so it must never
-be used by this browser-authenticated pattern.
+be used as a browser login or single-sign-on primitive. It remains available
+only for confidential, non-browser workflows whose authorization does not
+depend on the user operating a browser.
+
+### Browser login for a confidential service
+
+A confidential service that signs a browser into a local account must use the
+browser-bound service flow instead. Its provider issues a **service launch
+request code** with a fixed callback:
+
+```python
+request_code = grants.issue_service_launch(
+    CLIENT_ID,
+    "https://tool.example.org/callback",
+)
+```
+
+The service creates a high-entropy RFC 7636 verifier, retains it in a
+short-lived, HttpOnly cookie, and sends only its unpadded `S256` challenge and
+the exact `code_challenge_method=S256` value to
+`/v0.1/tools/<tool-id>/service-launch/authorize`. datalab matches and consumes
+the request only for the current active browser-session user, then returns a
+different one-use **service authorization code** to the stored callback. The
+authenticated provider route completes the exchange:
+
+```python
+result = exchange_authorized_service_launch_code(
+    authorization_code,
+    code_verifier,
+    TOOL_ID,
+    CLIENT_ID,
+    expected_user_id=existing_service_subject,
+)
+```
+
+datalab alone validates both codes' hashes, purpose, expiry, tool, client, and
+user binding. Confidential client authentication proves which service is
+calling; it does not prove which datalab user is operating the browser. When a
+service already has a local login, it must pass the immutable datalab subject as
+`expected_user_id` and verify the returned subject again before replacing local
+authentication state. XSRF protects the service's same-origin POST endpoints,
+but does not establish the datalab user and does not replace this binding.
+
+The request code, authorization code, PKCE verifier, and challenge are
+short-lived handoff material, not API tokens. “Same browser” means the same
+relevant datalab and service cookie contexts, not necessarily the same tab.
+Selected items remain launch context and never become authorization scope.
 
 ## Access and credential details
 
@@ -208,6 +254,10 @@ result = exchange_service_launch_code(
     minimum_reuse_lifetime_seconds=10 * 60,
 )
 ```
+
+This legacy helper example applies only to a non-browser confidential workflow.
+A service using the browser as a login or SSO channel must use the
+browser-bound flow above.
 
 `result.session_reused` is true only when the returned raw token is exactly the
 candidate. Ordinary reuse preserves its existing expiry. A missing, expired,

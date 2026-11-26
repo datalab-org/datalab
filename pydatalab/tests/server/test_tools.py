@@ -1,7 +1,10 @@
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from flask.testing import FlaskClient
+from werkzeug.datastructures import MultiDict
 
 from pydatalab.config import CONFIG
 from pydatalab.login import AuthMethod, get_by_api_key
@@ -20,7 +23,9 @@ from pydatalab.tools import (
 from pydatalab.tools import grants as tool_grants
 from pydatalab.tools.grants import (
     BoundToolLaunchGrantIssuer,
+    authorize_service_launch_code,
     create_delegated_tool_session,
+    exchange_authorized_service_launch_code,
     exchange_launch_code,
     exchange_service_launch_code,
     get_tool_access_token_user_id,
@@ -1901,3 +1906,534 @@ def test_disabling_tool_invalidates_delegated_token(
         session = create_delegated_tool_session(str(user_id), "example-tool", "example-client")
         monkeypatch.setattr(CONFIG.TOOLS, "DISABLED", {"example-tool"})
         assert get_tool_access_token_user_id(session.tool_access_token) is None
+
+
+RFC7636_CODE_VERIFIER = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+RFC7636_S256_CHALLENGE = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+
+
+def test_service_launch_uses_rfc7636_s256_and_preserves_authorized_grant_data(
+    app, database, tool_registry, user_id, another_user_id
+):
+    selection = ItemSelection(
+        action_id="compare-items",
+        item_refcodes=("test:one", "test:two"),
+    )
+    with app.app_context():
+        assert tool_grants._pkce_s256_challenge(RFC7636_CODE_VERIFIER) == RFC7636_S256_CHALLENGE
+
+        issuer = BoundToolLaunchGrantIssuer("example-tool", str(user_id), selection)
+        request_code = issuer.issue_service_launch(
+            "example-client",
+            "https://hub.example.test/hub/datalab-callback",
+            lifetime_seconds=300,
+            session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
+            allow_session_renewal=True,
+        )
+        request_grant = database.tool_launch_grants.find_one({})
+        request_expiry = request_grant["expires_at"]
+
+        assert request_grant["_id"] == tool_grants._hash_secret(request_code)
+        assert request_code not in repr(request_grant)
+        assert request_grant["purpose"] == "service-launch-request"
+        assert request_grant["client_id"] == "example-client"
+        assert request_grant["callback_url"] == ("https://hub.example.test/hub/datalab-callback")
+        assert ItemSelection.model_validate(request_grant["selection"]) == selection
+
+        assert (
+            exchange_launch_code(
+                request_code,
+                "example-tool",
+                "example-client",
+                expected_user_id=str(user_id),
+            )
+            is None
+        )
+        assert exchange_service_launch_code(request_code, "example-tool", "example-client") is None
+        assert database.tool_launch_grants.count_documents({}) == 1
+
+        assert (
+            authorize_service_launch_code(
+                code=request_code,
+                tool_id="example-tool",
+                expected_user_id=str(another_user_id),
+                code_challenge=RFC7636_S256_CHALLENGE,
+                code_challenge_method="S256",
+            )
+            is None
+        )
+        assert database.tool_launch_grants.count_documents({}) == 1
+
+        authorization = authorize_service_launch_code(
+            code=request_code,
+            tool_id="example-tool",
+            expected_user_id=str(user_id),
+            code_challenge=RFC7636_S256_CHALLENGE,
+            code_challenge_method="S256",
+        )
+        assert authorization is not None
+        assert authorization.authorization_code != request_code
+        assert authorization.callback_url == "https://hub.example.test/hub/datalab-callback"
+        assert database.tool_sessions.count_documents({}) == 0
+
+        authorized_grant = database.tool_launch_grants.find_one({})
+        assert authorized_grant["_id"] == tool_grants._hash_secret(authorization.authorization_code)
+        assert authorization.authorization_code not in repr(authorized_grant)
+        assert authorized_grant["purpose"] == "service-launch-authorization"
+        assert authorized_grant["code_challenge"] == RFC7636_S256_CHALLENGE
+        assert authorized_grant["code_challenge_method"] == "S256"
+        assert "code_verifier" not in authorized_grant
+        assert authorized_grant["expires_at"] == request_expiry
+        assert ItemSelection.model_validate(authorized_grant["selection"]) == selection
+        assert authorized_grant["session_policy"] == ToolSessionPolicy.REUSE_OR_REPLACE.value
+        assert authorized_grant["allow_session_renewal"] is True
+
+
+def test_service_launch_rejects_pkce_downgrade_and_invalid_callbacks_without_consuming(
+    app, database, tool_registry, user_id, monkeypatch
+):
+    monkeypatch.setattr(CONFIG.TOOLS, "ALLOW_INSECURE_HTTP", True)
+    with app.app_context():
+        issuer = BoundToolLaunchGrantIssuer("example-tool", str(user_id))
+        for callback in (
+            "http://hub.example.test/hub/datalab-callback",
+            "https://user:secret@hub.example.test/hub/datalab-callback",
+            "https://hub.example.test/hub/datalab-callback?next=workspace",
+            "https://hub.example.test/hub/datalab-callback#code",
+            "ftp://hub.example.test/hub/datalab-callback",
+        ):
+            with pytest.raises((TypeError, ValueError)):
+                issuer.issue_service_launch("example-client", callback)
+        loopback_code = issuer.issue_service_launch(
+            "example-client", "http://localhost:8000/hub/datalab-callback"
+        )
+        assert loopback_code
+        database.tool_launch_grants.delete_many({})
+
+        request_code = issuer.issue_service_launch(
+            "example-client", "https://hub.example.test/hub/datalab-callback"
+        )
+        invalid_proofs = (
+            (RFC7636_S256_CHALLENGE, ""),
+            (RFC7636_S256_CHALLENGE, "s256"),
+            (RFC7636_S256_CHALLENGE, "plain"),
+            ("." * 43, "S256"),
+            (RFC7636_S256_CHALLENGE + "=", "S256"),
+            ("A" * 42, "S256"),
+            ("A" * 44, "S256"),
+        )
+        for challenge, method in invalid_proofs:
+            assert (
+                authorize_service_launch_code(
+                    code=request_code,
+                    tool_id="example-tool",
+                    expected_user_id=str(user_id),
+                    code_challenge=challenge,
+                    code_challenge_method=method,
+                )
+                is None
+            )
+            assert database.tool_launch_grants.count_documents({}) == 1
+
+        authorization = authorize_service_launch_code(
+            code=request_code,
+            tool_id="example-tool",
+            expected_user_id=str(user_id),
+            code_challenge=RFC7636_S256_CHALLENGE,
+            code_challenge_method="S256",
+        )
+        assert authorization is not None
+
+
+def test_authorized_service_exchange_fails_closed_without_consuming_on_binding_mismatch(
+    app, database, tool_registry, user_id, another_user_id
+):
+    with app.app_context():
+        issuer = BoundToolLaunchGrantIssuer("example-tool", str(user_id))
+        request_code = issuer.issue_service_launch(
+            "example-client", "https://hub.example.test/hub/datalab-callback"
+        )
+        authorization = authorize_service_launch_code(
+            code=request_code,
+            tool_id="example-tool",
+            expected_user_id=str(user_id),
+            code_challenge=RFC7636_S256_CHALLENGE,
+            code_challenge_method="S256",
+        )
+        assert authorization is not None
+        code = authorization.authorization_code
+
+        invalid_attempts = (
+            {"code_verifier": "A" * 43},
+            {"code_verifier": RFC7636_CODE_VERIFIER, "tool_id": "other-example-tool"},
+            {"code_verifier": RFC7636_CODE_VERIFIER, "client_id": "other-client"},
+            {"code_verifier": RFC7636_CODE_VERIFIER, "expected_user_id": str(another_user_id)},
+        )
+        for overrides in invalid_attempts:
+            arguments = {
+                "authorization_code": code,
+                "code_verifier": RFC7636_CODE_VERIFIER,
+                "tool_id": "example-tool",
+                "client_id": "example-client",
+                "expected_user_id": str(user_id),
+                **overrides,
+            }
+            assert exchange_authorized_service_launch_code(**arguments) is None
+            assert database.tool_launch_grants.count_documents({}) == 1
+            assert database.tool_sessions.count_documents({}) == 0
+
+        assert exchange_service_launch_code(code, "example-tool", "example-client") is None
+        assert database.tool_launch_grants.count_documents({}) == 1
+
+        exchange = exchange_authorized_service_launch_code(
+            code,
+            RFC7636_CODE_VERIFIER,
+            "example-tool",
+            "example-client",
+            expected_user_id=str(user_id),
+        )
+        assert exchange is not None
+        assert exchange.context.user_id == str(user_id)
+        assert database.tool_launch_grants.count_documents({}) == 0
+        assert database.tool_sessions.count_documents({}) == 1
+        assert (
+            exchange_authorized_service_launch_code(
+                code,
+                RFC7636_CODE_VERIFIER,
+                "example-tool",
+                "example-client",
+                expected_user_id=str(user_id),
+            )
+            is None
+        )
+
+
+def test_service_launch_authorization_and_exchange_are_atomic_and_expire_at_boundary(
+    app, database, tool_registry, user_id
+):
+    with app.app_context():
+        issuer = BoundToolLaunchGrantIssuer("example-tool", str(user_id))
+        expired_request = issuer.issue_service_launch(
+            "example-client", "https://hub.example.test/hub/datalab-callback"
+        )
+        database.tool_launch_grants.update_one(
+            {"_id": tool_grants._hash_secret(expired_request)},
+            {"$set": {"expires_at": tool_grants._now()}},
+        )
+        assert (
+            authorize_service_launch_code(
+                code=expired_request,
+                tool_id="example-tool",
+                expected_user_id=str(user_id),
+                code_challenge=RFC7636_S256_CHALLENGE,
+                code_challenge_method="S256",
+            )
+            is None
+        )
+        database.tool_launch_grants.delete_many({})
+
+        expiring_request = issuer.issue_service_launch(
+            "example-client", "https://hub.example.test/hub/datalab-callback"
+        )
+        expired_authorization = authorize_service_launch_code(
+            code=expiring_request,
+            tool_id="example-tool",
+            expected_user_id=str(user_id),
+            code_challenge=RFC7636_S256_CHALLENGE,
+            code_challenge_method="S256",
+        )
+        assert expired_authorization is not None
+        database.tool_launch_grants.update_one(
+            {"_id": tool_grants._hash_secret(expired_authorization.authorization_code)},
+            {"$set": {"expires_at": tool_grants._now()}},
+        )
+        assert (
+            exchange_authorized_service_launch_code(
+                expired_authorization.authorization_code,
+                RFC7636_CODE_VERIFIER,
+                "example-tool",
+                "example-client",
+                expected_user_id=str(user_id),
+            )
+            is None
+        )
+        assert database.tool_sessions.count_documents({}) == 0
+        database.tool_launch_grants.delete_many({})
+
+        request_code = issuer.issue_service_launch(
+            "example-client", "https://hub.example.test/hub/datalab-callback"
+        )
+
+    def authorize_once():
+        with app.app_context():
+            return authorize_service_launch_code(
+                code=request_code,
+                tool_id="example-tool",
+                expected_user_id=str(user_id),
+                code_challenge=RFC7636_S256_CHALLENGE,
+                code_challenge_method="S256",
+            )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        authorizations = list(executor.map(lambda _index: authorize_once(), range(2)))
+    authorization = next(result for result in authorizations if result is not None)
+    assert sum(result is not None for result in authorizations) == 1
+
+    def exchange_once():
+        with app.app_context():
+            return exchange_authorized_service_launch_code(
+                authorization.authorization_code,
+                RFC7636_CODE_VERIFIER,
+                "example-tool",
+                "example-client",
+                expected_user_id=str(user_id),
+            )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        exchanges = list(executor.map(lambda _index: exchange_once(), range(2)))
+    assert sum(result is not None for result in exchanges) == 1
+    assert database.tool_sessions.count_documents({}) == 1
+
+
+def _service_launch_form(code: str) -> dict[str, str]:
+    return {
+        "datalab_launch_code": code,
+        "code_challenge": RFC7636_S256_CHALLENGE,
+        "code_challenge_method": "S256",
+    }
+
+
+def test_service_launch_authorization_get_is_credential_free_strict_and_hardened(
+    unauthenticated_session_client, tool_registry
+):
+    for prefix in ("", "/v0", "/v0.1"):
+        response = unauthenticated_session_client.get(
+            f"{prefix}/tools/example-tool/service-launch/authorize"
+        )
+        page = response.get_data(as_text=True)
+
+        assert response.status_code == 200
+        assert response.headers["Cache-Control"] == "no-store"
+        assert response.headers["Referrer-Policy"] == "no-referrer"
+        assert response.headers["X-Content-Type-Options"] == "nosniff"
+        assert "default-src 'none'" in response.headers["Content-Security-Policy"]
+        assert "form-action 'self'" in response.headers["Content-Security-Policy"]
+        assert "base-uri 'none'" in response.headers["Content-Security-Policy"]
+        assert "frame-ancestors 'none'" in response.headers["Content-Security-Policy"]
+        assert "script-src 'nonce-" in response.headers["Content-Security-Policy"]
+        assert "history.replaceState" in page
+        assert page.index("history.replaceState") < page.index("new URLSearchParams")
+        assert 'name="datalab_launch_code" value=""' in page
+        assert 'name="code_challenge" value=""' in page
+        assert 'name="code_challenge_method" value=""' in page
+        assert "entries.length === expectedFields.length" in page
+        assert 'values.code_challenge_method === "S256"' in page
+        assert RFC7636_S256_CHALLENGE not in page
+
+    response = unauthenticated_session_client.get(
+        "/tools/example-tool/service-launch/authorize?datalab_launch_code=query-secret"
+    )
+    assert response.status_code == 400
+    assert "query-secret" not in response.get_data(as_text=True)
+
+
+def test_service_launch_authorization_is_owner_only_and_redirects_to_stored_callback(
+    app, database, session_client, tool_registry, user_id, another_user_id
+):
+    with app.app_context():
+        code = BoundToolLaunchGrantIssuer("example-tool", str(user_id)).issue_service_launch(
+            "example-client", "https://hub.example.test/hub/datalab-callback"
+        )
+
+    app.test_client_class = FlaskClient
+    with app.test_client() as other_user_client:
+        with other_user_client.session_transaction() as session:
+            session["_user_id"] = str(another_user_id)
+        copied = other_user_client.post(
+            "/tools/example-tool/service-launch/authorize",
+            data=_service_launch_form(code),
+            headers={"Origin": "http://localhost"},
+        )
+    assert copied.status_code == 400
+    generic_failure = copied.get_data(as_text=True)
+    assert code not in generic_failure
+    assert str(user_id) not in generic_failure
+    assert database.tool_launch_grants.count_documents({}) == 1
+    assert database.tool_sessions.count_documents({}) == 0
+
+    authorized = session_client.post(
+        "/tools/example-tool/service-launch/authorize",
+        data=_service_launch_form(code),
+        headers={"Origin": "http://localhost"},
+    )
+    assert authorized.status_code == 303
+    location = urlsplit(authorized.headers["Location"])
+    assert (location.scheme, location.netloc, location.path) == (
+        "https",
+        "hub.example.test",
+        "/hub/datalab-callback",
+    )
+    assert location.query == ""
+    fragment = parse_qs(location.fragment, strict_parsing=True)
+    assert set(fragment) == {"datalab_authorization_code"}
+    assert len(fragment["datalab_authorization_code"][0]) == 43
+    assert code not in authorized.headers["Location"]
+    assert authorized.headers["Cache-Control"] == "no-store"
+    assert authorized.headers["Referrer-Policy"] == "no-referrer"
+    assert authorized.headers["X-Content-Type-Options"] == "nosniff"
+
+    replay = session_client.post(
+        "/tools/example-tool/service-launch/authorize",
+        data=_service_launch_form(code),
+        headers={"Origin": "http://localhost"},
+    )
+    assert replay.status_code == 400
+    assert replay.get_data(as_text=True) == generic_failure
+
+
+def test_service_launch_callback_ignores_forwarded_host_headers(
+    app, session_client, tool_registry, user_id
+):
+    with app.app_context():
+        code = BoundToolLaunchGrantIssuer("example-tool", str(user_id)).issue_service_launch(
+            "example-client", "https://hub.example.test/hub/datalab-callback"
+        )
+
+    response = session_client.post(
+        "/tools/example-tool/service-launch/authorize",
+        data=_service_launch_form(code),
+        headers={
+            "Origin": "http://localhost",
+            "X-Forwarded-Host": "forwarded-hostile.example",
+            "X-Forwarded-Proto": "http",
+        },
+    )
+
+    assert response.status_code == 303
+    callback = urlsplit(response.headers["Location"])
+    assert (callback.scheme, callback.netloc, callback.path) == (
+        "https",
+        "hub.example.test",
+        "/hub/datalab-callback",
+    )
+    assert "hostile" not in response.headers["Location"]
+
+
+def test_service_launch_authorization_post_requires_browser_session_origin_and_provider(
+    app, client, database, session_client, tool_registry, user_id, monkeypatch
+):
+    with app.app_context():
+        code = BoundToolLaunchGrantIssuer("example-tool", str(user_id)).issue_service_launch(
+            "example-client", "https://hub.example.test/hub/datalab-callback"
+        )
+    form = _service_launch_form(code)
+
+    assert (
+        client.post(
+            "/tools/example-tool/service-launch/authorize",
+            data=form,
+            headers={"Origin": "http://localhost"},
+        ).status_code
+        == 403
+    )
+    assert (
+        session_client.post(
+            "/tools/example-tool/service-launch/authorize",
+            data=form,
+        ).status_code
+        == 403
+    )
+    assert (
+        session_client.post(
+            "/tools/example-tool/service-launch/authorize",
+            data=form,
+            headers={"Origin": "https://attacker.example"},
+        ).status_code
+        == 403
+    )
+    assert database.tool_launch_grants.count_documents({}) == 1
+
+    monkeypatch.setattr(CONFIG.TOOLS, "DISABLED", {"example-tool"})
+    unavailable = session_client.post(
+        "/tools/example-tool/service-launch/authorize",
+        data=form,
+        headers={"Origin": "http://localhost"},
+    )
+    assert unavailable.status_code == 404
+    assert database.tool_launch_grants.count_documents({}) == 1
+
+
+def test_service_launch_authorization_post_has_no_fallback_and_rejects_exact_field_violations(
+    app, database, session_client, tool_registry, user_id
+):
+    def issue_code() -> str:
+        with app.app_context():
+            return BoundToolLaunchGrantIssuer("example-tool", str(user_id)).issue_service_launch(
+                "example-client", "https://hub.example.test/hub/datalab-callback"
+            )
+
+    cases = (
+        ({"data": {}}, 403),
+        ({"json": _service_launch_form("A" * 43)}, 403),
+        (
+            {
+                "data": {
+                    **_service_launch_form("A" * 43),
+                    "unsupported": "value",
+                }
+            },
+            400,
+        ),
+        (
+            {
+                "data": MultiDict(
+                    [
+                        ("datalab_launch_code", "A" * 43),
+                        ("datalab_launch_code", "B" * 43),
+                        ("code_challenge", RFC7636_S256_CHALLENGE),
+                        ("code_challenge_method", "S256"),
+                    ]
+                )
+            },
+            400,
+        ),
+        ({"data": _service_launch_form("A" * 129)}, 400),
+        (
+            {
+                "data": {
+                    **_service_launch_form("A" * 43),
+                    "code_challenge": "é" * 43,
+                }
+            },
+            400,
+        ),
+        (
+            {
+                "data": {
+                    **_service_launch_form("A" * 43),
+                    "code_challenge_method": "plain",
+                }
+            },
+            400,
+        ),
+    )
+    for request_arguments, expected_status in cases:
+        code = issue_code()
+        arguments = request_arguments.copy()
+        response = session_client.post(
+            "/tools/example-tool/service-launch/authorize",
+            headers={"Origin": "http://localhost"},
+            **arguments,
+        )
+        assert response.status_code == expected_status
+        assert code not in response.get_data(as_text=True)
+        database.tool_launch_grants.delete_many({})
+
+    query_code = issue_code()
+    response = session_client.post(
+        f"/tools/example-tool/service-launch/authorize?datalab_launch_code={query_code}",
+        data=_service_launch_form(query_code),
+        headers={"Origin": "http://localhost"},
+    )
+    assert response.status_code == 400
+    assert query_code not in response.get_data(as_text=True)

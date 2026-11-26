@@ -193,12 +193,26 @@ For each standalone service:
    deployment-wide `PYDATALAB_TOOLS__ALLOW_INSECURE_HTTP=true` testing exception
    and is never suitable for production. Keep the service away from the datalab
    database, server secrets, and unrelated deployment networks.
+   Browser-login service callbacks are stricter: they require HTTPS outside
+   loopback even when that testing exception is enabled.
 3. Define health checks, backups, storage and retention, resource limits, and
    upgrade and rollback procedures.
 4. Identify privileged host resources, such as the Docker socket, and expose
    them only to reviewed immutable code.
-5. Disable request logging for launch codes and tool-token exchange bodies, then
-   verify the behavior through the production proxy.
+5. Disable request and header logging for launch codes, authorization codes,
+   PKCE verifiers, tool-token exchange bodies, cookies, and redirect `Location`
+   values containing fragments, then verify the behavior through the production
+   proxy.
+
+Browser-login services use existing API and service proxy prefixes for the
+core authorization page and service callback. Serve both fragment-clearing
+pages directly: an intermediate canonical-host or path redirect becomes part of
+the credential boundary because browsers can preserve fragments across it.
+Upgrade and roll back datalab core, the provider, and the external service
+together. Mixed old/new browser-login protocols intentionally fail closed, but
+an old provider and old service running on a new core can still invoke the
+retained legacy non-browser exchange helper and must not remain exposed during a
+partial rollout.
 
 The plugin repository is the source of truth for service-specific settings,
 artifacts, Compose overlays, and security limitations. For example,

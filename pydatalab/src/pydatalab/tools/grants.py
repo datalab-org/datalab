@@ -1,9 +1,11 @@
 """Single-use tool launch grants and delegated tool sessions."""
 
+import base64
+import re
 import secrets
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from hashlib import sha512
+from hashlib import sha256, sha512
 from typing import Literal
 
 from bson import ObjectId
@@ -16,6 +18,7 @@ from pydatalab.models.people import AccountStatus
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import Key
 
+from .auth import validated_external_tool_url
 from .base import ItemSelection, ToolContext, ToolLaunchGrantIssuer, ToolSessionPolicy
 
 DEFAULT_LAUNCH_LIFETIME_SECONDS = 60
@@ -25,9 +28,15 @@ MAX_TOOL_SESSION_LIFETIME_SECONDS = DEFAULT_TOOL_SESSION_LIFETIME_SECONDS
 MAX_RENEWABLE_TOOL_SESSION_AGE_SECONDS = 7 * 24 * 60 * 60
 TOOL_SELECTION_LIFETIME_SECONDS = 10 * 60
 _TOOL_LAUNCH_PURPOSE = "tool-launch"
+_SERVICE_LAUNCH_REQUEST_PURPOSE = "service-launch-request"
+_SERVICE_LAUNCH_AUTHORIZATION_PURPOSE = "service-launch-authorization"
 _TOOL_SELECTION_PURPOSE = "tool-selection"
 _TOOL_SESSION_ID_DOMAIN = b"datalab:delegated-tool-session:v1\0"
 _MAX_CANDIDATE_TOOL_ACCESS_TOKEN_LENGTH = 4096
+_HANDOFF_CODE_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,128}$", re.ASCII)
+_PKCE_CHALLENGE_PATTERN = re.compile(r"^[A-Za-z0-9_-]{43}$", re.ASCII)
+_PKCE_VERIFIER_PATTERN = re.compile(r"^[A-Za-z0-9._~-]{43,128}$", re.ASCII)
+_PKCE_CHALLENGE_METHOD = "S256"
 
 
 class _DelegatedToolAccessToken(Key):
@@ -41,6 +50,14 @@ class _DelegatedToolAccessToken(Key):
 
 def _hash_secret(value: str) -> str:
     return sha512(value.encode("utf-8")).hexdigest()
+
+
+def _pkce_s256_challenge(code_verifier: str) -> str:
+    """Return the RFC 7636 S256 challenge for one canonical verifier."""
+    if not isinstance(code_verifier, str) or not _PKCE_VERIFIER_PATTERN.fullmatch(code_verifier):
+        raise ValueError("PKCE code verifier is invalid")
+    digest = sha256(code_verifier.encode("ascii")).digest()
+    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
 
 
 def _delegated_tool_session_id(user_id: ObjectId, tool_id: str) -> str:
@@ -86,6 +103,14 @@ class _ConsumedLaunchGrant:
 
 
 @dataclass(frozen=True)
+class ServiceLaunchAuthorization:
+    """Raw authorization code and trusted callback for a browser-authorized launch."""
+
+    authorization_code: str
+    callback_url: str
+
+
+@dataclass(frozen=True)
 class _ReusableToolSession:
     """Validated canonical candidate and its stored comparison values."""
 
@@ -103,15 +128,13 @@ class BoundToolLaunchGrantIssuer(ToolLaunchGrantIssuer):
     user_id: str
     selection: ItemSelection | None = None
 
-    def issue(
-        self,
+    @staticmethod
+    def _validate_issue_arguments(
         client_id: str,
-        lifetime_seconds: int = DEFAULT_LAUNCH_LIFETIME_SECONDS,
-        *,
-        session_policy: ToolSessionPolicy = ToolSessionPolicy.REPLACE,
-        allow_session_renewal: bool = False,
-    ) -> str:
-        """Create a hashed, expiring tool launch grant and return its raw code."""
+        lifetime_seconds: int,
+        session_policy: ToolSessionPolicy,
+        allow_session_renewal: bool,
+    ) -> None:
         if not isinstance(client_id, str) or not client_id.strip():
             raise ValueError("Launch-grant client ID must not be empty")
         if type(lifetime_seconds) is not int or not (
@@ -127,23 +150,115 @@ class BoundToolLaunchGrantIssuer(ToolLaunchGrantIssuer):
         if allow_session_renewal and session_policy is not ToolSessionPolicy.REUSE_OR_REPLACE:
             raise ValueError("Session renewal requires the reuse-or-replace policy")
 
+    def _issue(
+        self,
+        *,
+        client_id: str,
+        lifetime_seconds: int,
+        session_policy: ToolSessionPolicy,
+        allow_session_renewal: bool,
+        purpose: str,
+        callback_url: str | None = None,
+    ) -> str:
+        self._validate_issue_arguments(
+            client_id,
+            lifetime_seconds,
+            session_policy,
+            allow_session_renewal,
+        )
         created_at = _now()
         code = secrets.token_urlsafe(32)
-        flask_mongo.db.tool_launch_grants.insert_one(
-            {
-                "_id": _hash_secret(code),
-                "user_id": ObjectId(self.user_id),
-                "tool_id": self.tool_id,
-                "client_id": client_id,
-                "purpose": _TOOL_LAUNCH_PURPOSE,
-                "session_policy": session_policy.value,
-                "allow_session_renewal": allow_session_renewal,
-                "selection": self.selection.model_dump() if self.selection else None,
-                "created_at": created_at,
-                "expires_at": created_at + timedelta(seconds=lifetime_seconds),
-            }
-        )
+        grant = {
+            "_id": _hash_secret(code),
+            "user_id": ObjectId(self.user_id),
+            "tool_id": self.tool_id,
+            "client_id": client_id,
+            "purpose": purpose,
+            "session_policy": session_policy.value,
+            "allow_session_renewal": allow_session_renewal,
+            "selection": self.selection.model_dump() if self.selection else None,
+            "created_at": created_at,
+            "expires_at": created_at + timedelta(seconds=lifetime_seconds),
+        }
+        if callback_url is not None:
+            grant["callback_url"] = callback_url
+        flask_mongo.db.tool_launch_grants.insert_one(grant)
         return code
+
+    def issue(
+        self,
+        client_id: str,
+        lifetime_seconds: int = DEFAULT_LAUNCH_LIFETIME_SECONDS,
+        *,
+        session_policy: ToolSessionPolicy = ToolSessionPolicy.REPLACE,
+        allow_session_renewal: bool = False,
+    ) -> str:
+        """Create a hashed, expiring tool launch grant and return its raw code."""
+        return self._issue(
+            client_id=client_id,
+            lifetime_seconds=lifetime_seconds,
+            session_policy=session_policy,
+            allow_session_renewal=allow_session_renewal,
+            purpose=_TOOL_LAUNCH_PURPOSE,
+        )
+
+    def issue_service_launch(
+        self,
+        client_id: str,
+        callback_url: str,
+        lifetime_seconds: int = DEFAULT_LAUNCH_LIFETIME_SECONDS,
+        *,
+        session_policy: ToolSessionPolicy = ToolSessionPolicy.REPLACE,
+        allow_session_renewal: bool = False,
+    ) -> str:
+        """Create a service request that requires same-user browser authorization."""
+        validated_callback = validated_external_tool_url(
+            callback_url,
+            allow_insecure_http=False,
+            require_empty_query_and_fragment=True,
+        )
+        return self._issue(
+            client_id=client_id,
+            lifetime_seconds=lifetime_seconds,
+            session_policy=session_policy,
+            allow_session_renewal=allow_session_renewal,
+            purpose=_SERVICE_LAUNCH_REQUEST_PURPOSE,
+            callback_url=validated_callback,
+        )
+
+
+def _parse_consumed_launch_grant(grant: dict[str, object]) -> _ConsumedLaunchGrant | None:
+    """Validate the session-relevant fields of a consumed launch record."""
+    try:
+        selection_data = grant.get("selection")
+        selection = ItemSelection.model_validate(selection_data) if selection_data else None
+        if "session_policy" not in grant:
+            session_policy = ToolSessionPolicy.REPLACE
+        else:
+            stored_policy = grant["session_policy"]
+            if not isinstance(stored_policy, str):
+                return None
+            session_policy = ToolSessionPolicy(stored_policy)
+        if "allow_session_renewal" not in grant:
+            allow_session_renewal = False
+        else:
+            stored_renewal = grant["allow_session_renewal"]
+            if type(stored_renewal) is not bool:
+                return None
+            allow_session_renewal = stored_renewal
+        if allow_session_renewal and session_policy is not ToolSessionPolicy.REUSE_OR_REPLACE:
+            return None
+        user_id = grant["user_id"]
+        if not isinstance(user_id, ObjectId):
+            return None
+    except (KeyError, TypeError, ValueError):
+        return None
+    return _ConsumedLaunchGrant(
+        user_id=str(user_id),
+        selection=selection,
+        session_policy=session_policy,
+        allow_session_renewal=allow_session_renewal,
+    )
 
 
 def _consume_launch_code(
@@ -172,32 +287,89 @@ def _consume_launch_code(
     grant = flask_mongo.db.tool_launch_grants.find_one_and_delete(query)
     if grant is None:
         return None
+    return _parse_consumed_launch_grant(grant)
+
+
+def authorize_service_launch_code(
+    *,
+    code: str,
+    tool_id: str,
+    expected_user_id: str,
+    code_challenge: str,
+    code_challenge_method: str,
+) -> ServiceLaunchAuthorization | None:
+    """Authorize one pending service launch as the current Datalab browser user."""
+    if (
+        not isinstance(code, str)
+        or not _HANDOFF_CODE_PATTERN.fullmatch(code)
+        or not isinstance(tool_id, str)
+        or not tool_id
+        or not isinstance(expected_user_id, str)
+        or not expected_user_id.strip()
+        or not isinstance(code_challenge, str)
+        or not _PKCE_CHALLENGE_PATTERN.fullmatch(code_challenge)
+        or code_challenge_method != _PKCE_CHALLENGE_METHOD
+    ):
+        return None
     try:
-        selection_data = grant.get("selection")
-        selection = ItemSelection.model_validate(selection_data) if selection_data else None
-        if "session_policy" not in grant:
-            session_policy = ToolSessionPolicy.REPLACE
-        else:
-            stored_policy = grant["session_policy"]
-            if not isinstance(stored_policy, str):
-                return None
-            session_policy = ToolSessionPolicy(stored_policy)
-        if "allow_session_renewal" not in grant:
-            allow_session_renewal = False
-        else:
-            allow_session_renewal = grant["allow_session_renewal"]
-            if type(allow_session_renewal) is not bool:
-                return None
-        if allow_session_renewal and session_policy is not ToolSessionPolicy.REUSE_OR_REPLACE:
-            return None
+        stored_user_id = ObjectId(expected_user_id)
+    except (InvalidId, TypeError):
+        return None
+
+    grant = flask_mongo.db.tool_launch_grants.find_one_and_delete(
+        {
+            "_id": _hash_secret(code),
+            "user_id": stored_user_id,
+            "tool_id": tool_id,
+            "purpose": _SERVICE_LAUNCH_REQUEST_PURPOSE,
+            "expires_at": {"$gt": _now()},
+        }
+    )
+    if grant is None:
+        return None
+
+    consumed = _parse_consumed_launch_grant(grant)
+    client_id = grant.get("client_id")
+    callback_url = grant.get("callback_url")
+    created_at = grant.get("created_at")
+    expires_at = grant.get("expires_at")
+    if (
+        consumed is None
+        or not isinstance(client_id, str)
+        or not client_id.strip()
+        or not isinstance(callback_url, str)
+        or not isinstance(created_at, datetime)
+        or not isinstance(expires_at, datetime)
+    ):
+        return None
+    try:
+        validated_callback = validated_external_tool_url(
+            callback_url,
+            allow_insecure_http=False,
+            require_empty_query_and_fragment=True,
+        )
     except (TypeError, ValueError):
         return None
-    return _ConsumedLaunchGrant(
-        user_id=str(grant["user_id"]),
-        selection=selection,
-        session_policy=session_policy,
-        allow_session_renewal=allow_session_renewal,
+
+    authorization_code = secrets.token_urlsafe(32)
+    flask_mongo.db.tool_launch_grants.insert_one(
+        {
+            "_id": _hash_secret(authorization_code),
+            "user_id": stored_user_id,
+            "tool_id": tool_id,
+            "client_id": client_id,
+            "purpose": _SERVICE_LAUNCH_AUTHORIZATION_PURPOSE,
+            "session_policy": consumed.session_policy.value,
+            "allow_session_renewal": consumed.allow_session_renewal,
+            "selection": consumed.selection.model_dump() if consumed.selection else None,
+            "callback_url": validated_callback,
+            "code_challenge": code_challenge,
+            "code_challenge_method": _PKCE_CHALLENGE_METHOD,
+            "created_at": created_at,
+            "expires_at": expires_at,
+        }
     )
+    return ServiceLaunchAuthorization(authorization_code, validated_callback)
 
 
 def issue_tool_selection_code(
@@ -565,18 +737,20 @@ def get_tool_access_token_user_id(tool_access_token: str) -> str | None:
     return str(session["user"])
 
 
-def _exchange_launch_code(
-    code: str,
+def _validate_exchange_arguments(
     tool_id: str,
     client_id: str,
-    tool_session_lifetime_seconds: int = DEFAULT_TOOL_SESSION_LIFETIME_SECONDS,
+    tool_session_lifetime_seconds: int,
     *,
-    expected_user_id: str | None,
     candidate_tool_access_token: str | None,
     minimum_reuse_lifetime_seconds: int,
     renew_existing_session: bool,
-) -> ToolLaunchExchange | None:
-    """Implement bound and service launch-code exchanges."""
+) -> None:
+    """Validate arguments shared by legacy and authorized service exchanges."""
+    if not isinstance(tool_id, str) or not tool_id:
+        raise ValueError("Tool ID must not be empty")
+    if not isinstance(client_id, str) or not client_id:
+        raise ValueError("Client ID must not be empty")
     if type(tool_session_lifetime_seconds) is not int or not (
         1 <= tool_session_lifetime_seconds <= MAX_TOOL_SESSION_LIFETIME_SECONDS
     ):
@@ -598,14 +772,18 @@ def _exchange_launch_code(
     if type(renew_existing_session) is not bool:
         raise ValueError("Session renewal request must be a boolean")
 
-    grant = _consume_launch_code(
-        code,
-        tool_id,
-        client_id,
-        expected_user_id=expected_user_id,
-    )
-    if grant is None:
-        return None
+
+def _exchange_consumed_launch_grant(
+    grant: _ConsumedLaunchGrant,
+    tool_id: str,
+    client_id: str,
+    tool_session_lifetime_seconds: int,
+    *,
+    candidate_tool_access_token: str | None,
+    minimum_reuse_lifetime_seconds: int,
+    renew_existing_session: bool,
+) -> ToolLaunchExchange | None:
+    """Apply existing delegated-session semantics after an atomic grant consume."""
     if renew_existing_session and not grant.allow_session_renewal:
         return None
 
@@ -677,6 +855,45 @@ def _exchange_launch_code(
     )
 
 
+def _exchange_launch_code(
+    code: str,
+    tool_id: str,
+    client_id: str,
+    tool_session_lifetime_seconds: int = DEFAULT_TOOL_SESSION_LIFETIME_SECONDS,
+    *,
+    expected_user_id: str | None,
+    candidate_tool_access_token: str | None,
+    minimum_reuse_lifetime_seconds: int,
+    renew_existing_session: bool,
+) -> ToolLaunchExchange | None:
+    """Implement legacy bound and service launch-code exchanges."""
+    _validate_exchange_arguments(
+        tool_id,
+        client_id,
+        tool_session_lifetime_seconds,
+        candidate_tool_access_token=candidate_tool_access_token,
+        minimum_reuse_lifetime_seconds=minimum_reuse_lifetime_seconds,
+        renew_existing_session=renew_existing_session,
+    )
+    grant = _consume_launch_code(
+        code,
+        tool_id,
+        client_id,
+        expected_user_id=expected_user_id,
+    )
+    if grant is None:
+        return None
+    return _exchange_consumed_launch_grant(
+        grant,
+        tool_id,
+        client_id,
+        tool_session_lifetime_seconds,
+        candidate_tool_access_token=candidate_tool_access_token,
+        minimum_reuse_lifetime_seconds=minimum_reuse_lifetime_seconds,
+        renew_existing_session=renew_existing_session,
+    )
+
+
 def exchange_launch_code(
     code: str,
     tool_id: str,
@@ -709,6 +926,70 @@ def exchange_launch_code(
     )
 
 
+def exchange_authorized_service_launch_code(
+    authorization_code: str,
+    code_verifier: str,
+    tool_id: str,
+    client_id: str,
+    tool_session_lifetime_seconds: int = DEFAULT_TOOL_SESSION_LIFETIME_SECONDS,
+    *,
+    expected_user_id: str | None = None,
+    candidate_tool_access_token: str | None = None,
+    minimum_reuse_lifetime_seconds: int = 0,
+    renew_existing_session: bool = False,
+) -> ToolLaunchExchange | None:
+    """Exchange a browser-authorized service code using its RFC 7636 proof."""
+    _validate_exchange_arguments(
+        tool_id,
+        client_id,
+        tool_session_lifetime_seconds,
+        candidate_tool_access_token=candidate_tool_access_token,
+        minimum_reuse_lifetime_seconds=minimum_reuse_lifetime_seconds,
+        renew_existing_session=renew_existing_session,
+    )
+    if not isinstance(authorization_code, str) or not _HANDOFF_CODE_PATTERN.fullmatch(
+        authorization_code
+    ):
+        return None
+    try:
+        code_challenge = _pkce_s256_challenge(code_verifier)
+    except ValueError:
+        return None
+
+    query: dict[str, object] = {
+        "_id": _hash_secret(authorization_code),
+        "tool_id": tool_id,
+        "client_id": client_id,
+        "purpose": _SERVICE_LAUNCH_AUTHORIZATION_PURPOSE,
+        "code_challenge": code_challenge,
+        "code_challenge_method": _PKCE_CHALLENGE_METHOD,
+        "expires_at": {"$gt": _now()},
+    }
+    if expected_user_id is not None:
+        if not isinstance(expected_user_id, str) or not expected_user_id.strip():
+            raise ValueError("Expected user ID must not be empty")
+        try:
+            query["user_id"] = ObjectId(expected_user_id)
+        except (InvalidId, TypeError):
+            return None
+
+    stored = flask_mongo.db.tool_launch_grants.find_one_and_delete(query)
+    if stored is None:
+        return None
+    grant = _parse_consumed_launch_grant(stored)
+    if grant is None:
+        return None
+    return _exchange_consumed_launch_grant(
+        grant,
+        tool_id,
+        client_id,
+        tool_session_lifetime_seconds,
+        candidate_tool_access_token=candidate_tool_access_token,
+        minimum_reuse_lifetime_seconds=minimum_reuse_lifetime_seconds,
+        renew_existing_session=renew_existing_session,
+    )
+
+
 def exchange_service_launch_code(
     code: str,
     tool_id: str,
@@ -722,7 +1003,9 @@ def exchange_service_launch_code(
     """Exchange a launch code without browser-user binding.
 
     This function does not authenticate its caller. It may only be called after
-    a confidential service client has been authenticated.
+    a confidential service client has been authenticated. It is retained for
+    non-browser confidential workflows and must not be used for browser login
+    or single sign-on.
 
     A candidate is considered only for a grant bound to ``REUSE_OR_REPLACE``
     and must retain at least ``minimum_reuse_lifetime_seconds``. Any reuse miss
