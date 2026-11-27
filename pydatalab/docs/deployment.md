@@ -108,6 +108,9 @@ The process may look something like the following:
       target: production
       args:
         - WEB_CONCURRENCY=16  # increase number of web workers to 16
+    env_file:
+      - path: ./datalab/pydatalab/.env
+        required: false
     depends_on:
       - database
     volumes:
@@ -121,6 +124,11 @@ The process may look something like the following:
       - PYDATALAB_MONGO_URI=mongodb://database:27017/datalab
       - PYDATALAB_FILES_DIRECTORY=/app/files  # provide the mount point for the file directory
   ```
+
+The API `.env` file is supplied when the container starts and is deliberately excluded from the
+Docker image. Custom Compose files based on an older version must add an `env_file` entry (or
+equivalent explicit environment values) instead of relying on configuration baked into the image.
+When using `docker run` directly, pass the same values with `--env-file` or `-e`.
 
 After this process is complete, the containers can be built and launched with
 the familiar commands, with one extra argument pointing to the new

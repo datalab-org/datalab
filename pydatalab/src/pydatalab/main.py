@@ -25,6 +25,24 @@ from pydatalab.utils import BSONProvider
 
 COMPRESS = Compress()
 
+# FLASK_ and PYDATALAB_ variables are loaded automatically. Add documented runtime
+# variables that use neither prefix here (e.g. OAuth credentials, mail settings,
+# or API keys) so they are copied from the process environment into app.config.
+_RUNTIME_CONFIG_ENV_VARS = (
+    "MAIL_PASSWORD",
+    "MAIL_DEFAULT_SENDER",
+    "GITHUB_OAUTH_CLIENT_ID",
+    "GITHUB_OAUTH_CLIENT_SECRET",
+    "GOOGLE_OAUTH_CLIENT_ID",
+    "GOOGLE_OAUTH_CLIENT_SECRET",
+    "MICROSOFT_OAUTH_CLIENT_ID",
+    "MICROSOFT_OAUTH_CLIENT_SECRET",
+    "ORCID_OAUTH_CLIENT_ID",
+    "ORCID_OAUTH_CLIENT_SECRET",
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+)
+
 
 def create_app(
     config_override: dict[str, Any] | None = None, env_file: pathlib.Path | None = None
@@ -64,6 +82,12 @@ def create_app(
         LOGGER.info("Not loading any env file")
     else:
         app.config.update(dotenv_values(dotenv_path=env_file))
+
+    # Docker and other production environments inject these documented values
+    # at runtime. Process environment values take precedence over dotenv files.
+    app.config.update(
+        {key: os.environ[key] for key in _RUNTIME_CONFIG_ENV_VARS if key in os.environ}
+    )
 
     # Testing config: to enable OAuth2 on dev servers without https, we need to control the
     # OAUTHLIB_INSECURE_TRANSPORT setting. If this is provided in the .env file, we also need

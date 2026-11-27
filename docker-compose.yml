@@ -29,6 +29,9 @@ services:
       dockerfile: .docker/server/Dockerfile
       args:
         SETUPTOOLS_SCM_PRETEND_VERSION: ${SETUPTOOLS_SCM_PRETEND_VERSION}
+    env_file:
+      - path: ./pydatalab/.env
+        required: false
     depends_on:
       database:
         condition: service_healthy
