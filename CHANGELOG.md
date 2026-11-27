@@ -6,6 +6,8 @@ recent changes described in the [release notes on GitHub](https://github.com/dat
 
 ## Unreleased
 
+- Forward the explicit insecure-HTTP testing setting through Compose so trusted
+  non-production tool previews can opt into plain-HTTP browser URLs.
 - Add a standalone tool template and Hello example with an external process,
   host-installed provider, browser-authorized PKCE handoff, confidential
   backend exchange, and one subject-checked API request.
