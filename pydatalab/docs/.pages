@@ -4,11 +4,13 @@ nav:
     - User guide: https://guide.datalab-org.io
     - Reference:
         - Data models: schemas
+        - Tools: tools.md
     - Development:
         - Contributing: CONTRIBUTING.md
         - Code of conduct: CODE_OF_CONDUCT.md
         - INSTALL.md
         - plugins.md
+        - Tool plugins: plugin-development
         - Writing data blocks: blocks
         - roadmap.md
     - Deployment:

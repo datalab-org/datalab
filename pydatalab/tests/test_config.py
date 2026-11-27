@@ -1,6 +1,31 @@
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
+
+from pydatalab.config import ToolsSettings
+
+
+def test_tools_settings_use_native_collections_and_reject_duplicate_order():
+    settings = ToolsSettings.model_validate(
+        {"order": ["first-tool", "second-tool"], "disabled": ["second-tool"]}
+    )
+
+    assert settings.ORDER == ["first-tool", "second-tool"]
+    assert settings.DISABLED == {"second-tool"}
+    assert settings.ALLOW_INSECURE_HTTP is False
+
+    with pytest.raises(ValidationError, match="must not contain duplicate"):
+        ToolsSettings.model_validate({"order": ["first-tool", "first-tool"]})
+
+
+def test_tools_settings_allow_insecure_http_can_be_enabled(monkeypatch):
+    from pydatalab.config import ServerConfig
+
+    assert ToolsSettings(ALLOW_INSECURE_HTTP=True).ALLOW_INSECURE_HTTP is True
+
+    monkeypatch.setenv("PYDATALAB_TOOLS__ALLOW_INSECURE_HTTP", "true")
+    assert ServerConfig().TOOLS.ALLOW_INSECURE_HTTP is True
 
 
 def test_default_settings():

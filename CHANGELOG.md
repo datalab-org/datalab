@@ -4,6 +4,18 @@
 > Release candidates and other pre-releases are not included in this changelog; there may be more
 recent changes described in the [release notes on GitHub](https://github.com/datalab-org/datalab/releases).
 
+## Unreleased
+
+- Forward the explicit insecure-HTTP testing setting through Compose so trusted
+  non-production tool previews can opt into plain-HTTP browser URLs.
+- Add a standalone tool template and Hello example with an external process,
+  host-installed provider, browser-authorized PKCE handoff, confidential
+  backend exchange, and one subject-checked API request.
+- Add a browser-authorized confidential-service launch handoff using distinct
+  request and authorization codes, fixed RFC 7636 `S256` proof, atomic user and
+  client binding, strict callback transport validation, and a generic core
+  authorization bridge.
+
 ## v0.7.12 (October 2026)
 
 This release backports dependency and image updates that address recent vulnerabilities, with no changes to *datalab* functionality.
