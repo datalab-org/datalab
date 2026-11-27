@@ -4,8 +4,9 @@
       Tags
       <font-awesome-icon id="edit-icon" class="pl-1" icon="pen" size="xs" :fade="isEditingTags" />
       <router-link
-        to="/tags"
+        :to="{ name: 'settings', query: { section: 'tags' } }"
         target="_blank"
+        rel="noopener"
         class="manage-tags-link pl-1"
         title="Manage tags"
         aria-label="Manage tags"
