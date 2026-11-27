@@ -1990,9 +1990,8 @@ def test_service_launch_uses_rfc7636_s256_and_preserves_authorized_grant_data(
 
 
 def test_service_launch_rejects_pkce_downgrade_and_invalid_callbacks_without_consuming(
-    app, database, tool_registry, user_id, monkeypatch
+    app, database, tool_registry, user_id
 ):
-    monkeypatch.setattr(CONFIG.TOOLS, "ALLOW_INSECURE_HTTP", True)
     with app.app_context():
         issuer = BoundToolLaunchGrantIssuer("example-tool", str(user_id))
         for callback in (
@@ -2043,6 +2042,42 @@ def test_service_launch_rejects_pkce_downgrade_and_invalid_callbacks_without_con
             code_challenge_method="S256",
         )
         assert authorization is not None
+
+
+def test_service_launch_allows_insecure_callback_only_while_enabled(
+    app, database, tool_registry, user_id, monkeypatch
+):
+    callback = "http://hub.example.test/hub/datalab-callback"
+    monkeypatch.setattr(CONFIG.TOOLS, "ALLOW_INSECURE_HTTP", True)
+
+    with app.app_context():
+        issuer = BoundToolLaunchGrantIssuer("example-tool", str(user_id))
+        request_code = issuer.issue_service_launch("example-client", callback)
+
+        monkeypatch.setattr(CONFIG.TOOLS, "ALLOW_INSECURE_HTTP", False)
+        assert (
+            authorize_service_launch_code(
+                code=request_code,
+                tool_id="example-tool",
+                expected_user_id=str(user_id),
+                code_challenge=RFC7636_S256_CHALLENGE,
+                code_challenge_method="S256",
+            )
+            is None
+        )
+        assert database.tool_launch_grants.count_documents({}) == 1
+
+        monkeypatch.setattr(CONFIG.TOOLS, "ALLOW_INSECURE_HTTP", True)
+        authorization = authorize_service_launch_code(
+            code=request_code,
+            tool_id="example-tool",
+            expected_user_id=str(user_id),
+            code_challenge=RFC7636_S256_CHALLENGE,
+            code_challenge_method="S256",
+        )
+
+        assert authorization is not None
+        assert authorization.callback_url == callback
 
 
 def test_authorized_service_exchange_fails_closed_without_consuming_on_binding_mismatch(

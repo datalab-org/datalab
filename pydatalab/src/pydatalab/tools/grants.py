@@ -13,6 +13,7 @@ from bson.errors import InvalidId
 from flask import current_app, has_app_context
 from pymongo import ReturnDocument
 
+from pydatalab.config import CONFIG
 from pydatalab.login import AuthMethod, get_by_id
 from pydatalab.models.people import AccountStatus
 from pydatalab.mongo import flask_mongo
@@ -214,7 +215,7 @@ class BoundToolLaunchGrantIssuer(ToolLaunchGrantIssuer):
         """Create a service request that requires same-user browser authorization."""
         validated_callback = validated_external_tool_url(
             callback_url,
-            allow_insecure_http=False,
+            allow_insecure_http=CONFIG.TOOLS.ALLOW_INSECURE_HTTP,
             require_empty_query_and_fragment=True,
         )
         return self._issue(
@@ -345,7 +346,7 @@ def authorize_service_launch_code(
     try:
         validated_callback = validated_external_tool_url(
             callback_url,
-            allow_insecure_http=False,
+            allow_insecure_http=CONFIG.TOOLS.ALLOW_INSECURE_HTTP,
             require_empty_query_and_fragment=True,
         )
     except (TypeError, ValueError):
