@@ -1,351 +1,149 @@
 # Developing a standalone tool plugin
 
-This tutorial follows the
-[standalone example plugin](https://github.com/Matgenix/datalab-standalone-tool-plugin-example),
-a minimal tool that opens in a new tab and prints one message using datalab
-data.
+The generated standalone project is a real external application with two
+separately started runtimes:
 
-Read the shared [tool plugin development guide](tool-plugin.md) first for the
-project workflow, provider contract, testing, and release checklist. This page
-focuses on the standalone launch and credential flow.
+1. a small provider adapter installed in the Datalab API; and
+2. an external web process on its own origin.
 
-## How it works
+The [standalone Hello example](https://github.com/Matgenix/datalab-standalone-tool-plugin-example)
+uses Flask and Gunicorn only as a replaceable reference. It keeps no persistent
+external-app login, session, token, database, or result. After the handoff it
+makes one subject-checked Datalab request, renders one message, and discards the
+token.
 
-The *standalone tool* is like giving a visitor a short-lived badge at reception.
-datalab checks that the user is signed in, creates a *launch code*, and
-opens the tool page with that code. The tool immediately trades the code for a
-*tool access token* and uses that token to ask datalab for data.
-The framework automatically protects the page and exchange routes with the
-active browser-session policy.
-The example uses plain HTML so the access flow is visible. A real standalone
-tool can replace `index.html` with any reviewed web app or remote service.
+Read the shared [tool plugin guide](tool-plugin.md) first. This page explains
+the external boundary that must remain when the reference stack is replaced.
+
+## The minimal flow
 
 ```mermaid
 sequenceDiagram
-    participant Browser as datalab browser
-    participant API as datalab API
-    participant Tool as Standalone page
-    Browser->>API: POST /tools/hello-standalone/launch
-    API-->>Browser: New-tab URL with launch code
-    Browser->>Tool: Open page
-    Tool->>Tool: Remove code from address bar
-    Tool->>API: POST /tools/plugins/hello-standalone/exchange
-    API-->>Tool: Tool access token
-    Tool->>API: GET /samples/ with DATALAB-API-KEY
-    API-->>Tool: Accessible samples
+    actor Browser
+    participant Datalab
+    participant External
+
+    Browser->>Datalab: Start tool launch
+    Datalab-->>Browser: External login URL with request code fragment
+    Browser->>External: Submit request code after clearing fragment
+    External-->>Browser: Redirect to Datalab with PKCE challenge
+    Browser->>Datalab: Authorize as the signed-in user
+    Datalab-->>Browser: External callback with authorization code fragment
+    Browser->>External: Submit code after clearing fragment
+    External->>Datalab: Confidential exchange with PKCE verifier
+    Datalab-->>External: Subject and short-lived tool token
+    External->>Datalab: GET current user with tool token
+    Datalab-->>External: Current user
+    External->>External: Verify immutable subject and discard token
+    External-->>Browser: Render one Hello result
 ```
 
-The example displays one sentence: `Hello <user>. You can access <N> sample(s).`
+The browser never receives the tool token. The first code is bound to the
+signed-in Datalab user, and the second code can be completed only by the
+external browser context holding the short-lived PKCE cookie.
 
-## Walk through the example
+This is an OAuth-like authorization-code handoff using the RFC 7636 proof
+construction. Datalab is not presented as a standards-compliant OAuth
+authorization server.
 
-The example is equivalent to generating a standalone package from the *Copier*
-template:
-
-```shell
-uvx copier copy --trust https://github.com/Matgenix/datalab-tool-plugin-template \
-  datalab-standalone-tool-plugin-example
-```
-
-Use these answers:
-
-```text
-tool_name = Hello standalone
-tool_id = hello-standalone
-distribution_name = datalab-hello-standalone-tool
-tool_ui_kind = standalone
-tool_open_mode = new_tab
-add_item_table_action = true
-item_table_action_id = open-selected
-item_table_action_label = Open selected
-item_table_action_tables = samples, inventory, collection-items
-item_table_action_min_items = 1
-item_table_action_max_items = 20
-```
-
-The important files are:
+## Generated files
 
 | File | Purpose |
 |---|---|
-| `pyproject.toml` | Declares the package and `pydatalab.tools` entry point |
-| `src/datalab_hello_standalone_tool/provider.py` | Registers metadata, serves the page, launches the tool, and exchanges codes |
-| `src/datalab_hello_standalone_tool/static/index.html` | Exchanges the code, calls `/samples/`, and writes one sentence |
+| `provider.py` | Datalab-side metadata, service launch, confidential authentication, and exchange |
+| `config.py` | Framework-light URL and secret validation shared by both runtimes |
+| `service.py` | Replaceable one-shot external Flask implementation |
+| `templates/page.html` | One small landing, fragment bridge, result, and error template |
+| `.env.example` | Variable names and deliberately unusable placeholders |
+| `Dockerfile` | Optional independent external-service image |
 
-The provider advertises a standalone UI:
+The package initializer exports only its version. Therefore the external
+service can import `config.py` and `service.py` without installing or importing
+`datalab-server`; only the host loads `provider.py` through the
+`pydatalab.tools` entry point.
+
+## Provider adapter
+
+The provider uses service authentication, not a Datalab browser session, for
+its one route:
 
 ```python
-metadata = ToolMetadata(
-    name="Hello standalone",
-    ui=StandaloneToolUI(),
-)
+class HelloStandaloneToolProvider(ToolProvider):
+    route_auth = ToolRouteAuth.SERVICE
+
+    def authenticate_service_request(self) -> bool:
+        # Compare the fixed client ID and configured secret in constant time.
+        ...
 ```
 
-Its `launch()` method issues a *tool launch grant*:
+`launch()` creates a pending browser-authorized service launch with a fixed
+callback and a five-minute lifetime:
 
 ```python
-code = grants.issue(TOOL_ID)
-return f"{base_url}index.html#datalab_launch_code={code}"
-```
-
-The provider chooses how the resulting delegated session is stored when it
-issues the grant. The default is `ToolSessionPolicy.REPLACE`, which replaces
-the user's other sessions for the same provider. The selected policy is bound
-to the launch grant; an exchange client cannot choose or upgrade it.
-
-Production standalone tools must return an HTTPS launch URL. HTTP is available
-without configuration only on explicit loopback hosts (`localhost`,
-`*.localhost`, `127.0.0.0/8`, or `::1`). A temporary trusted testing deployment
-can set `PYDATALAB_TOOLS__ALLOW_INSECURE_HTTP=true` to accept non-loopback HTTP
-launch URLs from every installed standalone provider. This does not weaken
-authentication, authorization, or token exchange, but HTTP transport can expose
-launch codes, tokens, and user data and must not be used in production. The URL
-must not contain embedded username or password credentials.
-
-The example also advertises **Open selected** for Samples, Inventory, and
-items within a collection. datalab validates the selection and binds it to the
-same single-use launch grant. After the exchange, the provider returns it to
-the page alongside the tool access token:
-
-```python
-if result.selection is not None:
-    response_data["selection"] = {
-        "action": result.selection.action_id,
-        "items": list(result.selection.item_refcodes),
-    }
-```
-
-A launch from the Tools menu has no selection.
-
-The exchange route consumes the code for the same browser user:
-
-```python
-result = exchange_launch_code(
-    code,
+code = grants.issue_service_launch(
     TOOL_ID,
-    TOOL_ID,
-    expected_user_id=str(current_user.person.immutable_id),
+    settings.callback_url,
+    lifetime_seconds=5 * 60,
 )
+return f"{settings.login_url}#datalab_launch_code={code}"
 ```
 
-There is no login helper or decorator in this provider. Because its blueprint
-uses the default `ToolRouteAuth.BROWSER` policy, datalab authenticates every
-route before calling it and rejects *tool access token* issuance requests from untrusted
-origins. `expected_user_id` separately ensures that the *tool launch grant* belongs to
-that authenticated browser user. This required, keyword-only argument must be a
-non-empty immutable user ID; omitting it is an error rather than an unbound
-exchange.
-
-Confidential services use a separate API. After datalab has authenticated the
-client through a `ToolRouteAuth.SERVICE` provider route, the handler can call
-`exchange_service_launch_code(code, TOOL_ID, CLIENT_ID)`. That helper performs
-no browser-user binding and does not authenticate the caller, so it must never
-be used as a browser login or single-sign-on primitive. It remains available
-only for confidential, non-browser workflows whose authorization does not
-depend on the user operating a browser.
-
-### Browser login for a confidential service
-
-A confidential service that signs a browser into a local account must use the
-browser-bound service flow instead. Its provider issues a **service launch
-request code** with a fixed callback:
-
-```python
-request_code = grants.issue_service_launch(
-    CLIENT_ID,
-    "https://tool.example.org/callback",
-)
-```
-
-The service creates a high-entropy RFC 7636 verifier, retains it in a
-short-lived, HttpOnly cookie, and sends only its unpadded `S256` challenge and
-the exact `code_challenge_method=S256` value to
-`/v0.1/tools/<tool-id>/service-launch/authorize`. datalab matches and consumes
-the request only for the current active browser-session user, then returns a
-different one-use **service authorization code** to the stored callback. The
-authenticated provider route completes the exchange:
+The confidential `/exchange` route accepts only an authorization code and PKCE
+verifier, then calls only the browser-bound helper:
 
 ```python
 result = exchange_authorized_service_launch_code(
     authorization_code,
     code_verifier,
     TOOL_ID,
-    CLIENT_ID,
-    expected_user_id=existing_service_subject,
+    TOOL_ID,
+    tool_session_lifetime_seconds=5 * 60,
 )
 ```
 
-datalab alone validates both codes' hashes, purpose, expiry, tool, client, and
-user binding. Confidential client authentication proves which service is
-calling; it does not prove which datalab user is operating the browser. When a
-service already has a local login, it must pass the immutable datalab subject as
-`expected_user_id` and verify the returned subject again before replacing local
-authentication state. XSRF protects the service's same-origin POST endpoints,
-but does not establish the datalab user and does not replace this binding.
+The exchange route calls only the browser-authorized service helper. Client
+credentials authenticate the external process; they do not identify the
+browser user.
 
-The request code, authorization code, PKCE verifier, and challenge are
-short-lived handoff material, not API tokens. “Same browser” means the same
-relevant datalab and service cookie contexts, not necessarily the same tab.
-Selected items remain launch context and never become authorization scope.
+## External reference process
 
-## Access and credential details
+The reference app has only `/`, `/healthz`, `/datalab-login`, and
+`/datalab-callback`. The two handoff GETs use the same tiny page template. Its
+nonce-authorized script reads the fragment, clears the address bar before
+validation, and submits the expected field to the same origin.
 
-The *launch code* and *tool access token* are different objects:
+The login POST checks its Origin and CSRF cookie, creates an RFC 7636 `S256`
+verifier/challenge pair, stores only the verifier in a five-minute HttpOnly
+cookie, and redirects to Datalab. The callback POST checks a separate CSRF
+cookie and the verifier, performs the confidential exchange, and sends the
+returned token in one backend `DATALAB-API-KEY` request to
+`/v0.1/get-current-user/`. It renders the result only after that response's
+`immutable_id` matches the exchange subject.
 
-| Value | Lifetime | Who sees it | What it can do |
-|---|---|---|---|
-| *Launch code* | About 60 seconds, single use | The launched tool page | Can be exchanged once |
-| *Tool access token* | About 24 hours by default | The trusted tool page or backend | Authenticates API calls as the *current user* |
+The token never enters HTML, JavaScript, browser cookies or storage, URLs,
+logs, or committed configuration. Refreshing the callback result cannot repeat
+the exchange; the user must launch again. A second launch replaces the single
+PKCE cookie, so latest launch wins.
 
-The page removes the *launch code* from the URL before doing anything else:
+## Configuration and running both runtimes
 
-```javascript
-launchUrl.hash = "";
-window.history.replaceState({}, "", launchUrl);
-```
+For `hello-standalone`, configure:
 
-That prevents the *launch code* from being copied, bookmarked, leaked through
-screenshots, or left in browser history. The *tool access token* is kept in memory and
-sent only in API request headers:
-
-```javascript
-fetch(`${apiPrefix}/samples/`, {
-  credentials: "omit",
-  headers: { "DATALAB-API-KEY": exchange.tool_access_token },
-});
-```
-
-A provider that needs another lifecycle can opt in explicitly:
-
-```python
-from pydatalab.tools import ToolSessionPolicy
-
-code = grants.issue(TOOL_ID, session_policy=ToolSessionPolicy.INDEPENDENT)
-```
-
-The three policies are:
-
-| Policy | Sequential behavior |
+| Variable | Used by |
 |---|---|
-| `REPLACE` | Issue a new canonical token and revoke other sessions for this user and provider. This is the default. |
-| `REUSE_OR_REPLACE` | Reuse the exact eligible canonical candidate supplied by the trusted application, or perform `REPLACE` on any miss. |
-| `INDEPENDENT` | Issue another token without revoking existing sessions. |
+| `DATALAB_HELLO_STANDALONE_PUBLIC_URL` | provider and service |
+| `DATALAB_HELLO_STANDALONE_DATALAB_BROWSER_API_URL` | service |
+| `DATALAB_HELLO_STANDALONE_DATALAB_API_URL` | service |
+| `DATALAB_HELLO_STANDALONE_CLIENT_SECRET` | provider and service |
+| `DATALAB_HELLO_STANDALONE_COOKIE_SECRET` | service |
 
-The **canonical session** is the single deterministic session record maintained
-for one user and provider by `REPLACE`. Only its token can be reused by
-`REUSE_OR_REPLACE`; independently issued sessions use separate records and are
-not reuse candidates.
+The public URL is an origin without a path. The two Datalab URLs are bases
+before `/v0.1` and may contain a deployment root prefix. All three require HTTPS
+outside explicit loopback development. Generate two distinct secrets of at
+least 32 characters and keep them in deployment secret management, not Git or
+Copier answers.
 
-For `REUSE_OR_REPLACE`, pass the token already held by the trusted application
-as `candidate_tool_access_token` and, if needed, require a minimum remaining
-lifetime:
-
-```python
-code = grants.issue(
-    CLIENT_ID,
-    session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
-)
-
-# Later, in the authenticated service exchange route:
-result = exchange_service_launch_code(
-    code,
-    TOOL_ID,
-    CLIENT_ID,
-    candidate_tool_access_token=existing_token,
-    minimum_reuse_lifetime_seconds=10 * 60,
-)
-```
-
-This legacy helper example applies only to a non-browser confidential workflow.
-A service using the browser as a login or SSO channel must use the
-browser-bound flow above.
-
-`result.session_reused` is true only when the returned raw token is exactly the
-candidate. Ordinary reuse preserves its existing expiry. A missing, expired,
-near-expiry, or wrongly bound candidate safely falls back to replacement. The
-exchange rejects a non-string or excessively long candidate before consuming
-the grant. Reuse also falls back when the candidate would live longer than the
-lifetime requested by the provider or when another active independent session
-exists.
-
-### Explicit session renewal
-
-A trusted provider can additionally authorize an explicit renewal request for
-a `REUSE_OR_REPLACE` grant:
-
-```python
-code = grants.issue(
-    CLIENT_ID,
-    session_policy=ToolSessionPolicy.REUSE_OR_REPLACE,
-    allow_session_renewal=True,
-)
-
-result = exchange_service_launch_code(
-    code,
-    TOOL_ID,
-    CLIENT_ID,
-    candidate_tool_access_token=existing_token,
-    minimum_reuse_lifetime_seconds=10 * 60,
-    renew_existing_session=True,
-)
-```
-
-Permission and request are separate: the provider binds
-`allow_session_renewal=True` into the single-use grant, while the trusted
-exchange caller requests renewal with `renew_existing_session=True`. A caller
-cannot add permission during exchange. An unauthorized request consumes the
-grant and changes no session.
-
-A successful renewal preserves the raw token, hash, canonical session ID,
-bindings, and original creation time. It changes only `expires_at`, using the
-earlier of 24 hours from the exchange and seven days from original creation.
-Renewal never revives an expired credential and never applies to independently
-issued sessions. `result.session_renewed` is true only when this exchange's
-conditional update advanced the expiry; it implies `result.session_reused`.
-When another renewal wins the same update, the result can report reused true
-and renewed false with the authoritative stored expiry.
-
-Renewal extends the useful lifetime of every copy of the bearer token,
-including a stolen copy. A provider that exposes it must put the request behind
-an appropriate trusted confirmation or consent boundary. Do not renew from
-ordinary API activity, background timers, or token authentication.
-
-Independent tokens have the same provider-level authority for the user. They
-do not create isolated processes, filesystems, item scopes, or permissions.
-Use them only when the provider is prepared to manage concurrent credentials.
-A later `REPLACE` or unsuccessful `REUSE_OR_REPLACE` collapses those sessions
-back to one canonical token.
-
-These guarantees are sequential. Renewal uses one exact conditional update and
-one bounded reread if it loses; it does not provide a distributed lock or make
-launches linearizable. Concurrent replacements remain last-writer-wins, and a
-token returned by reuse or renewal can be revoked immediately by a later
-exchange. datalab stores only token hashes in the existing `tool_sessions`
-collection; enabling these policies requires neither raw-token storage nor a
-database migration or new index.
-
-With the default policy, a successful relaunch replaces the user's previous
-tool access token for that provider, even if the new launch uses a different
-`client_id`. A tool must handle HTTP 401 by asking the user to relaunch.
-
-Do not store *tool access tokens* in local storage, session storage, notebooks,
-persistent files, URLs, analytics, or logs. The token is short-lived, but while
-it is valid it carries the user's identity, ownership, and group-based access.
-Its effective role is always `user`, so an administrator's delegated token
-cannot activate `?sudo=1`, modify other users' objects based on the account's
-administrator role, or pass direct administrator-role checks. The role returned
-by the launch exchange is this effective delegated role.
-
-### Temporary access restrictions
-
-Access given to a standalone tool is temporary. A tool cannot turn this into
-long-lived access by creating API keys or item access tokens. It also cannot
-change the user's profile or sign-in methods. If an item access token is
-needed, e.g. for a QR code on a physical sample, the user must create it
-from datalab in their browser.
-
-## Install and run
-
-Add the plugin to the datalab checkout's root `plugins.toml`:
+Install and restart the provider in Datalab:
 
 ```toml
 dependencies = ["datalab-hello-standalone-tool"]
@@ -354,31 +152,48 @@ dependencies = ["datalab-hello-standalone-tool"]
 datalab-hello-standalone-tool = { path = "../datalab-standalone-tool-plugin-example", editable = true }
 ```
 
-Install the plugin into the datalab environment:
-
 ```shell
 cd pydatalab
 uv run invoke dev.install
 ```
 
-For Docker Compose development, rebuild the API image after adding the plugin:
+Start the external process separately:
 
 ```shell
-docker compose --profile dev up --build
+cd ../datalab-standalone-tool-plugin-example
+uv sync --locked --extra service
+uv run gunicorn --bind 127.0.0.1:8000 \
+  'datalab_hello_standalone_tool.service:create_app()'
 ```
 
-Open datalab, click **Tools**, and choose **Hello standalone**.
-The example repository's [installation guide](https://github.com/Matgenix/datalab-standalone-tool-plugin-example/blob/main/INSTALL.md)
-is the source for its exact setup commands. If a real tool launches a separate
-service, document and deploy it according to the
-[standalone-service boundary](../deployment.md#plugin-provided-standalone-services).
+Installing the plugin does not start this process, and core Compose does not
+own it. The provider wheel and service image must come from the same reviewed
+release. See [deployment](../deployment.md#plugin-provided-standalone-services)
+for proxy and logging requirements.
 
-## Common errors
+## When the application grows
+
+The Hello app deliberately stops before application lifecycle. If a real app
+keeps a local login, workspace, token, or other user-owned state, it must:
+
+- recover the already established immutable Datalab subject;
+- require and pass it as `expected_user_id` during exchange;
+- verify the returned subject again before changing local state;
+- protect tokens in a reviewed server-side store; and
+- define renewal, logout, and account-switch behavior.
+
+[`datalab-jupyter`](https://github.com/Matgenix/datalab-jupyter) is the concrete
+reference for a continuing external application. It retains identity and auth
+state, manages user-server lifecycle, and serves durable workspaces. The Hello
+example proves the same external-process boundary without copying those
+features.
+
+## Troubleshooting
 
 | Symptom | Likely cause |
 |---|---|
-| Tool does not appear | The package is not installed, the entry point did not load, or the API server was not restarted |
-| `Invalid or expired launch code` | The page was refreshed after the code was consumed, or launch took longer than the *tool launch grant lifetime* |
-| `Authentication required` | The route was called without a datalab *browser session* |
-| `A browser session is required` | The caller used an inactive account, permanent key, or *tool access token* instead of the *browser session* |
-| `Untrusted request origin` | The exchange request did not come from the configured datalab frontend/API origin |
+| Tool is absent | Provider package is not installed, enabled, or loaded after API restart |
+| Launch opens but fails | External service is down, its public URL is wrong, or provider/service releases differ |
+| Authorization fails | Datalab browser user differs from the launch user, or the request expired |
+| Callback fails | PKCE/CSRF cookie is missing, latest launch replaced it, or the code was already consumed |
+| Service returns a generic error | Exchange schema, identity request, or immutable subject check failed |

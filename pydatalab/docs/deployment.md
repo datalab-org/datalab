@@ -185,6 +185,14 @@ in the datalab API. It does not deploy a separately hosted application. Core
 datalab Compose files do not start plugin-owned services; include a companion
 service only when the plugin's deployment guide explicitly requires it.
 
+The generated Hello standalone project is such a companion service. Its public
+origin, browser-facing Datalab API base, backend Datalab API base, confidential
+client secret, and cookie-signing secret are independent deployment settings.
+Keep both secrets distinct and outside source control and image layers. Route
+`/datalab-login` and `/datalab-callback` directly to the service, enforce a 2
+KiB request-body limit at the proxy, and health-check `/healthz`. The public and
+both API URLs require TLS outside explicit loopback development.
+
 For each standalone service:
 
 1. Review and pin both the provider package and service artifact.
@@ -199,20 +207,18 @@ For each standalone service:
    upgrade and rollback procedures.
 4. Identify privileged host resources, such as the Docker socket, and expose
    them only to reviewed immutable code.
-5. Disable request and header logging for launch codes, authorization codes,
-   PKCE verifiers, tool-token exchange bodies, cookies, and redirect `Location`
-   values containing fragments, then verify the behavior through the production
+5. Disable request-body logging and logging of `Authorization`, cookies,
+   `DATALAB-API-KEY`, launch/authorization codes, PKCE verifiers, and redirect
+   `Location` values containing fragments. Verify this through the production
    proxy.
 
 Browser-login services use existing API and service proxy prefixes for the
 core authorization page and service callback. Serve both fragment-clearing
 pages directly: an intermediate canonical-host or path redirect becomes part of
 the credential boundary because browsers can preserve fragments across it.
-Upgrade and roll back datalab core, the provider, and the external service
-together. Mixed old/new browser-login protocols intentionally fail closed, but
-an old provider and old service running on a new core can still invoke the
-retained legacy non-browser exchange helper and must not remain exposed during a
-partial rollout.
+Deploy matching reviewed versions of datalab core, the provider, and the
+external service. The provider should expose only the browser-authorized
+exchange used by its external service.
 
 The plugin repository is the source of truth for service-specific settings,
 artifacts, Compose overlays, and security limitations. For example,

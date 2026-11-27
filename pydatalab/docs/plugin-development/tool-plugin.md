@@ -177,11 +177,12 @@ authenticated API calls, navigation, host components, dialogs, and selection;
 do not import private webapp stores or source paths. Continue with the
 [in-app tutorial](in-app-tool-plugin.md).
 
-For a standalone tool, `launch()` issues a single-use launch code and returns a
-URL. The external page exchanges the code for a temporary, tool-bound credential
-and calls normal datalab API endpoints. The exchange, token handling,
-relaunch behavior, and browser-versus-service authentication rules are security
-critical; implement them exactly as shown in the
+The generated standalone variant contains two runtimes: a provider adapter in
+Datalab and a separately started external reference process. Flask/Gunicorn are
+replaceable; preserve the browser-authorized PKCE, confidential exchange,
+subject check, and backend token-custody boundary when using another framework.
+The exchange, token handling, relaunch behavior, and browser-versus-service
+authentication rules are security critical; follow the
 [standalone tutorial](standalone-tool-plugin.md).
 
 Trusted provider code can bind a delegated-session policy to each launch grant.
@@ -223,8 +224,9 @@ Before publishing a release:
    deployment guide containing the exact distribution name, extras, settings,
    and any companion services.
 2. Run the Python tests, frontend build if present, and pre-commit checks.
-3. Run `uv build` and inspect the wheel to ensure package data, including the
-   in-app bundle or standalone static page, is present.
+3. Run `uv build` and inspect the wheel to ensure expected package data is
+   present. For standalone projects, also build and health-check the independent
+   service image from the same revision.
 4. Tag a semantic version and publish an immutable release artifact. State the
    compatible datalab versions and preserve upgrade notes in the changelog.
 

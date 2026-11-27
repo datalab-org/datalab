@@ -6,12 +6,13 @@ recent changes described in the [release notes on GitHub](https://github.com/dat
 
 ## Unreleased
 
+- Add a standalone tool template and Hello example with an external process,
+  host-installed provider, browser-authorized PKCE handoff, confidential
+  backend exchange, and one subject-checked API request.
 - Add a browser-authorized confidential-service launch handoff using distinct
   request and authorization codes, fixed RFC 7636 `S256` proof, atomic user and
   client binding, strict callback transport validation, and a generic core
-  authorization bridge. Existing browser tools and non-browser confidential
-  exchanges retain their established APIs; browser-login providers require a
-  coordinated provider and service upgrade.
+  authorization bridge.
 
 ## v0.7.12 (October 2026)
 
