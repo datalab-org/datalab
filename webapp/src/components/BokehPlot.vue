@@ -5,14 +5,10 @@
 </template>
 
 <script>
-// BokehJS is bundled from the `@bokeh/bokehjs` package rather than loaded from a CDN.
-// The package's default entry point additionally pulls in the WebGL, API and MathJax
-// modules (~10 MB of `mathjax-full` alone), none of which are used by our plots, so the
-// three modules matching the old CDN bundles are imported directly instead. The two
-// side-effect imports register the widget and table models with the Bokeh model registry.
-import * as Bokeh from "@bokeh/bokehjs/build/js/lib/main";
-import "@bokeh/bokehjs/build/js/lib/models/widgets/main";
-import "@bokeh/bokehjs/build/js/lib/models/widgets/tables/main";
+import { loadBokeh } from "@/utils/bokeh.js";
+
+// Set once BokehJS has loaded, for cleaning up plots synchronously
+let Bokeh = null;
 // var BokehDoc = null
 
 export default {
@@ -63,6 +59,7 @@ export default {
         console.log(this.bokehPlotData);
 
         try {
+          Bokeh = await loadBokeh();
           const targetElement = document.getElementById(this.unique_id);
           if (!targetElement) {
             console.warn(`Target element ${this.unique_id} not found, skipping Bokeh render`);
@@ -100,7 +97,7 @@ export default {
       }
     },
     cleanupBokehPlot() {
-      if (this.BokehDoc) {
+      if (this.BokehDoc && Bokeh) {
         console.log("cleaning up bokeh plot");
         try {
           this.BokehDoc.clear();

@@ -28,7 +28,7 @@
 
 <script>
 import Navbar from "@/components/Navbar";
-import ItemGraph from "@/components/ItemGraph";
+import { ItemGraph } from "@/utils/itemGraph.js";
 import { getItemGraph } from "@/server_fetch_utils.js";
 
 export default {

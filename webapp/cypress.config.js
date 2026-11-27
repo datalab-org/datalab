@@ -30,12 +30,12 @@ function getLoginTokens(projectRoot) {
 module.exports = defineConfig({
   projectId: "4kqx5i",
   e2e: {
-    baseUrl: "http://localhost:8080",
+    baseUrl: "http://localhost:8081",
     apiUrl: "http://localhost:5001",
     defaultCommandTimeout: 10000,
-    env: {
+    expose: {
       // Collect coverage only from an app built with `DATALAB_E2E_COVERAGE=true` (see
-      // `babel.config.js`), as `@cypress/code-coverage` warns on every test otherwise
+      // `vite.config.mjs`), as `@cypress/code-coverage` warns on every test otherwise
       coverage: process.env.DATALAB_E2E_COVERAGE === "true",
     },
     setupNodeEvents(on, config) {
@@ -47,7 +47,8 @@ module.exports = defineConfig({
     },
   },
   component: {
-    // Avoid port 8080's macOS WebSocket issue and the usual local dev-server port, 8081.
+    // Avoid 8080, which macOS can take for its parental controls service (see #2293), and
+    // the local dev-server port, 8081.
     port: 8082,
     setupNodeEvents(on) {
       // Lets component tests print to the terminal output, e.g., measured DOM sizes
@@ -59,8 +60,8 @@ module.exports = defineConfig({
       });
     },
     devServer: {
-      framework: "vue-cli",
-      bundler: "webpack",
+      framework: "vue",
+      bundler: "vite",
     },
   },
 });

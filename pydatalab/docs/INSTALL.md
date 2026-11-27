@@ -32,8 +32,8 @@ Your local development *datalab* can be configured with all the options as a rea
 
 There are two main options for creating a local installation:
 
-1) Natively on your host machine, with a Python virtual environment for the server and Node.js for the web app.
-2) Using Docker with docker compose for a consistent, reproducible environment.
+1. Natively on your host machine, with a Python virtual environment for the server and Node.js for the web app.
+2. Using Docker with docker compose for a consistent, reproducible environment.
 
 ### Docker development environment
 
@@ -141,7 +141,7 @@ installation procedure.
 
 ###### Running the development server
 
-1. Run the server from the `pydatalab` folder with either:
+Run the server from the `pydatalab` folder with either:
 
 === "Launching with `uv`"
 

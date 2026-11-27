@@ -476,7 +476,11 @@ def serve(
     if debug and "PYDATALAB_DEBUG" not in os.environ:
         os.environ["PYDATALAB_DEBUG"] = "1"
 
+    from pydatalab.config import CONFIG
     from pydatalab.main import create_app
+
+    # The dev web app can only log in from the `APP_URL` origin (see CORS in `main.py`)
+    CONFIG.APP_URL = CONFIG.APP_URL or "http://localhost:8081"
 
     create_app(env_file=env_path).run(host=host, port=port, debug=debug, use_reloader=reload)
 
@@ -642,8 +646,7 @@ def list_test_users(_):
 
     if CONFIG.DISABLE_MAGIC_LINK_AUTH:
         raise SystemExit("Test-user login links require magic-link auth to be enabled.")
-    if not CONFIG.APP_URL:
-        raise SystemExit("Test-user login links require PYDATALAB_APP_URL to point to the webapp.")
+    CONFIG.APP_URL = CONFIG.APP_URL or "http://localhost:8081"
 
     database = get_database()
 
