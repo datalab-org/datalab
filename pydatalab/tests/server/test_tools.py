@@ -1,3 +1,5 @@
+import html
+import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qs, urlsplit
@@ -2238,6 +2240,13 @@ def _service_launch_form(code: str) -> dict[str, str]:
     }
 
 
+def _service_launch_navigation_target(response) -> str:
+    page = response.get_data(as_text=True)
+    match = re.search(r'id="navigation-target" type="hidden" value="([^"]+)"', page)
+    assert match is not None
+    return html.unescape(match.group(1))
+
+
 def test_service_launch_authorization_get_is_credential_free_strict_and_hardened(
     unauthenticated_session_client, tool_registry
 ):
@@ -2249,7 +2258,7 @@ def test_service_launch_authorization_get_is_credential_free_strict_and_hardened
 
         assert response.status_code == 200
         assert response.headers["Cache-Control"] == "no-store"
-        assert response.headers["Referrer-Policy"] == "no-referrer"
+        assert response.headers["Referrer-Policy"] == "same-origin"
         assert response.headers["X-Content-Type-Options"] == "nosniff"
         assert "default-src 'none'" in response.headers["Content-Security-Policy"]
         assert "form-action 'self'" in response.headers["Content-Security-Policy"]
@@ -2301,8 +2310,9 @@ def test_service_launch_authorization_is_owner_only_and_redirects_to_stored_call
         data=_service_launch_form(code),
         headers={"Origin": "http://localhost"},
     )
-    assert authorized.status_code == 303
-    location = urlsplit(authorized.headers["Location"])
+    assert authorized.status_code == 200
+    navigation_target = _service_launch_navigation_target(authorized)
+    location = urlsplit(navigation_target)
     assert (location.scheme, location.netloc, location.path) == (
         "https",
         "hub.example.test",
@@ -2312,10 +2322,12 @@ def test_service_launch_authorization_is_owner_only_and_redirects_to_stored_call
     fragment = parse_qs(location.fragment, strict_parsing=True)
     assert set(fragment) == {"datalab_authorization_code"}
     assert len(fragment["datalab_authorization_code"][0]) == 43
-    assert code not in authorized.headers["Location"]
+    assert code not in navigation_target
     assert authorized.headers["Cache-Control"] == "no-store"
-    assert authorized.headers["Referrer-Policy"] == "no-referrer"
+    assert authorized.headers["Referrer-Policy"] == "same-origin"
     assert authorized.headers["X-Content-Type-Options"] == "nosniff"
+    assert "form-action 'self'" in authorized.headers["Content-Security-Policy"]
+    assert "script-src 'nonce-" in authorized.headers["Content-Security-Policy"]
 
     replay = session_client.post(
         "/tools/example-tool/service-launch/authorize",
@@ -2344,14 +2356,15 @@ def test_service_launch_callback_ignores_forwarded_host_headers(
         },
     )
 
-    assert response.status_code == 303
-    callback = urlsplit(response.headers["Location"])
+    assert response.status_code == 200
+    navigation_target = _service_launch_navigation_target(response)
+    callback = urlsplit(navigation_target)
     assert (callback.scheme, callback.netloc, callback.path) == (
         "https",
         "hub.example.test",
         "/hub/datalab-callback",
     )
-    assert "hostile" not in response.headers["Location"]
+    assert "hostile" not in navigation_target
 
 
 def test_service_launch_authorization_post_requires_browser_session_origin_and_provider(

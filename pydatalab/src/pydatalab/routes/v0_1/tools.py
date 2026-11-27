@@ -5,7 +5,7 @@ import json
 import secrets
 from urllib.parse import urlencode
 
-from flask import Blueprint, current_app, jsonify, make_response, redirect, request
+from flask import Blueprint, current_app, jsonify, make_response, request
 from flask_login import current_user
 from pydantic import ValidationError
 
@@ -47,7 +47,7 @@ def _secure_service_launch_response(response, *, script_nonce: str | None = None
         directives.append(f"script-src 'nonce-{script_nonce}'")
     directives.extend(("form-action 'self'", "base-uri 'none'", "frame-ancestors 'none'"))
     response.headers["Cache-Control"] = "no-store"
-    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Referrer-Policy"] = "same-origin"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Content-Security-Policy"] = "; ".join(directives)
     return response
@@ -105,6 +105,29 @@ if (!valid) {{
   }});
   form.submit();
 }}
+</script>
+</body>
+</html>
+"""
+    response = make_response(page, 200)
+    response.mimetype = "text/html"
+    return _secure_service_launch_response(response, script_nonce=nonce)
+
+
+def _service_launch_navigation_response(location: str):
+    """Navigate to a validated callback without weakening the form-action policy."""
+
+    nonce = secrets.token_urlsafe(18)
+    target = html.escape(location, quote=True)
+    page = f"""<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Opening external service</title></head>
+<body>
+<p>Opening external service…</p>
+<input id="navigation-target" type="hidden" value="{target}">
+<script nonce="{nonce}">
+"use strict";
+window.location.replace(document.getElementById("navigation-target").value);
 </script>
 </body>
 </html>
@@ -296,7 +319,7 @@ def authorize_service_launch(tool_id: str):
         return _invalid_service_launch_response()
 
     location = f"{authorization.callback_url}#{urlencode({'datalab_authorization_code': authorization.authorization_code})}"
-    return _secure_service_launch_response(redirect(location, code=303))
+    return _service_launch_navigation_response(location)
 
 
 @TOOLS.route("/tools/<string:tool_id>/selection/exchange", methods=["POST"])
