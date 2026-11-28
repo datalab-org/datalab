@@ -16,6 +16,8 @@ administration"](deployment.md).
 These can be provided as either:
     - environment variables with the appropriate `FLASK_` or `PYDATALAB_` prefix (for options that are also in the config model from option 1.)
     - an `.env` file in the directory from which `pydatalab` is launched (NB: here, the `FLASK_` prefix is not required, but any options present in the pydatalab config must still have the `PYDATALAB_` prefix).
+    - In production Docker Compose, `pydatalab/.env` is loaded when the API container starts
+      and is excluded from the image.
 3. Web app configuration, such as the URL of the relevant *datalab* API and branding (logo URLs, external homepage links).
     - These are typically provided as a `.env` file in the directory from which the webapp is built/served.
     - In the production Docker image they are instead read from the container's environment each time it starts, so changing them only requires recreating the container, not rebuilding the image. They are written to a `config.js` that is served publicly, so must never contain secrets.

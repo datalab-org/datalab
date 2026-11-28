@@ -17,7 +17,11 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import pydatalab.mongo
 from pydatalab import __version__
 from pydatalab.config import CONFIG
-from pydatalab.feature_flags import check_feature_flags
+from pydatalab.feature_flags import (
+    AI_API_KEY_ENV_VARS,
+    RUNTIME_CONFIG_ENV_VARS,
+    check_feature_flags,
+)
 from pydatalab.logger import LOGGER, request_id_var
 from pydatalab.login import LOGIN_MANAGER
 from pydatalab.send_email import MAIL
@@ -65,6 +69,12 @@ def create_app(
     else:
         app.config.update(dotenv_values(dotenv_path=env_file))
 
+    # Docker and other production environments inject these documented values
+    # at runtime. Process environment values take precedence over dotenv files.
+    app.config.update(
+        {key: os.environ[key] for key in RUNTIME_CONFIG_ENV_VARS if key in os.environ}
+    )
+
     # Testing config: to enable OAuth2 on dev servers without https, we need to control the
     # OAUTHLIB_INSECURE_TRANSPORT setting. If this is provided in the .env file, we also need
     # to set it as an environment variable for the underlying oauthlib library to pick it up
@@ -72,7 +82,7 @@ def create_app(
         os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = app.config["OAUTHLIB_INSECURE_TRANSPORT"]
 
     # Set LLM API keys as env vars if present in the flask config
-    for key in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
+    for key in AI_API_KEY_ENV_VARS:
         if app.config.get(key):
             os.environ[key] = app.config[key]
 

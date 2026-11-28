@@ -8,7 +8,13 @@ from pydantic import BaseModel
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 
-__all__ = ("FEATURE_FLAGS", "check_feature_flags", "FeatureFlags")
+__all__ = (
+    "AI_API_KEY_ENV_VARS",
+    "FEATURE_FLAGS",
+    "RUNTIME_CONFIG_ENV_VARS",
+    "check_feature_flags",
+    "FeatureFlags",
+)
 
 
 class AuthMechanisms(BaseModel):
@@ -41,6 +47,51 @@ the enabled features of the app at a higher-level to the
 configuration (e.g., includes runtime environment checks).
 """
 
+# Flask and ServerConfig automatically load FLASK_ and PYDATALAB_ variables. Unprefixed
+# integration variables (mail settings, OAuth credentials, and AI API keys) are not loaded
+# automatically, so define them here to copy them into app.config and keep runtime loading
+# and feature checks in sync.
+_MAIL_CONFIG_ENV_VARS = ("MAIL_PASSWORD", "MAIL_DEFAULT_SENDER")
+
+_OAUTH_INTEGRATIONS = (
+    (
+        "github",
+        "GitHub login",
+        ("GITHUB_OAUTH_CLIENT_ID", "GITHUB_OAUTH_CLIENT_SECRET"),
+    ),
+    (
+        "google",
+        "Google login",
+        ("GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"),
+    ),
+    (
+        "microsoft",
+        "Microsoft login",
+        ("MICROSOFT_OAUTH_CLIENT_ID", "MICROSOFT_OAUTH_CLIENT_SECRET"),
+    ),
+    (
+        "orcid",
+        "ORCID login",
+        ("ORCID_OAUTH_CLIENT_ID", "ORCID_OAUTH_CLIENT_SECRET"),
+    ),
+)
+
+_AI_INTEGRATIONS = (
+    ("openai", "OpenAI integration", "OPENAI_API_KEY"),
+    ("anthropic", "Anthropic integration", "ANTHROPIC_API_KEY"),
+)
+
+AI_API_KEY_ENV_VARS = tuple(api_key for _, _, api_key in _AI_INTEGRATIONS)
+RUNTIME_CONFIG_ENV_VARS = (
+    *_MAIL_CONFIG_ENV_VARS,
+    *(
+        variable
+        for _, _, required_variables in _OAUTH_INTEGRATIONS
+        for variable in required_variables
+    ),
+    *AI_API_KEY_ENV_VARS,
+)
+
 
 def _check_key_strength(s: str, min_entropy: float = 3.8) -> None:
     (
@@ -54,6 +105,29 @@ def _check_key_strength(s: str, min_entropy: float = 3.8) -> None:
         raise RuntimeError(
             f"`SECRET_KEY` does not have enough Shannon entropy ({shannon_entropy(s)} vs {min_entropy}), please set `CONFIG.SECRET_KEY` or the `PYDATALAB_SECRET_KEY` environment variable to a more secure value."
         )
+
+
+def _check_config_vars_and_warn(
+    app,
+    required_variables: tuple[str, ...],
+    feature: str,
+    *,
+    require_environment: bool = False,
+) -> bool:
+    """Return whether all variables required by an integration are available."""
+    for variable in required_variables:
+        if not app.config.get(variable):
+            LOGGER.warning("%s will not work: please set `%s`", feature, variable)
+            return False
+        if require_environment and not os.environ.get(variable):
+            LOGGER.warning(
+                "%s will not work: please also set `%s` as an environment variable",
+                feature,
+                variable,
+            )
+            return False
+
+    return True
 
 
 def check_feature_flags(app):
@@ -74,20 +148,25 @@ def check_feature_flags(app):
             "No email auth SMTP settings provided, email registration will not be enabled."
         )
     else:
+        mail_password_env_var, mail_default_sender_env_var = _MAIL_CONFIG_ENV_VARS
         FEATURE_FLAGS.email_notifications = True
-        if app.config["MAIL_SERVER"] and not app.config.get("MAIL_PASSWORD"):
+        if app.config["MAIL_SERVER"] and not app.config.get(mail_password_env_var):
             LOGGER.critical(
-                "CONFIG.EMAIL_AUTH_SMTP_SETTINGS.MAIL_SERVER was set to '%s' but no `MAIL_PASSWORD` was provided. "
-                "This can be passed in a `.env` file (as `MAIL_PASSWORD`) or as an environment variable.",
+                "CONFIG.EMAIL_AUTH_SMTP_SETTINGS.MAIL_SERVER was set to '%s' but no `%s` was provided. "
+                "This can be passed in a `.env` file (as `%s`) or as an environment variable.",
                 app.config["MAIL_SERVER"],
+                mail_password_env_var,
+                mail_password_env_var,
             )
             FEATURE_FLAGS.email_notifications = False
-        if not app.config["MAIL_DEFAULT_SENDER"]:
+        if not app.config[mail_default_sender_env_var]:
             LOGGER.critical(
-                "CONFIG.EMAIL_AUTH_SMTP_SETTINGS.MAIL_DEFAULT_SENDER is not set in the config. "
+                "CONFIG.EMAIL_AUTH_SMTP_SETTINGS.%s is not set in the config. "
                 "Email authentication may not work correctly."
-                "This can be set in the config above or equivalently via `MAIL_DEFAULT_SENDER` in a `.env` file, "
-                "or as an environment variable."
+                "This can be set in the config above or equivalently via `%s` in a `.env` file, "
+                "or as an environment variable.",
+                mail_default_sender_env_var,
+                mail_default_sender_env_var,
             )
             FEATURE_FLAGS.email_notifications = False
 
@@ -131,69 +210,13 @@ def check_feature_flags(app):
 
         _check_key_strength(CONFIG.SECRET_KEY)
 
-    def _check_secret_and_warn(secret: str, error: str, environ: bool = False) -> bool:
-        """Checks if a secret has been set, and if so, return True.
+    for mechanism, feature, required_variables in _OAUTH_INTEGRATIONS:
+        if _check_config_vars_and_warn(app, required_variables, feature):
+            setattr(FEATURE_FLAGS.auth_mechanisms, mechanism, True)
 
-        Otherwise, warn and return False.
-
-        Parameters:
-            secret: The secret to check.
-            error: The error message to log if the secret is missing.
-            environ: Whether the secret should also be checked as an environment variable.
-        """
-        if not app.config.get(secret):
-            LOGGER.warning("%s: please set `%s`", error, secret)
-            return False
-        if environ and not os.environ.get(secret):
-            LOGGER.warning("%s: please set as an environment variable too `%s`", error, secret)
-            return False
-
-        return True
-
-    if _check_secret_and_warn(
-        "GITHUB_OAUTH_CLIENT_ID",
-        "No GitHub OAuth client ID provided, GitHub login will not work",
-    ) and _check_secret_and_warn(
-        "GITHUB_OAUTH_CLIENT_SECRET",
-        "No GitHub OAuth client secret provided, GitHub login will not work",
-    ):
-        FEATURE_FLAGS.auth_mechanisms.github = True
-    if _check_secret_and_warn(
-        "ORCID_OAUTH_CLIENT_SECRET",
-        "No ORCID OAuth client secret provided, ORCID login will not work",
-    ) and _check_secret_and_warn(
-        "ORCID_OAUTH_CLIENT_ID", "No ORCID OAuth client ID provided, ORCID login will not work"
-    ):
-        FEATURE_FLAGS.auth_mechanisms.orcid = True
-    if _check_secret_and_warn(
-        "OPENAI_API_KEY",
-        "No OpenAI API key provided, OpenAI-based ChatBlock will not work",
-        environ=True,
-    ):
-        FEATURE_FLAGS.ai_integrations.openai = True
-    if _check_secret_and_warn(
-        "ANTHROPIC_API_KEY",
-        "No Anthropic API key provided, Claude-based ChatBlock will not work",
-        environ=True,
-    ):
-        FEATURE_FLAGS.ai_integrations.anthropic = True
-    if _check_secret_and_warn(
-        "GOOGLE_OAUTH_CLIENT_ID",
-        "No Google OAuth client ID provided, Google login will not work",
-    ) and _check_secret_and_warn(
-        "GOOGLE_OAUTH_CLIENT_SECRET",
-        "No Google OAuth client secret provided, Google login will not work",
-    ):
-        FEATURE_FLAGS.auth_mechanisms.google = True
-
-    if _check_secret_and_warn(
-        "MICROSOFT_OAUTH_CLIENT_ID",
-        "No Microsoft OAuth client ID provided, Microsoft login will not work",
-    ) and _check_secret_and_warn(
-        "MICROSOFT_OAUTH_CLIENT_SECRET",
-        "No Microsoft OAuth client secret provided, Microsoft login will not work",
-    ):
-        FEATURE_FLAGS.auth_mechanisms.microsoft = True
+    for integration, feature, api_key in _AI_INTEGRATIONS:
+        if _check_config_vars_and_warn(app, (api_key,), feature, require_environment=True):
+            setattr(FEATURE_FLAGS.ai_integrations, integration, True)
     if CONFIG.DEBUG:
         LOGGER.warning("Running with debug logs enabled")
 

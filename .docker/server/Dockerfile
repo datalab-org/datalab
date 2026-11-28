@@ -73,7 +73,7 @@ WORKDIR /app
 COPY ./pydatalab/ ./
 RUN git config --global --add safe.directory /
 
-# Install editable mode so that the server runs from a sensible place where we can stuff .env files.
+# Install in editable mode so the development image can use source changes without reinstalling the package.
 # setuptools-scm gets its version from SETUPTOOLS_SCM_PRETEND_VERSION (build arg above) rather than
 # a `.git` bind mount, so this layer doesn't invalidate on every commit.
 RUN uv pip install --python /opt/.venv/bin/python --no-deps --editable .

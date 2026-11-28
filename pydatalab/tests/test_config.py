@@ -100,7 +100,7 @@ def test_config_override():
     assert CONFIG.REMOTE_FILESYSTEMS[0].path == Path("/")
 
 
-def test_env_var_flask_config_override(secret_key):
+def test_env_var_flask_config_override(secret_key, tmp_path):
     """Temporarily set an environment variable and check that it gets
     passed to the flask config correctly. Also make sure that the datalab
     secret key is preferred over the env var.
@@ -110,9 +110,15 @@ def test_env_var_flask_config_override(secret_key):
 
         m.setenv("FLASK_MAIL_PASSWORD_MOCK", "env_password")
         m.setenv("FLASK_SECRET_KEY", "too-short")
-        app = create_app()
+        m.setenv("MAIL_PASSWORD", "runtime_password")
+        m.setenv("DATALAB_UNRELATED_CONFIG", "not_app_config")
+        env_file = tmp_path / ".env"
+        env_file.write_text("MAIL_PASSWORD=dotenv_password\n")
+        app = create_app(env_file=env_file)
         assert app.config["MAIL_PASSWORD_MOCK"] == "env_password"  # noqa: S105
         assert app.config["SECRET_KEY"] == secret_key  # noqa: S105
+        assert app.config["MAIL_PASSWORD"] == "runtime_password"  # noqa: S105
+        assert "DATALAB_UNRELATED_CONFIG" not in app.config
 
 
 def test_validators():

@@ -4,9 +4,12 @@
 **/build
 **/files
 
-# The production image takes its settings at runtime; a local `.env` should not
-# end up compiled into the bundle.
-webapp/.env*
+# Configuration secrets belong in the runtime environment, not in images.
+**/.env*
+**/*.env
+!**/.env.example
+!**/.env.sample
+!**/.env.template
 
 # Plugin panels are generated from the installed Python environment during the
 # frontend image build. Never let stale host-generated output enter that build.
