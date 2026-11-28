@@ -1,4 +1,6 @@
+import datetime
 import os
+import struct
 import warnings
 from pathlib import Path
 from typing import Any
@@ -10,7 +12,7 @@ from pybaselines import Baseline
 from renishawWiRE import WDFReader
 from scipy.signal import medfilt
 
-from pydatalab.blocks.base import DataBlock
+from pydatalab.blocks.base import DataBlock, parse_measurement_time
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 
@@ -62,6 +64,11 @@ class RamanBlock(DataBlock):
                             )
                             metadata["title"] = parsed_metadata.get("#Title", "").strip()
                             metadata["date"] = parsed_metadata.get("#Date", "").strip()
+                            # LabSpec writes dates day-first, e.g., 23.10.2023 16:11:12
+                            metadata["measured_at"] = parse_measurement_time(
+                                parsed_metadata.get("#Acquired") or parsed_metadata.get("#Date"),
+                                dayfirst=True,
+                            )
 
                 if vendor == "renishaw":
                     df = pd.DataFrame(np.loadtxt(location), columns=["wavenumber", "intensity"])
@@ -204,9 +211,30 @@ class RamanBlock(DataBlock):
 
         # Extract units
         metadata["wavenumber_unit"] = str(getattr(reader, "xlist_unit", "1/cm"))
+        metadata["measured_at"] = cls._read_wdf_start_time(location)
 
         df = pd.DataFrame({"wavenumber": wavenumbers, "intensity": intensity})
         return df, metadata
+
+    @classmethod
+    def _read_wdf_start_time(cls, location: Path | str) -> datetime.datetime | None:
+        """Read the acquisition start time from the WDF1 header block, which
+        py-wdf-reader does not expose. It is stored at offset 0x88 as a Windows
+        FILETIME (100 ns intervals since 1601-01-01 UTC)."""
+        try:
+            with open(location, "rb") as f:
+                f.seek(0x88)
+                (filetime,) = struct.unpack("<Q", f.read(8))
+        except (OSError, struct.error):
+            return None
+        if not filetime:
+            return None
+        try:
+            return datetime.datetime(1601, 1, 1, tzinfo=datetime.timezone.utc) + datetime.timedelta(
+                microseconds=filetime // 10
+            )
+        except OverflowError:
+            return None
 
     def generate_raman_plot(self):
         file_info = None
@@ -226,6 +254,7 @@ class RamanBlock(DataBlock):
                 )
             pattern_dfs, metadata, y_options = self.load(file_info["location"])
             pattern_dfs = [pattern_dfs]
+            self.set_measured_at(metadata.get("measured_at"))
 
         wavenumber_unit = metadata.get("wavenumber_unit", "Unknown unit")
         if wavenumber_unit.startswith("1/"):

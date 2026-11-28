@@ -23,13 +23,13 @@
         @click="updateBlock"
       />
       <font-awesome-icon
-        v-if="displayIndex != 0"
+        v-if="!isBlockTimelineMode() && displayIndex != 0"
         :icon="['fas', 'arrow-up']"
         class="block-header-icon"
         @click="swapUp"
       />
       <font-awesome-icon
-        v-if="displayIndex != displayOrder.length - 1"
+        v-if="!isBlockTimelineMode() && displayIndex != displayOrder.length - 1"
         :icon="['fas', 'arrow-down']"
         class="block-header-icon"
         @click="swapDown"
@@ -46,6 +46,7 @@
       :style="{ 'max-height': contentMaxHeight }"
       class="datablock-content position-relative"
     >
+      <BlockProvenance :item_id="item_id" :block_id="block_id" />
       <!-- Show any warnings or errors reported by the block -->
       <div
         v-if="block.errors"
@@ -210,6 +211,7 @@ import { createComputedSetterForBlockField } from "@/field_utils.js";
 import TiptapInline from "@/components/TiptapInline";
 import BlockTooltip from "@/components/BlockTooltip";
 import MetadataViewer from "@/components/MetadataViewer";
+import BlockProvenance from "@/components/BlockProvenance";
 
 import { deleteBlock, updateBlockFromServer } from "@/server_fetch_utils";
 
@@ -218,6 +220,10 @@ export default {
     TiptapInline,
     BlockTooltip,
     MetadataViewer,
+    BlockProvenance,
+  },
+  inject: {
+    isBlockTimelineMode: { default: () => () => false },
   },
   props: {
     item_id: {
