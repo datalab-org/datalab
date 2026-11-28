@@ -1,6 +1,6 @@
 # Pinned, as each new uv release would otherwise invalidate the cached layers below it,
 # including the dependency install
-FROM ghcr.io/astral-sh/uv:0.13.7 AS uv_image
+FROM ghcr.io/astral-sh/uv:0.13.10 AS uv_image
 
 FROM python:3.11.18-slim-trixie AS build
 ARG TARGETARCH
