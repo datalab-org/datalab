@@ -17,31 +17,17 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import pydatalab.mongo
 from pydatalab import __version__
 from pydatalab.config import CONFIG
-from pydatalab.feature_flags import check_feature_flags
+from pydatalab.feature_flags import (
+    AI_API_KEY_ENV_VARS,
+    RUNTIME_CONFIG_ENV_VARS,
+    check_feature_flags,
+)
 from pydatalab.logger import LOGGER, request_id_var
 from pydatalab.login import LOGIN_MANAGER
 from pydatalab.send_email import MAIL
 from pydatalab.utils import BSONProvider
 
 COMPRESS = Compress()
-
-# FLASK_ and PYDATALAB_ variables are loaded automatically. Add documented runtime
-# variables that use neither prefix here (e.g. OAuth credentials, mail settings,
-# or API keys) so they are copied from the process environment into app.config.
-_RUNTIME_CONFIG_ENV_VARS = (
-    "MAIL_PASSWORD",
-    "MAIL_DEFAULT_SENDER",
-    "GITHUB_OAUTH_CLIENT_ID",
-    "GITHUB_OAUTH_CLIENT_SECRET",
-    "GOOGLE_OAUTH_CLIENT_ID",
-    "GOOGLE_OAUTH_CLIENT_SECRET",
-    "MICROSOFT_OAUTH_CLIENT_ID",
-    "MICROSOFT_OAUTH_CLIENT_SECRET",
-    "ORCID_OAUTH_CLIENT_ID",
-    "ORCID_OAUTH_CLIENT_SECRET",
-    "OPENAI_API_KEY",
-    "ANTHROPIC_API_KEY",
-)
 
 
 def create_app(
@@ -86,7 +72,7 @@ def create_app(
     # Docker and other production environments inject these documented values
     # at runtime. Process environment values take precedence over dotenv files.
     app.config.update(
-        {key: os.environ[key] for key in _RUNTIME_CONFIG_ENV_VARS if key in os.environ}
+        {key: os.environ[key] for key in RUNTIME_CONFIG_ENV_VARS if key in os.environ}
     )
 
     # Testing config: to enable OAuth2 on dev servers without https, we need to control the
@@ -96,7 +82,7 @@ def create_app(
         os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = app.config["OAUTHLIB_INSECURE_TRANSPORT"]
 
     # Set LLM API keys as env vars if present in the flask config
-    for key in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
+    for key in AI_API_KEY_ENV_VARS:
         if app.config.get(key):
             os.environ[key] = app.config[key]
 
