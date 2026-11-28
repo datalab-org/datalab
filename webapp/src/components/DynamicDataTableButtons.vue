@@ -1069,7 +1069,12 @@ export default {
     async handleBulkDeleteGroups() {
       const confirmed = await DialogService.confirm({
         title: "Delete Groups",
-        message: `Are you sure you want to delete ${this.itemsSelected.length} group(s)?<br><br>This action cannot be undone.`,
+        message:
+          `Are you sure you want to delete ${this.itemsSelected.length} group(s)?` +
+          (this.$store.state.serverInfo?.features?.tags
+            ? "<br><br>Any tags belonging to these groups will also be deleted and removed from the items using them."
+            : "") +
+          "<br><br>This action cannot be undone.",
         type: "error",
         confirmButtonText: "Delete Groups",
         cancelButtonText: "Cancel",

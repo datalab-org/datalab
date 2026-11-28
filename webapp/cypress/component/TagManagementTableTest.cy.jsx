@@ -23,9 +23,35 @@ const TAGS = [
     scope: "global",
     owner: null,
   },
+  {
+    immutable_id: "t3",
+    type: "tags",
+    name: "group-tag",
+    description: null,
+    color: null,
+    scope: "group",
+    owner: "group-1",
+    owner_name: "Demo Group",
+  },
 ];
 
-function mountTable(role) {
+// The server decides who may edit/delete each tag (`can_manage` on each row of GET /tags):
+// the owner of a user-defined tag, admins for global tags, and admins and the group's
+// managers for group tags. Mirror that for the mounted role.
+function tagsFor(role, { managesGroup = false } = {}) {
+  const isAdmin = role === "admin";
+  return TAGS.map((tag) => ({
+    ...tag,
+    can_manage:
+      tag.scope === "user"
+        ? tag.owner === "self"
+        : tag.scope === "group"
+          ? isAdmin || managesGroup
+          : isAdmin,
+  }));
+}
+
+function mountTable(role, options = {}) {
   const store = createStore({
     state() {
       return {
@@ -34,7 +60,7 @@ function mountTable(role) {
         datatablePaginationSettings: {
           tags: { page: 0, rows: 20 },
         },
-        tag_list: TAGS,
+        tag_list: tagsFor(role, options),
       };
     },
   });
@@ -113,5 +139,24 @@ describe("TagManagementTable Component Tests", () => {
       .find("tr")
       .eq(1)
       .within(() => cy.get('button[title="Edit tag"]').should("not.exist"));
+  });
+
+  it("shows a group scope badge with the group's name", () => {
+    mountTable("user");
+    cy.get(".p-datatable-tbody")
+      .find("tr")
+      .eq(2)
+      .find('[data-testid="tag-scope-badge"]')
+      .should("contain.text", "Group: Demo Group");
+  });
+
+  it("lets a group manager manage the group's tags", () => {
+    // A non-admin managing the group can manage its tag as well as their own tag.
+    mountTable("user", { managesGroup: true });
+    cy.get('button[title="Edit tag"]').should("have.length", 2);
+    cy.get(".p-datatable-tbody")
+      .find("tr")
+      .eq(2)
+      .within(() => cy.get('button[title="Edit tag"]').should("exist"));
   });
 });

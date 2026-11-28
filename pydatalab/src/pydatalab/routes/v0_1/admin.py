@@ -10,8 +10,10 @@ from werkzeug.exceptions import BadRequest, Conflict, NotFound
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models.people import AccountStatus, Group, Person
+from pydatalab.models.tags import TagAccessScope
 from pydatalab.mongo import flask_mongo, gravatar_hash_for
 from pydatalab.permissions import admin_only
+from pydatalab.tags import delete_tags_and_references
 
 
 def check_manager_cycle(user_id: ObjectId, new_manager_id: ObjectId) -> bool:
@@ -555,9 +557,19 @@ def create_group():
 @ADMIN.route("/groups/<group_immutable_id>", methods=["DELETE"])
 def delete_group(group_immutable_id: str):
     if group_immutable_id is not None:
-        result = flask_mongo.db.groups.delete_one({"_id": ObjectId(group_immutable_id)})
+        group_object_id = ObjectId(group_immutable_id)
+        result = flask_mongo.db.groups.delete_one({"_id": group_object_id})
 
         if result.deleted_count == 1:
+            # The group's tags cannot be used or managed without the group: delete them
+            # and drop their references from items.
+            group_tag_ids = [
+                doc["_id"]
+                for doc in flask_mongo.db.tags.find(
+                    {"scope": TagAccessScope.GROUP.value, "owner": group_object_id}, {"_id": 1}
+                )
+            ]
+            delete_tags_and_references(group_tag_ids)
             return jsonify({"status": "success"}), 200
 
     return jsonify({"status": "error", "message": "Unable to delete group."}), 400

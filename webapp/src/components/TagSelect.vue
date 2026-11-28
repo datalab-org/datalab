@@ -17,28 +17,33 @@
       <span v-else-if="searching"> No matching tags. </span>
       <span v-else class="empty-search"> Type to search for a tag... </span>
     </template>
-    <template #option="{ name, color, description, scope }">
+    <template #option="{ name, color, description, scope, owner_name }">
       <!-- d-flex fills the option row so the description tooltip triggers anywhere on it. -->
       <span class="d-flex align-items-center" :title="description || name">
         <span v-if="color" class="color-swatch" :style="{ backgroundColor: color }"></span>
         <span>{{ name }}</span>
         <span
           class="badge badge-pill ml-auto"
-          :class="scope === 'user' ? 'badge-info' : 'badge-secondary'"
+          :class="scopeBadgeClass(scope)"
+          :title="scopeTitle(scope, owner_name)"
           data-testid="tag-scope-badge"
         >
-          <font-awesome-icon v-if="scope === 'user'" :icon="['fas', 'user']" class="mr-1" />
-          {{ scope === "user" ? "user-defined" : "global" }}
+          <font-awesome-icon
+            v-if="scopeIcon(scope)"
+            :icon="['fas', scopeIcon(scope)]"
+            class="mr-1"
+          />
+          {{ scopePillLabel(scope, owner_name) }}
         </span>
       </span>
     </template>
-    <template #selected-option="{ name, color, description, scope }">
+    <template #selected-option="{ name, color, description, scope, owner_name }">
       <span v-if="color" class="color-swatch" :style="{ backgroundColor: color }"></span>
       <font-awesome-icon
-        v-if="scope === 'user'"
-        :icon="['fas', 'user']"
+        v-if="scopeIcon(scope)"
+        :icon="['fas', scopeIcon(scope)]"
         class="mr-1"
-        title="User-defined tag"
+        :title="scopeTitle(scope, owner_name)"
       />
       <span :title="description || name">{{ name }}</span>
     </template>
@@ -89,8 +94,9 @@ export default {
             type: "tags",
             color: tag.color ?? cached.color ?? null,
             description: tag.description ?? cached.description ?? null,
-            // `scope` is display-only.
+            // `scope` and `owner_name` are display-only.
             scope: tag.scope ?? cached.scope ?? null,
+            owner_name: tag.owner_name ?? cached.owner_name ?? null,
           };
         });
       },
@@ -112,6 +118,9 @@ export default {
           if (tag.scope) {
             ref.scope = tag.scope;
           }
+          if (tag.owner_name) {
+            ref.owner_name = tag.owner_name;
+          }
           return ref;
         });
         this.$emit("update:modelValue", mapped);
@@ -127,6 +136,31 @@ export default {
     clearTimeout(this.debounceTimeout);
   },
   methods: {
+    // Display helpers for the scope marker of a tag (`scope` is "global" | "user" | "group").
+    scopeBadgeClass(scope) {
+      return { user: "badge-info", group: "badge-dark" }[scope] || "badge-secondary";
+    },
+    scopeIcon(scope) {
+      return { user: "user", group: "users" }[scope] || null;
+    },
+    scopePillLabel(scope, ownerName) {
+      if (scope === "user") {
+        return "user-defined";
+      }
+      if (scope === "group") {
+        return ownerName ? `group: ${ownerName}` : "group";
+      }
+      return "global";
+    },
+    scopeTitle(scope, ownerName) {
+      if (scope === "user") {
+        return ownerName ? `User-defined tag of ${ownerName}` : "User-defined tag";
+      }
+      if (scope === "group") {
+        return ownerName ? `Group tag of ${ownerName}` : "Group tag";
+      }
+      return "Global tag";
+    },
     async debouncedAsyncSearch(query, loading) {
       loading(true);
       clearTimeout(this.debounceTimeout); // reset the timer
